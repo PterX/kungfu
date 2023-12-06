@@ -30,7 +30,7 @@ class KungfuCoreConan(ConanFile):
     requires = [
         "fmt/8.1.1",
         "nlohmann_json/3.11.2",
-        "nng/1.5.2",
+        "nng/1.6.0",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
         # "sqlite_orm/1.7.1",

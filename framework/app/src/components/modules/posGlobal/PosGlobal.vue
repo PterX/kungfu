@@ -77,8 +77,11 @@ const {
 const { instruments } = useInstruments();
 const { getPositionLastPrice } = useQuote();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const { getInstrumentCurrencyByIds, getPriceTickAndPrecision } =
-  useActiveInstruments();
+const {
+  getInstrumentCurrencyByIds,
+  getPriceTickAndPrecision,
+  getInstrumentCurrency,
+} = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -128,9 +131,15 @@ onMounted(() => {
                 position.instrument_id,
                 position.exchange_id,
               );
+              const currency = getInstrumentCurrency(
+                position.instrument_id,
+                position.exchange_id,
+              );
 
-              return dealDataWithCache(position, () =>
-                dealPosition(watcher, position, price_precision),
+              return dealDataWithCache(
+                position,
+                () => dealPosition(watcher, position, price_precision),
+                { currency },
               );
             }),
           );
@@ -251,8 +260,10 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.PositionResolved;
 }) {
+  row.last_price = getPositionLastPrice(row, 'last_price_resolved');
   showTradingDataDetail(row, t('posGlobalConfig.pos_detail_header'), [
     'account_id_resolved',
+    'last_price_resolved',
   ]);
 }
 </script>

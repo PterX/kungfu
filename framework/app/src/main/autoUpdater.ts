@@ -1,7 +1,7 @@
 import semver from 'semver';
 import { app, ipcMain, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import {
   delayMilliSeconds,
   debounce,
@@ -25,6 +25,7 @@ import {
   Writeable,
   AllPublishOptions,
 } from '@kungfu-trader/kungfu-js-api/typings/global';
+const globalStorage = getGlobalStorage();
 
 autoUpdater.logger = kfLogger;
 let isRendererReady = false;
@@ -58,6 +59,7 @@ const getNextMinorReleaseVersion = (version: semver.SemVer) => {
 
 const getLastedSkippedVersion = () => {
   const skippedVersions = globalStorage.getItem('skippedVersions');
+
   if (skippedVersions) {
     const versionArrays = skippedVersions;
     if (Array.isArray(versionArrays)) {

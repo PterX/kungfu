@@ -29,8 +29,8 @@ public:
   FutureAccountingMethod() = default;
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
-    auto apply = [&](auto &position) {
-      if (position.volume == 0) {
+    auto apply = [&](Position &position) {
+      if (position.volume <= 0) { // only calculate when greater than 0
         return;
       }
 
@@ -111,11 +111,7 @@ public:
   }
 
   void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
-      return;
-    }
-
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
     }
 
@@ -131,15 +127,13 @@ public:
         book->asset.avail += frozen_margin;
         book->asset.frozen_cash -= frozen_margin;
         book->asset.frozen_margin -= frozen_margin;
+      } else {
+        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
         position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
-      }
-
-      if (offset == Offset::CloseToday and position.frozen_total >= order.volume_left) {
-        position.frozen_total -= order.volume_left;
       }
 
       update_position(book, position);
@@ -150,7 +144,7 @@ public:
   }
 
   void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
 
@@ -209,10 +203,10 @@ private:
     auto margin_ratio_by_pos = cm_mr.margin_ratio;
     auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
     position.margin += margin;
-    position.avg_open_price = (position.volume + trade.volume == 0)
-                                  ? 0
-                                  : (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                        double(position.volume + trade.volume);
+    if (position.volume + trade.volume > 0 && trade.price > 0) { // only calculate when greater than 0
+      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                double(position.volume + trade.volume);
+    }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
@@ -231,7 +225,6 @@ private:
     book->asset.avail -= margin;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
-    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
     book->asset.margin += margin;
   }
 
@@ -246,7 +239,7 @@ private:
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
 
     if (is_local) {
-      position.frozen_total -= trade.volume;
+      position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
       if (trade.offset != Offset::CloseToday)
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     }
@@ -318,8 +311,7 @@ private:
     auto contract_multiplier = cm_mr.contract_multiplier;
     uint32_t product_key = hash_product(trade.exchange_id, get_instrument_product(trade.instrument_id).c_str());
     if (book->commissions.find(product_key) == book->commissions.end()) {
-      // TODO comment temporarliy for backtest without commisions
-      // SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
+      SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
       return 0;
     }
     const auto &commission = book->commissions.at(product_key);

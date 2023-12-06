@@ -92,13 +92,16 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, static_equity),  // 静态权益
     (double, dynamic_equity), // 动态权益
 
-    (double, realized_pnl), // 累计收益
-    (double, unrealized_pnl),
+    (double, realized_pnl),   // 实现盈亏
+    (double, unrealized_pnl), // 未实现盈亏
 
-    (double, avail),        // 可用资金
-    (double, market_value), // 市值(股票)
+    (double, market_value),       // 市值
+    (double, long_market_value),  // 融资买入证券市值, 或otc业务市值(多)
+    (double, short_market_value), // 融券卖出证券市值, 或otc业务市值(空)
 
-    (double, margin), // 保证金(期货)
+    (double, margin),       // 保证金占用
+    (double, long_margin),  // 融资占用保证金, 或otc业务保证金占用(多)
+    (double, short_margin), // 融券占用保证金, 或otc业务保证金占用(空)
 
     (double, accumulated_fee), // 累计手续费
     (double, intraday_fee),    // 当日手续费
@@ -110,18 +113,18 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, position_pnl), // 持仓盈亏(期货)
     (double, close_pnl),    // 平仓盈亏(期货)
 
+    (double, avail),       // 可用资金
+    (double, long_avail),  // otc业务可用资金(多)
+    (double, short_avail), // otc业务可用资金(空）
+
     (double, total_asset),  // 总资产
     (double, avail_margin), // 可用保证金
-    (double, cash_margin),  // 融资占用保证金
-    (double, short_margin), // 融券占用保证金
 
-    (double, cash_debt),  // 融资负债
+    (double, long_debt),  // 融资负债
     (double, short_cash), // 融券卖出金额
 
-    (double, short_market_value),  // 融券卖出证券市值
-    (double, margin_market_value), // 融资买入证券市值
-    (double, margin_interest),     // 融资融券利息
-    (double, settlement),          // 融资融券清算资金
+    (double, margin_interest), // 融资融券利息
+    (double, settlement),      // 融资融券清算资金
 
     (double, credit),          // 信贷额度
     (double, collateral_ratio) // 担保比例
@@ -411,10 +414,13 @@ KF_DEFINE_DATA_TYPE(                                           //
 
     (uint32_t, basket_uid), // basket订单的id
 
-    (enums::Side, side),            // 买卖方向
-    (enums::Offset, offset),        // 开平方向
-    (enums::PriceType, price_type), // 价格类型
-    (int64_t, volume),              // 目标量
+    (enums::Side, side),              // 买卖方向
+    (enums::Offset, offset),          // 开平方向
+    (enums::PriceType, price_type),   // 价格类型
+    (enums::PriceLevel, price_level), // 价格级别
+    (double, price_offset),           // 价格偏移量
+
+    (int64_t, volume), // 目标量
 
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
@@ -438,9 +444,11 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (uint32_t, basket_uid), // basket订单的id
 
-    (enums::Side, side),            // 买卖方向
-    (enums::Offset, offset),        // 开平方向
-    (enums::PriceType, price_type), // 价格类型
+    (enums::Side, side),              // 买卖方向
+    (enums::Offset, offset),          // 开平方向
+    (enums::PriceType, price_type),   // 价格类型
+    (enums::PriceLevel, price_level), // 价格级别
+    (double, price_offset),           // 价格偏移量
 
     (int64_t, volume),      // 目标量
     (int64_t, volume_left), // 剩余数量
@@ -889,7 +897,8 @@ KF_DEFINE_DATA_TYPE(                                         //
     (int64_t, max_purchase_volume),                          // 申购上限
     (int64_t, max_redemption_volume),                        // 赎回上限
     (int64_t, min_volume),                                   // 最小申赎单位
-    (enums::ETFType, etf_type)                               // etf种类
+    (enums::ETFType, etf_type),                              // etf种类
+    (enums::ETFStatus, etf_status)                           // etf状态
 );
 
 KF_DEFINE_PACK_TYPE(                                                                   //

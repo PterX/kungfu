@@ -10,7 +10,8 @@ import {
   mergeObject,
   booleanProcessEnv,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import globalStorage from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+const globalStorage = getGlobalStorage();
 
 export const initKfConfig = () => {
   if (!fse.existsSync(KF_CONFIG_PATH)) {

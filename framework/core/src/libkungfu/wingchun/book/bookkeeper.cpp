@@ -21,11 +21,6 @@ Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypa
     : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
-  char *skip_sync_asset = std::getenv("KF_SKIP_SYNC_ASSET");
-  char *skip_sync_position = std::getenv("KF_SKIP_SYNC_POSITION");
-  sync_asset_ = skip_sync_asset == nullptr;
-  sync_position_ = skip_sync_position == nullptr;
-  SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 
 bool Bookkeeper::has_book(uint32_t location_uid) { return books_.find(location_uid) != books_.end(); }
@@ -56,10 +51,14 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
+  events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
   events | is(OutputKey::tag) | $$(on_output_key(event));
+  events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
+  events | is(Register::tag) | $$(on_register(event->data<Register>()));
+  events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
@@ -218,7 +217,7 @@ void Bookkeeper::try_update_position(const Position &position) {
 }
 
 void Bookkeeper::try_sync_asset(const longfist::types::Asset &asset) {
-  if (not sync_asset_ or not app_.has_location(asset.holder_uid)) {
+  if (not app_.has_location(asset.holder_uid)) {
     return;
   }
 
@@ -236,7 +235,7 @@ void Bookkeeper::try_sync_asset(const longfist::types::Asset &asset) {
 }
 
 void Bookkeeper::try_sync_position(const longfist::types::Position &position) {
-  if (not sync_position_ or not app_.has_location(position.holder_uid)) {
+  if (not app_.has_location(position.holder_uid)) {
     return;
   }
   auto book = get_book_replica(position.holder_uid);
@@ -252,7 +251,7 @@ Book_ptr Bookkeeper::get_book_replica(uint32_t location_uid) {
 }
 
 void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
-  if (not sync_position_ or not app_.has_location(position_end.holder_uid)) {
+  if (not app_.has_location(position_end.holder_uid)) {
     return;
   }
 
@@ -265,6 +264,7 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
       auto &target_position = target_book->get_position(source_position.source_id, source_position.direction,
                                                         source_position.exchange_id, source_position.instrument_id);
       return source_position.volume != target_position.volume ||                   // 数量
+             source_position.open_volume != target_position.open_volume ||         // 今开
              source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
     });
   };
@@ -277,7 +277,10 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
     for (auto &book_listener : book_listeners_) {
       book_listener->on_position_sync_reset(*old_book, *new_book);
     }
+    SPDLOG_DEBUG("local position volume of {} is different from TD server",
+                 app_.get_location_uname(position_end.holder_uid));
     old_book->mirror_position_from(*new_book);
+    old_book->update(app_.now(), account_method_type_);
   }
   books_replica_.erase(position_end.holder_uid); // delete replica every time
 }
@@ -329,8 +332,33 @@ void Bookkeeper::on_output_key(const event_ptr &event) {
   get_book(event->source())->add_source_id(key.location_uid);
 }
 
-bool Bookkeeper::is_sync_asset() const { return sync_asset_; }
+void Bookkeeper::on_broker_state(const longfist::types::BrokerStateUpdate &state_update) {
+  ready_tds_.insert_or_assign(state_update.location_uid, state_update.state == BrokerState::Ready);
+}
 
-bool Bookkeeper::is_sync_position() const { return sync_position_; }
+void Bookkeeper::on_deregister(const longfist::types::Deregister &deregister) {
+  if (deregister.category == category::TD) {
+    ready_tds_.insert_or_assign(deregister.location_uid, false);
+  }
+}
 
+void Bookkeeper::on_register(const longfist::types::Register &reg) {
+  if (reg.category == category::TD) {
+    ready_tds_.insert_or_assign(reg.location_uid, false);
+  }
+}
+
+bool Bookkeeper::is_td(uint32_t location_uid) {
+  if (not app_.has_location(location_uid)) {
+    return false;
+  }
+  return app_.get_location(location_uid)->category == category::TD;
+}
+
+bool Bookkeeper::is_ready_td(uint32_t location_uid) {
+  if (app_.get_location(location_uid)->mode == mode::BACKTEST) {
+    return true;
+  }
+  return ready_tds_.try_emplace(location_uid, false).first->second;
+}
 } // namespace kungfu::wingchun::book

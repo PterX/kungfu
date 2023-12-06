@@ -29,8 +29,7 @@ private:
   practice::apprentice &app_;
   std::thread cleaning_worker_;
   std::mutex cv_mutex_;
-  std::mutex quite_mutex_;
-  bool m_quit_ = false;
+  std::atomic<bool> m_quit_ = false;
 
   void do_clean();
 
@@ -80,16 +79,21 @@ public:
   }
 
   template <typename DataType>
-  void try_write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC) {
+  void try_write_to(
+      int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC,
+      const std::function<void()> &callback = []() {}) {
     if (has_writer(dest_id)) {
       get_writer(dest_id)->write(trigger_time, data);
+      callback();
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
         return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
-          rx::$([&, data, dest_id](const event_ptr &event) { write_to(now(), data, dest_id); });
-      // call request_write_to to create writer in on_frame, in case that try_write_to the same dest_id multiple times
+          rx::$([&, data, dest_id, callback](const event_ptr &event) {
+            write_to(now(), data, dest_id);
+            callback();
+          });
       try_write_dest_ids_.emplace(dest_id);
     }
   }
@@ -192,18 +196,16 @@ protected:
     timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
-               if (event->msg_type() == longfist::types::Time::tag &&
-                   event->gen_time() > timer_checkpoints_[timer_id] + duration_ns) {
-                 timer_requests_.erase(timer_id);
-                 return true;
-               } else {
-                 return false;
-               };
+               return (event->msg_type() == longfist::types::Time::tag &&
+                       event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns);
              }) |
              rx::first() | rx::filter([&, timer_id](const event_ptr &) {
                timer_checkpoints_.erase(timer_id);
                bool enabled = is_timer_enabled(timer_id);
                timers_.erase(timer_id);
+               if (not enabled) {
+                 SPDLOG_WARN("timer for timer_id {} is disabled", timer_id);
+               }
                return enabled;
              });
     };
@@ -225,11 +227,17 @@ protected:
     timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
-                                        return not is_timer_enabled(timer_id);
+                                        bool enabled = is_timer_enabled(timer_id);
+                                        if (not enabled) {
+                                          SPDLOG_WARN("interval timer for timer_id {} is disabled", timer_id);
+                                          timers_.erase(timer_id);
+                                          timer_checkpoints_.erase(timer_id);
+                                        }
+                                        return not enabled;
                                       })) |
              rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                if (event->msg_type() == longfist::types::Time::tag &&
-                   event->gen_time() > timer_checkpoints_[timer_id] + duration_ns) {
+                   event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
                  auto writer = get_writer(get_master_command_uid());
                  longfist::types::TimeRequest &r = writer->open_data<longfist::types::TimeRequest>(now());
                  r.id = timer_id;
@@ -284,8 +292,7 @@ protected:
                 }
               }))
           .merge(events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
-                   if (event->gen_time() > timer_checkpoints_[timer_id] + duration_ns) {
-                     timer_requests_.erase(timer_id);
+                   if (event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
                      throw rx::timeout_error("timeout");
                    }
                    timer_requests_.erase(timer_id);

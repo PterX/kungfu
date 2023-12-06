@@ -128,6 +128,10 @@ export default {
     import_successed: 'Import Successed',
     import_failed: 'Import Failed',
     csv_format_error: 'Csv format error, please check and retry',
+    add_csv_tip_prefix: 'Note: The rules for filling in CSV are as follows, ',
+    add_csv_tip_required: '*Required',
+    add_csv_tip_suffix:
+      ', Failure to fill in required fields will result in upload failure',
   },
 
   tradingConfig: {
@@ -500,6 +504,8 @@ export default {
     total_asset: 'total_asset',
     actions: 'actions',
 
+    asset_details: 'Asset',
+
     add_td: 'Add',
     add_group_placeholder: 'Add group',
     set_td_group: 'Account Group Settings',
@@ -522,6 +528,8 @@ export default {
     target: 'Into the node',
     amount: 'Amount incurred',
     trading_day: 'Transfer time',
+    source_target_cannot_be_same:
+      'Transfer source and target cannot be the same, please reselect!',
     tip_error: 'Transfer failed, please contact the administrator!',
     capitalaccountor: 'Fund account',
     trade_password: 'Transaction password',
@@ -719,7 +727,7 @@ export default {
     search_instrument: 'Please search for code number',
     search_order_id_error:
       'The order number you searched for does not exist. Please check if it is the selected target',
-    data_error: 'Data does not exist',
+    visual_vdata_error: 'Visual data does not exist',
     buy_open: 'Buy to open',
     buy_close: 'Buy to close',
     sell_open: 'Sell to open',
@@ -857,6 +865,9 @@ export default {
     skip_confirm_make_order: 'Skip Confirm Make Order',
     set_skip_confirm_make_order:
       'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
+    skip_sync_position: 'Skip Position Sync Once Per Minute',
+    set_skip_sync_position:
+      'Once enabled, position synchronization will no longer be performed once per minute, only pull the latest position when starting the trading account (Position synchronization once a minute has the probability of double counting of positions due to in-transit transaction return issues, after this option is turned on, positions will only be calculated locally in Kungfu. But if it involves the impact of the order outside the kungfu system on the position, it will not be updated to the local),  restart is required.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',
@@ -909,7 +920,7 @@ export default {
   validate: {
     no_special_characters:
       'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
-    single_characters: 'Must contain numbers and letters',
+    single_characters: 'Contain at least one letter or number',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',
@@ -946,6 +957,7 @@ export default {
 
   logview: {
     scroll_to_bottom: 'Scroll to bottom',
+    loading_data: 'Loading...',
   },
 
   replay: {

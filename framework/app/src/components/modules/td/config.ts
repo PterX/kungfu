@@ -10,7 +10,11 @@ export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
   sorter: (
     dataIndex: string,
-  ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
+  ) => (
+    a: KungfuApi.KfConfig,
+    b: KungfuApi.KfConfig,
+    sorterOrder: '' | 'ascend' | 'descend',
+  ) => number,
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
@@ -125,6 +129,19 @@ export const getColumns = (
         fixed: 'right',
       },
     ]);
+
+export const assetDetailShowList = [
+  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+  { key: 'market_value', label: t('tdConfig.marked_value') },
+  { key: 'margin', label: t('tdConfig.margin') },
+  { key: 'avail', label: t('tdConfig.avail_money') },
+] as const;
+
+export const assetMarginDetailShowList = [
+  { key: 'avail_margin', label: t('tdConfig.avail_margin') },
+  { key: 'cash_debt', label: t('tdConfig.cash_debt') },
+  { key: 'total_asset', label: t('tdConfig.total_asset') },
+] as const;
 
 const orderSortKey = getTradingDataSortKey('Order');
 const tradeSortKey = getTradingDataSortKey('Trade');

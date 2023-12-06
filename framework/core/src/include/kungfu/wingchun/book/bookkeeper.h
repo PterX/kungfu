@@ -68,11 +68,7 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
-  const StaticData &get_static_data() const { return static_data_; }
-
-  [[nodiscard]] bool is_sync_asset() const;
-
-  [[nodiscard]] bool is_sync_position() const;
+  [[nodiscard]] const StaticData &get_static_data() const { return static_data_; }
 
   std::mutex &get_update_book_mutex();
 
@@ -85,6 +81,10 @@ public:
   void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data,
                    ApplyMethod method) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
+
+    if ((is_td(account_id) and not is_ready_td(account_id)) or (is_td(dest) and not is_ready_td(dest))) {
+      return;
+    }
 
     if (accounting_methods_.find(data.instrument_type) == accounting_methods_.end()) {
       SPDLOG_WARN("accounting method not found for {}: {}", data.type_name.c_str(), data.to_string());
@@ -139,8 +139,7 @@ private:
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
-  bool sync_asset_{};
-  bool sync_position_{};
+  std::unordered_map<uint32_t, bool> ready_tds_{};
 
   Book_ptr make_book(uint32_t location_uid);
 
@@ -159,6 +158,16 @@ private:
   Book_ptr get_book_replica(uint32_t location_uid);
 
   void on_output_key(const event_ptr &event);
+
+  void on_broker_state(const longfist::types::BrokerStateUpdate &state_update);
+
+  void on_register(const longfist::types::Register &reg);
+
+  void on_deregister(const longfist::types::Deregister &deregister);
+
+  bool is_td(uint32_t location_uid);
+
+  bool is_ready_td(uint32_t location_uid);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

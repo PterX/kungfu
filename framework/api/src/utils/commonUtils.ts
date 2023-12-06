@@ -179,7 +179,10 @@ export const getKfLocationByProcessId = (
     return getOperatorKfLocationByProcessId(processId);
   } else if (processId.indexOf('strategy_') === 0) {
     return getStrategyKfLocationByProcessId(processId);
-  } else if (processId.indexOf('_') === -1) {
+  } else if (
+    processId.split('_').length === 2 &&
+    processId.indexOf('_live') !== -1
+  ) {
     return getSystemKfLocationProcessId(processId);
   }
 
@@ -508,30 +511,24 @@ export const isTdStrategyCategory = (category: string): boolean => {
 
 export const getSystemKfLocationProcessId = (processId: string) => {
   if (!processId) return null;
-  if (processId === 'master') {
+  const pair = processId.split('_');
+  if (pair.length !== 2) return null;
+  const [name, mode] = pair;
+  if (name === 'master') {
     return {
       category: 'system',
-      group: processId,
-      name: processId,
-      mode: 'live',
-    };
-  } else if (['ledger', 'archive', 'dzxy'].indexOf(processId) !== -1) {
-    return {
-      category: 'system',
-      group: 'service',
-      name: processId,
-      mode: 'live',
+      group: name,
+      name,
+      mode,
     };
   } else {
     return {
       category: 'system',
       group: 'service',
-      name: processId,
-      mode: 'live',
+      name,
+      mode,
     };
   }
-
-  return null;
 };
 
 export const getStrategyKfLocationByProcessId = (
@@ -755,4 +752,28 @@ export const kfConfigItemsToProcessArgs = (
         return pre;
       }, {} as Record<string, KungfuApi.KfConfigValue>),
   );
+};
+
+export const buildTableColumnSorterWithStrike = <T>(
+  type: 'num' | 'str',
+  dataIndex: keyof T,
+) => {
+  return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
+    if (type === 'num') {
+      let aVal: unknown = a[dataIndex] ?? '--',
+        bVal: unknown = b[dataIndex] ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
+    } else {
+      return `${a[dataIndex] ?? ''}`.localeCompare(`${b[dataIndex] ?? ''}`);
+    }
+  };
 };

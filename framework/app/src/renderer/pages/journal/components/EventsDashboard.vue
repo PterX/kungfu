@@ -47,42 +47,16 @@
       ></FrameFilters>
     </div>
     <div class="kf-journal-frame__wrap">
-      <Transition name="fade">
-        <div v-show="searchInUsing" class="kf-search-in-table__warp">
-          <div class="kf-search-in-table__content">
-            <a-input-search
-              ref="inputSearchRef"
-              v-model:value="searchKeyword"
-              class="kf-search-in-table__item"
-              :placeholder="$t('keyword_input')"
-            />
-            <div class="kf-search-in-table__item">
-              {{ currentResultIndex }} /
-              {{ totalResultCount }}
-            </div>
-            <div class="kf-search-in-table__item kf-actions__warp">
-              <up-outlined
-                style="font-size: 14px; margin-left: 0px"
-                @click="handleToUpSearchResult"
-              />
-              <down-outlined
-                style="font-size: 14px; margin-left: 8px"
-                @click="handleToDownSearchResult"
-              />
-            </div>
-            <a-button @click="searchInUsing = false">
-              {{ $t('cancel') }}
-            </a-button>
-          </div>
-        </div>
-      </Transition>
       <KfTradingDataTable
         ref="scrollerTableRef"
         :data-source="currentFrameList"
         :columns="frameColumns"
         key-field="id"
-        :dynamic="searchInUsing"
-        :will-switch-dynamic="true"
+        :search-option="{
+          enabled: true,
+          keysForSearch: ['msgTypeName', 'dataAsString'],
+          dynamicTableInSearching: true,
+        }"
         :size-dependencies-fields="['dataAsString']"
         :resizable="false"
         :custom-row-class="dealRowClassName"
@@ -95,9 +69,11 @@
           #default="{
             item,
             column,
+            html,
           }: {
             item: KungfuApi.FrameResolved,
             column: KfTradingDataTableHeaderConfig,
+            html: string,
           }"
         >
           <template v-if="column.dataIndex === 'msgTypeName'">
@@ -109,20 +85,12 @@
                 ),
               }"
             >
-              <span v-html="getItemHtmlResult(item, 'msgTypeName')"></span>
+              <span v-html="html"></span>
             </a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'data'">
             <span v-if="SHOW_DETAIL_MSG_TYPES[+item.msgType]">
               {{ item.data }}
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'dataAsString'">
-            <span v-html="getItemHtmlResult(item, 'dataAsString')"></span>
-          </template>
-          <template v-else>
-            <span>
-              {{ item[column.dataIndex as keyof KungfuApi.FrameResolved] }}
             </span>
           </template>
         </template>
@@ -178,12 +146,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeMount } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Empty } from 'ant-design-vue';
-import {
-  PlusOutlined,
-  MinusOutlined,
-  UpOutlined,
-  DownOutlined,
-} from '@ant-design/icons-vue';
+import { PlusOutlined, MinusOutlined } from '@ant-design/icons-vue';
 import { tracer } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { getFrameColumns } from '../config';
 import {
@@ -204,7 +167,6 @@ import {
   delayMilliSeconds,
   debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useScrollerTableSearch } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -216,7 +178,7 @@ const {
   currentSessionBeginTime,
   currentSessionEndTime,
   currentFrameList,
-  isLoadingFrames,
+  journalLoadingType,
   selectedChartItem,
   currentFrameId,
   isBuildingTracer,
@@ -230,23 +192,6 @@ const {
 } = useJournalStore();
 const sourceDestMap = getSourceDestMap();
 const { now } = useNow();
-const scrollerTableRef = ref();
-const {
-  searchInUsing,
-  inputSearchRef,
-  searchKeyword,
-  currentResultIndex,
-  totalResultCount,
-  clearSearchState,
-  handleToDownSearchResult,
-  handleToUpSearchResult,
-  getItemHtmlResult,
-} = useScrollerTableSearch(
-  currentFrameList,
-  'id',
-  ['msgTypeName', 'dataAsString'],
-  scrollerTableRef,
-);
 
 const FRAME_LIST_SPLIT = 200;
 const SCALE = 1000000;
@@ -265,8 +210,11 @@ const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Quote]: true,
 };
 
+const scrollerTableRef = ref();
 const inputRef = ref<HTMLInputElement>({} as HTMLInputElement);
-const frameColumns = computed(() => getFrameColumns(searchInUsing.value));
+const frameColumns = computed(() =>
+  getFrameColumns(scrollerTableRef.value?.searchInUsing),
+);
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const firstSplitFramesLoading = ref(false);
 const frameFilter = ref();
@@ -288,20 +236,6 @@ const colorMap = {
   '#FAAD14': 'rgb(250, 173, 20)',
   purple: 'rgb(83, 29, 171)',
 };
-
-watch(searchInUsing, (n, o) => {
-  if (n !== o) {
-    if (scrollerTableRef.value) {
-      const [startIndex] = scrollerTableRef.value.getVisibleIndexRange();
-
-      if (startIndex !== undefined && startIndex > -1) {
-        nextTick(() => {
-          scrollerTableRef.value.scrollToItem(startIndex);
-        });
-      }
-    }
-  }
-});
 
 const loadedLastFrameTime = computed(() => {
   if (currentFrameList.value.length) {
@@ -343,12 +277,12 @@ const frameHeaderForShow = computed(() => {
 });
 const frameDataForShow = computed(() => {
   if (!currentRowData.value) return [];
-
-  const dataAsString = currentRowData.value.dataAsString.slice(2, -1);
-  return dataAsString.split(',"').map((item) => {
-    item = '"' + item;
-    const pair = item.split(':');
-    return { key: pair[0], value: pair[1] };
+  const data = JSON.parse(currentRowData.value.dataAsString);
+  return Object.entries(data).map(([key, value]) => {
+    return {
+      key,
+      value,
+    };
   });
 });
 
@@ -479,7 +413,7 @@ onMounted(() => {
     if (initTimer) clearInterval(initTimer);
     initTimer = setInterval(async () => {
       if (
-        !isLoadingFrames.value &&
+        journalLoadingType.value === 'finish' &&
         currentFrameList.value.length < DEFAULT_LIST_SIZE &&
         currentTracer?.dataAvailable()
       ) {
@@ -516,11 +450,11 @@ const initLoad = debounce(async () => {
   console.warn('initLoad');
   if (!currentSession.value) return;
   const sessionIdOrigin = currentSession.value.index;
-  isLoadingFrames.value && (requestBreakLoadingDataWhile = true);
+  journalLoadingType.value !== 'finish' &&
+    (requestBreakLoadingDataWhile = true);
   firstSplitFramesLoading.value = true;
   // wait for while looping and break while working
   await delayMilliSeconds(0);
-  clearSearchState();
   setCurrentFrameList([]);
   await nextTick();
   currentTracer?.seekToTime(currentTime.value);
@@ -654,9 +588,9 @@ const loadFrameData = async (
     }
   };
 
-  isLoadingFrames.value = true;
+  journalLoadingType.value = mode === 'init' ? 'init' : 'auto';
   return drain(currentSessionId).then((_: KungfuApi.FrameResolved[]) => {
-    isLoadingFrames.value = false;
+    journalLoadingType.value = 'finish';
     firstSplitFramesLoading.value = false;
     requestBreakLoadingDataWhile = false;
     if (mode === 'init') setCurrentFrameId(currentFrameList.value[0]?.id);
@@ -665,7 +599,7 @@ const loadFrameData = async (
 
 const loadMore = debounce(async (split = true) => {
   if (!currentSession.value) return;
-  if (isLoadingFrames.value) return;
+  if (journalLoadingType.value !== 'finish') return;
 
   await delayMilliSeconds(0);
   await loadFrameData(currentSession.value.index, {
@@ -782,48 +716,6 @@ function handleClickRow({ row }) {
     flex: auto;
     overflow: hidden;
     position: relative;
-
-    .fade-enter-active,
-    .fade-leave-active {
-      transition: all 0.3s ease;
-    }
-
-    .fade-enter-from,
-    .fade-leave-to {
-      top: -40px;
-    }
-
-    .fade-enter-to,
-    .fade-leave-from {
-      top: 0;
-    }
-
-    .kf-search-in-table__warp {
-      position: absolute;
-      right: 16px;
-      padding: 4px 0;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      font-size: 12px;
-      background-color: #1d1d1d;
-      z-index: 999;
-
-      .kf-search-in-table__content {
-        width: 480px;
-        display: flex;
-        align-items: center;
-
-        .kf-search-in-table__item {
-          margin: 0 4px;
-        }
-
-        .ant-input-search {
-          margin-left: 0;
-          flex: 1;
-        }
-      }
-    }
   }
 }
 

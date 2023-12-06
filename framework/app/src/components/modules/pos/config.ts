@@ -1,5 +1,6 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { buildTableColumnSorterWithStrike } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -119,7 +120,10 @@ export const getColumns = (
         dataIndex: 'avg_open_price_resolved',
         flex: 1.2,
         align: 'right',
-        sorter: buildSorter('avg_open_price'),
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
+          'num',
+          'avg_open_price_resolved',
+        ),
       },
       {
         type: 'number',
@@ -135,6 +139,9 @@ export const getColumns = (
         dataIndex: 'unrealized_pnl_resolved',
         flex: 1.5,
         align: 'right',
-        sorter: buildSorter('unrealized_pnl'),
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
+          'num',
+          'unrealized_pnl_resolved',
+        ),
       },
     ]);

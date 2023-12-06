@@ -65,6 +65,7 @@ import {
 import { T0T1Config } from '../typings/global';
 
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { buildMasterLocation } from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 
 const { t } = VueI18n.global;
 
@@ -904,12 +905,7 @@ export const promiseWithCachedPause = <T>(
   delay = 200,
 ): Promise<T> => {
   return new Promise((resolve, reject) => {
-    const cachedLocation = {
-      category: 'system',
-      group: 'service',
-      mode: 'live',
-      name: 'cached',
-    };
+    const masterLocation = buildMasterLocation();
 
     let keyCachedPause = 10253;
     let keyCachedResume = 10254;
@@ -922,7 +918,7 @@ export const promiseWithCachedPause = <T>(
       }
     }
 
-    watcher.issueMark(keyCachedPause, cachedLocation);
+    watcher.issueMark(keyCachedPause, masterLocation);
     setTimeout(() => {
       promiseFunc()
         .then((res) => {
@@ -932,7 +928,7 @@ export const promiseWithCachedPause = <T>(
           reject(err);
         })
         .finally(() => {
-          watcher.issueMark(keyCachedResume, cachedLocation);
+          watcher.issueMark(keyCachedResume, masterLocation);
         });
     }, delay);
   });
@@ -1314,13 +1310,13 @@ export const dealByConfigItemType = (
   }
 };
 
-export const kfConfigItemsToArgsByPrimaryForShow = (
+export const kfConfigItemsToArgsByShowArgForShow = (
   settings: KungfuApi.KfConfigItem[],
   formState: Record<string, KungfuApi.KfConfigValue>,
 ): string => {
   const { isLanguageKeyAvailable } = useLanguage();
   return settings
-    .filter((item) => item.primary)
+    .filter((item) => item.showArg)
     .map((item) => ({
       label: isLanguageKeyAvailable(item.name) ? t(item.name) : item.name,
       value: dealByConfigItemType(item.type, formState[item.key], item.options),

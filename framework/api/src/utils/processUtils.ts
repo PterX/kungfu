@@ -46,11 +46,19 @@ import {
   booleanProcessEnv,
   ifKfDev,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildLedgerLocation,
+  buildMasterProcessId,
+  buildLedgerProcessId,
+  buildDzxyProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 import { getAppRuntimeDirName } from './fileUtils';
 import { getKfCommission } from '../kungfu/commission';
+import { buildArchiveProcessId } from './systemUtils';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
@@ -851,11 +859,11 @@ async function getBackTestConfigPath(group: string, name: string) {
 
   if (window.watcher) {
     const instruments = window.watcher.ledger.Instrument.list();
-    const comissions = await getKfCommission(window.watcher);
+    const commissions = await getKfCommission(window.watcher);
 
     const backtestConfigJson = {
-      Comissions: {
-        default: comissions || [],
+      Commission: {
+        default: commissions || [],
       },
       Instrument: {
         default: instruments || [],
@@ -941,13 +949,16 @@ export async function isAllMainProcessRunning(onlyMaster = false) {
   const { processStatus } = await listProcessStatus();
   kfLogger.info('isAllMainProcessRunning', processStatus);
 
+  const masterProcessId = buildMasterProcessId();
+  const ledgerProcessId = buildLedgerProcessId();
+
   if (onlyMaster) {
-    return getIfProcessRunning(processStatus, 'master');
+    return getIfProcessRunning(processStatus, masterProcessId);
   }
 
   return (
-    getIfProcessRunning(processStatus, 'master') &&
-    getIfProcessRunning(processStatus, 'ledger')
+    getIfProcessRunning(processStatus, masterProcessId) &&
+    getIfProcessRunning(processStatus, ledgerProcessId)
   );
 }
 
@@ -956,9 +967,10 @@ export function startArchiveMakeTask(
 ) {
   const globalSetting = getKfGlobalSettingsValue();
   const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
+  const ProcessId = buildArchiveProcessId();
   return startProcessGetStatusUntilStop(
     {
-      name: 'archive',
+      name: ProcessId,
       args: buildArgs({
         extraArgs: `journal archive ${bypassArchive ? '-m delete' : ''}`,
       }),
@@ -968,17 +980,11 @@ export function startArchiveMakeTask(
 }
 
 export const startMaster = async (force = false): Promise<void> => {
-  const processName = 'master';
-  const location = {
-    category: 'system',
-    group: 'master',
-    name: 'master',
-    mode: 'live',
-  };
+  const location = buildMasterLocation();
   const ProcessId = getProcessIdByKfLocation(location);
 
   try {
-    await preStartProcess(processName, force);
+    await preStartProcess(ProcessId, force);
     if (force) await killKfc();
     const args = buildArgs({
       location,
@@ -1004,20 +1010,17 @@ export const startLedger = async (
 ): Promise<void> => {
   const isReplay = mode === 'replay';
   let args = '';
-  const location = {
-    category: 'system',
-    group: 'service',
-    name: 'ledger',
-    mode: mode,
-  };
-  const processName = getProcessIdByKfLocation(location);
+  const location = buildLedgerLocation(mode);
+  const ProcessId = getProcessIdByKfLocation(location);
   try {
-    !isReplay ? await preStartProcess(processName, force) : '';
+    !isReplay ? await preStartProcess(ProcessId, force) : '';
     const globalSetting = getKfGlobalSettingsValue();
     const bypassRefreshBook =
       process.env.BY_PASS_REFRESHBOOK ??
       globalSetting?.performance?.bypassRefreshBook ??
       false;
+    const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;
+
     if (isReplay && replayConfig) {
       args = buildArgs({
         loglevel: replayConfig.log_level,
@@ -1031,10 +1034,16 @@ export const startLedger = async (
         args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
       });
     }
+
     await startProcess({
-      name: processName,
+      name: ProcessId,
       args,
       force,
+      env: skipSyncPosition
+        ? {
+            KF_SKIP_SYNC_POSITION: 'true',
+          }
+        : {},
     });
   } catch (err: unknown) {
     kfLogger.error((<Error>err).message);
@@ -1042,10 +1051,10 @@ export const startLedger = async (
 };
 
 async function preStartProcess(
-  processName: string,
+  processId: string,
   force = false,
 ): Promise<void> {
-  const processOrError = await pm2Describe(processName);
+  const processOrError = await pm2Describe(processId);
   if (processOrError instanceof Error) {
     kfLogger.error(processOrError.message);
     throw processOrError;
@@ -1056,7 +1065,7 @@ async function preStartProcess(
   ).length;
 
   if (!force && isProcessAlive) {
-    const err = new Error(`kungfu ${processName} is alive`);
+    const err = new Error(`kungfu ${processId} is alive`);
     kfLogger.error(err);
     return Promise.reject(err);
   }
@@ -1514,8 +1523,10 @@ export const startStrategyOperator = async (
 };
 
 export const startDzxy = () => {
+  const ProcessId = buildDzxyProcessId();
+
   return startProcess({
-    name: 'dzxy',
+    name: ProcessId,
     args: '',
     cwd: process.env.CLI_DIR,
     script: 'dzxy.js',

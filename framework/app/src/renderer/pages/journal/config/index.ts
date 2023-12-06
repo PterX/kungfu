@@ -157,20 +157,34 @@ export interface ChartDataCustomInfo {
   orderId?: bigint;
 }
 
+interface EChartsTooltipPositionParams {
+  dataIndex: number;
+}
+
+type Point = [number, number];
+type RectSize = {
+  contentSize: [number, number];
+  viewSize: [number, number];
+};
+
+export type PosFun = (
+  point: Point,
+  params: EChartsTooltipPositionParams[],
+  dom: HTMLElement,
+  rect: DOMRect,
+  size: RectSize,
+) => string;
+
 export interface SeriesData {
   value: (string | number | bigint)[];
   customInfo?: ChartDataCustomInfo;
   symbolRotate?: number;
   symbolOffset?: (string | number)[];
   symbolSize?: number;
-  itemStyle?: {
-    color?: string;
-    shadowBlur?: number;
-    shadowColor?: string;
-  };
+  itemStyle?: ItemStyle;
   showSymbol?: boolean;
   tooltip?: {
-    position: string;
+    position: string | PosFun;
     formatter: string;
     trigger?: string;
   };
@@ -189,12 +203,19 @@ export interface SeriesData {
     silent?: boolean;
   };
   shadowColor?: string;
+  shadowBlur?: number;
   label?: {
     show: boolean;
     position: string;
     color: string;
     formatter: () => string;
   };
+}
+
+export interface ItemStyle {
+  color?: string;
+  shadowBlur?: number;
+  shadowColor?: string;
 }
 
 export const getChartOption = () => {
@@ -257,6 +278,9 @@ export const getChartOption = () => {
         labelFormatter: function (params: string) {
           return params;
         },
+        textStyle: {
+          color: '#ffffffd9',
+        },
       },
       {
         type: 'inside',
@@ -265,6 +289,9 @@ export const getChartOption = () => {
         end: 100,
         labelFormatter: function (params: string) {
           return params;
+        },
+        textStyle: {
+          color: '#ffffffd9',
         },
       },
     ],
@@ -303,7 +330,7 @@ export const getChartOption = () => {
         data: [] as SeriesData[],
         legendHoverLink: false,
         symbolKeepAspect: true,
-        symbolOffset: [-5, -5],
+        symbolOffset: [],
         symbol: arrowSvg,
         zlevel: 3,
         itemStyle: {
@@ -348,8 +375,8 @@ export const getChartOption = () => {
       },
     ],
     grid: {
-      left: '32px',
-      right: '32px',
+      left: '40px',
+      right: '80px',
       containLabel: true,
     },
   };

@@ -17,6 +17,7 @@ using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
@@ -305,33 +306,10 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderInput>(info, info[0].ToObject(), &OrderInput::order_id);
 }
 
-Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
-  SPDLOG_INFO("issue basket order manually");
-
-  // auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  // auto basket_order_info = info[0].ToObject();
-  // basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
-  // if (info.Length() == 2) {
-  //   basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_live_home_uid()));
-  // } else {
-  //   auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
-  //   basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
-  // }
-
-  // if (GetBigInt(basket_order_info.Get("volume")) == VOLUME_ZERO) {
-  //   basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(),
-  //   int(BasketOrderCalculationMode::Dynamic)));
-  // } else {
-  //   basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(),
-  //   int(BasketOrderCalculationMode::Static)));
-  // }
-
-  // return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
-  return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-}
-
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
+
   SPDLOG_INFO("issue algo order manually");
+
   return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 
@@ -425,7 +403,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
                       InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
                       InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
@@ -452,11 +429,22 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
 void Watcher::on_react() {
   SPDLOG_INFO("watcher on react");
 
+  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
+  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
   before_start_events | is_trading_data() | $$(cached::feed_state_data(event, data_bank_));
   before_start_events | is_static_data() | $$(cached::feed_state_data(event, data_bank_));
+}
+
+bool Watcher::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+
+journal::writer_ptr Watcher::get_writer(uint32_t dest_id) const {
+  if (writers_.find(dest_id) == writers_.end()) {
+    SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
+  }
+  return writers_.at(dest_id);
 }
 
 void Watcher::on_start() {
@@ -487,8 +475,8 @@ void Watcher::on_start() {
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));
-  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
-  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
+  //  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
+  //  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   events_ | is(BrokerStateUpdate::tag) |
       $$(UpdateBrokerOperatorState<BrokerStateUpdate>(event->source(), event->dest(),
                                                       event->data<BrokerStateUpdate>()));
@@ -573,6 +561,7 @@ void Watcher::SyncAppStates() {
     auto app_state = Napi::Number::New(app_states_ref_.Env(), s.second);
     app_states_ref_.Set(format(s.first), app_state);
   }
+  location_uid_states_map_.clear();
 }
 
 void Watcher::SyncStrategyStates() {
@@ -586,6 +575,7 @@ void Watcher::SyncStrategyStates() {
     strategy_state_obj.Set("value", Napi::String::New(strategy_states_ref_.Env(), s.second.value));
     strategy_states_ref_.Set(format(s.first), strategy_state_obj);
   }
+  location_uid_strategy_states_map_.clear();
 }
 
 void Watcher::SyncEventCache() {
@@ -767,6 +757,8 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   reader_->disjoin(get_master_command_uid());
   writers_.clear();
+  strategy_states_ref_.Reset();
+  app_states_ref_.Reset();
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }
 

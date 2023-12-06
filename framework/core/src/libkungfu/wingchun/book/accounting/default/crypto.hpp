@@ -44,13 +44,13 @@ public:
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
+    if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
     }
   }
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
   }

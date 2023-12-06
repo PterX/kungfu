@@ -19,6 +19,7 @@ import {
   computed,
   nextTick,
   defineComponent,
+  inject,
 } from 'vue';
 import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
@@ -79,6 +80,7 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
+import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
 
@@ -194,6 +196,11 @@ const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
 const numbersTyping = ref<Record<string, boolean>>({});
+
+const configSettingFormInject = inject(
+  BuiltinComponentInjectKeysMap.ConfigSettingForm,
+  {},
+);
 
 watch(
   () => props.configSettings,
@@ -313,7 +320,12 @@ if ('instrument' in formState.value && 'side' in formState.value) {
               SideEnum.Exec + '',
             ];
           } else {
-            sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            if (configSettingFormInject?.sideFilter) {
+              sideRadiosList.value =
+                configSettingFormInject.sideFilter?.(instrumentType);
+            } else {
+              sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            }
           }
         }
       }
@@ -495,6 +507,17 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   return Promise.resolve();
 }
 
+function emptyValidator(
+  _rule: RuleObject,
+  value: KungfuApi.KfConfigValue,
+): Promise<void> {
+  if (value === '' || value === null || value === undefined) {
+    return Promise.reject(new Error(t('validate.mandatory')));
+  }
+
+  return Promise.resolve();
+}
+
 function noZeroValidator(_rule: RuleObject, value: number): Promise<void> {
   if (Number.isNaN(+value)) {
     return Promise.reject(new Error(t('validate.no_zero_number')));
@@ -668,19 +691,6 @@ function csvTableCallback(
   };
 }
 
-function buildCsvHeadersDescription(headers: KungfuApi.KfConfigItemHeader[]) {
-  return (
-    headers
-      .map((header) =>
-        [
-          header.title,
-          ...(header.description ? [header.description] : []),
-        ].join(': '),
-      )
-      .join('. ') + '.'
-  );
-}
-
 function buildCsvHeadersValidator(
   headers: KungfuApi.KfConfigItemHeader[] | undefined,
 ) {
@@ -713,7 +723,6 @@ function buildCsvHeadersValidator(
 
       switch (type) {
         case 'str':
-          if (!value) return false;
           break;
         case 'num':
           if (Number.isNaN(Number(value))) return false;
@@ -1223,6 +1232,7 @@ defineExpose({
                     {
                       required: item.required,
                       type: getValidatorType(item.type),
+                      validator: emptyValidator,
                       message: item.errMsg
                         ? isLanguageKeyAvailable(item.errMsg)
                           ? $t(item.errMsg)
@@ -1866,13 +1876,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
         <div
           v-if="customerFormItemTips[item.key]"
@@ -2025,13 +2047,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="!!item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
 
         <div class="table-in-config-setting-form-head">
@@ -2069,15 +2103,13 @@ defineExpose({
               tablesSearchRelated[item.key].tableData.value.length
             "
             :style="{
-              maxHeight: `${
-                calcTableItemHeight(layout, !!item.noDivider) * 10
-              }px`,
-              overflowY: 'overlay',
+              height: `${calcTableItemHeight(layout, !!item.noDivider) * 10}px`,
+              overflowY: 'auto',
             }"
             :items="tablesSearchRelated[item.key].tableData.value"
             :item-size="calcTableItemHeight(layout, !!item.noDivider)"
             key-field="id"
-            :buffer="0"
+            :buffer="calcTableItemHeight(layout, !!item.noDivider)"
           >
             <template
               #default="{

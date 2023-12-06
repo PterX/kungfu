@@ -27,7 +27,15 @@ interface AntTableColumn {
   key?: string;
   width?: number | string;
   minWidth?: number | string;
-  sorter?: boolean | { compare: (a: any, b: any) => number };
+  sorter?:
+    | boolean
+    | {
+        compare: (
+          a: any,
+          b: any,
+          sorterOrder: '' | 'ascend' | 'descend',
+        ) => number;
+      };
   align?: string;
   fixed?: string;
   defaultSortOrder?: string;
@@ -61,7 +69,7 @@ interface KfTradingDataTableHeaderConfig {
     | 'priceType'
     | 'direction'
     | 'actions';
-  sorter?: (a: any, b: any) => number;
+  sorter?: (a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number;
 }
 
 type KfTradingDataTableSelection = Record<

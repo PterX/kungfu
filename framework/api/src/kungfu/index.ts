@@ -1048,7 +1048,7 @@ export const dealPosition = (
     close_volume:
       Number(pos.open_volume) +
         Number(pos.static_yesterday) -
-        Number(pos.volume) || 0,
+        Number(pos.volume) ?? 0,
   };
 };
 

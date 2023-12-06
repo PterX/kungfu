@@ -77,6 +77,8 @@ export const useLogInit = (
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
   let loadingTimeoutId: NodeJS.Timeout | null = null;
+  let insertTimerId: NodeJS.Timeout | null = null;
+  const INSERT_LINES = 1000;
 
   ensureFileSync(logPath);
 
@@ -102,16 +104,35 @@ export const useLogInit = (
       useWatchFile: os.platform() === 'win32',
     });
 
-    let markId: number = +new Date();
-    LogTail.on('line', (line: string) => {
-      updateLoading();
-      logList.insert({
-        id: markId++,
-        message: preDealLogMessage(line),
-      });
+    let markId: number = Date.now();
+    const remineLogQueue: KungfuApi.KfLogData[] = [];
 
-      scrollToBottom();
+    LogTail.on('line', (line: string) => {
+      const logData = { id: ++markId, message: preDealLogMessage(line) };
+      if (logList.list.length < nLines) {
+        updateLoading();
+        logList.insert(logData);
+        scrollToBottom();
+      } else {
+        remineLogQueue.push(logData);
+      }
     });
+
+    insertTimerId = setInterval(() => {
+      if (logList.list.length < nLines) {
+        return;
+      }
+      const newList = remineLogQueue.splice(0, INSERT_LINES);
+      const length = newList.length;
+      if (length > 0) {
+        updateLoading();
+        logList.list.splice(0, length);
+        logList.list = logList.list.concat(newList);
+        scrollToBottom();
+      } else {
+        return;
+      }
+    }, 200);
 
     LogTail.on('error', (err: Error) => {
       error(err.message);
@@ -120,6 +141,14 @@ export const useLogInit = (
     LogTail.watch();
   };
   const clearLogState = () => {
+    if (insertTimerId) {
+      clearInterval(insertTimerId);
+      insertTimerId = null;
+    }
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+      loadingTimeoutId = null;
+    }
     logList.list = [];
     LogTail?.unwatch();
     LogTail = null;

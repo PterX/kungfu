@@ -129,7 +129,6 @@ export const useLogInit = (
         logList.list.splice(0, length);
         logList.list = logList.list.concat(newList);
         scrollToBottom();
-        console.log('logList.list', logList.list.length);
       } else {
         return;
       }

@@ -1043,12 +1043,12 @@ export const dealPosition = (
     unrealized_pnl_resolved: pos.avg_open_price
       ? dealAssetPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
-    open_volume: pos.open_volume ?? 0,
-    static_yesterday: pos.static_yesterday ?? 0,
+    open_volume: pos.open_volume ?? '--',
+    static_yesterday: pos.static_yesterday ?? '--',
     close_volume:
       Number(pos.open_volume) +
         Number(pos.static_yesterday) -
-        Number(pos.volume) || 0,
+        Number(pos.volume) ?? '--',
   };
 };
 

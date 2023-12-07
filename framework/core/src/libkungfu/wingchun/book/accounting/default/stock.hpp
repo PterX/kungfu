@@ -87,7 +87,8 @@ public:
                                                          position.exchange_id, position.instrument_id);
       double frozen_fee = 0;
 
-      if (input.side == Side::Sell || input.side == Side::RepayMargin || input.side == Side::RepayStock) { // Offset: Close
+      if (input.side == Side::Sell || input.side == Side::RepayMargin ||
+          input.side == Side::RepayStock) { // Offset: Close
         position.frozen_total += input.volume;
         if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
           position.frozen_yesterday += input.volume;

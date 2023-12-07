@@ -188,7 +188,6 @@ public:
     auto price_diff = position.last_price - position.avg_open_price;
     // 浮动盈亏
     position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
-    position.update_time = yijinjing::time::now_in_nano();
   }
 
 private:

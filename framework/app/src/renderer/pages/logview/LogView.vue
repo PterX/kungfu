@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import {
   UpOutlined,
   DownOutlined,
@@ -101,6 +101,10 @@ onMounted(() => {
   removeLoadingMask();
   resetLog();
   scrollerTableRef.value?.$el.addEventListener('scroll', scrollHeader);
+});
+
+onUnmounted(() => {
+  clearLogState();
 });
 
 let timer;

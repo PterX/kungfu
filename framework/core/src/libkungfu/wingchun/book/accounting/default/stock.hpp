@@ -164,7 +164,6 @@ public:
     }
     double price_change = position.last_price - position.avg_open_price;
     position.unrealized_pnl = (position.direction == Direction::Long ? price_change : -price_change) * position.volume;
-    position.update_time = yijinjing::time::now_in_nano();
   }
 
 protected:

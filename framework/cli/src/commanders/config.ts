@@ -22,8 +22,7 @@ const promptQuestionForSelectTargetConfigItem = () => {
         return Object.values(kfGlobalSettings)
           .filter(
             (systemConfigItem: KfSystemConfig) =>
-              systemConfigItem.key !== 'code' &&
-              systemConfigItem.key !== 'trade',
+              systemConfigItem.key !== 'code',
           )
           .map((systemConfigItem: KfSystemConfig) => systemConfigItem.key);
       },

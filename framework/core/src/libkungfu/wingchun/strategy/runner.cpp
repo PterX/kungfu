@@ -41,6 +41,25 @@ void Runner::react() {
   context_ = make_context();
   context_->set_arguments(get_arguments());
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
+  apprentice::react();
+}
+
+void Runner::on_react() { events_ | is(Channel::tag) | $$(inspect_channel(event)); }
+
+void Runner::inspect_channel(const event_ptr &event) {
+  auto channel = event->data<Channel>();
+  if (has_location(channel.source_id) and has_location(channel.dest_id)) {
+    auto dest_location = get_location(channel.dest_id);
+    if (ledger_home_location_->uid == channel.source_id and dest_location->category == category::TD and
+        context_->get_broker_client().should_connect_td(dest_location)) {
+      reader_join(channel.source_id, channel.dest_id, event->gen_time());
+    }
+  }
+}
+
+void Runner::on_start() {
+  pre_start();
+  enable(*context_);
 
   auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
   start_events | is_own<Quote>(context_->get_broker_client()) |
@@ -65,25 +84,6 @@ void Runner::react() {
       $$(invoke(&Strategy::on_custom_data, event->msg_type(),
                 {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
                 get_location(event->source()), event->dest()));
-  apprentice::react();
-}
-
-void Runner::on_react() { events_ | is(Channel::tag) | $$(inspect_channel(event)); }
-
-void Runner::inspect_channel(const event_ptr &event) {
-  auto channel = event->data<Channel>();
-  if (has_location(channel.source_id) and has_location(channel.dest_id)) {
-    auto dest_location = get_location(channel.dest_id);
-    if (ledger_home_location_->uid == channel.source_id and dest_location->category == category::TD and
-        context_->get_broker_client().should_connect_td(dest_location)) {
-      reader_join(channel.source_id, channel.dest_id, event->gen_time());
-    }
-  }
-}
-
-void Runner::on_start() {
-  pre_start();
-  enable(*context_);
 
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |

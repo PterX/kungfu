@@ -148,7 +148,7 @@ public:
 
   uint64_t current_frame_uid();
 
-  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
+  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, size_t length);
 
   void close_frame(size_t data_length, int64_t gen_time = time::now_in_nano());
 

@@ -120,19 +120,16 @@ public:
       book->asset.avail -= frozen_margin;
       book->asset.frozen_cash += frozen_margin;
       book->asset.frozen_margin += frozen_margin;
+    } else {
+      position.frozen_total += input.volume;
     }
 
     if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-      position.frozen_total += input.volume;
       if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
         position.frozen_yesterday += input.volume;
       } else {
         position.frozen_yesterday = position.yesterday_volume;
       }
-    }
-
-    if (offset == Offset::CloseToday) {
-      position.frozen_total += input.volume;
     }
 
     update_position(book, position);

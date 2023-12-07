@@ -311,7 +311,9 @@ inline void from_xtp(const XTPQueryStkPositionRsp &ori, Position &des) {
   des.avg_open_price = ori.avg_price;
   des.position_cost_price = ori.avg_price;
   des.static_yesterday = ori.yesterday_position;
-  des.open_volume = ori.total_qty - ori.sellable_qty;
+  //  des.open_volume // 数据不足以算出该字段, 保持为0
+  //  des.frozen_yesterday // 数据不足以算出该字段, 保持为0
+  //  des.frozen_total // 数据不足以算出该字段, 保持为0
 }
 
 inline void from_xtp(const XTPQueryAssetRsp &ori, Asset &des) { des.avail = ori.buying_power; }

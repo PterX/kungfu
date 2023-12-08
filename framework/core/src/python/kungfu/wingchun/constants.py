@@ -104,9 +104,16 @@ ResumePolicy = lf.enums.ResumePolicy
 
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType
-
 CashReplaceFlag = lf.enums.CashReplaceFlag
 ETFType = lf.enums.ETFType
+ETFStatus = lf.enums.ETFStatus
+AccountType = lf.enums.AccountType
+BrokerState = lf.enums.BrokerState
+AssembleMode = lf.enums.AssembleMode
+PageStatus = lf.enums.PageStatus
+AccountingMethodType = lf.enums.AccountingMethodType
+FrameDataType = lf.enums.FrameDataType
+Priority = lf.enums.Priority
 
 InstrumentTypeInStockAccount = [
     InstrumentType.Stock,
@@ -127,12 +134,31 @@ ENUM_TYPES = [
     OrderStatus,
     Direction,
     PriceType,
+    PriceLevel,
     VolumeCondition,
     TimeCondition,
     OrderActionFlag,
+    OrderTriggerFlag,
     LedgerCategory,
     HedgeFlag,
+    CommissionRateMode,
     MarketType,
     SubscribeDataType,
     SubscribeInstrumentType,
+    StrategyState,
+    OperatorState,
+    HistoryDataType,
+    OrderTriggerType,
+    BasketVolumeType,
+    BasketType,
+    CashReplaceFlag,
+    ETFType,
+    ETFStatus,
+    AccountType,
+    BrokerState,
+    AssembleMode,
+    PageStatus,
+    AccountingMethodType,
+    FrameDataType,
+    Priority,
 ]

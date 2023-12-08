@@ -197,6 +197,32 @@ const configSettingFormInject = inject(
   {},
 );
 
+const formItemNeedIcon = [
+  'str',
+  'password',
+  'int',
+  'float',
+  'percent',
+  'side',
+  'priceType',
+  'priceLevel',
+  'radio',
+  'checkbox',
+  'checkboxGroup',
+  'select',
+  'multiSelect',
+  'instrument',
+  'instruments',
+  'td',
+  'tds',
+  'md',
+  'md&operator',
+  'operator',
+  'strategy',
+  'basket',
+  'bool',
+];
+
 watch(
   () => props.configSettings,
   (newVal) => {
@@ -1229,8 +1255,17 @@ defineExpose({
             ]
       "
     >
-      <div v-if="item.type === 'str'" class="kf-form-item_icon__warp">
+      <div
+        v-if="
+          formItemNeedIcon.includes(item.type) ||
+          numberEnumRadioType[item.type] ||
+          numberEnumSelectType[item.type] ||
+          stringEnumSelectType[item.type]
+        "
+        class="kf-form-item_icon__warp"
+      >
         <a-input
+          v-if="item.type === 'str'"
           v-model:value.trim="formState[item.key]"
           :maxlength="item.maxlength || null"
           :disabled="
@@ -1238,21 +1273,8 @@ defineExpose({
             item.disabled
           "
         ></a-input>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'password'" class="kf-form-item_icon__warp">
         <a-input-password
+          v-else-if="item.type === 'password'"
           v-model:value.trim="formState[item.key]"
           :maxlength="item.maxlength || null"
           :disabled="
@@ -1260,21 +1282,8 @@ defineExpose({
             item.disabled
           "
         ></a-input-password>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'int'" class="kf-form-item_icon__warp">
         <a-input-number
+          v-else-if="item.type === 'int'"
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
@@ -1288,21 +1297,8 @@ defineExpose({
           @focus="numbersTyping[item.key] = true"
           @blur="numbersTyping[item.key] = false"
         ></a-input-number>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'float'" class="kf-form-item_icon__warp">
         <a-input-number
+          v-else-if="item.type === 'float'"
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
@@ -1320,21 +1316,8 @@ defineExpose({
             }
           "
         ></a-input-number>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'percent'" class="kf-form-item_icon__warp">
         <a-input-number
+          v-else-if="item.type === 'percent'"
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
@@ -1349,21 +1332,8 @@ defineExpose({
           @focus="numbersTyping[item.key] = true"
           @blur="numbersTyping[item.key] = false"
         ></a-input-number>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'side'" class="kf-form-item_icon__warp">
         <a-radio-group
+          v-else-if="item.type === 'side'"
           v-model:value="formState[item.key]"
           :name="item.key"
           :disabled="
@@ -1375,24 +1345,8 @@ defineExpose({
             {{ dealSide(+key).name }}
           </a-radio>
         </a-radio-group>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'priceType'"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="item.type === 'priceType'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1409,24 +1363,8 @@ defineExpose({
             {{ dealPriceType(+key).name }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'priceLevel'"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="item.type === 'priceLevel'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1441,24 +1379,8 @@ defineExpose({
             {{ dealPriceLevel(+key).name }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="numberEnumRadioType[item.type]"
-        class="kf-form-item_icon__warp"
-      >
         <a-radio-group
+          v-else-if="numberEnumRadioType[item.type]"
           v-model:value="formState[item.key]"
           :name="item.key"
           :disabled="
@@ -1474,21 +1396,8 @@ defineExpose({
             {{ getKfTradeValueName(numberEnumRadioType[item.type], key) }}
           </a-radio>
         </a-radio-group>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'radio'" class="kf-form-item_icon__warp">
         <a-radio-group
+          v-else-if="item.type === 'radio'"
           v-model:value="formState[item.key]"
           :name="item.key"
           :disabled="
@@ -1525,45 +1434,16 @@ defineExpose({
             </span>
           </a-radio>
         </a-radio-group>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'checkbox'" class="kf-form-item_icon__warp">
         <a-checkbox
+          v-else-if="item.type === 'checkbox'"
           v-model:checked="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
           "
         ></a-checkbox>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'checkboxGroup'"
-        class="kf-form-item_icon__warp"
-      >
         <a-checkbox-group
+          v-else-if="item.type === 'checkboxGroup'"
           v-model:value="formState[item.key]"
           :options="item.options"
           :disabled="
@@ -1571,24 +1451,8 @@ defineExpose({
             item.disabled
           "
         ></a-checkbox-group>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="numberEnumSelectType[item.type]"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="numberEnumSelectType[item.type]"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1604,24 +1468,8 @@ defineExpose({
             {{ getKfTradeValueName(numberEnumSelectType[item.type], key) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="stringEnumSelectType[item.type]"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="stringEnumSelectType[item.type]"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1637,21 +1485,8 @@ defineExpose({
             {{ getKfTradeValueName(stringEnumSelectType[item.type], key) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'select'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'select'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1688,24 +1523,8 @@ defineExpose({
             </span>
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'multiSelect'"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="item.type === 'multiSelect'"
           v-model:value="formState[item.key]"
           mode="multiple"
           :filter-option="
@@ -1749,24 +1568,8 @@ defineExpose({
             </span>
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'instrument'"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="item.type === 'instrument'"
           :ref="item.key"
           v-model:value="formState[item.key]"
           class="instrument-select"
@@ -1780,24 +1583,8 @@ defineExpose({
           @search="instrumentsSearchRelated[item.key].handleSearchInstrument"
           @blur="instrumentsSearchRelated[item.key].handleSearchInstrumentBlur"
         ></a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'instruments'"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="item.type === 'instruments'"
           :ref="item.key"
           class="instrument-select"
           :disabled="
@@ -1814,21 +1601,8 @@ defineExpose({
           @deselect="handleInstrumentDeselected($event, item.key)"
           @blur="instrumentsSearchRelated[item.key].handleSearchInstrumentBlur"
         ></a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'td'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'td'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1843,21 +1617,8 @@ defineExpose({
             {{ getIdByKfLocation(config) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'tds'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'tds'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1874,21 +1635,8 @@ defineExpose({
             {{ getIdByKfLocation(config) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'md'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'md'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1903,24 +1651,8 @@ defineExpose({
             {{ getIdByKfLocation(config) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div
-        v-else-if="item.type === 'md&operator'"
-        class="kf-form-item_icon__warp"
-      >
         <a-select
+          v-else-if="item.type === 'md&operator'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1948,21 +1680,8 @@ defineExpose({
             {{ getIdByKfLocation(config) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'operator'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'operator'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1977,21 +1696,8 @@ defineExpose({
             {{ getIdByKfLocation(config) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'strategy'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'strategy'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -2006,21 +1712,8 @@ defineExpose({
             {{ getIdByKfLocation(config) }}
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'basket'" class="kf-form-item_icon__warp">
         <a-select
+          v-else-if="item.type === 'basket'"
           v-model:value="formState[item.key]"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -2043,21 +1736,8 @@ defineExpose({
             </span>
           </a-select-option>
         </a-select>
-        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
-          <a-tooltip
-            :placement="item.toolTipPlacement ?? 'top'"
-            :title="
-              item.tip && isLanguageKeyAvailable(item.tip)
-                ? $t(item.tip)
-                : item.tip
-            "
-          >
-            <InfoCircleOutlined class="color-primary" />
-          </a-tooltip>
-        </div>
-      </div>
-      <div v-else-if="item.type === 'bool'" class="kf-form-item_icon__warp">
         <a-switch
+          v-else-if="item.type === 'bool'"
           v-model:checked="formState[item.key]"
           size="small"
           :disabled="
@@ -2065,6 +1745,7 @@ defineExpose({
             item.disabled
           "
         ></a-switch>
+
         <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
           <a-tooltip
             :placement="item.toolTipPlacement ?? 'top'"
@@ -2078,6 +1759,7 @@ defineExpose({
           </a-tooltip>
         </div>
       </div>
+
       <div v-else-if="item.type === 'file'" class="kf-form-item__warp file">
         <a-button
           size="small"

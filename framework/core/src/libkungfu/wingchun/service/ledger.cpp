@@ -135,9 +135,7 @@ void Ledger::update_order_stat(const event_ptr &event, const OrderInput &data) {
 }
 
 void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
-  if (data.error_id == 0) {
-    write_book(event->gen_time(), event->source(), event->dest(), data);
-  }
+  write_book(event->gen_time(), event->source(), event->dest(), data);
   auto &stat = ensure_order_stat(data.order_id, event);
   auto inserted = stat.insert_time != 0;
   auto acked = stat.ack_time != 0;

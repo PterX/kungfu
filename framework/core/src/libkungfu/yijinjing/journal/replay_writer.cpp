@@ -19,7 +19,7 @@ replay_writer::replay_writer(const data::location_ptr &location, uint32_t dest_i
   }
 }
 
-frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) {
+frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t length) {
   while (reader_for_write_->data_available()) {
     auto frame = reader_for_write_->current_frame();
     if (frame->msg_type() == msg_type) {

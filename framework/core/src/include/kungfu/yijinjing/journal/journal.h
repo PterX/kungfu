@@ -205,7 +205,7 @@ public:
 
   virtual uint64_t current_frame_uid();
 
-  virtual frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length);
+  virtual frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, size_t length);
 
   virtual void close_frame(size_t data_length, int64_t gen_time = time::now_in_nano());
 
@@ -327,7 +327,7 @@ public:
                            bool low_latency, const bus_ptr &bus, uint64_t page_size, const writer_hook_ptr &hook)
       : writer(location, dest_id, lazy, publisher, low_latency, bus, page_size), hook_(hook) {}
 
-  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
+  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, size_t length) override;
 
   void close_frame(size_t data_length, int64_t gen_time) override;
 
@@ -340,7 +340,7 @@ public:
   explicit replay_writer(const data::location_ptr &location, uint32_t dest_id, publisher_ptr publisher,
                          const bus_ptr &bus, uint64_t page_size, int64_t begin_time);
 
-  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, uint32_t length) override;
+  frame_ptr open_frame(int64_t trigger_time, int32_t msg_type, size_t length) override;
 
   void close_frame(size_t data_length, int64_t gen_time) override;
 

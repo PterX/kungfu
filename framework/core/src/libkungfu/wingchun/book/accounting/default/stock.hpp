@@ -87,7 +87,8 @@ public:
                                                          position.exchange_id, position.instrument_id);
       double frozen_fee = 0;
 
-      if (input.side == Side::Sell || input.side == Side::RepayMargin) { // Offset: Close
+      if (input.side == Side::Sell || input.side == Side::RepayMargin ||
+          input.side == Side::RepayStock) { // Offset: Close
         position.frozen_total += input.volume;
         if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
           position.frozen_yesterday += input.volume;
@@ -98,13 +99,6 @@ public:
         double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate * cd_mr.margin_ratio;
         book->asset.frozen_cash += frozen_cash;
         book->asset.avail -= frozen_cash;
-      } else if (input.side == Side::RepayStock) {
-        position.frozen_total += input.volume;
-        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-          position.frozen_yesterday += input.volume;
-        } else {
-          position.frozen_yesterday = position.yesterday_volume;
-        }
       }
     };
 
@@ -170,7 +164,6 @@ public:
     }
     double price_change = position.last_price - position.avg_open_price;
     position.unrealized_pnl = (position.direction == Direction::Long ? price_change : -price_change) * position.volume;
-    position.update_time = yijinjing::time::now_in_nano();
   }
 
 protected:

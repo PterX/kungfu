@@ -23,9 +23,9 @@ public:
       return;
     }
 
-    if (input.side == Side::Sell && position.volume - position.frozen_total >= input.volume) {
+    if (input.side == Side::Sell) {
       position.frozen_total += input.volume;
-      position.frozen_yesterday = std::max(position.frozen_yesterday + input.volume, position.yesterday_volume);
+      position.frozen_yesterday += input.volume;
     }
     if (input.side == Side::Buy) {
       book->asset.frozen_cash += input.volume * input.frozen_price * cd_mr.exchange_rate;

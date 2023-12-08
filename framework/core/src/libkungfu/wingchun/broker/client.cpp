@@ -350,8 +350,9 @@ bool PassiveClient::enrolled_td_connected() const {
 }
 
 bool PassiveClient::has_enrolled_td_channel(uint32_t home_uid) const {
-  return std::all_of(enrolled_td_locations_.begin(), enrolled_td_locations_.end(),
-                     [this, home_uid](const auto &it) { return has_channel(home_uid, it.first); });
+  return std::all_of(enrolled_td_locations_.begin(), enrolled_td_locations_.end(), [this, home_uid](const auto &it) {
+    return has_channel(home_uid, it.first) and has_channel(it.first, home_uid);
+  });
 }
 
 const PassiveClient::EnrolledLocationMap &PassiveClient::get_enrolled_md_locations() const {

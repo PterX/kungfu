@@ -15,6 +15,14 @@ export const resolveTriggerOffset = (position: KungfuApi.PositionResolved) => {
   }
 };
 
+const getNaturalNumber = <T extends number | bigint>(num: T): T => {
+  if (typeof num === 'bigint') {
+    return num > 0n ? num : (0n as T);
+  }
+
+  return num > 0 ? num : (0 as T);
+};
+
 export const getPosClosableVolumeByOffset = (
   position: KungfuApi.Position,
   offset: OffsetEnum,
@@ -25,7 +33,9 @@ export const getPosClosableVolumeByOffset = (
   const allVolume = position.volume - position.frozen_total,
     shotableYesterdayVolume =
       position.yesterday_volume - position.frozen_yesterday,
-    yesterdayVolume = position.yesterday_volume - position.frozen_total,
+    yesterdayVolume = getNaturalNumber(
+      position.yesterday_volume - position.frozen_total,
+    ),
     todayVolume = allVolume - yesterdayVolume;
 
   switch (offset) {

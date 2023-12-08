@@ -33,7 +33,7 @@ class StockAccountingMethod : public AccountingMethod {
 public:
   StockAccountingMethod() = default;
 
-  virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
+  void apply_trading_day(Book_ptr &book, int64_t trading_day) override {
 
     auto apply = [&](PositionMap &positions) {
       for (auto &pair : positions) {
@@ -67,7 +67,7 @@ public:
     apply(book->short_positions);
   }
 
-  virtual void apply_quote(Book_ptr &book, const Quote &quote) override {
+  void apply_quote(Book_ptr &book, const Quote &quote) override {
     auto apply = [&](Position &position) {
       if (not is_valid_price(quote.last_price) or not position.volume) {
         return;
@@ -111,7 +111,7 @@ public:
     apply(book->get_position_for(Direction::Short, quote));
   }
 
-  virtual void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+  void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
     if (dest == location::SYNC or dest == location::PUBLIC) {
       return;
     }
@@ -121,11 +121,7 @@ public:
 
     if (input.side == Side::Sell) {
       position.frozen_total += input.volume;
-      if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-        position.frozen_yesterday += input.volume;
-      } else {
-        position.frozen_yesterday = position.yesterday_volume;
-      }
+      position.frozen_yesterday += input.volume;
     } else if (input.side == Side::Buy) { // Offset: Open
       double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate * cd_mr.margin_ratio;
       book->asset.frozen_cash += frozen_cash;
@@ -133,7 +129,7 @@ public:
     }
   }
 
-  virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
+  void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
     if (not guard_order_accounting(source, dest, book, order)) {
       return;
     }
@@ -153,7 +149,8 @@ public:
 
     update_position(book, position);
   }
-  virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+
+  void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
     if (not guard_trade_accounting(source, dest, book, trade)) {
       return;
     }
@@ -177,7 +174,7 @@ public:
     }
   }
 
-  virtual void update_position(Book_ptr &book, Position &position) override {
+  void update_position(Book_ptr &book, Position &position) override {
     if (position.last_price > 0) {
       double price_change = position.last_price - position.avg_open_price;
       position.unrealized_pnl =

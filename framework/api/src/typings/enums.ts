@@ -242,14 +242,6 @@ export enum OrderStatusEnum {
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
 
-export enum BasketOrderStatusEnum {
-  Unknown,
-  Pending,
-  PartialFilledNotActive, // 部分成交已结束
-  PartialFilledActive, // 部分成交未结束
-  Filled,
-}
-
 export enum KfExtTypeEnum {
   Unknown = 'unknown',
   Broker = 'broker',

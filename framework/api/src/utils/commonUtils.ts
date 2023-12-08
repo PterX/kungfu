@@ -777,3 +777,21 @@ export const buildTableColumnSorterWithStrike = <T>(
     }
   };
 };
+
+export const getNaturalNumber = <T extends number | bigint>(num: T): T => {
+  if (typeof num === 'bigint') {
+    return num > 0n ? num : (0n as T);
+  }
+
+  return num > 0 ? num : (0 as T);
+};
+
+export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
+  const strKeys = keys.map((key) => key.toString());
+  return Object.keys(obj)
+    .filter((key) => !strKeys.includes(key))
+    .reduce((result, key) => {
+      result[key] = obj[key];
+      return result;
+    }, {});
+};

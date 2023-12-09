@@ -43,9 +43,7 @@ import {
   useProcessStatusDetailData,
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import {
-  initFormStateByConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,

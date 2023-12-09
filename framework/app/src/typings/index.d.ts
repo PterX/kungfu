@@ -27,9 +27,18 @@ interface AntTableColumn {
   key?: string;
   width?: number | string;
   minWidth?: number | string;
-  sorter?: boolean | { compare: (a: any, b: any) => number };
+  sorter?:
+    | boolean
+    | {
+        compare: (
+          a: any,
+          b: any,
+          sorterOrder: '' | 'ascend' | 'descend',
+        ) => number;
+      };
   align?: string;
   fixed?: string;
+  defaultSortOrder?: string;
 }
 
 type AntTableColumns = Array<AntTableColumn>;
@@ -44,8 +53,11 @@ interface ExtraOrderInput {
 interface KfTradingDataTableHeaderConfig {
   name: string;
   dataIndex: string;
+  align?: 'left' | 'right' | 'center';
   width?: number;
   flex?: number;
+  textOverflow?: 'visible' | 'hidden' | 'ellipsis' | 'clip';
+  wrap?: boolean;
   type?:
     | 'number'
     | 'string'
@@ -57,7 +69,7 @@ interface KfTradingDataTableHeaderConfig {
     | 'priceType'
     | 'direction'
     | 'actions';
-  sorter?: (a: any, b: any) => number;
+  sorter?: (a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number;
 }
 
 type KfTradingDataTableSelection = Record<
@@ -81,7 +93,9 @@ type BuiltinComponents =
   | 'OrderBook'
   | 'MakeOrder'
   | 'FutureArbitrage'
-  | 'BlockTrade';
+  | 'BlockTrade'
+  | 'OrderTriggerRecord'
+  | 'TransferRecord';
 
 interface BuiltinComponentPropsMap {
   TradingTask?: {
@@ -90,7 +104,12 @@ interface BuiltinComponentPropsMap {
       a: Pm2ProcessStatusDetail,
       b: Pm2ProcessStatusDetail,
     ) => number;
-    strategyFilter?: (strategyExtConfig: KungfuApi.KfExtConfig) => boolean;
+    strategyFilter?: (
+      strategyExtConfig: KungfuApi.KfStrategyExtConfig,
+    ) => boolean;
+  };
+  ConfigSettingForm?: {
+    sideFilter?: (instrumentType: InstrumentTypeEnum) => string[];
   };
 }
 

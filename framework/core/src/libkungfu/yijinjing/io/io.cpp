@@ -6,10 +6,6 @@
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
 
-#define SETUP_TIMEOUT 50
-#define DEFAULT_RECV_TIMEOUT 100
-#define DEFAULT_NOTICE_TIMEOUT 1000
-
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
@@ -35,8 +31,8 @@ class nanomsg_resource : public resource {
 protected:
   nanomsg_resource(const io_device &io_device, bool low_latency, protocol p)
       : io_device_(io_device), low_latency_(low_latency),
-        location_(std::make_shared<data::location>(longfist::enums::mode::LIVE, longfist::enums::category::SYSTEM,
-                                                   "master", "master", io_device_.get_home()->locator)),
+        location_(std::make_shared<data::location>(mode::LIVE, longfist::enums::category::SYSTEM, "master", "master",
+                                                   io_device_.get_live_home()->locator)),
         listen_path_(io_device_.get_url_factory()->make_path_listen(location_, p)),
         dial_path_(io_device_.get_url_factory()->make_path_dial(location_, p)), socket_(p) {}
 
@@ -57,8 +53,8 @@ public:
 
   int notify() override { return low_latency_ ? 0 : publish("{}"); }
 
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
-    return socket_.send(json_message, flags);
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    return socket_.send(json_message, flags, no_exception);
   }
 };
 
@@ -67,9 +63,9 @@ public:
   nanomsg_publisher_master(const io_device &io_device, bool low_latency)
       : nanomsg_publisher(io_device, low_latency, protocol::PUBLISH) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
-    socket_.listen(listen_path_);
+    return socket_.listen(listen_path_) == 0;
   }
 
   bool is_usable() override { return true; }
@@ -80,9 +76,9 @@ public:
   nanomsg_publisher_client(const io_device &io_device, bool low_latency)
       : nanomsg_publisher(io_device, low_latency, protocol::PUSH) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_ms(NNG_OPT_SENDTIMEO, DEFAULT_NOTICE_TIMEOUT);
-    socket_.dial(dial_path_);
+    return socket_.dial(dial_path_) == 0;
   }
 
   bool is_usable() override {
@@ -106,7 +102,12 @@ public:
   ~nanomsg_observer() override { socket_.close(); }
 
   bool wait() override {
-    int rc = socket_.recv(recv_flags_) == 0;
+    bool rc = socket_.recv(recv_flags_) == 0;
+    return rc;
+  }
+
+  bool nonblock_wait() override {
+    bool rc = socket_.recv(NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0;
     return rc;
   }
 
@@ -123,9 +124,9 @@ public:
   nanomsg_observer_master(const io_device &io_device, bool low_latency)
       : nanomsg_observer(io_device, low_latency, protocol::PULL) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
-    socket_.listen(listen_path_);
+    return socket_.listen(listen_path_) == 0;
   }
 
   bool is_usable() override { return true; }
@@ -136,24 +137,24 @@ public:
   nanomsg_observer_client(const io_device &io_device, bool low_latency)
       : nanomsg_observer(io_device, low_latency, protocol::SUBSCRIBE) {}
 
-  void setup() override {
+  bool setup() override {
     socket_.setsockopt_str(NNG_OPT_SUB_SUBSCRIBE, "");
     socket_.setsockopt_ms(NNG_OPT_RECVTIMEO, DEFAULT_RECV_TIMEOUT);
-    socket_.dial(dial_path_);
+    return socket_.dial(dial_path_) == 0;
   }
 
   bool is_usable() override { return socket_.recv(NNG_FLAG_ALLOC) == 0; }
 };
 
 io_device::io_device(data::location_ptr home, const bool low_latency, const bool lazy)
-    : home_(std::move(home)), low_latency_(low_latency), lazy_(lazy),
+    : home_(std::move(home)),
+      live_home_(location::make_shared(mode::LIVE, home_->category, home_->group, home_->name, home_->locator)),
+      low_latency_(low_latency), lazy_(lazy), begin_time_(time::now_in_nano()),
       bus_(std::make_shared<bus>(is_cleaner_required())) {
   if (spdlog::default_logger()->name().empty()) {
     yijinjing::log::setup_log(home_, home_->name);
   }
   ensure_sqlite_initilize();
-
-  live_home_ = location::make_shared(mode::LIVE, home_->category, home_->group, home_->name, home_->locator);
   url_factory_ = std::make_shared<ipc_url_factory>();
 }
 
@@ -165,12 +166,41 @@ reader_ptr io_device::open_reader(const data::location_ptr &location, uint32_t d
   return r;
 }
 
-writer_ptr io_device::open_writer(uint32_t dest_id) {
-  return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_);
+writer_ptr io_device::open_writer(uint32_t dest_id, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+  } else {
+    return std::make_shared<replay_writer>(live_home_, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
 }
 
-writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id) {
-  return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_);
+writer_ptr io_device::open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
+  } else {
+    return std::make_shared<replay_writer>(location, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
+}
+
+writer_ptr io_device::open_hookable_writer(uint32_t dest_id, const writer_hook_ptr &hook, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<hookable_writer>(home_, dest_id, lazy_, publisher_, low_latency_, bus_, page_size, hook);
+  } else {
+    return std::make_shared<replay_writer>(live_home_, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
+}
+
+writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const writer_hook_ptr &hook, uint64_t page_size) {
+  if (home_->mode != mode::REPLAY) {
+    return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size, hook);
+  } else {
+    return std::make_shared<replay_writer>(live_home_, dest_id, std::make_shared<noop_publisher>(),
+                                           std::make_shared<bus>(false), page_size, begin_time_);
+  }
 }
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)
@@ -191,11 +221,30 @@ bool io_device_client::is_usable() {
   return publisher.is_usable() and observer.is_usable();
 }
 
-void io_device_client::setup() {
+bool io_device_client::setup() {
   publisher_ = std::make_shared<nanomsg_publisher_client>(*this, is_low_latency());
   observer_ = std::make_shared<nanomsg_observer_client>(*this, is_low_latency());
-  publisher_->setup();
-  observer_->setup();
-  std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+  auto is_live_mode = get_home()->mode == mode::LIVE;
+  if (not is_live_mode) {
+    return true;
+  }
+
+  auto try_setup = [&]() {
+    auto prc = publisher_->setup();
+    auto orc = observer_->setup();
+    std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+    return prc && orc;
+  };
+
+  int count = (REGISTER_TIMEOUT_SECONDS * 1000) / SETUP_TIMEOUT;
+  while (not try_setup()) {
+    SPDLOG_WARN("try setup failed, retrying...");
+    if (count-- <= 0) {
+      SPDLOG_ERROR("setup failed");
+      throw yijinjing_error("setup failed");
+    }
+  }
+
+  return true;
 }
 } // namespace kungfu::yijinjing

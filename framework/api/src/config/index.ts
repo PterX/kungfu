@@ -6,7 +6,12 @@ import {
   KF_INSTRUMENTS_PATH,
 } from './pathConfig';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { mergeObject } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  mergeObject,
+  booleanProcessEnv,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+const globalStorage = getGlobalStorage();
 
 export const initKfConfig = () => {
   if (!fse.existsSync(KF_CONFIG_PATH)) {
@@ -17,6 +22,16 @@ export const initKfConfig = () => {
     if (kfConfigInitValue && typeof kfConfigInitValue === 'object') {
       kfConfigJSON = mergeObject(kfConfigJSON, kfConfigInitValue);
     }
+
+    if (
+      !globalStorage.getItem('ifNotFirstRunning') &&
+      !booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)
+    ) {
+      if (!kfConfigJSON.performance) kfConfigJSON.performance = {};
+      kfConfigJSON.performance.bypassAccounting = true;
+      kfConfigJSON.performance.bypassRefreshBook = true;
+    }
+
     fse.outputJsonSync(KF_CONFIG_PATH, kfConfigJSON);
   }
 };

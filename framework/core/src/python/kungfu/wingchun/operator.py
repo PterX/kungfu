@@ -8,6 +8,7 @@ import kungfu
 import os
 import sys
 
+from kungfu.console.utils import import_force
 from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
@@ -40,29 +41,35 @@ class Operator(wc.Operator):
 
     def __init_operator(self, path):
         operator_dir = os.path.dirname(path)
+        sys.path.insert(0, operator_dir)
         name_no_ext = os.path.split(os.path.basename(path))
         module_name = os.path.splitext(name_no_ext[1])[0]
-        module_spec = importlib.util.spec_from_file_location(module_name, path)
-        self._module = importlib.util.module_from_spec(module_spec)
-        module_spec.loader.exec_module(self._module)
+        self._module = importlib.import_module(module_name)
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
 
         self._on_quote = getattr(
-            self._module, "on_quote", lambda ctx, quote, location: None
+            self._module, "on_quote", lambda ctx, quote, location, dest_id: None
         )
         self._on_entrust = getattr(
-            self._module, "on_entrust", lambda ctx, entrust, location: None
+            self._module, "on_entrust", lambda ctx, entrust, location, dest_id: None
         )
         self._on_transaction = getattr(
-            self._module, "on_transaction", lambda ctx, transaction, location: None
+            self._module,
+            "on_transaction",
+            lambda ctx, transaction, location, dest_id: None,
         )
+
+        self._on_tree = getattr(
+            self._module, "on_tree", lambda ctx, tree, location: None
+        )
+
         self._on_synthetic_data = getattr(
             self._module,
             "on_synthetic_data",
-            lambda ctx, synthetic_data, location: None,
+            lambda ctx, synthetic_data, location, dest_id: None,
         )
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
@@ -93,25 +100,29 @@ class Operator(wc.Operator):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_timer(nanotime, wrap_callback)
+        return self.ctx.wc_context.add_timer(nanotime, wrap_callback)
 
     def __add_time_interval(self, duration, callback):
         def wrap_callback(event):
             self.__call_proxy(callback, self.ctx, event)
 
-        self.ctx.wc_context.add_time_interval(duration, wrap_callback)
+        return self.ctx.wc_context.add_time_interval(duration, wrap_callback)
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
+        self.ctx.config = wc_context.config
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval
+        self.ctx.clear_timer = wc_context.clear_timer
         self.ctx.subscribe = wc_context.subscribe
+        self.ctx.unsubscribe = wc_context.unsubscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.update_operator_state = wc_context.update_operator_state
         self.ctx.publish_synthetic_data = wc_context.publish_synthetic_data
         self.ctx.req_deregister = wc_context.req_deregister
+        self.ctx.static_data = wc_context.bookkeeper.static_data
         self.__call_proxy(self._pre_start, self.ctx)
 
     def post_start(self, wc_context):
@@ -123,17 +134,24 @@ class Operator(wc.Operator):
     def post_stop(self, wc_context):
         self.__call_proxy(self._post_stop, self.ctx)
 
-    def on_quote(self, wc_context, quote, location):
-        self.__call_proxy(self._on_quote, self.ctx, quote, location)
+    def on_quote(self, wc_context, quote, location, dest_id):
+        self.__call_proxy(self._on_quote, self.ctx, quote, location, dest_id)
 
-    def on_entrust(self, wc_context, entrust, location):
-        self.__call_proxy(self._on_entrust, self.ctx, entrust, location)
+    def on_entrust(self, wc_context, entrust, location, dest_id):
+        self.__call_proxy(self._on_entrust, self.ctx, entrust, location, dest_id)
 
-    def on_transaction(self, wc_context, transaction, location):
-        self.__call_proxy(self._on_transaction, self.ctx, transaction, location)
+    def on_transaction(self, wc_context, transaction, location, dest_id):
+        self.__call_proxy(
+            self._on_transaction, self.ctx, transaction, location, dest_id
+        )
 
-    def on_synthetic_data(self, wc_context, synthetic_data, location):
-        self.__call_proxy(self._on_synthetic_data, self.ctx, synthetic_data, location)
+    def on_tree(self, wc_context, tree, location, dest_id):
+        self.__call_proxy(self._on_transaction, self.ctx, tree, location)
+
+    def on_synthetic_data(self, wc_context, synthetic_data, location, dest_id):
+        self.__call_proxy(
+            self._on_synthetic_data, self.ctx, synthetic_data, location, dest_id
+        )
 
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)

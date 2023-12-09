@@ -38,6 +38,7 @@ export default {
 
   open_resources_directory: 'Open Kungfu Resources directory (KF_HOME)',
   open_install_directory: 'Open Kungfu installation directory',
+  open_system_config_directory: 'Open Kungfu system config directory',
   open_basic_configuration: 'Open Kungfu basic configuration DB',
   open_renderer_app_log: 'Open Application log',
   browsing_log: 'Browsing log files',
@@ -46,6 +47,8 @@ export default {
   clear_DB: 'Clear DB',
   reset_main_panel: 'Reset main panel',
   export_all_transaction_data: 'Export all transaction data',
+  export_instrument_whitelists: 'Export instrument whitelists',
+  view_all_journal: 'View all journal',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -58,12 +61,16 @@ export default {
   file: 'File',
   folder: 'Folder',
 
+  please_enter_file_path: 'Please enter file path',
+  please_enter_folder_path: 'Please enter folder path',
+
   no_focus: 'The current page is not in focus',
   clear: 'Clearing {content} completed, please restart the application',
   open_window: 'Opening window',
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
   open_journal_dashboard: 'Opening journal dashboard',
+  open_log_view: 'Opening log view',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
@@ -93,8 +100,10 @@ export default {
   Operator: 'Operator',
   Trade: 'Trade',
   Order: 'Order',
+  OrderTriggerRecord: 'OrderTriggerRecord',
   PosGlobal: 'Positon Global',
   Pos: 'Positon',
+  TransferRecord: 'TransferRecord',
 
   please_wait: 'Please wait...',
   please_wait_and_retry: 'Please wait and retry',
@@ -119,6 +128,10 @@ export default {
     import_successed: 'Import Successed',
     import_failed: 'Import Failed',
     csv_format_error: 'Csv format error, please check and retry',
+    add_csv_tip_prefix: 'Note: The rules for filling in CSV are as follows, ',
+    add_csv_tip_required: '*Required',
+    add_csv_tip_suffix:
+      ', Failure to fill in required fields will result in upload failure',
   },
 
   tradingConfig: {
@@ -133,6 +146,12 @@ export default {
     stopped: 'Stopped',
     launching: 'Launching',
     error: 'Errored',
+    finished_msg:
+      'The current order {status} and the order change has been cancelled',
+    trade_greater_than_target_msg:
+      'The transaction volume ({volume_trade}) is greater than the target order volume (volume_target), and the order change is cancelled',
+    target_equal_to_trade_msg:
+      'The transaction volume is equal to the target order volume, and the order change will be cancelled',
     waiting_restart: 'Stopped',
 
     pending: 'Pending',
@@ -144,7 +163,6 @@ export default {
     ready: 'Ready',
 
     system: 'System',
-    daemon: 'Daemon',
     md: 'Md',
     td: 'Td',
     strategy: 'Strategy',
@@ -193,11 +211,13 @@ export default {
     guarantee_stock_redeem: 'GuaranteeStockTransferOut',
 
     submitted: 'Submitted',
+    cancelling: 'Cancelling',
     cancelled: 'Cancelled',
     filled: 'Filled',
     partial_filled_not_active: 'PartialFilledNotActive',
     partial_filled_active: 'PartialFilledActive',
     lost: 'Lost',
+    pause: 'Pause',
 
     long: 'Long',
     short: 'Short',
@@ -209,6 +229,9 @@ export default {
     Reverse_best: 'ReverseBest',
     Fak: 'Fak',
     Fok: 'Fok',
+    EnhancedLimit: 'EnhancedLimit',
+    AtAuctionLimit: 'AtAuctionLimit',
+    AtAuction: 'AtAuction',
 
     speculation: 'Speculation',
     hedge: 'Hedge',
@@ -234,8 +257,6 @@ export default {
     tech_stock: 'TechStock',
     index: 'Index',
     repo: 'Repo',
-    warrant: 'Warrant',
-    iopt: 'Iopt',
     crypto: 'Crypto',
     crypto_future: 'CryptoFuture',
     crypto_ufuture: 'CryptoUFuture',
@@ -245,12 +266,15 @@ export default {
     SZE: 'SZE',
     BSE: 'BSE',
     SHFE: 'SHFE',
+    GFEX: 'GFEX',
     DCE: 'DCE',
     CZCE: 'CZCE',
     CFFEX: 'CFFEX',
     INE: 'INE',
 
     HK: 'HK',
+    SHHK: 'SHHK',
+    SZHK: 'SZHK',
     HKFUT: 'HKFUT',
     US: 'US',
     USFUT: 'USFUT',
@@ -322,6 +346,34 @@ export default {
     archive: 'archive',
 
     place_order: 'Place Order',
+    order_trigger: 'Embedded orders',
+    order_trigger_title: 'Confirmation of embedded orders',
+    server_order_trigger_label: 'Server embedded order',
+    local_order_trigger_label: 'Local embedded order',
+    order_trigger_status_pending: 'Submitted',
+    order_trigger_status_submitted: 'Not triggered',
+    order_trigger_status_filled: 'Triggered',
+    order_trigger_status_cancelled: 'Canceled',
+    order_trigger_status_error: 'Error',
+    batch: 'Batch',
+    batch_order_trigger: 'Batch embedded orders',
+    has_error_csv_order:
+      'The information filled in is not compliant. Please check the input information and place the order failed',
+    order_trigger_td_error:
+      'The current counter {tdName} does not support placing embedded orders. Please contact the administrator',
+    order_trigger_not_future:
+      'Failed to place the order, the information of the {rowStr} target is incorrect (currently only futures targets are supported), please check',
+    instrument_id_header_desc:
+      'Target code, string, (* Only CTP/Ronghang counter can be filled in)',
+    exchange_id_header_desc:
+      'Exchange ID, string, can be filled with SHFE (Shanghai Stock Exchange), DCE (Da Shang Exchange), CZCE (Zheng Shang Exchange), CFFEX (China Securities Exchange), INE (Energy Center)',
+    side_header_desc: 'Buy and sell, string, can fill in 0 (buy)/1 (sell)',
+    offset_header_desc:
+      'Open and close, string, you can fill in 0 (open)/1 (close)/2 (close today)/3 (close yesterday)',
+    price_type_header_desc:
+      '0 (price limit)/1 (market price)/2 (Shanghai Shenzhen optimal five level real-time transaction remaining cancellation)/3 (Shenzhen local optimal price declaration)/4 (Shanghai optimal five level real-time transaction remaining conversion to limit price, Shenzhen counterparty optimal price declaration)/5 (Shenzhen real-time transaction remaining cancellation)/6 (Shenzhen market price full transaction or cancellation)/7 (enhanced limit price order)/8 (bidding limit price order)/9 (bidding price order), number',
+    volume_header_desc: 'Volume, number',
+    limit_price_header_desc: 'Limit price, float',
     apart_order: 'Apart Order',
     reset_order: 'Reset',
     account: 'AccountId',
@@ -349,7 +401,7 @@ export default {
     fat_finger_sell_modal:
       'The selling price exceeded the warning line, the current price is {price}, line for {warningLine}, fat finger is {fatFinger}%',
     close_apart_open_modal:
-      'The order input volume is {volume}, the current closable {direction} position is {closable_volume}, the excess is {open_volume}\nclick “Take excess to open”, will close {direction} {closable_volume}, open {direction} {open_volume}\nclick “Orignal plan”, will continue close {direction} {volume}',
+      'The order input volume is {volume}, the current closable {direction} position is {closableVolume}, the excess is {openVolume}\nclick “Take excess to open”, will close {direction} {closableVolume}, open {oppositeDirection} {openVolume}\nclick “Orignal plan”, will continue close {direction} {volume}',
     start_process: 'please start {process} first',
     place_confirm: 'Place Order Confirm',
     continue_close_rate:
@@ -357,6 +409,9 @@ export default {
     Continue: 'Continue',
     original_plan: 'Orignal plan',
     beyond_to_open: 'Take excess to open',
+    reach: 'Reach',
+    above: 'Above',
+    hide_next_time: 'Hide next time',
   },
 
   orderConfig: {
@@ -380,6 +435,8 @@ export default {
 
     checkbox_text: 'Outstanding delegate',
     cancel_all: 'All cancellations',
+    cancel_order: 'Cancel order',
+    cancel_order_trigger: 'Embedded cancellation',
     date_picker: 'Select a date',
     confirm_cancel_all: 'Confirm cancellation of all orders',
     entrust: 'Entrust',
@@ -399,6 +456,36 @@ export default {
     average_network_latency: 'Average Network Latency(μs)',
     min_network_latency: 'Min Network Latency(μs)',
     max_network_latency: 'Max Network Latency(μs)',
+
+    actions: 'Action',
+    order_finished:
+      'The commission has ended and cannot be pre embedded for cancellation',
+    confirm_cancel_order_trigger:
+      'Confirm the cancellation of the embedded order',
+    cancel_order_trigger_context:
+      'Do you want to cancel the pre embedded cancellation under this commission order',
+    make_order_type: '(Embedded order)',
+  },
+
+  orderTriggerConfig: {
+    trigger_insert: 'Place order',
+    trigger_cancel: 'Cancel the order',
+    action_flag: 'Action flag',
+    confirm_cancel_all: 'Confirm cancellation of all orders',
+    confirm: 'Confirm',
+    cancel_all: 'All cancellations',
+    insert_time: 'Insert time',
+    order_finished: 'The delegation has ended and cannot be operated',
+    order_trigger_request_success: 'Refresh successful',
+    make_order_modal_tip:
+      'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',
+    error_msg_column: 'Return Information',
+    order_trigger_success: 'Success',
+    order_trigger_error_row: 'Line {index}',
+    empty_instrument: 'empty',
+    err_modal_title: 'Error details',
+    order_trigger_not_future: 'Not futures',
+    start_process: 'please start {process} first',
   },
 
   tdConfig: {
@@ -417,6 +504,8 @@ export default {
     total_asset: 'total_asset',
     actions: 'actions',
 
+    asset_details: 'Asset',
+
     add_td: 'Add',
     add_group_placeholder: 'Add group',
     set_td_group: 'Account Group Settings',
@@ -428,6 +517,28 @@ export default {
     delete_amount_group: 'Deleting account Group {group}',
     confirm_delete_group:
       'The account process under account group change will not be affected, confirm the deletion',
+  },
+
+  fundTrans: {
+    config_error: '{td} abnormal configuration file for counter fund transfer',
+    modal_title: 'Transfer of funds between counters',
+    trans_selection: 'Please select the direction of fund transfer',
+    centralized_counter: 'Centralized counter',
+    source: 'Outline the node',
+    target: 'Into the node',
+    amount: 'Amount incurred',
+    trading_day: 'Transfer time',
+    source_target_cannot_be_same:
+      'Transfer source and target cannot be the same, please reselect!',
+    tip_error: 'Transfer failed, please contact the administrator!',
+    capitalaccountor: 'Fund account',
+    trade_password: 'Transaction password',
+    account: 'Client number',
+    trans_type: 'Transfer type',
+    pending: 'Pending',
+    status: 'Transfer status',
+    success: 'success',
+    error: 'error',
   },
 
   mdConfig: {
@@ -458,11 +569,18 @@ export default {
     strategy_tip: 'Ensure that the strategy_id is unique',
 
     add_strategy: 'Add',
+    replay: 'Replay',
+    start_time: 'Start time',
+    end_time: 'End time',
+    log_level: 'Log level',
+    no_sessions_for_replay_warn:
+      'The process has not run temporarily and cannot be replayed',
   },
 
   operatorConfig: {
     operator: 'operator',
     operator_id: 'operator_id',
+    operator_ext: 'operator_ext',
     operator_file: 'operator_file',
     operator_path: 'operator_path',
     operator_path_tip:
@@ -503,7 +621,12 @@ export default {
   posGlobalConfig: {
     instrument_id: 'instrument_id',
     account_id_resolved: 'account_id_resolved',
+    static_yesterday: 'yesterday_volume',
+    static_yesterday_volume_setting: 'yesterday_volume(position before today)',
+    open_volume: 'open_volume',
+    close_volume: 'close_volume',
     yesterday_volume: 'yesterday_volume',
+    yesterday_volume_setting: 'yesterday_volume(yesterday volume remaining)',
     today_volume: 'today_volume',
     sum_volume: 'sum_volume',
     frozen_total: 'frozen_total',
@@ -512,6 +635,7 @@ export default {
     avg_open_price: 'avg_price',
     last_price: 'last_price',
     unrealized_pnl: 'unrealized_pnl',
+    pos_detail_header: 'Position',
   },
 
   marketDataConfig: {
@@ -539,7 +663,10 @@ export default {
     source: 'source',
     gen_time: 'gen_time',
     trigger_time: 'trigger_time',
+    page_id: 'PageId',
+    frame_id: 'FrameId',
     msg_type: 'msg_type',
+    msg_details: 'msg_details',
 
     export: 'Export',
     export_file_path: 'export_file_path',
@@ -565,6 +692,46 @@ export default {
     time_range: 'Time range',
 
     please_input_time: 'Please input time',
+
+    account_info: 'Account info',
+
+    trade_related: 'Trade related',
+
+    query_related: 'Query related',
+
+    market_related: 'Market related',
+
+    market_subscription_related: 'Market subscription related',
+
+    operator_related: 'Operator related',
+
+    strategy_related: 'Strategy related',
+
+    system_related: 'System related',
+
+    select_channel: 'Filter channels',
+
+    selete_msg_type: 'Filter MsgType',
+    empty_export_data: 'No information to export',
+
+    replay: 'Replay',
+    please_select_strategy_or_operator: 'Please select strategy or operator',
+    entry_visualization: 'Entry visualization',
+    quit_visualization: 'Entry visualization',
+    strategy_id: 'Strategy ID',
+    quote_legend: 'Quote',
+    order_input_legend: 'OrderInput',
+    order_legend: 'Order',
+    cancel_order_legend: 'OrderAction',
+    search_order_id: 'Please search for order id',
+    search_instrument: 'Please search for code number',
+    search_order_id_error:
+      'The order number you searched for does not exist. Please check if it is the selected target',
+    visual_vdata_error: 'Visual data does not exist',
+    buy_open: 'Buy to open',
+    buy_close: 'Buy to close',
+    sell_open: 'Sell to open',
+    sell_close: 'Sell to close',
   },
 
   tradeConfig: {
@@ -636,6 +803,10 @@ export default {
   globalSettingConfig: {
     global_setting_title: 'Global Setting',
     system: 'System',
+    home_dir: 'Select local home directory',
+    home_dir_desc:
+      'Kung Fu will take the selected home directory as the root directory for Kungfu system cache data, and the directory path cannot contain Chinese characters. It is not recommended that the path be too long (which may cause the process to fail to start). After modification, restarting Kung Fu will take effect',
+    reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',
 
@@ -647,8 +818,11 @@ export default {
     select_language_desc: 'Select Language, the modified restart takes effect',
     bypass_archive: 'ByPass Archive',
     bypass_archive_desc:
-      'Archive only delete journal and logs, zip nomore files',
+      "If open, archive will delete journal and zip files, and these files data can't be recovered, will accelerate start system",
 
+    bypass_subscribe_position: 'Skip position market subscription',
+    bypass_subscribe_position_desc:
+      'After opening, it will no longer subscribe by default to the market updates for positions in the trading account, and the trading account list will no longer display floating profits and losses. Market value related fields are calculated using the average opening price. Activating this feature can reduce the machine performance burden and will take effect after restarting.',
     porformance: 'Performance',
     rocket_model: 'Open Rocket Model',
     rocket_model_desc:
@@ -686,8 +860,14 @@ export default {
     order_input_key: 'Property',
     single_price: 'Single Price',
     limit_value: 'Maximum',
-    asset_margin: 'AssetMargin',
+    pos_table_columns: 'Position Table Item Configuration',
     show_asset_margin: 'AssetMargin Mode',
+    skip_confirm_make_order: 'Skip Confirm Make Order',
+    set_skip_confirm_make_order:
+      'After enabling, when placing an order manually, the secondary confirmation popup will no longer appear, and the order will be executed directly.',
+    skip_sync_position: 'Skip Position Sync Once Per Minute',
+    set_skip_sync_position:
+      'Once enabled, position synchronization will no longer be performed once per minute, only pull the latest position when starting the trading account (Position synchronization once a minute has the probability of double counting of positions due to in-transit transaction return issues, after this option is turned on, positions will only be calculated locally in Kungfu. But if it involves the impact of the order outside the kungfu system on the position, it will not be updated to the local),  restart is required.',
 
     code_editor: 'Editor',
     tab_space_type: 'Indentation Category',
@@ -704,19 +884,6 @@ export default {
     close_today: 'Close Today',
     close_yesterday: 'Close Yesterday',
     min: 'Min',
-
-    update: 'Upgrade Version',
-    is_check_version: 'Check Version',
-    is_check_version_desc: 'Check the client version when start kungfu',
-    current_version: 'Current version',
-    already_latest_version: 'Already latest version',
-    new_version: 'New version',
-    start_download: 'Start Download',
-    find_new_version: 'Found new version: {version}\nIf you want download now?',
-    downloaded: 'Download finished, wait to install',
-    to_install: 'To install',
-    warning_before_install:
-      "Installing will clean today's trading data and quit Kungfu (If you need, make a backup at first), sure install now? (suggest install when today's trade end)",
   },
 
   风控: 'Risk Setting',
@@ -731,14 +898,37 @@ export default {
   标的白名单: 'white list',
   白名单设置警告: 'Please set the whitelist for this account first',
 
+  autoUpdater: {
+    update: 'Upgrade Version',
+    is_check_version: 'Check Version',
+    is_check_version_desc: 'Check the client version when start kungfu',
+    current_version: 'Current version',
+    already_latest_version: 'Already latest version',
+    new_version: 'New version',
+    skip_version: 'Skip version',
+    retry_check: 'Check',
+    has_skipped: 'Has skipped the version',
+    start_download: 'Start Download',
+    retry_download: 'Retry',
+    find_new_version: 'Found new version: {version}\nIf you want download now?',
+    downloaded: 'Download finished, wait to install',
+    to_install: 'To install',
+    warning_before_install:
+      "Installing will clean today's trading data and quit Kungfu (If you need, make a backup at first), sure install now? (suggest install when today's trade end)",
+  },
+
   validate: {
-    no_special_characters: 'Cannot contain special characters',
+    no_special_characters:
+      'Cannot contain special characters or Chinese characters, and cannot start or end with - characters',
+    single_characters: 'Contain at least one letter or number',
     no_underscore: 'Cannot contain underscores',
     no_zero_number: 'Cannot contain zero',
     no_negative_number: 'Cannot contain negative',
     value_existing: '{value} has been in existence',
     mandatory: 'mandatory',
     resolved_tip: 'Success resolved {success} {value}, failed {fail}',
+    default_value_tip: 'This value can not change',
+    file_path_not_exist: 'File path does not exist',
   },
 
   editor: {
@@ -746,9 +936,11 @@ export default {
     current_strategy: 'Current strategy',
     new_file: 'New File',
     new_folder: 'New Folder',
+    open_folder: 'Open Folder',
     set_strategy_success: 'Strategy {file} file path changed successfully',
     entry_file: 'Entry File',
     creaate_success: '{file} created successfully',
+    illegal_file_name: 'Illegal file name',
 
     name_repeat:
       'This location already exists file or folder {name}, please select a different name',
@@ -765,6 +957,46 @@ export default {
 
   logview: {
     scroll_to_bottom: 'Scroll to bottom',
+    loading_data: 'Loading...',
+  },
+
+  replay: {
+    session: 'Session',
+    replay: 'Replay',
+    backtest: 'Backtest',
+    log_level: 'Log Level',
+    begin_time: 'Begin Time',
+    end_time: 'End Time',
+    try_again: 'Try Again',
+    stop_replay: 'Stop Replay',
+    stop_backtest: 'Stop Backtest',
+    enable_matcher: 'Enable Matcher',
+    please_select_session: 'Please select session',
+    please_select_log_level: 'Please select log level',
+    stop_replay_warn_content:
+      'Closing the window will stop the playback. Do you still want to close the window?',
+    process_has_not_been_started: 'The process has not been started',
+    please_start_replay: 'Please start replay',
+    please_select_strategy_or_operator: 'Please select strategy or operator',
+    process_can_not_replay: 'the process can not replay',
+    tips_title: '* Tips:',
+    replay_tips1_part1: 'Replay functionality relies on data time, ',
+    replay_tips1_part2:
+      'please refrain from using physical time-related code within the strategy to express "now"',
+    replay_tips1_part3: `(such as Python's time or yjj.now_in_nano). It is recommended to use the context.now method provided by the strategy. Otherwise, the replay may not execute as expected.`,
+    replay_tips2_part1: 'When using the matcher',
+    replay_tips2_part2: 'for replay, the replay only adds log, ',
+    replay_tips2_part3: 'do not modify the strategy logic',
+    replay_tips2_part4:
+      ', otherwise an error will be reported due to inconsistent output data with the actual.',
+    replay_tips2_part5: 'When not using the matcher',
+    replay_tips2_part6: 'for replay, ',
+    replay_tips2_part7: 'you can modify the strategy logic',
+    replay_tips2_part8:
+      ', the matcher will use the data recorded in the actual trading for replay.',
+    process_not_found: 'Process not found',
+    enable_matcher_tip:
+      'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
 
   master_interrupt: 'master interrupted',
@@ -789,17 +1021,19 @@ export default {
   environment_done: 'Kungfu environment done ✓',
   environment_loading: 'Kungfu environment loading...',
   extra_resources_done: 'Extra resources done ✓',
-  extra_resouces_loading: 'Extra resources loading...',
+  extra_resources_loading: 'Extra resources loading...',
   saving_data_done: 'Saving data done ✓',
   saving_data_loading: 'Saving data loading ...',
   end_all_transactions: 'End all transactions ✓',
   closing: 'End the transaction process, Please do not close...',
 
   computer_performance_abnormal:
-    'Computer performance is too low, continue start maybe make system process crash, suggest use the CPU core num more than 8.',
+    'Computer performance is too low, will open the pass accounting option (you can reopen it in global system settings, but that maybe make system crash), suggest use the CPU core num more than 8.',
 
   quit_confirm:
     'Exiting the application ends all transactions, Confirm to exit?',
+  init_after_reload:
+    'Main processes not running, all trading are affected, click confirm to restart main processes',
   restart_process:
     'Kungfu graphics process is interrupted. The interruption will not affect transactions. Do you want to restart the graphics process?',
 
@@ -813,12 +1047,15 @@ export default {
   错误: 'error',
   文件路径不存在: 'The file path does not exist',
   策略id不存在: 'The strategy id does not exist',
+  请输入文件路径: 'Please enter the file path',
+  请输入文件夹路径: 'Please enter the folder path',
+  请输入一个目录: 'Please enter a directory',
 
-  可用仓位: 'Avail Pos',
-  可用资金: 'Avail Asset',
-  交易金额: 'Amount',
-  保证金占用: 'Margin',
-  保证金返还: 'Margin',
-  剩余资金: 'Left Asset',
-  剩余仓位: 'Left Pos',
+  可用仓位: 'Reference Avail Pos',
+  可用资金: 'Reference Avail Asset',
+  交易金额: 'Reference Amount',
+  保证金占用: 'Reference Margin',
+  保证金返还: 'Reference Margin',
+  剩余资金: 'Reference Left Asset',
+  剩余仓位: 'Reference Left Pos',
 };

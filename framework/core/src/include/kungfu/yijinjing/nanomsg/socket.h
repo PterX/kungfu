@@ -115,7 +115,7 @@ public:
   void close();
 
   // Send policy changed to flag = 0 at app register, then notify with flag = NNG_FLAG_NONBLOCK
-  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK) const;
+  int send(const std::string &msg, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) const;
 
   int send_json(const nlohmann::json &msg, int flags = NNG_FLAG_NONBLOCK) const;
 
@@ -158,6 +158,8 @@ struct nanomsg_json : event {
 
   [[nodiscard]] uint32_t source() const override { return get_meta<uint32_t>("source", 0); }
 
+  [[nodiscard]] uint32_t initial_source() const override { return get_meta<uint32_t>("initial_source", 0); }
+
   [[nodiscard]] uint32_t dest() const override { return get_meta<uint32_t>("dest", 0); }
 
   [[nodiscard]] uint32_t data_length() const override { return binding_.size(); }
@@ -175,6 +177,10 @@ struct nanomsg_json : event {
   [[nodiscard]] std::string data_as_string() const override { return binding_["data"].dump(); }
 
   [[nodiscard]] std::string to_string() const override { return msg_; }
+
+  [[nodiscard]] int8_t data_type() const override { return get_meta<int8_t>("data_type", 0); }
+
+  [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
 
 private:
   const nlohmann::json binding_;

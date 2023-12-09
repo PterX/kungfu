@@ -17,6 +17,8 @@ from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
 from kungfu.wingchun.strategy import Runner, Strategy
+from kungfu.wingchun.sliceindexer import SliceIndexer
+from kungfu.wingchun.report import Report
 from kungfu.wingchun.operator import OpRunner, Operator
 
 from collections import deque
@@ -46,7 +48,9 @@ class ExecutorRegistry:
             kfj.CATEGORIES[ctx.category],
             ctx.group,
             ctx.name,
-            ctx.runtime_locator,
+            ctx.backtest_locator
+            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            else ctx.runtime_locator,
         )
         ctx.logger = find_logger(ctx.location, ctx.log_level)
 
@@ -63,6 +67,7 @@ class ExecutorRegistry:
 
         if ctx.group not in self.executors[ctx.category]:
             self.executors[ctx.category][ctx.group] = ExtensionLoader(ctx, None, None)
+
         if (
             ctx.category == "system"
             and ctx.group == "service"
@@ -79,7 +84,7 @@ class ExecutorRegistry:
         config_path = os.path.join(extension_dir, "package.json")
 
         def report(reason):
-            self.ctx.logger.info(
+            self.ctx.logger.debug(
                 f"kungfu extension not found in {extension_dir}: {reason}"
             )
 
@@ -162,9 +167,27 @@ class ServiceLoader(dict):
                 self.ctx.runtime_locator,
             )
             self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
-            service(
-                self.ctx.runtime_locator, kfj.MODES[self.ctx.mode], low_latency
-            ).run()
+            self.ctx.logger.info(
+                f"starting service {name}, low_latency={low_latency}, arguments={self.ctx.arguments}, mode={mode}"
+            )
+
+            the_service = (
+                service(self.ctx)
+                if "is_python_service" in dir(service) and service.is_python_service
+                else service(
+                    self.ctx.runtime_locator,
+                    kfj.MODES[self.ctx.mode],
+                    self.ctx.low_latency,
+                    self.ctx.arguments,
+                )
+            )
+
+            if kfj.MODES[self.ctx.mode] == lf.enums.mode.REPLAY:
+                begin_time_stamp, end_time_stamp = parse_begin_end(self.ctx)
+                the_service.set_begin_time(begin_time_stamp)
+                the_service.set_end_time(end_time_stamp)
+
+            the_service.run()
 
         return run
 
@@ -231,7 +254,7 @@ class ExtensionExecutor:
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         vendor = vendor_builder(
-            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency
+            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency, ctx.arguments
         )
         service_builder = getattr(module, ctx.category)
         self.ctx.logger.debug(f"loaded service builder")
@@ -239,6 +262,11 @@ class ExtensionExecutor:
         self.ctx.logger.debug("set service for vendor")
         vendor.set_service(service)
         self.ctx.logger.info(f"vendor {location.uname} ready to run")
+
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
+            vendor.set_begin_time(begin_time_stamp)
+            vendor.set_end_time(end_time_stamp)
         vendor.run()
 
     def run_market_data(self):
@@ -284,33 +312,51 @@ class ExtensionExecutor:
             ctx.strategy = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Strategy
             )
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.backtest:
-            ctx.logger.debug(f"ctx.backtest: {ctx.backtest}")
-            if ctx.backtest.endswith(".json"):
-                with open(ctx.backtest, "r", encoding="utf-8") as json_file:
-                    backtest_para = json.load(json_file)
-            else:
-                backtest_para = json.loads(ctx.backtest)
 
-            begin_time_stamp = kft.strptimes(
-                ctx.begin if ctx.begin else backtest_para["begin_time"],
-                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"),
-            )
-            end_time_stamp = kft.strptimes(
-                ctx.end if ctx.end else backtest_para["end_time"],
-                ("%F %T", "%F %T.%N", "%Y%m%d", "%Y-%m-%d"),
-            )
-            matcher = load_matcher(ctx, ctx.matcher)
-            if matcher:
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            if ctx.matcher:
+                matcher = load_module(
+                    ctx,
+                    ctx.matcher,
+                    Path(ctx.matcher).stem.split(".")[0],
+                    None,
+                    "matcher",
+                )
                 ctx.runner.set_matcher(matcher)
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.runner.set_begin_time(begin_time_stamp)
             ctx.runner.set_end_time(end_time_stamp)
+            from_indexer, to_indexer = parse_from_to_indexer(
+                ctx, begin_time_stamp, end_time_stamp
+            )
+            ctx.runner.set_from_indexer(from_indexer)
+            ctx.runner.set_to_indexer(to_indexer)
+            if ctx.report:
+                report = load_module(
+                    ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
+                )
+                ctx.runner.set_report(report)
+            if ctx.time_interval:
+                ctx.runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
+            ctx.runner.set_backtest_config(parse_backtest_config(ctx))
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
+            ctx.runner.set_begin_time(begin_time_stamp)
+            ctx.runner.set_end_time(end_time_stamp)
+
         ctx.runner.add_strategy(ctx.strategy)
-        if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE:
+
+        if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE and "is_cpp_module" not in dir(
+            ctx
+        ):
+            ctx.logger.info("use run_forever")
             ctx.loop = KungfuEventLoop(ctx, ctx.runner)
             ctx.loop.run_forever()
         else:
+            ctx.logger.info("use run")
             ctx.runner.run()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
+            report.sumerize()
 
     def run_operator(self):
         loader = self.loader
@@ -353,9 +399,33 @@ class ExtensionExecutor:
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Operator
             )
         ctx.op_runner = OpRunner(ctx, kfj.MODES[ctx.mode])
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
+            ctx.op_runner.set_begin_time(begin_time_stamp)
+            ctx.op_runner.set_end_time(end_time_stamp)
+            from_indexer, to_indexer = parse_from_to_indexer(
+                ctx, begin_time_stamp, end_time_stamp
+            )
+            ctx.op_runner.set_from_indexer(from_indexer)
+            ctx.op_runner.set_to_indexer(to_indexer)
+            if ctx.report:
+                report = load_module(
+                    ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
+                )
+                ctx.op_runner.set_report(report)
+            if ctx.time_interval:
+                ctx.op_runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
+            ctx.op_runner.set_backtest_config(parse_backtest_config(ctx))
         # ctx.runner = self.load_runner(ctx)
+        if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
+            begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
+            ctx.op_runner.set_begin_time(begin_time_stamp)
+            ctx.op_runner.set_end_time(end_time_stamp)
+
         ctx.op_runner.add_operator(ctx.operator)
         ctx.op_runner.run()
+        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
+            report.sumerize()
 
 
 class RegistryJSONEncoder(json.JSONEncoder):
@@ -364,8 +434,9 @@ class RegistryJSONEncoder(json.JSONEncoder):
         return str(obj) if test else obj.__dict__
 
 
-def load_module(ctx, path, key, cls):
-    cls_name = cls.__name__
+def load_module(ctx, path, key, cls, cls_name=None):
+    if cls:
+        cls_name = cls.__name__
     ctx.logger.debug(f"loading {cls_name} from {path}")
     ctx.logger.debug(f"{cls_name} key: {key}")
     ctx.logger.debug(f"{cls_name} dirname: {os.path.dirname(path)}")
@@ -373,7 +444,7 @@ def load_module(ctx, path, key, cls):
     if path.endswith(".py"):
         return cls(ctx)  # keep strategy alive for pybind11
     elif key is not None and (path.endswith(".so") or path.endswith(".pyd")):
-        return try_load_cpp_module(ctx, path, key, cls)
+        return try_load_cpp_module(ctx, path, key, cls, cls_name)
     elif key is not None and path.endswith(key):
         return cls(ctx)
     else:
@@ -381,28 +452,20 @@ def load_module(ctx, path, key, cls):
         return cls(ctx)
 
 
-def load_matcher(ctx, path):
-    try:
-        sys.path.append(str(Path(path).parent))
-        lib_name = Path(path).stem.split(".")[0]
-        module = importlib.import_module(lib_name)
-        ctx.logger.debug(f"import matcher: {lib_name} success")
-        matcher_builder = getattr(module, "matcher")
-        return matcher_builder()
-    except Exception as e:
-        ctx.logger.debug("load_matcher failed: {}".format(e))
-        ctx.logger.warn("matcher path: {} cannot be import by python".format(path))
-        return None
-
-
-def try_load_cpp_module(ctx, path, key, cls):
-    cls_name = cls.__name__
+def try_load_cpp_module(ctx, path, key, cls, cls_name):
+    if cls:
+        cls_name = cls.__name__
+    dirname = os.path.dirname(path)
+    site.setup(dirname)
+    sys.path.insert(0, dirname)
     try:
         module = importlib.import_module(key)
         ctx.logger.debug(f"import as cpp {cls_name} success")
         factory_func = getattr(module, cls_name.lower())
+        ctx.is_cpp_module = True
         return factory_func()
-    except Exception as e:
+    except AttributeError as e:
+        sys.modules.pop(key)
         ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
         return cls(ctx)
@@ -413,8 +476,6 @@ def load_runner(ctx, locator):
         sys.path.append(ctx.extension_path)
         module = importlib.import_module(ctx.vendor)
         runner_vendor = getattr(module, "Runner")
-        if ctx.arguments is None:
-            ctx.arguments = ""
         runner = runner_vendor(
             locator,
             ctx.group,
@@ -426,3 +487,82 @@ def load_runner(ctx, locator):
         return runner
     else:
         return Runner(ctx, locator, kfj.MODES[ctx.mode])
+
+
+def parse_begin_end(ctx):
+    ctx.logger.debug(f"ctx.mode: {ctx.mode}")
+
+    if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (not ctx.begin or not ctx.end):
+        raise ValueError("backtest mode must specify begin and end")
+
+    if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY and (
+        not (ctx.begin and ctx.end) and not ctx.session_id
+    ):
+        raise ValueError("replay mode must specify begin and end or session_id")
+
+    begin_time_stamp = (
+        kft.strptimes(
+            ctx.begin,
+            (
+                "%F %T",
+                "%F %T.%N",
+                "%Y%m%d",
+                "%Y-%m-%d",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S.%N",
+            ),
+        )
+        if ctx.begin
+        else yjj.now_in_nano()
+    )
+    end_time_stamp = (
+        kft.strptimes(
+            ctx.end,
+            (
+                "%F %T",
+                "%F %T.%N",
+                "%Y%m%d",
+                "%Y-%m-%d",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S.%N",
+            ),
+        )
+        if ctx.end
+        else yjj.now_in_nano()
+    )
+    end_time_stamp = min(yjj.now_in_nano(), end_time_stamp)
+
+    if ctx.session_id:
+        session = kfj.find_session(ctx, ctx.session_id)
+        begin_time_stamp = session["begin_time"]
+        end_time_stamp = session["end_time"] if session.closed else end_time_stamp
+
+    ctx.logger.debug(
+        f"begin time: {kft.strftime(begin_time_stamp)}, end_time_stamp: {kft.strftime(end_time_stamp)}"
+    )
+    return begin_time_stamp, end_time_stamp
+
+
+def parse_from_to_indexer(ctx, begin, end):
+    from_indexer = wc.SliceIndexer(begin, end)
+    to_indexer = wc.SliceIndexer(begin, end)
+    if ctx.from_indexer:
+        from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
+        # from_indexer = wc.DayIndexer(begin, end)
+    if ctx.to_indexer:
+        to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
+    return from_indexer, to_indexer
+
+
+def parse_backtest_config(ctx):
+    if ctx.backtest is None:
+        return "{}"
+    backtest_config = ctx.backtest
+    if os.path.exists(ctx.backtest):
+        with open(ctx.backtest, "r") as f:
+            backtest_config = f.read()
+    # json format check.
+    json.loads(backtest_config)
+    return backtest_config

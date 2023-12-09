@@ -102,7 +102,7 @@ const run = (distDir, distName = 'app') => {
 
     spinner.on('error', reject);
 
-    pack(mainConfig(argv))
+    pack(mainConfig({ ...argv }))
       .then((result) => {
         results += result + '\n\n';
         spinner.success('main');
@@ -114,7 +114,7 @@ const run = (distDir, distName = 'app') => {
         process.exit(1);
       });
 
-    pack(rendererConfig(argv))
+    pack(rendererConfig({ ...argv }))
       .then((result) => {
         results += result + '\n\n';
         spinner.success('renderer');

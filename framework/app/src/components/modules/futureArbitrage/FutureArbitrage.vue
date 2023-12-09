@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -7,14 +9,13 @@ import { getConfigSettings } from './config';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { categoryRegisterConfig } from '../posGlobal/config';
 import { FutureArbitrageCodeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/kungfu';
-import {
-  getProcessIdByKfLocation,
-  initFormStateByConfig,
-  transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useCurrentGlobalKfLocation,
+  useFormCurrentState,
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
@@ -29,6 +30,7 @@ const { t } = VueI18n.global;
 const { error } = messagePrompt();
 
 const { handleBodySizeChange } = useDashboardBodySize();
+const { globalSetting } = storeToRefs(useGlobalStore());
 
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
@@ -39,6 +41,7 @@ const {
   currentCategoryData,
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
+const { currentAccountLocation } = useFormCurrentState(formState);
 
 const isShowCurrentGlobalKfLocationTitle = computed(() => {
   return (
@@ -91,13 +94,12 @@ function arbitrageExchangeValidator(
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.SP ||
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.SPC
   ) {
-    if (exchangeId !== 'CZCE') {
+    if (exchangeId !== 'DCE') {
       return Promise.reject(
         new Error(
-          `${t('futureArbitrageConfig.only_corresponding')}
-            ${t('tradingConfig.CZCE')}
-            ${t('tradingConfig.instrument')},
-          `,
+          `${t('futureArbitrageConfig.only_corresponding')} 
+          ${t('tradingConfig.DCE')} 
+          ${t('tradingConfig.instrument')}`,
         ),
       );
     }
@@ -107,12 +109,13 @@ function arbitrageExchangeValidator(
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.SPD ||
     formState.value.future_arbitrage_code === FutureArbitrageCodeEnum.IPS
   ) {
-    if (exchangeId !== 'DCE') {
+    if (exchangeId !== 'CZCE') {
       return Promise.reject(
         new Error(
-          `${t('futureArbitrageConfig.only_corresponding')} 
-          ${t('tradingConfig.DCE')} 
-          ${t('tradingConfig.instrument')}`,
+          `${t('futureArbitrageConfig.only_corresponding')}
+            ${t('tradingConfig.CZCE')}
+            ${t('tradingConfig.instrument')},
+          `,
         ),
       );
     }
@@ -176,15 +179,13 @@ function handleMakeOrder() {
         parent_id: 0n,
       };
 
-      if (!currentGlobalKfLocation.value) {
-        error(t('location_error'));
+      if (!currentAccountLocation.value) {
         return;
       }
 
-      const tdProcessId =
-        currentGlobalKfLocation.value?.category === 'td'
-          ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-          : `td_${account_id.toString()}`;
+      const tdProcessId = currentAccountLocation.value
+        ? getProcessIdByKfLocation(currentAccountLocation.value)
+        : `td_${account_id.toString()}`;
 
       if (processStatusData.value[tdProcessId] !== 'online') {
         error(
@@ -192,17 +193,18 @@ function handleMakeOrder() {
         );
         return;
       }
-
-      const flag = await confirmModal(
-        t('tradingConfig.place_confirm'),
-        dealOrderPlaceVNode(makeOrderInput, 1, true),
-      );
-      if (!flag) return;
+      if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+        const flag = await confirmModal(
+          t('tradingConfig.place_confirm'),
+          dealOrderPlaceVNode(makeOrderInput, 1, true),
+        );
+        if (!flag) return;
+      }
 
       makeOrderByOrderInput(
         window.watcher,
         makeOrderInput,
-        currentGlobalKfLocation.value,
+        currentAccountLocation.value,
         tdProcessId.toAccountId(),
       ).catch((err) => {
         error(err.message);

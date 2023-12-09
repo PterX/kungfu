@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, toRefs, Ref } from 'vue';
-
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
   BankOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 
 import {
@@ -20,7 +21,6 @@ import {
   handleOpenCodeView,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getColumns } from './config';
 import {
   handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
@@ -29,15 +29,19 @@ import {
   useCurrentGlobalKfLocation,
   useProcessStatusDetailData,
   useSwitchAllConfig,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+
 import {
-  dealAssetPrice,
-  getConfigValue,
   getIfProcessRunning,
   getIfProcessStopping,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { setStrategyConfig } from './config';
+import {
+  dealAssetPrice,
+  getProcessIdByKfLocation,
+  getConfigValue,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getColumns, setStrategyConfig } from './config';
 import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -49,10 +53,11 @@ const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 
 const setStrategyModalVisible = ref<boolean>(false);
+
 const setStrategyConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('strategyConfig.strategy'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfStrategyExtConfig,
 });
 
 const { strategy } = toRefs(useAllKfConfigData());
@@ -69,21 +74,49 @@ const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
   strategy,
   processStatusData,
 );
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
   strategy as Ref<KungfuApi.KfConfig[]>,
   ['name'],
 );
+
+const tableDataResolved = computed(() => {
+  return [...tableData.value].sort((a, b) => {
+    const aAddTime = getConfigValue(a).add_time || 0;
+    const bAddTime = getConfigValue(b).add_time || 0;
+    return bAddTime - aAddTime;
+  });
+});
 const { getAssetsByKfConfig } = useAssets();
 
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = getColumns((dataIndex) => {
-  return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
-    return (
-      (getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset] || 0) -
-      (getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset] || 0)
-    );
+  return (
+    a: KungfuApi.KfConfig,
+    b: KungfuApi.KfConfig,
+    sorterOrder: '' | 'ascend' | 'descend',
+  ) => {
+    let aVal = getAssetsByKfConfig(a)[dataIndex] ?? '--',
+      bVal = getAssetsByKfConfig(b)[dataIndex] ?? '--';
+    if (sorterOrder === 'ascend') {
+      aVal = aVal === '--' ? Infinity : aVal;
+      bVal = bVal === '--' ? Infinity : bVal;
+    } else if (sorterOrder === 'descend') {
+      aVal = aVal === '--' ? -Infinity : aVal;
+      bVal = bVal === '--' ? -Infinity : bVal;
+    } else {
+      return 0;
+    }
+    return Number(aVal) - Number(bVal);
   };
 });
 
@@ -160,7 +193,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       <a-table
         class="kf-ant-table"
         :columns="columns"
-        :data-source="tableData"
+        :data-source="tableDataResolved"
         size="small"
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
@@ -220,6 +253,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
+              <HistoryOutlined
+                style="font-size: 12px"
+                @click.stop="handleOpenReplayConfirmView(record)"
+              ></HistoryOutlined>
               <BankOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenJournalView(record)"
@@ -253,6 +290,21 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
       :primaryKeyAvoidRepeatCompareTarget="strategyIdList"
       @confirm="handleConfirmAddUpdateKfConfig($event, 'strategy', 'default')"
     ></KfSetByConfigModal>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :can-backtest="true"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">

@@ -19,16 +19,23 @@ const {
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 const CopyPlugin = require('copy-webpack-plugin');
 const fse = require('fs-extra');
+const {
+  generateCodeKeyWords,
+} = require('@kungfu-trader/kungfu-js-api/toolkit/codeEditor/generateCodeKeyWords');
 
 const appDir = getAppDir();
 const { getKungfuBuildInfo, getPagesConfig, isProduction } = toolkit.utils;
 const { pyVersion } = getKungfuBuildInfo();
 const publicDir = path.join(appDir, 'public');
 
+generateCodeKeyWords();
+
 const webpackConfig = (argv) => {
   const pagesConfig = getPagesConfig(argv);
   fse.removeSync(path.join(publicDir, 'python'));
 
+  argv.enableThreadLoader = true;
+  const threaderLoader = toolkit.webpack.getThreadLoaderConfig(argv);
   return merge(toolkit.webpack.makeConfig(argv), {
     externals: getWebpackExternals(),
     entry: pagesConfig.entry,
@@ -67,7 +74,7 @@ const webpackConfig = (argv) => {
         },
         {
           test: /\.vue$/,
-          use: 'vue-loader',
+          use: [...threaderLoader, { loader: 'vue-loader' }],
         },
         {
           test: /\.worker\.ts$/,

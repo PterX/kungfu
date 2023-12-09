@@ -13,6 +13,11 @@
 namespace kungfu::yijinjing {
 FORWARD_DECLARE_CLASS_PTR(session)
 
+#define SETUP_TIMEOUT 500
+#define DEFAULT_RECV_TIMEOUT 100
+#define DEFAULT_NOTICE_TIMEOUT 1000
+#define REGISTER_TIMEOUT_SECONDS 60
+
 class io_device : public resource {
 public:
   io_device(data::location_ptr home, bool low_latency, bool lazy);
@@ -25,9 +30,10 @@ public:
 
   bool is_low_latency() { return low_latency_; }
 
-  void setup() override {
-    publisher_->setup();
-    observer_->setup();
+  bool setup() override {
+    bool prc = publisher_->setup();
+    bool orc = observer_->setup();
+    return prc && orc;
   }
 
   [[nodiscard]] const data::locator_ptr &get_locator() const { return home_->locator; }
@@ -47,9 +53,15 @@ public:
 
   [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
 
-  journal::writer_ptr open_writer(uint32_t dest_id);
+  journal::writer_ptr open_writer(uint32_t dest_id, uint64_t page_size = 0);
 
-  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id);
+  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size = 0);
+
+  journal::writer_ptr open_hookable_writer(uint32_t dest_id, const journal::writer_hook_ptr &hook,
+                                           uint64_t page_size = 0);
+
+  journal::writer_ptr open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const journal::writer_hook_ptr &hook, uint64_t page_size = 0);
 
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 
@@ -57,11 +69,14 @@ public:
 
   [[nodiscard]] observer_ptr get_observer() { return observer_; }
 
+  void set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
+
 protected:
   data::location_ptr home_;
   data::location_ptr live_home_;
   const bool low_latency_;
   const bool lazy_;
+  int64_t begin_time_;
   nanomsg::url_factory_ptr url_factory_;
   publisher_ptr publisher_;
   observer_ptr observer_;
@@ -83,7 +98,7 @@ public:
 
   bool is_usable() override;
 
-  void setup() override;
+  bool setup() override;
 };
 
 DECLARE_PTR(io_device_client)

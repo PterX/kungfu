@@ -24,6 +24,8 @@ const menuSelectedKeys = ref<string[]>(['main']);
 const { uiExtConfigs } = useExtConfigsRelated();
 const { isLanguageKeyAvailable } = useLanguage();
 
+const isExtSidebarShow = ref<Record<string, boolean>>({});
+
 const sidebarFooterComponentConfigs = computed(() => {
   return Object.keys(uiExtConfigs.value)
     .filter((key) => uiExtConfigs.value[key].position === 'sidebar_footer')
@@ -64,6 +66,14 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         globalSettingModalVisible.value = true;
     }
   }
+
+  if (data.tag === 'show-or-hide-extension-sidebar') {
+    isExtSidebarShow.value[data.key || ''] = data.target;
+    if (data.target === false) {
+      menuSelectedKeys.value = ['main'];
+      handleToPage('/');
+    }
+  }
 });
 
 onBeforeUnmount(() => {
@@ -77,14 +87,15 @@ function handleToPage(pathname: string) {
 }
 </script>
 <template>
-  <a-layout>
+  <a-layout class="kf-layout">
     <a-layout>
-      <a-layout-sider width="64px">
+      <a-layout-sider class="kf-layout-sider" width="64px">
         <div class="kf-header-logo">
           <img :src="logoPath" />
         </div>
         <a-menu
           v-model:selectedKeys="menuSelectedKeys"
+          class="kf-layout-menu"
           mode="vertical"
           style="width: 64px"
         >
@@ -94,22 +105,24 @@ function handleToPage(pathname: string) {
             </template>
             <span>{{ $t('baseConfig.main_panel') }}</span>
           </a-menu-item>
-          <a-menu-item
-            v-for="config in sidebarComponentConfigs"
-            :key="config.key"
-            @click="handleToPage(`/${config.key}`)"
-          >
-            <template #icon>
-              <component :is="config.key"></component>
-            </template>
-            <span>
-              {{
-                isLanguageKeyAvailable(config.name)
-                  ? $t(config.name)
-                  : config.name
-              }}
-            </span>
-          </a-menu-item>
+          <template v-for="config in sidebarComponentConfigs">
+            <a-menu-item
+              v-if="isExtSidebarShow[config.key] !== false"
+              :key="config.key"
+              @click="handleToPage(`/${config.key}`)"
+            >
+              <template #icon>
+                <component :is="config.key"></component>
+              </template>
+              <span>
+                {{
+                  isLanguageKeyAvailable(config.name)
+                    ? $t(config.name)
+                    : config.name
+                }}
+              </span>
+            </a-menu-item>
+          </template>
         </a-menu>
         <div class="kf-sidebar-footer__warp">
           <div
@@ -138,7 +151,7 @@ function handleToPage(pathname: string) {
         </a-layout-content>
       </a-layout>
     </a-layout>
-    <a-layout-footer>
+    <a-layout-footer class="kf-layout-footer">
       <KfProcessStatusController
         class="kf-footer-box__warp"
       ></KfProcessStatusController>
@@ -164,10 +177,10 @@ function handleToPage(pathname: string) {
 <style lang="less">
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/variables.less';
 
-.ant-layout {
+.kf-layout {
   height: 100%;
 
-  .ant-layout-sider {
+  .kf-layout-sider {
     .ant-layout-sider-children {
       display: flex;
       flex-direction: column;
@@ -189,7 +202,7 @@ function handleToPage(pathname: string) {
         }
       }
 
-      .ant-menu.ant-menu-root.ant-menu-vertical {
+      .kf-layout-menu.ant-menu-root.ant-menu-vertical {
         position: absolute;
         top: 40%;
         transform: translateY(-50%);
@@ -234,7 +247,7 @@ function handleToPage(pathname: string) {
     }
   }
 
-  .ant-layout-footer {
+  .kf-layout-footer {
     height: @layout-footer-height;
     line-height: @layout-footer-height;
     padding: 0 8px 0 0;

@@ -60,7 +60,7 @@ std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
     }
     auto home_dir_path = get_default_root() / iter->second.second;
     home_dir_path /= std::accumulate(tags.begin(), tags.end(), fs::path{},
-                                     [&](const fs::path &p, const std::string &tag) { return p / tag; });
+                                     [](const fs::path &p, const std::string &tag) { return p / tag; });
     return home_dir_path.string();
   }
 }
@@ -75,14 +75,14 @@ bool locator::has_env(const std::string &name) const { return std::getenv(name.c
 
 std::string locator::get_env(const std::string &name) const { return std::getenv(name.c_str()); }
 
-std::string locator::layout_dir(const location_ptr &location, es::layout layout) const {
+std::string locator::layout_dir(const location_ptr &location, es::layout layout, bool create_not_exist) const {
   auto dir = root_ /                                     //
+             es::get_layout_name(layout) /               //
              es::get_category_name(location->category) / //
              location->group /                           //
              location->name /                            //
-             es::get_layout_name(layout) /               //
              es::get_mode_name(location->mode);
-  if (not fs::exists(dir)) {
+  if (create_not_exist && not fs::exists(dir)) {
     fs::create_directories(dir);
   }
   return dir.string();
@@ -99,10 +99,10 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
   auto db_file = layout_file(location, sqlite_layout, name);
   if (not fs::exists(db_file)) {
     auto system_db_file = root_ /                                     //
+                          es::get_layout_name(sqlite_layout) /        //
                           es::get_category_name(location->category) / //
                           location->group /                           //
                           location->name /                            //
-                          es::get_layout_name(sqlite_layout) /        //
                           es::get_mode_name(location->mode);
     fs::copy(system_db_file, db_file);
   }
@@ -112,7 +112,10 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
 std::vector<uint32_t> locator::list_page_id(const location_ptr &location, uint32_t dest_id) const {
   std::vector<uint32_t> result = {};
   auto dest_id_str = fmt::format("{:08x}", dest_id);
-  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL, false));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".journal" and basename.stem() == dest_id_str) {
@@ -130,20 +133,35 @@ static constexpr auto g = [](const std::string &pattern) { return fmt::format("(
 
 std::vector<location_ptr> locator::list_locations(const std::string &category, const std::string &group,
                                                   const std::string &name, const std::string &mode) const {
-  fs::path search_path = root_ / g(category) / g(group) / g(name) / "journal" / g(mode);
+  fs::path search_path = root_ / ".*" / g(category) / g(group) / g(name) / g(mode);
   std::string pattern = std::regex_replace(search_path.string(), std::regex("\\\\"), "\\\\");
   std::regex search_regex(pattern);
+  std::unordered_map<uint32_t, location_ptr> avoid_repeat_locations = {};
   std::vector<location_ptr> result = {};
   std::smatch match;
   for (auto &it : fs::recursive_directory_iterator(root_)) {
     auto path = it.path().string();
     if (it.is_directory() and std::regex_match(path, match, search_regex)) {
-      auto l = location::make_shared(es::get_mode_by_name(match[4].str()),     //
-                                     es::get_category_by_name(match[1].str()), //
-                                     match[2].str(),                           //
-                                     match[3].str(),                           //
+      // sometimes bad locations existed, like self log writtern by broker in cwd folder, we need to avoid them
+      std::string mode_name = match[4].str();
+      auto mode = es::get_mode_by_name(mode_name);
+      if (mode == es::mode::LIVE and mode_name != "live") {
+        continue;
+      }
+      std::string category_name = match[1].str();
+      auto category = es::get_category_by_name(category_name);
+      if (category == es::category::SYSTEM and category_name != "system") {
+        continue;
+      }
+      auto l = location::make_shared(mode,           //
+                                     category,       //
+                                     match[2].str(), //
+                                     match[3].str(), //
                                      std::make_shared<locator>(root_.string()));
-      result.push_back(l);
+      if (avoid_repeat_locations.find(l->uid) == avoid_repeat_locations.end()) {
+        avoid_repeat_locations.emplace(l->uid, l);
+        result.push_back(l);
+      }
     }
   }
   return result;
@@ -151,11 +169,18 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
 
 std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) const {
   std::unordered_set<uint32_t> set = {};
-  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL));
+  auto dir = fs::path(layout_dir(location, es::layout::JOURNAL, false));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".journal") {
-      set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      try {
+        set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      } catch (const std::exception &ex) {
+        SPDLOG_ERROR("failed to std::stoul(basename.stem(), nullptr, 16) {}", basename);
+      }
     }
   }
   return std::vector<uint32_t>{set.begin(), set.end()};
@@ -164,10 +189,17 @@ std::vector<uint32_t> locator::list_location_dest(const location_ptr &location) 
 std::vector<uint32_t> locator::list_location_dest_by_db(const location_ptr &location) const {
   std::unordered_set<uint32_t> set = {};
   auto dir = fs::path(layout_dir(location, es::layout::SQLITE));
+  if (not fs::exists(dir)) {
+    return {};
+  }
   for (auto &it : fs::recursive_directory_iterator(dir)) {
     auto basename = it.path().stem();
     if (it.is_regular_file() and it.path().extension() == ".db") {
-      set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      try {
+        set.emplace(std::stoul(basename.stem(), nullptr, 16));
+      } catch (const std::exception &ex) {
+        SPDLOG_ERROR("failed to std::stoul(basename.stem(), nullptr, 16) {}", basename);
+      }
     }
   }
   return std::vector<uint32_t>{set.begin(), set.end()};

@@ -1,7 +1,5 @@
-import {
-  getKfExtensionConfig,
-  kfConfigItemsToProcessArgs,
-} from '../utils/busiUtils';
+import { kfConfigItemsToProcessArgs } from '../utils/commonUtils';
+import { getKfExtensionConfig } from '../utils/extUtils';
 import { Pm2ProcessStatusData, startTask } from '../utils/processUtils';
 import path from 'path';
 import { Proc } from 'pm2';
@@ -28,9 +26,8 @@ export const startTradingTaskByCommand = async (
   argsState: Record<string, KungfuApi.KfConfigValue>,
 ): Promise<Proc | void> => {
   const extConfigs = await getKfExtensionConfig();
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs['strategy'] || {})[
-    extKey
-  ];
+  const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs['strategy'] ||
+    {})[extKey];
 
   if (!extConfig) {
     throw new Error(`${extKey} is not existed in extConfigs`);

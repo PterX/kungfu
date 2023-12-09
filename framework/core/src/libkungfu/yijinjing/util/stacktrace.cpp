@@ -5,7 +5,7 @@
 //
 
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/common.h>
+#include <kungfu/yijinjing/log.h>
 #include <time.h>
 
 #ifdef _WINDOWS
@@ -42,74 +42,72 @@ std::string get_default_error_log_dir() {
 }
 static std::string error_log_dir = get_default_error_log_dir();
 
-void set_error_log_dir(const std::string &path) {
-  // std::cout<<"error_log_dir: "<<error_log_dir<<"\n";
-  error_log_dir = path;
-}
+void set_error_log_dir(const std::string &path) { error_log_dir = path; }
 
 #ifdef _WINDOWS
 
 DWORD SehFiler(DWORD code) {
   switch (code) {
   case EXCEPTION_ACCESS_VIOLATION:
-    SPDLOG_CRITICAL("Access violation,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Access violation,error code: {:#x}", code);
     break;
   case EXCEPTION_BREAKPOINT:
-    SPDLOG_CRITICAL("Breakpoint,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Breakpoint,error code: {:#x}", code);
     break;
   case EXCEPTION_DATATYPE_MISALIGNMENT:
-    SPDLOG_CRITICAL("Misaligned data,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Misaligned data,error code: {:#x}", code);
     break;
   case EXCEPTION_SINGLE_STEP:
-    SPDLOG_CRITICAL("Single instruction,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Single instruction,error code: {:#x}", code);
     break;
   case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-    SPDLOG_CRITICAL("Out of array bounds,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Out of array bounds,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_DENORMAL_OPERAND:
-    SPDLOG_CRITICAL("Denormalized floating-point value,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Denormalized floating-point value,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-    SPDLOG_CRITICAL("Floating point divide-by-zero,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Floating point divide-by-zero,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_INEXACT_RESULT:
-    SPDLOG_CRITICAL("Inexact floating point value,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Inexact floating point value,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_INVALID_OPERATION:
-    SPDLOG_CRITICAL("Invalid floating point operation,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Invalid floating point operation,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_OVERFLOW:
-    SPDLOG_CRITICAL("Floating point overflow,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Floating point overflow,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_STACK_CHECK:
-    SPDLOG_CRITICAL("Floating point stack overflow,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Floating point stack overflow,error code: {:#x}", code);
     break;
   case EXCEPTION_FLT_UNDERFLOW:
-    SPDLOG_CRITICAL("Floating point underflow,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Floating point underflow,error code: {:#x}", code);
     break;
   case EXCEPTION_INT_DIVIDE_BY_ZERO:
-    SPDLOG_CRITICAL("Integer divide by zero,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Integer divide by zero,error code: {:#x}", code);
     break;
   case EXCEPTION_INT_OVERFLOW:
-    SPDLOG_CRITICAL("Integer overflow,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Integer overflow,error code: {:#x}", code);
     break;
   case EXCEPTION_IN_PAGE_ERROR:
-    SPDLOG_CRITICAL("Invalid page access,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Invalid page access,error code: {:#x}", code);
     break;
   case EXCEPTION_ILLEGAL_INSTRUCTION:
-    SPDLOG_CRITICAL("Invalid instruction,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Invalid instruction,error code: {:#x}", code);
     break;
   case EXCEPTION_STACK_OVERFLOW:
-    SPDLOG_CRITICAL("Stack overflow,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Stack overflow,error code: {:#x}", code);
     break;
   case EXCEPTION_INVALID_HANDLE:
-    SPDLOG_CRITICAL("Invalid handle,error code: {:#x}", code);
+    KF_LOG_CRITICAL("Invalid handle,error code: {:#x}", code);
     break;
   default:
-    if (code & (1 << 29))
-      SPDLOG_CRITICAL("Custom exception,error code: {:#x}", code);
-    else
-      SPDLOG_CRITICAL("Unknown exception,error code: {:#x}", code);
+    if (code & (1 << 29)) {
+      KF_LOG_CRITICAL("Custom exception,error code: {:#x}", code);
+    } else {
+      KF_LOG_CRITICAL("Unknown exception,error code: {:#x}", code);
+    }
     break;
   }
   return EXCEPTION_EXECUTE_HANDLER;
@@ -117,8 +115,8 @@ DWORD SehFiler(DWORD code) {
 
 // 如果是栈溢出类型的异常，会破坏SEH框架，导致SEH失效
 DWORD print_stack_trace(EXCEPTION_POINTERS *ep) {
-  SPDLOG_CRITICAL("Uncaught exception");
-  // SPDLOG_CRITICAL("{}", home->locator->layout_file());
+  KF_LOG_CRITICAL("Uncaught exception");
+  // KF_LOG_CRITICAL("{}", home->locator->layout_file());
 
   // std::cout << "path--------->, " << home->locator->layout_file(home,kungfu::longfist::enums::layout::LOG,"123") <<"
   // \n";
@@ -129,20 +127,18 @@ DWORD print_stack_trace(EXCEPTION_POINTERS *ep) {
   }
 
   StackWalker sw;
-  // sw.ShowCallstack(GetCurrentThread(),ep->ContextRecord);
-  // std::cout << "======================Split Lines======================" << std::endl;
   struct tm *cur_time = nullptr;
-  time_t nowtime = time(NULL);
+  time_t nowtime = time(nullptr);
   cur_time = std::localtime(&nowtime);
   char buf[128];
   strftime(buf, sizeof(buf), "hs_err_%Y_%m_%d_%H_%M_%S", cur_time);
 
-  std::string path = error_log_dir + "/ " + buf;
+  std::string path = error_log_dir + "/" + buf;
 
   std::ofstream log_file;
   log_file.open(path, std::ios::in | std::ios::out | std::ios::trunc);
   if (!log_file.is_open()) {
-    SPDLOG_CRITICAL("# Can not save log file, dump to screen...");
+    KF_LOG_CRITICAL("# Can not save log file, dump to screen...");
   }
   if (ep != nullptr) {
     sw.show_callstack(log_file, ep->ContextRecord);
@@ -150,19 +146,14 @@ DWORD print_stack_trace(EXCEPTION_POINTERS *ep) {
     sw.show_callstack(log_file, nullptr);
   }
 
-  if (log_file.is_open())
-    SPDLOG_CRITICAL("# An error report file with more information is saved as:  {}", path);
+  if (log_file.is_open()) {
+    KF_LOG_CRITICAL("# An error report file with more information is saved as:  {}", path);
+  }
 
   log_file.close();
 
   return EXCEPTION_EXECUTE_HANDLER;
 }
-
-// DWORD print_stack_trace(EXCEPTION_POINTERS *ep) {
-//   SPDLOG_CRITICAL("Uncaught exception");
-//   StackWalker().ShowCallstack();
-//   return EXCEPTION_EXECUTE_HANDLER;
-// }
 
 #else
 
@@ -188,7 +179,7 @@ void print_stack_trace(FILE *out) {
   FILE *log_file = fopen(path.c_str(), "a+");
 
   if (log_file == NULL) {
-    SPDLOG_CRITICAL("# Can not save log file, dump to screen... ");
+    KF_LOG_CRITICAL("# Can not save log file, dump to screen... ");
   }
 
   fprintf(log_file, "-------------------------Native Stack--------------------------\n");
@@ -232,7 +223,7 @@ void print_stack_trace(FILE *out) {
       size_t funcnamesize = 8192;
       char funcname[8192];
       char *ret = abi::__cxa_demangle(begin_name, &funcname[0], &funcnamesize, &status);
-      SPDLOG_CRITICAL(" {:<30} {:<40} {}", symbollist[i], status == 0 ? ret : begin_name, begin_offset);
+      KF_LOG_CRITICAL(" {:<30} {:<40} {}", symbollist[i], status == 0 ? ret : begin_name, begin_offset);
       fprintf(log_file, "%s  %s  %s\n", symbollist[i], status == 0 ? ret : begin_name, begin_offset);
 #else  // !__APPLE__ - but is posix
        // not OSX style
@@ -262,10 +253,8 @@ void print_stack_trace(FILE *out) {
       size_t funcnamesize = 8192;
       char funcname[8192];
       char *ret = abi::__cxa_demangle(begin_name, funcname, &funcnamesize, &status);
-      // SPDLOG_CRITICAL("{}", ret);
-      // printf("1111111111111111111, #%d#\n",status);
       if (console_count >= 0) {
-        SPDLOG_CRITICAL("{:<30} ({:<40}+{}) {}", symbollist[i], status == 0 ? ret : begin_name,
+        KF_LOG_CRITICAL("{:<30} ({:<40}+{}) {}", symbollist[i], status == 0 ? ret : begin_name,
                         begin_offset ? begin_offset : "", end_offset);
         console_count--;
       }
@@ -276,7 +265,7 @@ void print_stack_trace(FILE *out) {
     } else {
       // couldn't parse the line? print the whole line.
       if (console_count >= 0) {
-        SPDLOG_CRITICAL("{}", symbollist[i]);
+        KF_LOG_CRITICAL("{}", symbollist[i]);
         console_count--;
       }
       fprintf(log_file, "%s\n", symbollist[i]);
@@ -284,7 +273,7 @@ void print_stack_trace(FILE *out) {
     }
   }
   if (log_file != NULL) {
-    SPDLOG_CRITICAL("# An error report file with more information is saved as:  {}", path);
+    KF_LOG_CRITICAL("# An error report file with more information is saved as:  {}", path);
   }
   fclose(log_file);
   free(symbollist);

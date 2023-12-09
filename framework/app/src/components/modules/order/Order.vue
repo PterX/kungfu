@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  dealKfPrice,
-  dealSide,
-  dealOffset,
   getIdByKfLocation,
-  delayMilliSeconds,
   getProcessIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealOffset,
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  useActiveInstruments,
+  useExtConfigsRelated,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useTableSearchKeyword,
@@ -20,7 +24,6 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import {
   DownloadOutlined,
   LoadingOutlined,
-  CloseOutlined,
   CalendarOutlined,
   PieChartOutlined,
 } from '@ant-design/icons-vue';
@@ -34,6 +37,7 @@ import {
   ref,
   toRaw,
   watch,
+  nextTick,
 } from 'vue';
 import { getColumns } from './config';
 import {
@@ -42,12 +46,22 @@ import {
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+  getOrderLatencyDataByOrderStat,
+  kfCancelAllOrdersTrigger,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
-import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  OrderCancelledStatus,
+  OrderTriggerCancelStatus,
+  UnfinishedOrderStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   HistoryDateEnum,
   OrderStatusEnum,
+  OrderActionFlagEnum,
+  OrderTriggerStatusEnum,
+  OrderTriggerConfigTypeEnum,
+  OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -58,18 +72,20 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
+const { extConfigs } = useExtConfigsRelated();
 
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
-const { dealerResolved, clearCaches } = useDealDataWithCaches<
+const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
-  KungfuApi.OrderResolved
+  KungfuApi.OrderResolvedWithoutStat
 >(['uid_key', 'update_time']);
 const orders = ref<KungfuApi.OrderResolved[]>([]);
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
@@ -94,6 +110,9 @@ const {
 const { handleDownload } = useDownloadHistoryTradingData();
 const adjustOrderMaskVisible = ref(false);
 const statisticModalVisible = ref<boolean>(false);
+const orderCurrentOrderTriggers = ref<
+  Record<string, KungfuApi.OrderTriggerResolved[]>
+>({});
 
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
@@ -102,7 +121,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );
@@ -140,20 +159,20 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
             );
 
-            return toRaw(
-              dealerResolved(item, () =>
-                dealOrder(
-                  watcher,
-                  item,
-                  watcher.ledger.OrderStat,
-                  false,
-                  price_precision,
-                ),
+            return toRaw({
+              ...dealDataWithCache(
+                item,
+                () => dealOrder(watcher, item, false, price_precision),
+                { price_precision },
               ),
-            );
+              ...getOrderLatencyDataByOrderStat(
+                item,
+                watcher.ledger.OrderStat,
+                price_precision,
+              ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
+            });
           });
           allOrders.value = tempAllOrders;
           orders.value = toRaw(
@@ -168,18 +187,20 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               curOrder.instrument_id,
               curOrder.exchange_id,
-              0.001,
             );
 
-            const orderResolved = toRaw(
-              dealOrder(
-                watcher,
+            const orderResolved = toRaw({
+              ...dealDataWithCache(
+                curOrder,
+                () => dealOrder(watcher, curOrder, false, price_precision),
+                { price_precision },
+              ),
+              ...getOrderLatencyDataByOrderStat(
                 curOrder,
                 watcher.ledger.OrderStat,
-                false,
                 price_precision,
               ),
-            );
+            });
             preOrders.totalOrders.push(orderResolved);
             if (isFinishedOrderStatus(curOrder.status)) {
               if (finishedOrdersCount < 500) {
@@ -199,6 +220,23 @@ onMounted(() => {
 
         allOrders.value = toRaw(totalOrders);
         orders.value = toRaw(ordersForTable);
+
+        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+        orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
+          'action_flag',
+          OrderTriggerFlag.TriggerCancel,
+        )
+          .filter('source', source)
+          .list()
+          .reduce((pre, cur) => {
+            const order_id = cur.order_id.toString();
+            if (order_id in pre) {
+              pre[order_id].push(cur);
+            } else {
+              pre[order_id] = [cur];
+            }
+            return pre;
+          }, {});
       },
     );
 
@@ -231,6 +269,7 @@ watch(historyDate, async (newDate) => {
   delayMilliSeconds(500)
     .then(() =>
       getKungfuHistoryData(
+        window.watcher,
         newDate.format(),
         HistoryDateEnum.naturalDate,
         'Order',
@@ -255,18 +294,20 @@ watch(historyDate, async (newDate) => {
           const { price_precision } = getPriceTickAndPrecision(
             item.instrument_id,
             item.exchange_id,
-            0.001,
           );
 
-          return toRaw(
-            dealOrder(
-              window.watcher,
+          return toRaw({
+            ...dealDataWithCache(
+              item,
+              () => dealOrder(window.watcher, item, true, price_precision),
+              { price_precision },
+            ),
+            ...getOrderLatencyDataByOrderStat(
               item,
               tradingData.OrderStat,
-              true,
               price_precision,
             ),
-          );
+          });
         }),
       );
       allOrders.value = tempAllOrders;
@@ -288,6 +329,24 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);
 }
 
+const cancelOrderTriggerBtnVisible = computed(() => {
+  const rootPackageJson = readRootPackageJsonSync();
+  if (rootPackageJson?.appConfig?.orderTrigger === false) {
+    return false;
+  }
+
+  const tdName = currentGlobalKfLocation.value?.group as string;
+  const extConfig = extConfigs.value.td[tdName];
+  if (
+    extConfig &&
+    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
   if (!currentGlobalKfLocation.value || !window.watcher) {
     error();
@@ -298,7 +357,7 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
     return;
   }
 
-  kfCancelOrder(window.watcher, order)
+  kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       success();
     })
@@ -312,6 +371,7 @@ function handleCancelAllOrders(): void {
     error();
     return;
   }
+
   const name = getIdByKfLocation(currentGlobalKfLocation.value);
 
   confirmModal(
@@ -333,6 +393,84 @@ function handleCancelAllOrders(): void {
         error(err.message);
       });
   });
+}
+
+function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
+  const cancelOrderTrigger = isOrderTriggerHasSubmitted(order.order_id);
+  if (cancelOrderTrigger) {
+    if (!currentGlobalKfLocation.value || !window.watcher) {
+      error();
+      return;
+    }
+
+    if (isFinishedOrderStatus(order.status)) {
+      error(t('orderConfig.order_finished'));
+      return;
+    }
+
+    kfCancelOrder(window.watcher, order, OrderActionFlagEnum.TriggerCancel)
+      .then(() => {
+        success();
+      })
+      .catch((err: Error) => {
+        error(err.message);
+      });
+  } else {
+    confirmModal(
+      t('orderConfig.confirm_cancel_order_trigger'),
+      t('orderConfig.cancel_order_trigger_context'),
+    ).then((res) => {
+      if (!res || !currentGlobalKfLocation.value || !window.watcher) {
+        return;
+      }
+      const { order_id } = order;
+      // 再获取一次, 预防点击弹窗很久不操作, 原订单状态已改变
+      const { status } = (
+        window.watcher as KungfuApi.Watcher
+      ).ledger.Order.filter('order_id', order_id).list()[0];
+      if (OrderCancelledStatus.includes(status)) {
+        error(t('orderConfig.order_finished'));
+        return;
+      }
+      const orderTriggers =
+        orderCurrentOrderTriggers.value[order_id.toString()];
+      const submittedOrderTrigger = orderTriggers.filter((orderTrigger) =>
+        OrderTriggerCancelStatus.includes(orderTrigger.status),
+      );
+
+      return kfCancelAllOrdersTrigger(
+        window.watcher,
+        submittedOrderTrigger,
+        currentGlobalKfLocation.value,
+      )
+        .then(() => {
+          success();
+        })
+        .catch((err) => {
+          error(err.message);
+        });
+    });
+  }
+}
+
+function isOrderTriggerHasSubmitted(orderId: bigint) {
+  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
+  if (!orderTriggers || orderTriggers.length === 0) return true;
+  const submittedOrderTrigger = orderTriggers.filter(
+    (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Submitted,
+  );
+  if (submittedOrderTrigger.length > 0) return false;
+  return true;
+}
+
+function isOrderTriggerHasPending(orderId: bigint) {
+  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
+  if (!orderTriggers || orderTriggers.length === 0) return false;
+  const submittedOrderTrigger = orderTriggers.filter(
+    (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Pending,
+  );
+  if (submittedOrderTrigger.length > 0) return true;
+  return false;
 }
 
 function filterUnfinishedOrders(orders: KungfuApi.Order[]): KungfuApi.Order[] {
@@ -360,10 +498,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(
-    row as KungfuApi.OrderResolved,
-    t('orderConfig.entrust'),
-  );
+  showTradingDataDetail(row, t('orderConfig.entrust'));
 }
 
 const adjustOrderConfig = reactive({
@@ -381,6 +516,8 @@ const adjustOrderForm = ref<{
 });
 const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
 const tableRef = ref();
+const adjustNumberInputRef = ref();
+const adjustPriceTick = ref<number>();
 
 function handleAdjustOrder(data: {
   event: MouseEvent;
@@ -389,23 +526,30 @@ function handleAdjustOrder(data: {
 }): void {
   const { event, row, column } = data;
   const order = row as KungfuApi.OrderResolved;
-  const target = event.target as HTMLElement | null;
+  let target = event.target as HTMLElement | null;
 
-  if (column.dataIndex !== 'limit_price') {
-    if (column.dataIndex !== 'volume_left') {
-      return;
-    }
+  if (column.dataIndex !== 'limit_price_resolved') {
+    return;
+    // if (column.dataIndex !== 'volume_left') {
+    //   return;
+    // }
   }
 
   if (!currentGlobalKfLocation.value || !window.watcher) {
     return;
   }
 
-  if (!testOrderSourceIsOnline(order)) {
+  if (
+    !testOrderSourceIsOnline(order) ||
+    order.status === OrderStatusEnum.Cancelling
+  ) {
     return;
   }
 
   if (target) {
+    if (target.tagName !== 'LI') {
+      target = target.parentNode as HTMLElement;
+    }
     adjustOrderMaskVisible.value = true;
     const rectData = target.getBoundingClientRect();
     const tableRectData = tableRef.value.getBoundingClientRect();
@@ -414,19 +558,34 @@ function handleAdjustOrder(data: {
     adjustOrderConfig.clientHeight = target.clientHeight;
     adjustOrderConfig.offsetTop = deltaTop; //header height
 
-    if (column.dataIndex === 'limit_price') {
+    if (column.dataIndex === 'limit_price_resolved') {
       adjustOrderConfig.offsetLeft = target.offsetLeft;
     } else {
       adjustOrderConfig.offsetLeft = target.offsetLeft - target.clientWidth;
     }
 
     adjustOrderForm.value.price = order.limit_price;
-    adjustOrderForm.value.volume = +Number(order.volume_left);
+    // adjustOrderForm.value.volume = +Number(order.volume_left);
     adjustOrder.value = order;
+
+    const { price_tick } = getPriceTickAndPrecision(
+      order.instrument_id,
+      order.exchange_id,
+    );
+
+    adjustPriceTick.value = price_tick;
+
+    nextTick().then(() => {
+      if (!adjustNumberInputRef.value) return;
+      adjustNumberInputRef.value.focus();
+    });
   }
 }
 
 function handleClickAdjustOrderMask(): void {
+  if (!adjustOrderMaskVisible.value) {
+    return;
+  }
   const kfLocation = currentGlobalKfLocation.value;
   if (!kfLocation) {
     error(t('location_error'));
@@ -440,21 +599,34 @@ function handleClickAdjustOrderMask(): void {
     return;
   }
 
-  if (+Number(order.volume_left) === +adjustOrderForm.value.volume) {
-    if (+order.limit_price === +adjustOrderForm.value.price) {
-      adjustOrderMaskVisible.value = false;
-      return;
-    }
+  if (!testOrderSourceIsOnline(order)) {
+    adjustOrderMaskVisible.value = false;
+    error(
+      t('tradingConfig.finished_msg', {
+        status: order.status,
+      }),
+    );
+    return;
   }
 
-  kfCancelOrder(window.watcher, order)
+  if (+adjustOrderForm.value.price <= 0) {
+    return;
+  }
+
+  if (+order.limit_price === +adjustOrderForm.value.price) {
+    adjustOrderMaskVisible.value = false;
+    return;
+  }
+
+  adjustOrderMaskVisible.value = false;
+  kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       const makeOrderInput: KungfuApi.MakeOrderInput = {
         instrument_id: order.instrument_id,
         instrument_type: order.instrument_type,
         exchange_id: order.exchange_id,
         limit_price: +adjustOrderForm.value.price,
-        volume: +adjustOrderForm.value.volume,
+        volume: Number(order.volume_left),
         price_type: +order.price_type,
         side: +order.side,
         offset: +order.offset,
@@ -479,6 +651,10 @@ function handleClickAdjustOrderMask(): void {
     .finally(() => {
       adjustOrderMaskVisible.value = false;
     });
+}
+
+function handleCloseAdjustOrderMask() {
+  adjustOrderMaskVisible.value = false;
 }
 
 function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
@@ -574,33 +750,31 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         <div v-if="adjustOrderMaskVisible" class="kf-adjust-order-mask__warp">
           <div
             class="kf-adjust-order-mask"
-            @click.stop="handleClickAdjustOrderMask"
+            @click.stop.once="handleCloseAdjustOrderMask"
           ></div>
-          <a-input-number
-            v-if="adjustOrderConfig.clientWidth !== 0"
-            v-model:value="adjustOrderForm.price"
-            class="adjust-order-item price"
+          <div
+            class="adjust-order-wrap"
             :style="{
-              width: adjustOrderConfig.clientWidth + 'px',
-              height: adjustOrderConfig.clientHeight + 'px',
               top: adjustOrderConfig.offsetTop + 'px',
               left: adjustOrderConfig.offsetLeft + 'px',
             }"
-          ></a-input-number>
-          <a-input-number
-            v-if="adjustOrderConfig.clientWidth !== 0"
-            v-model:value="adjustOrderForm.volume"
-            class="adjust-order-item order"
-            :style="{
-              width: adjustOrderConfig.clientWidth + 'px',
-              height: adjustOrderConfig.clientHeight + 'px',
-              top: adjustOrderConfig.offsetTop + 'px',
-              left:
-                adjustOrderConfig.offsetLeft +
-                adjustOrderConfig.clientWidth +
-                'px',
-            }"
-          ></a-input-number>
+          >
+            <a-input-number
+              v-if="adjustOrderConfig.clientWidth !== 0"
+              ref="adjustNumberInputRef"
+              v-model:value="adjustOrderForm.price"
+              string-mode
+              :step="adjustPriceTick"
+              class="adjust-order-item price"
+              :style="{
+                width: adjustOrderConfig.clientWidth + 'px',
+                height: adjustOrderConfig.clientHeight + 'px',
+              }"
+              @keyup.esc="handleCloseAdjustOrderMask"
+              @blur="handleCloseAdjustOrderMask"
+              @keyup.enter="handleClickAdjustOrderMask"
+            ></a-input-number>
+          </div>
         </div>
         <KfTradingDataTable
           :columns="columns"
@@ -628,9 +802,6 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
                 {{ dealOffset(item.offset).name }}
               </span>
             </template>
-            <template v-else-if="column.dataIndex === 'limit_price'">
-              {{ dealKfPrice(item.limit_price, item.price_precision) }}
-            </template>
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span
                 style="float: right"
@@ -655,11 +826,28 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'actions'">
-              <CloseOutlined
+              <span
                 v-if="!isFinishedOrderStatus(item.status)"
-                class="kf-hover"
+                class="color-red"
+                style="margin-right: 8px; margin-left: 2px"
                 @click="handleCancelOrder(item)"
-              />
+              >
+                {{ $t('orderConfig.cancel_order') }}
+              </span>
+              <span
+                v-if="
+                  !isFinishedOrderStatus(item.status) &&
+                  cancelOrderTriggerBtnVisible
+                "
+                :class="{
+                  'color-default': isOrderTriggerHasSubmitted(item.order_id),
+                  'color-yellow': !isOrderTriggerHasSubmitted(item.order_id),
+                }"
+                @click="handleInsertOrderTrigger(item)"
+              >
+                {{ $t('orderConfig.cancel_order_trigger') }}
+              </span>
+              <LoadingOutlined v-if="isOrderTriggerHasPending(item.order_id)" />
             </template>
           </template>
         </KfTradingDataTable>
@@ -707,9 +895,11 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         background: rgba(0, 0, 0, 0.45);
       }
 
-      .adjust-order-item {
+      .adjust-order-wrap {
         position: absolute;
         z-index: 101;
+      }
+      .adjust-order-item {
         background: #141414;
 
         .ant-input-number-input-wrap {

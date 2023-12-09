@@ -6,7 +6,7 @@ import {
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ref, toRefs, computed, getCurrentInstance } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
 const { error } = messagePrompt();

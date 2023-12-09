@@ -1,9 +1,14 @@
+import os from 'os';
 import {
   ComputedRef,
   Ref,
   ref,
   computed,
   watch,
+  readonly,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
   getCurrentInstance,
   toRaw,
   Component,
@@ -12,49 +17,133 @@ import {
   InjectionKey,
   inject,
   provide,
+  createVNode,
+  FunctionalComponent,
+  ComponentPublicInstance,
+  isRef,
+  createApp,
+  defineComponent,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+import { Button } from 'ant-design-vue';
+import { Locale } from 'ant-design-vue/es/locale-provider';
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
+import {
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  CloseCircleOutlined,
+} from '@ant-design/icons-vue';
 import {
   ARCHIVE_DIR,
   buildProcessLogPath,
+  buildProcessReplayPath,
+  buildProcessBacktestPath,
   KF_HOME,
+  KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   getInstrumentTypeData,
-  getProcessIdByKfLocation,
-  kfLogger,
-  removeJournal,
-  removeDB,
-  getAvailDaemonList,
-  getKfExtensionLanguage,
-  loopToRunProcess,
-  resolveInstrumentValue,
-  transformSearchInstrumentResultToInstrument,
   removeArchiveBeforeToday,
-  isKfColor,
-  isHexOrRgbColor,
-  removeTodayArchive,
+  startReplay,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionLanguage,
+  getAvailExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getProcessIdByKfLocation,
+  getYearMonthDay,
+  resolveInstrumentValue,
+  isHexOrRgbColor,
+  debounce,
+  loopToRunProcess,
+  isKfColor,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import { BrowserWindow, getCurrentWindow, dialog } from '@electron/remote';
-import { ipcRenderer } from 'electron';
-import { message, Modal, ModalFuncProps } from 'ant-design-vue';
+import {
+  BrowserWindow,
+  getCurrentWindow,
+  dialog,
+  nativeImage,
+} from '@electron/remote';
+import { ipcRenderer, clipboard } from 'electron';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
+import {
+  message,
+  MessageArgsProps,
+  Modal,
+  ModalFuncProps,
+} from 'ant-design-vue';
+import { MessageType } from 'ant-design-vue/lib/message';
 import {
   InstrumentTypes,
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
-import { startExtDaemon } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { checkIfCpusNumSafe } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
+import {
+  startExtService,
+  stopProcess,
+  listProcessStatus,
+} from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n, {
+  langDefault,
+  getGlobalSettingLanguage,
+} from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
+import fsPromise from 'fs/promises';
 import md from 'markdown-it';
+import mdHljs from 'markdown-it-highlightjs';
+import hlForCpp from 'highlight.js/lib/languages/cpp';
+import hlForPython from 'highlight.js/lib/languages/python';
+import hlForJs from 'highlight.js/lib/languages/javascript';
+import hlForTs from 'highlight.js/lib/languages/typescript';
+import Mark from 'mark.js';
 import { Router } from 'vue-router';
+import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
+import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 
 // this utils file is only for ui components
+
+const globalStorage = getGlobalStorage();
+
+export const loadCustomFont = () => {
+  const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));
+  if (!fse.existsSync(fontsDir)) return Promise.resolve();
+
+  return fse.readdir(fontsDir).then((fontFiles) => {
+    return Promise.all(
+      fontFiles.map((fontFileName) => {
+        const fontName = fontFileName.split('.')[0];
+        const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
+
+        if (fse.existsSync(fontFullPath)) {
+          return fsPromise.readFile(fontFullPath).then((fontBuffer) => {
+            const font = new FontFace(fontName, fontBuffer);
+            return font.load().then(() => {
+              document.fonts.add(font);
+              return fontName;
+            });
+          });
+        }
+
+        return Promise.resolve('');
+      }),
+    ).then((fontNames) => {
+      const newLoadedFont = fontNames.filter((item) => !!item).join(', ');
+      document.body.style.fontFamily = `${newLoadedFont}, monospace, sans-serif`;
+    });
+  });
+};
 
 export const mergeExtLanguages = async () => {
   const languages = await getKfExtensionLanguage();
@@ -187,6 +276,26 @@ export const loadExtComponents = (
   });
 };
 
+export const useLocale = () => {
+  const app = getCurrentInstance();
+  const locale = ref<Locale>();
+  const localeMap = {
+    'zh-CN': 'zh-cn',
+    'en-US': 'en',
+  };
+  const globalSettingLanguage = getGlobalSettingLanguage() || langDefault;
+  dayjs.locale(localeMap[globalSettingLanguage] || 'zh-cn');
+
+  onMounted(() => {
+    locale.value =
+      (app?.proxy?.$antLocalesMap || {})[globalSettingLanguage] || zhCN;
+  });
+
+  return {
+    locale,
+  };
+};
+
 export const useModalVisible = (
   visible: boolean,
 ): { modalVisible: Ref<boolean>; closeModal: () => void } => {
@@ -204,9 +313,121 @@ export const useModalVisible = (
   };
 };
 
+export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  keys: string[],
+  transform?: Record<string, (val: string | number) => string>,
+): {
+  searchKeyword: Ref<string>;
+  tableData: Ref<T[]>;
+} => {
+  const searchKeyword = ref<string>('');
+
+  function searchTree<T extends { children?: T[] }>(
+    tree: T[],
+    keys: string[],
+    searchKeyword: string,
+  ): T[] {
+    return tree
+      .filter((item) => {
+        const combinedValue = keys
+          .map((key: string) => {
+            let keyWord = (item as Record<string, unknown>)[key] as unknown as
+              | string
+              | number;
+
+            if (transform && transform[key]) {
+              keyWord = transform[key](keyWord);
+            }
+
+            return keyWord ? keyWord.toString() : '';
+          })
+          .join('_');
+        const isMatch = new RegExp(searchKeyword, 'ig').test(combinedValue);
+        if (isMatch) return true;
+        const childMatch =
+          item.children && item.children.length > 0
+            ? searchTree(item.children, keys, searchKeyword).length > 0
+            : false;
+
+        return childMatch;
+      })
+      .map((item) => ({
+        ...item,
+        children: searchTree(item.children || [], keys, searchKeyword),
+      }));
+  }
+
+  const tableData = computed(() => {
+    return searchTree<T>(targetList.value, keys, searchKeyword.value);
+  });
+
+  return {
+    searchKeyword,
+    tableData,
+  };
+};
+
+export const useTableSearchKeywordList = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  searchObjects: {
+    key: string;
+    value: string;
+    type?: 'string' | 'array';
+  }[],
+  transform?: Record<string, (val: string | number) => string>,
+): { [K in string]: Ref<string | string[]> } & {
+  tableData: ComputedRef<T[]>;
+} => {
+  const searchKeywords: Record<string, Ref<string | string[]>> = {};
+
+  searchObjects.forEach((searchObject) => {
+    if (searchObject.type && searchObject.type === 'array') {
+      searchKeywords[searchObject.key] = ref([]);
+    } else {
+      searchKeywords[searchObject.key] = ref('');
+    }
+  });
+
+  const tableData = computed(() => {
+    return targetList.value
+      .filter((item: T) => {
+        return searchObjects.every(({ key, value }) => {
+          let itemValue = (item as Record<string, unknown>)[value] as
+            | string
+            | number;
+
+          if (transform && transform[value]) {
+            itemValue = transform[value](itemValue);
+          }
+
+          const keyword = searchKeywords[key].value;
+          if (Array.isArray(keyword)) {
+            if (keyword.length === 0) {
+              return true;
+            }
+            return keyword.includes(itemValue.toString());
+          } else {
+            if (keyword === '') {
+              return true;
+            }
+            return new RegExp(keyword, 'ig').test(itemValue.toString());
+          }
+        });
+      })
+      .map((item) => toRaw(item));
+  });
+  return { ...searchKeywords, tableData } as {
+    [K in string]: Ref<string | string[]>;
+  } & {
+    tableData: ComputedRef<T[]>;
+  };
+};
+
 export const useTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (string: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: ComputedRef<T[]>;
@@ -216,13 +437,17 @@ export const useTableSearchKeyword = <T>(
     return targetList.value
       .filter((item: T) => {
         const combinedValue = keys
-          .map(
-            (key: string) =>
-              (
-                ((item as Record<string, unknown>)[key] as string | number) ||
-                ''
-              ).toString() || '',
-          )
+          .map((key: string) => {
+            let keyWord = (item as Record<string, unknown>)[key] as
+              | string
+              | number;
+
+            if (transform && transform[key]) {
+              keyWord = transform[key](keyWord);
+            }
+
+            return keyWord ? keyWord.toString() : '';
+          })
           .join('_');
         return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
       })
@@ -235,9 +460,47 @@ export const useTableSearchKeyword = <T>(
   };
 };
 
+export const useDeepWatchTableSearchKeyword = <T>(
+  targetList: Ref<T[]> | ComputedRef<T[]>,
+  keys: string[],
+): {
+  searchKeyword: Ref<string>;
+  tableData: Ref<T[]>;
+} => {
+  const searchKeyword = ref<string>('');
+  const tableData = ref<T[]>([]) as Ref<T[]>;
+
+  watch(
+    () => ({ keyword: searchKeyword.value, list: targetList.value }),
+    (newValue) => {
+      const { keyword, list } = newValue;
+      tableData.value =
+        list.filter((item) => {
+          const combinedValue = keys
+            .map(
+              (key: string) =>
+                ((item[key] as string | number) || '').toString() || '',
+            )
+            .join('_');
+          return new RegExp(keyword, 'ig').test(combinedValue);
+        }) || [];
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
+
+  return {
+    searchKeyword,
+    tableData,
+  };
+};
+
 export const useWritableTableSearchKeyword = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   keys: string[],
+  transform?: Record<string, (val: string | number) => string>,
 ): {
   searchKeyword: Ref<string>;
   tableData: Ref<{ data: T; index: number; id: string }[]>;
@@ -267,14 +530,17 @@ export const useWritableTableSearchKeyword = <T>(
           }))
           .filter((item: { data: T; index: number }) => {
             const combinedValue = keys
-              .map(
-                (key: string) =>
-                  (
-                    ((item.data as Record<string, unknown>)[key] as
-                      | string
-                      | number) || ''
-                  ).toString() || '',
-              )
+              .map((key: string) => {
+                let keyWord = (item.data as Record<string, unknown>)[key] as
+                  | string
+                  | number;
+
+                if (transform && transform[key]) {
+                  keyWord = transform[key](keyWord);
+                }
+
+                return keyWord ? keyWord.toString() : '';
+              })
               .join('_');
             return new RegExp(keyword, 'ig').test(combinedValue);
           }) || [];
@@ -297,62 +563,30 @@ const removeArchiveBeforeStartAll = (): Promise<void> => {
   });
 };
 
-const removeJournalBeforeStartAll = (): Promise<void> => {
-  const needClearJournalStr = localStorage.getItem('needClearJournal');
-  const needClearJournal = !!(needClearJournalStr && +needClearJournalStr);
-
-  kfLogger.info('needClearJournal: ', needClearJournal);
-
-  if (needClearJournal) {
-    localStorage.setItem('needClearJournal', '0');
-    kfLogger.info('Clear Journal Done', needClearJournal);
-    return removeTodayArchive(ARCHIVE_DIR).then(() => removeJournal(KF_HOME));
-  } else {
-    return Promise.resolve();
-  }
-};
-
-const removeDBBeforeStartAll = (): Promise<void> => {
-  const needClearDBStr = localStorage.getItem('needClearDB');
-  const needClearDB = !!(needClearDBStr && +needClearDBStr);
-
-  kfLogger.info('needClearDB: ', needClearDB);
-
-  if (needClearDB) {
-    localStorage.setItem('needClearDB', '0');
-    kfLogger.info('Clear DB Done');
-    return removeDB(KF_HOME);
-  } else {
-    return Promise.resolve();
-  }
-};
-
 export const preStartAll = async (): Promise<(void | Proc)[]> => {
-  return Promise.all([
-    removeJournalBeforeStartAll(),
-    removeDBBeforeStartAll(),
-    removeArchiveBeforeStartAll(),
-  ]);
+  return Promise.all([removeArchiveBeforeStartAll()]);
 };
 
 export const checkCpusNumAndConfirmModal = (): Promise<boolean> => {
-  return checkIfCpusNumSafe().then((flag) => {
-    if (flag) return Promise.resolve(true);
+  return Promise.resolve(booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)).then(
+    (flag) => {
+      if (flag) return Promise.resolve(true);
 
-    return confirmModalByCustomArgs(
-      t('system_prompt'),
-      t('computer_performance_abnormal'),
-      { zIndex: 1001 },
-    );
-  });
+      return confirmModalByCustomArgs(
+        t('system_prompt'),
+        t('computer_performance_abnormal'),
+        { zIndex: 1001 },
+      );
+    },
+  );
 };
 
 export const postStartAll = async (): Promise<(void | Proc)[]> => {
-  const availDaemons = await getAvailDaemonList();
+  const availExtServices = await getAvailExtServiceList();
   return loopToRunProcess<void | Proc>(
-    availDaemons.map((item) => {
+    availExtServices.map((item) => {
       return () =>
-        startExtDaemon(getProcessIdByKfLocation(item), item.cwd, item.script)
+        startExtService(item)
           .then((res) => {
             return res;
           })
@@ -378,16 +612,21 @@ export const openNewBrowserWindow = (
   windowConfig?: Electron.BrowserWindowConstructorOptions,
 ): Promise<Electron.BrowserWindow> => {
   const currentWindow = getCurrentWindow();
+  const isParentFullScreen = currentWindow.isFullScreen();
   const modalPath =
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
+
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
+      alwaysOnTop: false,
       width: 1080,
       height: 766,
+      show: false,
       parent: currentWindow,
+      fullscreen: false,
       webPreferences: {
         nodeIntegration: true,
         nodeIntegrationInWorker: true,
@@ -397,9 +636,62 @@ export const openNewBrowserWindow = (
       ...windowConfig,
     });
 
+    //判断是否是macOS系统
+    const isMacOS = process.platform === 'darwin';
+
     win.on('ready-to-show', function () {
-      win && win.focus();
+      if (isMacOS && isParentFullScreen) {
+        win.setFullScreen(false);
+        win.setSize(1080, 766);
+        win.show();
+        win.center();
+        win.focus();
+      } else {
+        win.show();
+        win.focus();
+      }
     });
+
+    win.on('closed', () => {
+      resolve(win);
+    });
+
+    if (isMacOS) {
+      win.on('minimize', (event) => {
+        event.preventDefault();
+        const [parentX, parentY, parentWidth, parentHeight] = [
+          currentWindow.getPosition()[0],
+          currentWindow.getPosition()[1],
+          currentWindow.getSize()[0],
+          currentWindow.getSize()[1],
+        ];
+
+        const newX = parentX + parentWidth - 300;
+        const newY = parentY + parentHeight - 30;
+        win.setSize(300, 30);
+        win.setPosition(newX, newY);
+        currentWindow.setSize(parentWidth, parentHeight);
+        currentWindow.setPosition(parentX, parentY);
+      });
+
+      if (win && !win.isDestroyed()) {
+        currentWindow.on('resize', () => {
+          if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+            const [parentX, parentY, parentWidth, parentHeight] = [
+              currentWindow.getPosition()[0],
+              currentWindow.getPosition()[1],
+              currentWindow.getSize()[0],
+              currentWindow.getSize()[1],
+            ];
+
+            const newX = parentX + parentWidth - 300;
+            const newY = parentY + parentHeight - 30;
+
+            win.setPosition(newX, newY);
+          }
+        });
+      }
+    }
 
     win.webContents.loadURL(modalPath);
     win.webContents.on('did-finish-load', () => {
@@ -429,10 +721,37 @@ function getNewWindowLocation(): { x: number; y: number } | null {
   return null;
 }
 
+export const openReplayView = (
+  type: 'strategy' | 'operator',
+  group: string,
+  logPath: string,
+  beginTime: string,
+  endTime: string,
+  log_level: string,
+  sessionName: string,
+  filePath: string,
+  enableMatcher: boolean,
+  processId: string,
+): Promise<Electron.BrowserWindow> => {
+  return openNewBrowserWindow(
+    process.env.KF_APP_RUNTIME_DIR,
+    'replay',
+    `?logPath=${logPath}&enableMatcher=${enableMatcher}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
+    {
+      width: 1280,
+      height: 960,
+    },
+  );
+};
+
 export const openLogView = (
   logPath: string,
 ): Promise<Electron.BrowserWindow> => {
-  return openNewBrowserWindow(__dirname, 'logview', `?logPath=${logPath}`);
+  return openNewBrowserWindow(
+    process.env.KF_APP_RUNTIME_DIR,
+    'logview',
+    `?logPath=${logPath}`,
+  );
 };
 
 export const openCodeView = (
@@ -441,7 +760,7 @@ export const openCodeView = (
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    __dirname,
+    process.env.KF_APP_RUNTIME_DIR,
     'code',
     `?id=${id}&filePath=${filePath}&isEntryFilenameEditable=${isEntryFilenameEditable}`,
   );
@@ -449,12 +768,12 @@ export const openCodeView = (
 
 export const openJournalView = (
   processId: string,
-  locationUid: string,
+  locationUID: string,
 ): Promise<Electron.BrowserWindow> => {
   return openNewBrowserWindow(
-    __dirname,
+    process.env.KF_APP_RUNTIME_DIR,
     'journal',
-    `?processId=${processId}&locationUid=${locationUid}`,
+    `?processId=${processId}&locationUID=${locationUID}`,
     {
       width: 1280,
       height: 960,
@@ -492,7 +811,6 @@ export const parseURIParams = (): Record<string, string> => {
 
   return paramsData;
 };
-
 export const useIpcListener = (): void => {
   const app = getCurrentInstance();
   ipcRenderer.removeAllListeners('main-process-messages');
@@ -508,40 +826,190 @@ export const useIpcListener = (): void => {
 };
 
 export const markClearJournal = (): void => {
-  localStorage.setItem('needClearJournal', '1');
+  globalStorage.setItem('needClearJournal', true);
   messagePrompt().success(t('clear', { content: 'journal' }));
 };
 
 export const markClearDB = (): void => {
-  localStorage.setItem('needClearDB', '1');
+  globalStorage.setItem('needClearDB', true);
   messagePrompt().success(t('clear', { content: 'DB' }));
 };
 
+message.config({
+  maxCount: 4,
+});
 export const messagePrompt = (): {
-  success(msg?: string): void;
-  error(msg?: string): void;
-  warning(msg: string): void;
+  success(msg?: string, duration?: number): MessageType;
+  error(msg?: string, duration?: number): MessageType;
+  warn(msg: string, duration?: number): MessageType;
+  loading(msg: string): MessageType;
 } => {
-  const success = (msg: string = t('operation_success')): void => {
-    message.success(msg);
+  const baseConfig: Partial<MessageArgsProps> = {
+    class: 'kf-message',
   };
-  const error = (msg: string = t('operation_failed')): void => {
-    message.error(msg, 5);
+
+  const EVER_SECOND_LEN = 6,
+    MIN_DURATION = 4,
+    MAX_DURATION = 6;
+  const calcDurationByContent = (content: string): number => {
+    const contentLen = content.length;
+    const targetSeconds = (contentLen / EVER_SECOND_LEN).kfRound();
+
+    if (targetSeconds < MIN_DURATION) return MIN_DURATION;
+    if (targetSeconds > MAX_DURATION) return MAX_DURATION;
+    return targetSeconds;
   };
-  const warning = (msg: string): void => {
-    message.warning(msg, 5);
+
+  const buildMessageArgs = (
+    content: string,
+    subClassName = '',
+    duration = calcDurationByContent(content),
+    icon?: FunctionalComponent,
+  ): MessageArgsProps => {
+    return {
+      ...baseConfig,
+      class: [baseConfig.class, subClassName].join(' '),
+      content,
+      duration,
+      ...(icon ? { icon: createVNode(icon) } : {}),
+    };
+  };
+
+  const success = (
+    msg: string = t('operation_success'),
+    duration?: number,
+  ): MessageType => {
+    return message.success(
+      buildMessageArgs(
+        msg,
+        'kf-message-success',
+        duration,
+        CheckCircleOutlined,
+      ),
+    );
+  };
+  const error = (
+    msg: string = t('operation_failed'),
+    duration?: number,
+  ): MessageType => {
+    return message.error(
+      buildMessageArgs(msg, 'kf-message-error', duration, CloseCircleOutlined),
+    );
+  };
+  const warn = (msg: string, duration?: number): MessageType => {
+    return message.warning(
+      buildMessageArgs(
+        msg,
+        'kf-message-warning',
+        duration,
+        ExclamationCircleOutlined,
+      ),
+    );
+  };
+  const loading = (msg: string): MessageType => {
+    return message.loading(buildMessageArgs(msg, 'kf-message-info', 0));
   };
   return {
     success,
     error,
-    warning,
+    warn,
+    loading,
   };
+};
+
+export const handleOpenReplayView = async (
+  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  beginTime: string,
+  endTime: string,
+  logLevel: string,
+  processId: string,
+  replayConfig: KungfuApi.ReplayConfig,
+): Promise<Electron.BrowserWindow> => {
+  const dateStr = getYearMonthDay();
+  const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
+  const logPath = replayConfig.enable_matcher
+    ? buildProcessBacktestPath(config, `${config.name}_${dateStr}`)
+    : buildProcessReplayPath(config, `${config.name}_${dateStr}`);
+  if (replayConfig) {
+    try {
+      ensureFileSync(logPath);
+      await outputFile(logPath, '');
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+
+    try {
+      await ipcEmit('clear-process', {
+        processId,
+      });
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+  }
+
+  return openReplayView(
+    config.category,
+    config.group,
+    logPath,
+    beginTime,
+    endTime,
+    logLevel,
+    replayConfig.session_name,
+    replayConfig.file_path,
+    replayConfig.enable_matcher,
+    processId,
+  ).finally(async () => {
+    hideloading();
+    const { processStatus } = await listProcessStatus();
+    if (processStatus[processId] === 'online') {
+      await stopProcess(processId);
+    }
+    await startReplay(config, replayConfig);
+  });
+};
+
+export const getJournalReplayConfigs = async (
+  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  replayConfig: KungfuApi.ReplayConfig,
+  count: number,
+): Promise<{
+  startProcess: number;
+  ProcessConfigs:
+    | {
+        category: string;
+        group: string;
+        name: string;
+        mode: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined;
+}> => {
+  try {
+    return {
+      startProcess: ++count,
+      ProcessConfigs: {
+        category: config.category,
+        group: config.group,
+        name: config.name,
+        mode: replayConfig.enable_matcher ? 'backtest' : 'replay',
+        replayConfig,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      startProcess: 0,
+      ProcessConfigs: undefined,
+    };
+  }
 };
 
 export const handleOpenLogview = (
   config: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow | void> => {
-  const hideloading = message.loading(t('open_window'));
+  const hideloading = messagePrompt().loading(t('open_window'));
   const logPath = buildProcessLogPath(getProcessIdByKfLocation(config));
   return openLogView(logPath).finally(() => {
     hideloading();
@@ -552,13 +1020,14 @@ export const handleOpenLogviewByFile =
   (): Promise<Electron.BrowserWindow | void> => {
     return dialog
       .showOpenDialog({
+        defaultPath: KF_HOME,
         properties: ['openFile'],
       })
       .then((res): Promise<Electron.BrowserWindow | void> => {
         const { filePaths } = res;
         if (filePaths.length) {
           const targetLogPath = filePaths[0];
-          const hideloading = message.loading(t('open_window'));
+          const hideloading = messagePrompt().loading(t('open_window'));
           return openLogView(targetLogPath).finally(() => {
             hideloading();
           });
@@ -573,7 +1042,7 @@ export const handleOpenCodeView = (
   filePath: string,
   isEntryFilenameEditable: boolean,
 ): Promise<Electron.BrowserWindow> => {
-  const openMessage = message.loading(t('open_code_editor'));
+  const openMessage = messagePrompt().loading(t('open_code_editor'));
   return openCodeView(id, filePath, isEntryFilenameEditable).finally(() => {
     openMessage();
   });
@@ -582,10 +1051,10 @@ export const handleOpenCodeView = (
 export const handleOpenJournalView = (
   config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
-  const hideloading = message.loading(t('open_journal_dashboard'));
+  const hideloading = messagePrompt().loading(t('open_journal_dashboard'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
-  const locationUid = config ? getKfLocationUID(config) || '' : '';
-  return openJournalView(processId, locationUid).finally(() => {
+  const locationUID = config ? getKfLocationUID(config) || '' : '';
+  return openJournalView(processId, locationUID).finally(() => {
     hideloading();
   });
 };
@@ -797,6 +1266,88 @@ export const confirmModal = (
   });
 };
 
+export const extraConfirmModal = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  okText = t('confirm'),
+  cancelText = t('cancel'),
+  extraTextList?: {
+    text: string;
+  }[],
+): Promise<'ok' | 'cancel' | string> => {
+  return new Promise((resolve) => {
+    const Comp = defineComponent({
+      setup() {
+        const visible = ref(true);
+
+        const close = (result: 'ok' | 'cancel' | string) => {
+          resolve(result);
+          visible.value = false;
+        };
+
+        return {
+          visible,
+          close,
+          content,
+          title,
+          okText,
+          cancelText,
+          extraTextList,
+        };
+      },
+      render() {
+        return h(
+          Modal,
+          {
+            visible: this.visible,
+            title: this.title,
+            'onUpdate:visible': (newVal: boolean) => {
+              this.visible = newVal;
+            },
+            onCancel: () => this.close('cancel'),
+          },
+          {
+            default: () => [
+              typeof this.content === 'function'
+                ? this.content()
+                : this.content,
+            ],
+            footer: () => [
+              ...(this.extraTextList?.map((item) =>
+                h(
+                  Button,
+                  {
+                    onClick: () => this.close(item.text),
+                  },
+                  () => item.text,
+                ),
+              ) || []),
+              h(
+                Button,
+                {
+                  onClick: () => this.close('cancel'),
+                },
+                () => this.cancelText,
+              ),
+              h(
+                Button,
+                {
+                  type: 'primary',
+                  onClick: () => this.close('ok'),
+                },
+                () => this.okText,
+              ),
+            ],
+          },
+        );
+      },
+    });
+
+    const app = createApp(Comp);
+    app.mount(document.createElement('div'));
+  });
+};
+
 export const confirmModalByCustomArgs = (
   title: string,
   content: VueNode | (() => VueNode) | string,
@@ -820,7 +1371,37 @@ export const confirmModalByCustomArgs = (
   });
 };
 
-const markdown = md();
+const markdown = md('commonmark');
+markdown.use(mdHljs, {
+  inline: true,
+  register: {
+    cpp: hlForCpp,
+    python: hlForPython,
+    js: hlForJs,
+    ts: hlForTs,
+  },
+});
+export const compileMd2Html = (content: string): string => {
+  try {
+    return (
+      '<div class="kf-markdown__wrap markdown-body">' +
+      markdown.render(content) +
+      '</div>'
+    );
+  } catch (error) {
+    console.error(error);
+    return '';
+  }
+};
+
+export const compileMdFile2Html = (filePath: string): string => {
+  if (fse.existsSync(filePath)) {
+    const buffer = fse.readFileSync(filePath);
+    return compileMd2Html(buffer.toString());
+  }
+
+  return '';
+};
 
 export const openReadmeModal = (title: string, readmePath: string) => {
   if (fse.existsSync(readmePath)) {
@@ -828,7 +1409,7 @@ export const openReadmeModal = (title: string, readmePath: string) => {
       const str = buffer.toString();
       const mdHtml = markdown.render(str);
       const content = h('div', {
-        class: 'kf-modal-markdown__wrap',
+        class: 'kf-markdown__wrap markdown-body',
         innerHTML: mdHtml,
       });
       return Modal.confirm({
@@ -840,7 +1421,7 @@ export const openReadmeModal = (title: string, readmePath: string) => {
       });
     });
   } else {
-    message.error(t('文件路径不存在'));
+    messagePrompt().error(t('文件路径不存在'));
     return Promise.reject();
   }
 };
@@ -882,9 +1463,634 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
   key: InjectionKey<T> | string,
   value: T,
 ) => {
-  const parentProvide = inject(key);
-  if (!parentProvide) return provide(key, value);
+  const emptyObj = {} as T;
+  const parentProvide = inject(key, emptyObj);
+  if (!parentProvide || parentProvide === emptyObj) return provide(key, value);
   if (typeof parentProvide !== 'object' || typeof value !== 'object')
     return provide(key, value);
   return provide(key, Object.assign(parentProvide, value));
+};
+
+export const showInitAfterReloadConfirmDialog = () => {
+  return dialog
+    .showMessageBox({
+      type: 'question',
+      title: t('prompt'),
+      defaultId: 0,
+      message: t('init_after_reload'),
+      buttons: [t('confirm')],
+      icon: nativeImage.createFromPath(getDialogLogoPath()),
+    })
+    .then(() => {
+      return true;
+    });
+};
+
+export const useSearchHtml = (options: {
+  context: () => string | HTMLElement | HTMLElement[] | NodeList;
+  keywordsRef: Ref<string>;
+  inputSearchRef: Ref<ComponentPublicInstance>;
+}) => {
+  const { context, keywordsRef, inputSearchRef } = options;
+  let markInstance: Mark;
+  const MARK_CLASS = 'kf-mark',
+    MARK_CURRENT_CLASS = 'kf-mark-current',
+    MARK_IGNORE_CLASS = 'kf-mark-ignore';
+  const defaultMarkOptions: Mark.MarkOptions = {
+    className: MARK_CLASS,
+    exclude: [MARK_IGNORE_CLASS],
+  };
+
+  const currentFocusMarkIndex = ref(0);
+  const allMarkElements = ref<Element[]>([]);
+
+  const isInputFocused = ref(false);
+  const inputElement = computed(() => {
+    if (inputSearchRef.value) {
+      const inputWrapper = inputSearchRef.value.$el as Element | undefined;
+      if (inputWrapper) {
+        const input = inputWrapper.querySelector('input');
+        return input;
+      }
+    }
+
+    return null;
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const ctrlCmd = os.platform() === 'darwin' ? e.metaKey : e.ctrlKey;
+    if (ctrlCmd && e.key === 'f') {
+      keywordsRef.value =
+        window.getSelection()?.toString() || clipboard.readText() || '';
+      inputElement.value?.select();
+    }
+
+    if (e.key === 'enter') {
+      if (
+        inputElement.value &&
+        isInputFocused.value &&
+        allMarkElements.value.length
+      ) {
+        if (e.shiftKey) {
+          focusPreviousMark();
+        } else {
+          focusNextMark();
+        }
+      }
+    }
+  });
+
+  watch(keywordsRef, (newVal) => {
+    const keywords = newVal.trim();
+    if (keywords) {
+      updateMark(keywords);
+    } else {
+      unmark();
+    }
+  });
+
+  onMounted(() => {
+    markInstance = new Mark(context());
+
+    if (inputElement.value) {
+      inputElement.value.addEventListener('focus', () => {
+        isInputFocused.value = true;
+      });
+
+      inputElement.value.addEventListener('blur', () => {
+        isInputFocused.value = false;
+      });
+    }
+  });
+
+  function unmark() {
+    return new Promise<void>((resolve) => {
+      markInstance.unmark({
+        done: () => resolve(),
+      });
+    });
+  }
+
+  function mark(keywords: string) {
+    return new Promise<Element[]>((resolve) => {
+      const matchElements: Element[] = [];
+      markInstance.mark(keywords, {
+        ...defaultMarkOptions,
+        each: (el) => matchElements.push(el),
+        done: () => resolve(matchElements),
+        noMatch: () => resolve([]),
+      });
+    });
+  }
+
+  function updateMark(keywords: string) {
+    return unmark()
+      .then(() => mark(keywords))
+      .then((elements) => {
+        allMarkElements.value = elements;
+        if (elements.length) {
+          focusMarkByIndex(0);
+        }
+      });
+  }
+
+  function focusMarkByIndex(index: number) {
+    return nextTick(() => {
+      if (
+        index === currentFocusMarkIndex.value ||
+        index < 0 ||
+        index > allMarkElements.value.length - 1
+      )
+        return;
+
+      const targetElement = allMarkElements.value[index];
+      targetElement.classList.add(MARK_CURRENT_CLASS);
+      targetElement.scrollIntoView();
+      currentFocusMarkIndex.value = index;
+    });
+  }
+
+  function focusPreviousMark(num = 1) {
+    focusMarkByIndex(currentFocusMarkIndex.value - num);
+  }
+
+  function focusNextMark(num = 1) {
+    focusMarkByIndex(currentFocusMarkIndex.value + num);
+  }
+
+  return {
+    currentFocusMarkIndex: readonly(currentFocusMarkIndex),
+    focusMarkByIndex,
+    focusPreviousMark,
+    focusNextMark,
+  };
+};
+
+export const useScrollerTableSearch = <T extends object>(
+  rawsList: (() => T[]) | Ref<T[]> | ComputedRef<T[]>,
+  keyField: keyof T,
+  keysToSearch: Array<string & keyof T>,
+  scrollerTableRef: Ref<
+    ComponentPublicInstance & { scrollToItem(i: number): void }
+  >,
+) => {
+  interface SearchResultByContent {
+    raw: T;
+    rawIndex: number;
+    results: Record<keyof T, string>;
+  }
+
+  interface ResultFlattened {
+    resultKey: string;
+    keyForSearch: string;
+  }
+
+  const buildKeywordRegExp = (string: string) => {
+    const regExpStr = string
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '\\s+')
+      .replace(/\//g, '(\\/|&#x2F;)')
+      .replace(/&/g, '(&|&amp;)')
+      .replace(/</g, '(<|&lt;)')
+      .replace(/>/g, '(>|&gt;)')
+      .replace(/"/g, '("|&quot;)')
+      .replace(/'/g, "('|&#39;)")
+      .replace(/`/g, '(`|&#96;)');
+
+    return new RegExp(regExpStr, 'g');
+  };
+
+  let searchable = true;
+  const searchInUsing = ref(false);
+  const inputSearchRef = ref();
+  const isInputFocused = ref(false);
+  const searchKeyword = ref<string>('');
+  const searchKeywordReg = computed(() => {
+    let reg: RegExp | null = null;
+    try {
+      reg = buildKeywordRegExp(searchKeyword.value);
+    } catch (err) {
+      console.error(err);
+    }
+
+    return reg;
+  });
+
+  const inputElement = computed(() => {
+    if (inputSearchRef.value) {
+      const inputWrapper = inputSearchRef.value.$el as Element | undefined;
+      if (inputWrapper) {
+        const input = inputWrapper.querySelector('input');
+        return input;
+      }
+    }
+
+    return null;
+  });
+
+  const scrollerTableElement = computed(() => {
+    if (scrollerTableRef.value) {
+      return scrollerTableRef.value.$el as Element | null;
+    }
+
+    return null;
+  });
+
+  const scrollerTableElementRect = computed(() => {
+    if (scrollerTableElement.value) {
+      return scrollerTableElement.value.getBoundingClientRect();
+    }
+
+    return null;
+  });
+
+  // current index is begin from 1, valued 0 mean not has focus
+  const currentResultIndex = ref<number>(0);
+  let resultIndexChangeSilent = false;
+  let lastCurrentResult: ResultFlattened & { index: number } = {
+    index: 0,
+    resultKey: '',
+    keyForSearch: '',
+  };
+  const searchResults = ref<Record<string, SearchResultByContent>>({});
+  const flatResults = ref<Record<number, ResultFlattened>>({});
+  const totalResultCount = ref(0);
+
+  const clearSearchResultState = () => {
+    searchResults.value = {};
+    flatResults.value = {};
+    totalResultCount.value = 0;
+    currentResultIndex.value = 0;
+  };
+
+  const clearSearchState = (): void => {
+    clearSearchResultState();
+    searchKeyword.value = '';
+  };
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (!searchable) return;
+
+    const ctrlCmd = os.platform() === 'darwin' ? e.metaKey : e.ctrlKey;
+    if (ctrlCmd && e.key === 'f') {
+      searchInUsing.value = true;
+      searchKeyword.value =
+        window.getSelection()?.toString() || clipboard.readText() || '';
+      nextTick(() => inputElement.value?.select());
+    }
+
+    if (e.key === 'Enter') {
+      if (isInputFocused.value && totalResultCount.value) {
+        if (e.shiftKey) {
+          handleToUpSearchResult();
+        } else {
+          handleToDownSearchResult();
+        }
+      }
+    }
+
+    if (e.key === 'Escape') {
+      searchInUsing.value = false;
+      clearSearchState();
+    }
+  };
+
+  const handleInputFocus = () => {
+    if (!searchable) return;
+    isInputFocused.value = true;
+  };
+
+  const handleInputBlur = () => {
+    if (!searchable) return;
+    isInputFocused.value = false;
+  };
+
+  const registerKeydownEvent = () => {
+    document.addEventListener('keydown', handleKeydown);
+  };
+
+  const registerInputFocusEvent = () => {
+    const register = (input: HTMLInputElement) => {
+      input.addEventListener('focus', handleInputFocus);
+      input.addEventListener('blur', handleInputBlur);
+    };
+
+    if (inputElement.value) {
+      register(inputElement.value);
+    }
+  };
+
+  onBeforeUnmount(() => {
+    document.removeEventListener('keydown', handleKeydown);
+    inputElement.value?.removeEventListener('focus', handleInputFocus);
+    inputElement.value?.removeEventListener('blur', handleInputBlur);
+  });
+
+  watch(inputElement, (newInput) => {
+    if (newInput) {
+      registerInputFocusEvent();
+      searchInUsing.value && newInput.select();
+    }
+  });
+
+  onMounted(() => {
+    registerKeydownEvent();
+    registerInputFocusEvent();
+  });
+
+  const updateCurrentResultIndex = (index: number, silent = false) => {
+    currentResultIndex.value = index;
+    const currentResult = flatResults.value[index] || {
+      resultKey: '',
+      keyForSearch: '',
+    };
+    lastCurrentResult = {
+      ...currentResult,
+      index,
+    };
+    resultIndexChangeSilent = silent;
+  };
+
+  const getMarkElementIdByIndex = (index: number): string => `kf-mark-${index}`;
+
+  const buildResultFromContentForSearch = (
+    contentForSearch: string,
+    curIndex: number,
+  ): string | null => {
+    if (searchKeywordReg.value?.test(contentForSearch)) {
+      const id = getMarkElementIdByIndex(curIndex);
+      const className =
+        currentResultIndex.value === curIndex
+          ? 'kf-mark kf-mark-current'
+          : 'kf-mark';
+      return contentForSearch.replace(
+        searchKeywordReg.value as RegExp,
+        `<mark id="${id}" class="${className}">${searchKeyword.value}</mark>`,
+      );
+    }
+
+    return null;
+  };
+
+  const initBuildSearchResult = (
+    item: T,
+    rawIndex: number,
+  ): SearchResultByContent | null => {
+    if (!searchKeywordReg.value) return null;
+
+    const results = keysToSearch.reduce((pre, key) => {
+      if (!pre) pre = {} as Record<keyof T, string>;
+
+      const contentForSearch = `${item[key]}`;
+      const curIndex = totalResultCount.value + 1;
+
+      const result = buildResultFromContentForSearch(
+        contentForSearch,
+        curIndex,
+      );
+      if (result) {
+        pre[key] = result;
+        totalResultCount.value++;
+        flatResults.value[curIndex] = {
+          resultKey: `${item[keyField]}`,
+          keyForSearch: key,
+        };
+      }
+
+      return pre;
+    }, null as Record<keyof T, string> | null);
+
+    if (!results) return null;
+
+    return {
+      raw: item,
+      rawIndex,
+      results,
+    };
+  };
+
+  const getRawsListResolved = () => {
+    return isRef(rawsList) ? rawsList.value : rawsList();
+  };
+
+  const updateSearchResults = () => {
+    clearSearchResultState();
+    if (searchKeyword.value.trim() === '' || searchKeywordReg.value === null)
+      return Promise.resolve();
+
+    return nextTick(() => {
+      const rawsListResolved = getRawsListResolved();
+      rawsListResolved.forEach((item: T, index) => {
+        const searchResult = initBuildSearchResult(item, index);
+
+        if (searchResult) {
+          searchResults.value[`${item[keyField]}`] = searchResult;
+        }
+      });
+    });
+  };
+
+  if (isRef(rawsList)) {
+    watch(
+      rawsList,
+      debounce(() => {
+        updateSearchResults().then(() => {
+          if (totalResultCount.value) {
+            const lastCurrentExistIndex = Object.values(
+              flatResults.value,
+            ).findIndex((result) => {
+              return (
+                result.resultKey === lastCurrentResult.resultKey &&
+                result.keyForSearch === lastCurrentResult.keyForSearch
+              );
+            });
+
+            if (lastCurrentExistIndex !== -1) {
+              updateCurrentResultIndex(lastCurrentExistIndex + 1, true);
+            } else {
+              updateCurrentResultIndex(1, true);
+            }
+          }
+        });
+      }, 50),
+    );
+  }
+
+  const getResultElementByIndex = (index: number) => {
+    if (index <= 0 || index > totalResultCount.value) return null;
+    return document.getElementById(getMarkElementIdByIndex(index));
+  };
+
+  const isResultItemVisible = (index: number): boolean => {
+    const element = getResultElementByIndex(index);
+
+    if (element && scrollerTableElementRect.value) {
+      const rect = element.getBoundingClientRect();
+
+      if (
+        rect.top > scrollerTableElementRect.value.top &&
+        rect.bottom < scrollerTableElementRect.value.bottom
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  /**
+   * Scroll to the item by index from flatResults.
+   * @param index The index form flatResults keys, start from 1.
+   * @returns void
+   */
+  const scrollToItemByIndex = (index: number): void => {
+    if (isResultItemVisible(index)) {
+      return;
+    }
+
+    if (index >= 0) {
+      const { resultKey } = flatResults.value[index];
+      const contentIndex = searchResults.value[resultKey].rawIndex;
+      scrollerTableRef.value.scrollToItem(contentIndex);
+    }
+  };
+
+  const updateSearchResultByIndex = (index: number) => {
+    const { resultKey, keyForSearch } = flatResults.value[index];
+    const curContent = searchResults.value[resultKey].raw;
+    const resolvedSearchResult = buildResultFromContentForSearch(
+      curContent[keyForSearch],
+      index,
+    );
+    if (resolvedSearchResult) {
+      searchResults.value[resultKey].results[keyForSearch] =
+        resolvedSearchResult;
+    }
+  };
+
+  const initCurrentResultIndex = (): void => {
+    const index = Object.keys(flatResults.value).findIndex((i) =>
+      isResultItemVisible(+i),
+    );
+
+    const initIndex = index > -1 ? index + 1 : 1;
+    updateCurrentResultIndex(initIndex);
+    scrollToItemByIndex(initIndex);
+
+    if (index > -1) {
+      updateSearchResultByIndex(initIndex);
+    }
+  };
+
+  watch(
+    searchKeywordReg,
+    debounce(() => {
+      if (!searchable) return;
+
+      if (
+        searchKeyword.value.trim() === '' ||
+        searchKeywordReg.value === null
+      ) {
+        clearSearchState();
+        return;
+      }
+
+      updateSearchResults().then(() => {
+        if (totalResultCount.value) {
+          initCurrentResultIndex();
+        }
+      });
+    }),
+  );
+
+  watch(currentResultIndex, (newIndex: number, oldIndex: number) => {
+    if (!searchable) return;
+
+    if (newIndex === 0) {
+      return;
+    }
+
+    if (oldIndex > 0) {
+      updateSearchResultByIndex(oldIndex);
+    }
+
+    updateSearchResultByIndex(newIndex);
+
+    if (resultIndexChangeSilent) return;
+
+    scrollToItemByIndex(newIndex);
+  });
+
+  const handleToDownSearchResult = (): void => {
+    if (totalResultCount.value === 0) return;
+    if (currentResultIndex.value >= totalResultCount.value) {
+      if (totalResultCount.value === 1) {
+        scrollToItemByIndex(1);
+      } else {
+        updateCurrentResultIndex(1);
+      }
+    } else {
+      updateCurrentResultIndex(currentResultIndex.value + 1);
+    }
+  };
+
+  const handleToUpSearchResult = (): void => {
+    if (totalResultCount.value === 0) return;
+    if (currentResultIndex.value <= 1) {
+      if (totalResultCount.value === 1) {
+        scrollToItemByIndex(1);
+      } else {
+        updateCurrentResultIndex(totalResultCount.value);
+      }
+    } else {
+      updateCurrentResultIndex(currentResultIndex.value - 1);
+    }
+  };
+
+  const getItemHtmlResult = (item: T, key: keyof T) => {
+    const searchResult = searchResults.value[`${item[keyField]}`] as
+      | SearchResultByContent
+      | undefined;
+    if (searchResult?.results[key]) {
+      return searchResult.results[key];
+    }
+
+    return `${item[key]}`;
+  };
+
+  const switchSearchable = (target: boolean) => {
+    if (!target) {
+      clearSearchState();
+      searchInUsing.value = false;
+    }
+    searchable = target;
+  };
+
+  return {
+    searchInUsing,
+    inputSearchRef,
+    searchKeyword,
+    currentResultIndex,
+    totalResultCount,
+    clearSearchState,
+    handleToDownSearchResult,
+    handleToUpSearchResult,
+    getItemHtmlResult,
+    switchSearchable,
+  };
+};
+
+export const clearLocalStorageWithNewVersion = () => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
+  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
+    globalStorage.setItem('historicalUsedVersions', [
+      ...versions,
+      rootPackageJson.version,
+    ]);
+
+    if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
+      localStorage.clear();
+    }
+  }
 };

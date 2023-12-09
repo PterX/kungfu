@@ -304,9 +304,10 @@ public:
 
   template <typename... Ts>
   void filter_no([[maybe_unused]] int64_t from, [[maybe_unused]] int64_t to, bool sync_schema = false) {
-    [[maybe_unused]] auto now = yijinjing::time::now_in_nano();
-    [[maybe_unused]] auto source = location_->uid;
+    auto now = yijinjing::time::now_in_nano();
+    auto source = location_->uid;
     auto locator = location_->locator;
+
     for (auto dest : locator->list_location_dest_by_db(location_)) {
       auto db_file = locator->layout_file(location_, longfist::enums::layout::SQLITE, fmt::format("{:08x}", dest));
       auto storage = yijinjing::cache::make_storage_ptr(db_file, longfist::StateDataTypes);

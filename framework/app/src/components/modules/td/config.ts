@@ -3,17 +3,22 @@ import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
 import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 const { t } = VueI18n.global;
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
   sorter: (
     dataIndex: string,
-  ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
+  ) => (
+    a: KungfuApi.KfConfig,
+    b: KungfuApi.KfConfig,
+    sorterOrder: '' | 'ascend' | 'descend',
+  ) => number,
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
-  isShowAssetMargin: boolean,
+  isShowMarginTrading: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'td')
@@ -84,7 +89,7 @@ export const getColumns = (
         width: 110,
       },
 
-      ...(isShowAssetMargin
+      ...(isShowMarginTrading
         ? [
             {
               title: t('tdConfig.avail_margin'),
@@ -125,6 +130,19 @@ export const getColumns = (
       },
     ]);
 
+export const assetDetailShowList = [
+  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+  { key: 'market_value', label: t('tdConfig.marked_value') },
+  { key: 'margin', label: t('tdConfig.margin') },
+  { key: 'avail', label: t('tdConfig.avail_money') },
+] as const;
+
+export const assetMarginDetailShowList = [
+  { key: 'avail_margin', label: t('tdConfig.avail_margin') },
+  { key: 'cash_debt', label: t('tdConfig.cash_debt') },
+  { key: 'total_asset', label: t('tdConfig.total_asset') },
+] as const;
+
 const orderSortKey = getTradingDataSortKey('Order');
 const tradeSortKey = getTradingDataSortKey('Trade');
 const positionSortKey = getTradingDataSortKey('Position');
@@ -136,7 +154,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     color: '#FAAD14',
   },
   order: {
-    getter(watcher, orders, kfLocation: KungfuApi.KfExtraLocation) {
+    getter(_watcher, orders, kfLocation: KungfuApi.KfExtraLocation) {
       const { children } = kfLocation;
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
@@ -146,7 +164,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   trade: {
-    getter(watcher, trades, kfLocation: KungfuApi.KfExtraLocation) {
+    getter(_watcher, trades, kfLocation: KungfuApi.KfExtraLocation) {
       const { children } = kfLocation;
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
@@ -156,7 +174,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   position: {
-    getter(watcher, position, kfLocation: KungfuApi.KfExtraLocation) {
+    getter(_watcher, position, kfLocation: KungfuApi.KfExtraLocation) {
       const { children } = kfLocation;
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
@@ -170,4 +188,16 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
         });
     },
   },
+};
+
+export const getFundTransKey = (type: FundTransTypeEnum | null): string => {
+  if (type === FundTransTypeEnum.BetweenNodes) {
+    return 'FundTransBetweenNodes';
+  } else if (type === FundTransTypeEnum.TrancIn) {
+    return 'FundTransIn';
+  } else if (type === FundTransTypeEnum.TrancOut) {
+    return 'FundTransOut';
+  } else {
+    return 'FundTrans';
+  }
 };

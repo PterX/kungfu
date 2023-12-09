@@ -8,7 +8,6 @@ from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing.practice.executor import ExecutorRegistry
 from kungfu.yijinjing.practice.master import Master
-from kungfu.wingchun.replay import setup
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun
@@ -27,19 +26,44 @@ service_command_context = kfc.pass_context("low_latency")
     help="category",
 )
 @click.option(
-    "-B",
-    "--backtest",
-    type=str,
-    help="backetst parameter",
-)
-@click.option(
     "-M",
     "--matcher",
     type=str,
-    help="path to matcher dll",
+    help="path to matcher .dll/.so/.py",
+)
+@click.option(
+    "-F",
+    "--from_indexer",
+    type=str,
+    help="path to from_indexer .py",
+)
+@click.option(
+    "-T",
+    "--to_indexer",
+    type=str,
+    help="path to to_indexer .py",
+)
+@click.option(
+    "-r",
+    "--report",
+    type=str,
+    help="path to report .dll/.so/.py",
+)
+@click.option(
+    "-I",
+    "--time_interval",
+    type=int,
+    help="the Maximum error in time, in seconds, for when the callback function of add_timer/add_time_interval will be called",
+)
+@click.option(
+    "-B",
+    "--backtest",
+    type=str,
+    help="the backtest config in json format or .json file path.",
 )
 @click.option("-b", "--begin", type=str, required=False, help="begin time")
 @click.option("-e", "--end", type=str, required=False, help="end time")
+@click.option("-i", "--session_id", type=int, required=False, help="session id")
 @click.option("-g", "--group", type=str, help="group")
 @click.option("-n", "--name", type=str, help="name")
 @click.option("-x", "--low-latency", is_flag=True, help="run in low latency mode")
@@ -52,10 +76,15 @@ def run(
     ctx,
     mode,
     category,
-    backtest,
     matcher,
+    from_indexer,
+    to_indexer,
+    report,
+    time_interval,
+    backtest,
     begin,
     end,
+    session_id,
     group,
     name,
     low_latency,
@@ -66,10 +95,15 @@ def run(
 ):
     ctx.mode = mode
     ctx.category = category
-    ctx.backtest = backtest
     ctx.matcher = matcher
+    ctx.from_indexer = from_indexer
+    ctx.to_indexer = to_indexer
+    ctx.report = report
+    ctx.backtest = backtest
+    ctx.time_interval = time_interval
     ctx.begin = begin
     ctx.end = end
+    ctx.session_id = session_id
     ctx.group = group
     ctx.name = name
     ctx.low_latency = low_latency
@@ -77,6 +111,9 @@ def run(
     ctx.path = reference
     ctx.arguments = arguments
     ctx.vendor = vendor
+
+    if ctx.arguments is None:
+        ctx.arguments = "{}"
 
     registry = ExecutorRegistry(ctx)
 
@@ -104,27 +141,3 @@ def service(ctx):
 @service_command_context
 def master(ctx):
     Master(ctx).run()
-
-
-@service.command()
-@click.option("-r", "--replay", is_flag=True, help="run in replay mode")
-@click.option(
-    "-i",
-    "--session_id",
-    type=int,
-    help="replay session id, MUST be specified if replay is set",
-)
-@service_command_context
-def ledger(ctx, replay, session_id):
-    ctx.low_latency = ctx.low_latency if not replay else True
-    ctx.replay = replay
-    ctx.category = lf.enums.category.SYSTEM
-    ctx.mode = lf.enums.mode.REPLAY if ctx.replay else lf.enums.mode.LIVE
-    ctx.group = "service"
-    ctx.name = "ledger"
-    ctx.session_id = session_id
-    ledger_instance = wc.Ledger(ctx.runtime_locator, ctx.mode, ctx.low_latency)
-    if replay:
-        ctx.category = "system"
-        setup(ctx, session_id, ledger, ledger_instance)
-    ledger_instance.run()

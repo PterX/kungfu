@@ -3,10 +3,8 @@ import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
 import KfSystemPrepareModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSystemPrepareModal.vue';
 import KfLayoutVue from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfLayout.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
-import { Locale } from 'ant-design-vue/es/locale-provider';
-import zhCN from 'ant-design-vue/es/locale/zh_CN';
-import { langDefault } from '@kungfu-trader/kungfu-js-api/language';
 import {
+  useLocale,
   markClearJournal,
   removeLoadingMask,
   useIpcListener,
@@ -21,6 +19,7 @@ import {
   useDealInstruments,
   usePreStartAndQuitApp,
   useSubscibeInstrumentAtEntry,
+  handleExportInstrumentWhitelists,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import { useGlobalStore } from './store/global';
@@ -41,7 +40,7 @@ setHtmlTitle();
 
 const app = getCurrentInstance();
 const store = useGlobalStore();
-const locale = ref<Locale>();
+const { locale } = useLocale();
 
 const {
   preStartSystemLoadingData,
@@ -105,13 +104,16 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
           tradingDataType: 'all',
         } as KfEvent.ExportTradingDataEvent);
         break;
+      case 'export-instrument-whitelists':
+        handleExportInstrumentWhitelists();
+        break;
       case 'view-all-journal':
         handleOpenJournalView();
         break;
     }
   }
   if (data.tag === 'update:riskSetting') {
-    setAllRiskSettingList(data.riskSettings).finally(() => {
+    setAllRiskSettingList(window.watcher, data.riskSettings).finally(() => {
       store.setRiskSettingList();
     });
   }
@@ -131,11 +133,6 @@ const {
 } = useTradingTask();
 
 onMounted(() => {
-  locale.value =
-    (app?.proxy?.$antLocalesMap || {})[
-      store.globalSetting?.system?.language || langDefault
-    ] || zhCN;
-
   bindIPCListener(store);
   removeLoadingMask();
 
@@ -190,7 +187,7 @@ onBeforeUnmount(() => {
         },
         extraResourcesLoading: {
           done: $t('extra_resources_done'),
-          loading: $t('extra_resouces_loading'),
+          loading: $t('extra_resources_loading'),
         },
       }"
     ></KfSystemPrepareModal>
@@ -254,8 +251,6 @@ onBeforeUnmount(() => {
 #app {
   width: 100%;
   height: 100%;
-  font-family: Consolas, Monaco, Lucida Console, Liberation Mono,
-    DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 

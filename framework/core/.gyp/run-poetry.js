@@ -64,6 +64,21 @@ module.exports = require('../lib/sywac')(
         setup: setupPoetryArgs,
         run: (argv) => poetry(['install', ...toPoetryArgs(argv)]),
       })
+      .command('reset', {
+        setup: setupPoetryArgs,
+        run: (argv) => {
+          shell.run('pipenv', ['--rm']);
+          shell.run('pipenv', [
+            '--python',
+            process.env.npm_package_config_python_version,
+            '--pypi-mirror',
+            process.env.npm_package_config_pypi_mirror,
+            '--bare',
+            'install',
+          ]);
+          poetry(['install']);
+        },
+      })
       .command('*', {
         setup: (sywac) => sywac.strict(false),
         run: () => poetry(process.argv.slice(2)),

@@ -28,6 +28,8 @@ import {
   Spin,
   Skeleton,
   Tree,
+  List,
+  Badge,
   Statistic,
   Row,
   Col,
@@ -36,6 +38,10 @@ import {
   Dropdown,
   Progress,
   Popover,
+  Breadcrumb,
+  Typography,
+  BackTop,
+  Tooltip,
 } from 'ant-design-vue';
 
 import {
@@ -43,29 +49,40 @@ import {
   preStartAll,
   mergeExtLanguages,
   checkCpusNumAndConfirmModal,
+  loadCustomFont,
+  showInitAfterReloadConfirmDialog,
+  clearLocalStorageWithNewVersion,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { buildIfWatcherLiveObservable } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+
 import {
   booleanProcessEnv,
   delayMilliSeconds,
-  buildIfWatcherLiveObservable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
+import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks/index';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
-  Pm2ProcessStatusTypes,
   startArchiveMakeTask,
   startGetProcessStatus,
   startLedger,
   startMaster,
   isAllMainProcessRunning,
-  KillAll,
+  initClean,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { Pm2ProcessStatusTypes } from '@kungfu-trader/kungfu-js-api/typings/common';
 
 import {
   tradingDataSubject,
   triggerStartStep,
 } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
+
+// markdown 样式
+import 'github-markdown-css/github-markdown-dark.css';
+import 'highlight.js/styles/stackoverflow-dark.css';
 
 import VueVirtualScroller from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
@@ -108,12 +125,19 @@ app
   .use(Spin)
   .use(Skeleton)
   .use(Tree)
+  .use(List)
+  .use(Badge)
 
   .use(Statistic)
   .use(Divider)
   .use(Dropdown)
   .use(Progress)
   .use(Popover)
+  .use(Breadcrumb)
+  .use(Badge)
+  .use(Typography)
+  .use(BackTop)
+  .use(Tooltip)
   .use(VueVirtualScroller);
 
 app.config.globalProperties.$antLocalesMap = {
@@ -135,7 +159,64 @@ globalBus.subscribe((data) => {
   }
 });
 
-const initStartAll = () => {
+const tryArchive = async (bypassArchive = false) => {
+  if (bypassArchive) {
+    globalBus.next({
+      tag: 'processStatus',
+      name: 'archive',
+      status: 'online',
+    });
+    await delayMilliSeconds(2000);
+    globalBus.next({
+      tag: 'processStatus',
+      name: 'archive',
+      status: 'stopped',
+    });
+    return;
+  } else {
+    return startArchiveMakeTask((archiveStatus: Pm2ProcessStatusTypes) => {
+      globalBus.next({
+        tag: 'processStatus',
+        name: 'archive',
+        status: archiveStatus,
+      });
+    });
+  }
+};
+
+const afterWatchIsLive = () => {
+  const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
+  watcherIsLiveObervable.pipe(first()).subscribe(() => {
+    kfLogger.info('watcher is live');
+    delayMilliSeconds(2000)
+      .then(() => startLedger(false))
+      .then(() => postStartAll())
+      .then(() => delayMilliSeconds(1000))
+      .then(() => {
+        globalBus.next({
+          tag: 'processStatus',
+          name: 'extraResourcesLoading',
+          status: 'online',
+        });
+      })
+      .catch((err) => kfLogger.error(err.message));
+  });
+};
+
+const syncProcessStatusToPinia = () => {
+  startGetProcessStatus(
+    (res: {
+      processStatus: Pm2ProcessStatusData;
+      processStatusWithDetail: Pm2ProcessStatusDetailData;
+    }) => {
+      const { processStatus, processStatusWithDetail } = res;
+      globalStore.setProcessStatus(processStatus);
+      globalStore.setProcessStatusWithDetail(processStatusWithDetail);
+    },
+  );
+};
+
+const initStartAll = (bypassArchive = false) => {
   const start = () => {
     preStartAll()
       .then(() => checkCpusNumAndConfirmModal())
@@ -148,63 +229,12 @@ const initStartAll = () => {
           });
         });
       })
-      .then(async () => {
-        if (__BYPASS_ARCHIVE__) {
-          globalBus.next({
-            tag: 'processStatus',
-            name: 'archive',
-            status: 'online',
-          });
-          await delayMilliSeconds(2000);
-          globalBus.next({
-            tag: 'processStatus',
-            name: 'archive',
-            status: 'stopped',
-          });
-          return;
-        } else {
-          return startArchiveMakeTask(
-            (archiveStatus: Pm2ProcessStatusTypes) => {
-              globalBus.next({
-                tag: 'processStatus',
-                name: 'archive',
-                status: archiveStatus,
-              });
-            },
-          );
-        }
-      })
+      .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
       .then(() => startMaster(false))
-      .catch((err) => console.error(err.message))
-      .finally(() => {
-        startGetProcessStatus(
-          (res: {
-            processStatus: Pm2ProcessStatusData;
-            processStatusWithDetail: Pm2ProcessStatusDetailData;
-          }) => {
-            const { processStatus, processStatusWithDetail } = res;
-            globalStore.setProcessStatus(processStatus);
-            globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-          },
-        );
-      });
+      .catch((err) => kfLogger.error(err.message))
+      .finally(() => syncProcessStatusToPinia());
 
-    const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
-    watcherIsLiveObervable.pipe(first()).subscribe(() => {
-      console.log('watcher is live');
-      delayMilliSeconds(1000)
-        .then(() => startLedger(false))
-        .then(() => postStartAll())
-        .then(() => delayMilliSeconds(1000))
-        .then(() => {
-          globalBus.next({
-            tag: 'processStatus',
-            name: 'extraResourcesLoading',
-            status: 'online',
-          });
-        })
-        .catch((err) => console.error(err.message));
-    });
+    afterWatchIsLive();
   };
 
   if (appMounted) {
@@ -218,40 +248,45 @@ const initStartAll = () => {
   }
 };
 
-mergeExtLanguages().then(() =>
-  useComponents(app, router).then(() => {
-    app.mount('#app');
+loadCustomFont().then(async () => {
+  await mergeExtLanguages();
+  await useComponents(app, router);
+  clearLocalStorageWithNewVersion();
+  (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .lifeCycle.trigger(LifeCycleKeys.BeforeAppMount)
+    .finally(() => {
+      app.mount('#app');
+    });
 
-    if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
-      initStartAll();
-    } else {
-      isAllMainProcessRunning().then((res) => {
-        if (res) {
-          startGetProcessStatus(
-            (res: {
-              processStatus: Pm2ProcessStatusData;
-              processStatusWithDetail: Pm2ProcessStatusDetailData;
-            }) => {
-              const { processStatus, processStatusWithDetail } = res;
-              globalStore.setProcessStatus(processStatus);
-              globalStore.setProcessStatusWithDetail(processStatusWithDetail);
-            },
-          );
-        } else {
-          KillAll().finally(() => {
-            initStartAll();
-          });
-        }
-      });
-    }
-  }),
-);
+  if (!booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
+    await initStartAll();
+    return;
+  }
+
+  // reload keep old process running as long as master running, even if ledger and cached down
+  const isAllMainRunning: boolean = await isAllMainProcessRunning(true);
+  if (isAllMainRunning) {
+    afterWatchIsLive();
+    syncProcessStatusToPinia();
+    return;
+  }
+
+  kfLogger.warn('master down in reload ui process');
+  showInitAfterReloadConfirmDialog().then((res) => {
+    if (!res) return;
+    initClean(false, false).finally(() => {
+      // need pass archive, avoid read master public journal before master started
+      initStartAll(true);
+    });
+  });
+});
 
 triggerStartStep(1000);
 
 const webContents = getCurrentWebContents();
 webContents.on('devtools-reload-page', () => {
-  console.warn('devtools-reload-page');
+  kfLogger.warn('devtools-reload-page');
   window.watcher && window.watcher.quit();
   localStorage.setItem('page-reloaded', '1');
 });

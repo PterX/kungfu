@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  dealKfPrice,
-  dealSide,
   dealOffset,
-  delayMilliSeconds,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -36,7 +35,7 @@ import { getColumns } from './config';
 import {
   dealTrade,
   getKungfuHistoryData,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
 import {
   showTradingDataDetail,
@@ -80,7 +79,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );
@@ -114,7 +113,6 @@ onMounted(() => {
             const { price_precision } = getPriceTickAndPrecision(
               item.instrument_id,
               item.exchange_id,
-              0.001,
             );
 
             return toRaw(
@@ -160,6 +158,7 @@ watch(historyDate, async (newDate) => {
   delayMilliSeconds(500)
     .then(() =>
       getKungfuHistoryData(
+        window.watcher,
         newDate.format(),
         HistoryDateEnum.naturalDate,
         'Trade',
@@ -184,7 +183,6 @@ watch(historyDate, async (newDate) => {
           const { price_precision } = getPriceTickAndPrecision(
             item.instrument_id,
             item.exchange_id,
-            0.001,
           );
 
           return toRaw(
@@ -220,7 +218,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(row as KungfuApi.TradeResolved, '成交');
+  showTradingDataDetail(row, '成交');
 }
 </script>
 <template>
@@ -300,9 +298,6 @@ function handleShowTradingDataDetail({
             <span :class="`color-${dealOffset(item.offset).color}`">
               {{ dealOffset(item.offset).name }}
             </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'price'">
-            {{ dealKfPrice(item.price, item.price_precision) }}
           </template>
           <template v-else-if="column.dataIndex === 'source_uname'">
             <span :class="[`color-${item.source_resolved_data.color}`]">

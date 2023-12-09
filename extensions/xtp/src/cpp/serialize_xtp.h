@@ -24,13 +24,19 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPQueryAssetRsp, total_asset, buying_power, 
                                    frozen_margin, frozen_exec_cash, frozen_exec_fee, pay_later, preadva_pay,
                                    orig_banlance, banlance, deposit_withdraw, trade_netting, captial_asset,
                                    force_freeze_amount, preferred_amount, repay_stock_aval_banlance,
-                                   fund_order_data_charges, fund_cancel_data_charges, exchange_cur_risk_degree,
-                                   company_cur_risk_degree, unknown);
+                                   exchange_cur_risk_degree, company_cur_risk_degree, unknown);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPMarketDataStruct, exchange_id, ticker, last_price, pre_close_price, open_price,
                                    high_price, low_price, close_price, pre_total_long_positon, total_long_positon,
                                    pre_settl_price, settl_price, upper_limit_price, lower_limit_price, pre_delta,
                                    curr_delta, data_time, qty, turnover, avg_price, bid, ask, bid_qty, ask_qty,
                                    trades_count, ticker_status);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPRspInfoStruct, error_id, error_msg);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPOrderInfoEx, order_xtp_id, order_client_id, order_cancel_client_id,
+                                   order_cancel_xtp_id, ticker, market, price, quantity, price_type, business_type,
+                                   qty_traded, qty_left, insert_time, update_time, cancel_time, trade_amount,
+                                   order_local_id, order_status, order_submit_status, order_type, order_exch_id,
+                                   order_err_t, unknown);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(XTPSpecificTickerStruct, exchange_id, ticker);
 } // namespace nlohmann
 namespace kungfu::wingchun::xtp {
 template <typename T> std::string to_string(const T &ori) {

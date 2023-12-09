@@ -21,11 +21,9 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { DeleteOutlined } from '@ant-design/icons-vue';
 import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
-import {
-  dealCommissionMode,
-  initFormStateByConfig,
-  kfLogger,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealCommissionMode } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { useGlobalStore } from '../../pages/index/store/global';
@@ -81,7 +79,7 @@ onMounted(() => {
     tag: 'open:globalSetting',
   });
 
-  getKfCommission().then((res) => {
+  getKfCommission(window.watcher).then((res) => {
     commissions.value = res;
   });
 });
@@ -98,11 +96,11 @@ onUnmounted(() => {
     store.setKfGlobalSetting();
   });
 
-  setKfCommission(commissions.value);
+  setKfCommission(window.watcher, commissions.value);
 });
 
 function handleSaveCommission() {
-  setKfCommission(commissions.value)
+  setKfCommission(window.watcher, commissions.value)
     .then(() => {
       messagePrompt().success();
     })
@@ -329,6 +327,10 @@ function handleAddCommission() {
 
           .ant-input-group-wrapper.ant-input-search {
             margin-right: 30px;
+            .ant-btn-lg {
+              height: 32px !important;
+              width: 32px !important;
+            }
           }
         }
 

@@ -23,11 +23,13 @@ import {
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
-  getIdByKfLocation,
   getIfProcessRunning,
   getIfProcessStopping,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
@@ -49,7 +51,7 @@ const setMdModalVisible = ref<boolean>(false);
 const setMdConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('Md'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfMdExtConfig,
 });
 const currentSelectedSourceId = ref<string>('');
 const columns = getColumns();
@@ -84,7 +86,7 @@ async function handleOpenSetMdDialog(
   selectedSource: string,
   mdConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['md'] || {})[
+  const extConfig: KungfuApi.KfMdExtConfig = (extConfigs.value['md'] || {})[
     selectedSource
   ];
 
@@ -104,6 +106,7 @@ async function handleOpenSetMdDialog(
         category: 'md',
         group: selectedSource,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );

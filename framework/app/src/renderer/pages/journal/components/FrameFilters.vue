@@ -1,132 +1,158 @@
 <template>
   <a-form
-    ref="formRef"
-    class="kf-config-form"
-    :model="filtersFormState"
+    class="kf-config-form journal-tool-frame-filters__form"
+    :model="formState"
     :colon="false"
     :scroll-to-first-error="true"
     layout="inline"
   >
     <a-form-item>
-      <a-checkbox v-model:checked="read">
+      <a-checkbox v-model:checked="formState.read" @change="handleApplyFilters">
         {{ $t('journalConfig.read_event') }}
       </a-checkbox>
-      <a-checkbox v-model:checked="write">
+      <a-checkbox
+        v-model:checked="formState.write"
+        @change="handleApplyFilters"
+      >
         {{ $t('journalConfig.write_event') }}
       </a-checkbox>
     </a-form-item>
-    <a-form-item
-      v-for="item in Object.keys(formLabelMap)"
-      :key="item"
-      :name="item"
-      class="kf-form-item__warp"
-    >
+    <a-form-item>
       <a-select
-        v-model:value="filtersFormState[item]"
-        :options="filtersOptions[item]"
-        :filter-option="filterOption"
+        v-model:value="formState.selectedChannels"
         mode="multiple"
         :max-tag-count="2"
-        show-search
-        :placeholder="$t('keyword_input')"
-        allow-clear
+        style="width: 396px"
+        :placeholder="$t('journalConfig.select_channel')"
+        :options="Object.keys(channels).map((item) => ({ value: item }))"
         @blur="handleApplyFilters"
       >
-        <a-select-option
-          v-for="option in filtersOptions[item]"
-          :key="option.label"
-          :value="option.value"
         >
-          {{ option.label }}
-        </a-select-option>
       </a-select>
+    </a-form-item>
+    <a-form-item>
+      <a-tree-select
+        v-model:value="formState.selectedMsgTypes"
+        :tree-data="msgTypesFilterOptions"
+        treeNodeFilterProp="title"
+        style="width: 596px"
+        :max-tag-count="5"
+        tree-checkable
+        show-search
+        :placeholder="$t('journalConfig.selete_msg_type')"
+        allow-clear
+        @blur="handleApplyFilters"
+        @deselect="handleApplyFilters"
+        @change="handleClearAll"
+      >
+        <a-select-option
+          v-for="option in msgTypesFilterOptions"
+          :key="option.value"
+          :value="option.title"
+        >
+          {{ option.title }}
+        </a-select-option>
+      </a-tree-select>
     </a-form-item>
   </a-form>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { FiltersEnum } from '../utils/filterUtils';
+import { computed } from 'vue';
+import { ChannelRecords } from '../utils/filterUtils';
 import { useFrameFilters } from '../utils/filterUtils';
-
-const { t } = VueI18n.global;
+import { debounce } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{
-    locationMap: Record<string, string>;
-    currentLocation: KungfuApi.KfLocation | null;
+    write: boolean;
+    read: boolean;
+    selectedChannels: string[];
+    selectedMsgTypes: number[];
+    channels: ChannelRecords;
   }>(),
-  {},
+  {
+    write: true,
+    read: true,
+    channels: () => ({} as ChannelRecords),
+    selectedChannels: () => [],
+    selectedMsgTypes: () => [],
+  },
 );
+
 const emit = defineEmits<{
   (
     e: 'applyFilters',
-    frameFiltersMap: Record<FiltersEnum, string[]>,
     read: boolean,
     write: boolean,
+    selectedChannels: string[],
+    selectedMsgTypes: number[],
   ): void;
 }>();
-const read = ref(true);
-const write = ref(true);
-watch(
-  () => read.value,
-  (newVal, oldVal) => {
-    console.log('read', newVal, oldVal);
-    if (newVal !== oldVal) {
-      handleApplyFilters();
-    }
-  },
-);
-watch(
-  () => write.value,
-  (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-      handleApplyFilters();
-    }
-  },
+
+const channels = computed<ChannelRecords>(() => props.channels);
+
+const { formState, msgTypesFilterOptions } = useFrameFilters(
+  props.read,
+  props.write,
+  props.selectedChannels,
+  props.selectedMsgTypes,
 );
 
-const formRef = ref();
-const formLabelMap = {
-  [FiltersEnum.MSG_TYPE]: t('journalConfig.msg_type'),
+const applyFilters = () => {
+  emit(
+    'applyFilters',
+    formState.read,
+    formState.write,
+    formState.selectedChannels,
+    formState.selectedMsgTypes,
+  );
 };
-const filterOption = (input: string, option: any) => {
-  console.log('filterOption', input, option);
-  return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+
+const handleApplyFilters = debounce(applyFilters, 100);
+
+const resetFilters = () => {
+  formState.read = true;
+  formState.write = true;
+  formState.selectedChannels = [];
+  formState.selectedMsgTypes = [];
+  applyFilters();
 };
 
-const { filtersFormState, filtersOptions } = useFrameFilters();
+defineExpose({
+  resetFilters,
+});
 
-watch(
-  () => props.locationMap,
-  () => {
-    let msg: Record<number, string> = longfist.msgTypes;
-    filtersOptions.MSG_TYPE = Object.entries(msg).map(([key, value]) => ({
-      label: value,
-      value: key,
-    }));
-
-    Object.entries(msg).forEach(([key, value]) => {
-      if (Number(key) <= 10000) {
-        filtersFormState.MSG_TYPE.push(key);
-      }
-    });
-  },
-);
-
-const handleApplyFilters = () => {
-  console.log('过滤', filtersFormState, read.value, write.value);
-  emit('applyFilters', filtersFormState, read.value, write.value);
-};
+function handleClearAll(value: number[]) {
+  if (!value || value.length === 0) {
+    applyFilters();
+  }
+}
 </script>
 
 <style lang="less">
-.kf-form-item__warp {
-  .ant-select {
-    min-width: 160px;
-    margin-right: 0;
+.ant-form-inline.kf-config-form.journal-tool-frame-filters__form {
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
+  .ant-form-item {
+    margin-right: 0px;
+    margin-left: 16px;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0px;
+    }
+
+    &.kf-form-item__warp {
+      margin-right: 0px;
+
+      .ant-select {
+        min-width: 160px;
+        margin-right: 0;
+      }
+    }
   }
 }
 </style>

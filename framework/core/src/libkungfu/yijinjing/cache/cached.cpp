@@ -15,22 +15,24 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
 
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 100
-#define LOW_LATENCY_STORE_VOLUME_BY_INTERVAL 10
+// https://sqlite.org/limits.html
+// The maximum number of bytes in the text of an SQL statement is limited to SQLITE_MAX_SQL_LENGTH which defaults to
+// 1,000,000,000.
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 1000
+#define STORE_INTERVAL 100
 
 namespace kungfu::yijinjing::cache {
 
 cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)
-    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached) {
+    : session_builder_(io_device), profile_(io_device->get_locator()), bypass_cached_(bypass_cached),
+      ledger_home_location_(yijinjing::practice::make_system_location("service", "ledger", io_device->get_locator())) {
   profile_.setup();
-  profile_get_all(profile_, profile_feed_bank_);
+  profile_get_all(profile_, profile_restore_bank_);
 }
 
 cached::~cached() {
-  {
-    std::lock_guard<std::mutex> lock(feed_mutex_);
-    m_quit_ = true;
-  }
+
+  m_quit_ = true;
 
   if (store_states_worker_.joinable()) {
     store_states_worker_.join();
@@ -43,20 +45,16 @@ cached::~cached() {
 
 void cached::restore_profile(const yijinjing::data::location_ptr &location,
                              const yijinjing::journal::writer_ptr &writer) {
-  if (not bypass_cached_) {
-    feed_mutex_.lock();
-    profile_store_mutex_.lock();
-    try {
-      // for config from user interface
-      profile_get_all(profile_, profile_feed_bank_);
-    } catch (const std::exception &ex) {
-      SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
-    }
-    feed_mutex_.unlock();
-    profile_store_mutex_.unlock();
+  profile_store_mutex_.lock();
+  try {
+    // for config, basket, instruemnts .etc. from user interface
+    profile_get_all(profile_, profile_restore_bank_);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
   }
-
+  profile_store_mutex_.unlock();
   feed_mutex_.lock();
+  profile_restore_bank_ >> writer;
   profile_feed_bank_ >> writer;
   feed_mutex_.unlock();
 }
@@ -67,14 +65,88 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     return;
   }
 
-  states_store_mutex_.lock();
+  std::lock_guard<std::mutex> lock(states_store_mutex_);
+
   try {
     make_cache_shift(location);
     app_states_shift_.at(location->uid) >> writer;
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to write cache {} {} {}", location->uid, location->uname, ex.what());
   }
-  states_store_mutex_.unlock();
+
+  const bool IS_NODE = location->category == category::SYSTEM and location->group == "node";
+  const bool IS_LEDGER = location->uid == ledger_home_location_->uid;
+  const bool IS_TD = location->category == category::TD;
+  const bool IS_STRATEGY = location->category == category::STRATEGY;
+  const bool IS_OPERATOR = location->category == category::OPERATOR;
+  const bool IS_SYSTEM = location->category == category::SYSTEM;
+
+  if (IS_TD or IS_STRATEGY) {
+    for (const auto &other_location : location->locator->list_locations("*", "*", "*", "*")) {
+      if (other_location->category == category::SYSTEM) {
+        continue;
+      }
+
+      auto is_current_location = other_location->uid == location->uid;
+
+      for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
+        if (dest == location->uid or (is_current_location && dest == location::PUBLIC)) {
+          try {
+            ensure_cached_storage(other_location, dest);
+            app_states_shift_.at(other_location->uid).restore_to(writer, dest);
+          } catch (const std::exception &ex) {
+            SPDLOG_ERROR("failed to write cache {} {} {}", other_location->uname, dest, ex.what());
+          }
+        }
+      }
+    }
+  }
+
+  // static data in td
+  if (IS_STRATEGY or IS_OPERATOR or IS_SYSTEM) {
+    for (const auto &td_location : location->locator->list_locations("td", "*", "*", "live")) {
+      auto dests = location->locator->list_location_dest_by_db(td_location);
+      if (std::find(dests.begin(), dests.end(), location::PUBLIC) != dests.end()) {
+        try {
+          ensure_cached_storage(td_location, location::PUBLIC);
+          app_states_shift_.at(td_location->uid).restore_to(StaticDataTypes, writer, location::PUBLIC);
+        } catch (const std::exception &ex) {
+          SPDLOG_ERROR("failed to write static data {} {} {} for target {}", td_location->uname, location::PUBLIC,
+                       ex.what(), location->uname);
+        }
+      }
+    }
+  }
+
+  // restore all trading data from tds, including static data in td
+  if (IS_LEDGER or IS_NODE) {
+    for (const auto &td_location : location->locator->list_locations("td", "*", "*", "live")) {
+      for (auto dest : location->locator->list_location_dest_by_db(td_location)) {
+        try {
+          ensure_cached_storage(td_location, dest);
+          app_states_shift_.at(td_location->uid).restore_to(writer, dest);
+        } catch (const std::exception &ex) {
+          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", td_location->uname, dest, ex.what(),
+                       location->uname);
+        }
+      }
+    }
+  }
+
+  // for watcher reload ledger written datas after crash
+  if (IS_NODE) {
+    for (const auto &ledger_location : location->locator->list_locations("system", "service", "ledger", "live")) {
+      for (auto dest : location->locator->list_location_dest_by_db(ledger_location)) {
+        try {
+          ensure_cached_storage(ledger_location, dest);
+
+        } catch (const std::exception &ex) {
+          SPDLOG_ERROR("failed to write cache {} {} {} for target {}", ledger_location->uname, dest, ex.what(),
+                       location->uname);
+        }
+      }
+    }
+  }
 }
 
 void cached::restore(const location_ptr &location, const journal::writer_ptr &writer) {
@@ -82,7 +154,7 @@ void cached::restore(const location_ptr &location, const journal::writer_ptr &wr
   restore_states(location, writer);
 }
 
-void cached::clear_cache_shift(const location_ptr &location) {
+void cached::reset_cache_shift(const location_ptr &location) {
   if (bypass_cached_) {
     return;
   }
@@ -106,12 +178,16 @@ void cached::make_cache_shift(const location_ptr &location) {
   app_states_shift_.emplace(location->uid, location);
 }
 
-void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
+void cached::try_ensure_cached_storage(const location_ptr &location, uint32_t dest) {
   if (bypass_cached_) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(states_store_mutex_);
+  ensure_cached_storage(location, dest);
+}
+
+void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
   make_cache_shift(location);
   app_states_shift_.at(location->uid).ensure_storage(dest);
 }
@@ -139,113 +215,139 @@ void cached::cache_reset(const event_ptr &event) {
 
 void cached::feed(const event_ptr &event) {
   std::lock_guard<std::mutex> lock(feed_mutex_);
-  feed_profile_data(event, profile_feed_bank_);
+  // only etf related data will be stored by cached, these data should be only store in td public.db, for CachedReset
+  if (event->msg_type() != BasketInstrument::tag and event->msg_type() != Basket::tag) {
+    feed_profile_data(event, profile_feed_bank_);
+  }
 
-  if (not bypass_cached_) {
+  if (not bypass_cached_ and event->msg_type() != Instrument::tag) {
     feed_state_data(event, states_feed_bank_);
   }
 }
 
 void cached::run_store_workers() {
-  if (bypass_cached_)
-    return;
-
   store_profile_worker_ = std::thread(&cached::do_store_profile_feeds, this);
-  store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
+
+  if (not bypass_cached_) {
+    store_states_worker_ = std::thread(&cached::do_store_states_feeds, this);
+  }
 }
 
 void cached::do_store_states_feeds() {
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    store_states_feeds();
-
-    std::lock_guard<std::mutex> lock(feed_mutex_);
-    if (m_quit_) {
-      break;
+  while (!m_quit_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(STORE_INTERVAL));
+    if (storage_pause_) {
+      return;
     }
+
+    store_states_feeds();
   }
+  SPDLOG_DEBUG("store state feed end");
 }
 
 void cached::do_store_profile_feeds() {
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    store_profile_feeds();
-
-    std::lock_guard<std::mutex> lock(feed_mutex_);
-    if (m_quit_) {
-      break;
+  while (!m_quit_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(STORE_INTERVAL));
+    if (storage_pause_) {
+      return;
     }
+
+    store_profile_feeds();
   }
+  SPDLOG_DEBUG("store profile feed end");
 }
 
 void cached::store_states_feeds() {
+  yijinjing::cache::location_bank tmp_location_bank = {};
+  auto store_state_data_start_time = time::now_in_nano();
+
   feed_mutex_.lock();
-  yijinjing::cache::bank tmp_feed_bank = states_feed_bank_;
-  states_feed_bank_.clear();
+  auto trading_data_count = transfer_from_bank<bank, location_bank>(
+      TradingDataTypes, states_feed_bank_, tmp_location_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL);
+  auto others_data_count = transfer_from_bank<bank, location_bank>(
+      StateDataTypes, states_feed_bank_, tmp_location_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL - trading_data_count);
   feed_mutex_.unlock();
 
-  boost::hana::for_each(StateDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
+  auto &location_bank_map = tmp_location_bank.get_map();
+  std::for_each(location_bank_map.begin(), location_bank_map.end(), [&](auto &pair) {
+    uint32_t source = pair.first >> 32u;
+    uint32_t dest = pair.first & 0xFFFFFFFF;
+    auto &state_bank = pair.second;
 
-    using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(tmp_feed_bank[hana_type]);
-
-    if (feed_map.size() != 0) {
-      auto iter = feed_map.begin();
-      while (iter != feed_map.end()) {
-        auto &s = iter->second;
-        auto source_id = s.source;
-        auto dest_id = s.dest;
-        if (app_states_shift_.find(source_id) != app_states_shift_.end()) {
-          states_store_mutex_.lock();
-          try {
-            app_states_shift_.at(source_id) << s;
-            SPDLOG_TRACE("cache [feed] source {} dest {} {} data {}", source_id, dest_id, DataType::type_name.c_str(),
-                         s.data.to_string());
-            iter++;
-          } catch (const std::exception &e) {
-            SPDLOG_ERROR("Unexpected exception by handle_cached_feeds {}", e.what());
-          }
-          states_store_mutex_.unlock();
-        } else {
-          iter++;
-        }
+    boost::hana::for_each(StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      auto hana_type = boost::hana::type_c<DataType>;
+      using StateMap = std::unordered_map<uint64_t, state<DataType>>;
+      auto &state_map = const_cast<StateMap &>(state_bank[hana_type]);
+      std::vector<DataType> tmp_state_vector = {};
+      for (const auto &s : state_map) {
+        tmp_state_vector.push_back(s.second.data);
       }
-    }
+
+      if (tmp_state_vector.size() <= 0) {
+        return;
+      }
+
+      if (app_states_shift_.find(source) == app_states_shift_.end()) {
+        return;
+      }
+
+      states_store_mutex_.lock();
+      try {
+        app_states_shift_.at(source).replace_range(dest, tmp_state_vector);
+        SPDLOG_TRACE("cache [state] {} size {}", DataType::type_name.c_str(), tmp_state_vector.size());
+      } catch (const std::exception &e) {
+        SPDLOG_ERROR("Unexpected exception by store_states_feeds {}", e.what());
+      }
+      states_store_mutex_.unlock();
+    });
   });
+
+  auto store_state_data_end_time = time::now_in_nano();
+  if (trading_data_count + others_data_count > 0) {
+    SPDLOG_DEBUG("store states data take {}ns, trading data count {}, others data count {}",
+                 store_state_data_end_time - store_state_data_start_time, trading_data_count, others_data_count);
+  }
 }
 
 void cached::store_profile_feeds() {
-  // there are important info like locations in profile, every app register need these info, so do not clear profile
-  // bank;
+  ProfileStateBank tmp_profile_bank = ProfileStateBank(ProfileDataTypes);
+  auto store_profile_data_start_time = time::now_in_nano();
+
   feed_mutex_.lock();
-  ProfileStateBank tmp_profile_bank = profile_feed_bank_;
+  auto count = transfer_from_bank<ProfileStateBank, ProfileStateBank>(
+      ProfileDataTypes, profile_feed_bank_, tmp_profile_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL);
   feed_mutex_.unlock();
 
   boost::hana::for_each(ProfileDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
-
     using FeedMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &feed_map = const_cast<FeedMap &>(profile_feed_bank_[hana_type]);
-
-    if (feed_map.size() != 0) {
-      auto iter = feed_map.begin();
-      while (iter != feed_map.end()) {
-        const auto &s = iter->second;
-        profile_store_mutex_.lock();
-        try {
-          profile_ << s;
-          SPDLOG_TRACE("cache [profile] {} data {}", DataType::type_name.c_str(), s.data.to_string());
-          iter++;
-        } catch (const std::exception &e) {
-          SPDLOG_ERROR("Unexpected exception by handle_profile_feeds {}", e.what());
-        }
-        profile_store_mutex_.unlock();
-      }
+    auto &feed_map = const_cast<FeedMap &>(tmp_profile_bank[hana_type]);
+    std::vector<DataType> tmp_profile_vector = {};
+    for (const auto &s : feed_map) {
+      tmp_profile_vector.push_back(s.second.data);
     }
+
+    if (tmp_profile_vector.size() <= 0) {
+      return;
+    }
+
+    profile_store_mutex_.lock();
+    try {
+      profile_.replace_range(tmp_profile_vector);
+      SPDLOG_TRACE("cache [profile] {} size {}", DataType::type_name.c_str(), tmp_profile_vector.size());
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("Unexpected exception by store_profile_feeds {}", e.what());
+    }
+    profile_store_mutex_.unlock();
   });
+
+  auto store_profile_data_end_time = time::now_in_nano();
+  if (count > 0) {
+    SPDLOG_DEBUG("store profile data take {}ns, count {}", store_profile_data_end_time - store_profile_data_start_time,
+                 count);
+  }
 }
 
 void cached::open_session(const location_ptr &location, int64_t open_time) {
@@ -264,9 +366,9 @@ void cached::close_session(const location_ptr &location, int64_t close_time) {
   session_builder_.close_session(location, close_time);
 }
 
-index::SessionMap &cached::close_all_sessions(int64_t close_time) {
-  return session_builder_.close_all_sessions(close_time);
-}
+void cached::close_all_sessions(int64_t close_time) { return session_builder_.close_all_sessions(close_time); }
+
+index::SessionMap &cached::get_all_sessions() { return session_builder_.get_all_sessions(); }
 
 int64_t cached::find_last_active_time(const location_ptr &location) {
   if (bypass_cached_) {
@@ -282,5 +384,7 @@ void cached::update_session(const journal::frame_ptr &frame) {
   }
   session_builder_.update_session(frame);
 }
+
+void cached::switch_feed_storage(bool pause_storage) { storage_pause_ = pause_storage; }
 
 } // namespace kungfu::yijinjing::cache

@@ -4,7 +4,11 @@ const { t } = VueI18n.global;
 export const getColumns = (
   sorter: (
     dataIndex: string,
-  ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
+  ) => (
+    a: KungfuApi.KfConfig,
+    b: KungfuApi.KfConfig,
+    sorterOrder: '' | 'ascend' | 'descend',
+  ) => number,
 ): AntTableColumns => [
   {
     title: t('strategyConfig.strategy_id'),
@@ -54,12 +58,20 @@ export const getColumns = (
   },
 ];
 
-export const setStrategyConfig: KungfuApi.KfExtConfig = {
+export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
   type: [],
   name: t('strategyConfig.strategy'),
   category: 'strategy',
   key: 'default',
+  silent: true,
+  access: {},
+  assets: {},
   extPath: '',
+  version: '',
+  description: '',
+  dependencies: {},
+  readmePath: '',
+  releaseNotePath: '',
   settings: [
     {
       key: 'strategy_id',

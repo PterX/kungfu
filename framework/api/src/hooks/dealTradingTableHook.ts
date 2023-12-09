@@ -1,3 +1,6 @@
+import { kfLogger } from '../utils/logUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+
 export interface KfTradingDataTableHeaderConfig {
   name: string;
   dataIndex: string;
@@ -15,7 +18,7 @@ export interface KfTradingDataTableHeaderConfig {
     | 'direction'
     | 'actions';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sorter?: (a: any, b: any) => number;
+  sorter?: (a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number;
 }
 
 export interface AntTableColumn {
@@ -25,7 +28,15 @@ export interface AntTableColumn {
   width?: number | string;
   minWidth?: number | string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sorter?: boolean | { compare: (a: any, b: any) => number };
+  sorter?:
+    | boolean
+    | {
+        compare: (
+          a: any,
+          b: any,
+          sorterOrder: '' | 'ascend' | 'descend',
+        ) => number;
+      };
   align?: string;
   fixed?: string;
 }
@@ -69,7 +80,7 @@ export class TradingTableDealer {
     columns: ColumnsType[],
   ) {
     if (this.columnsDealers.length) {
-      console.log(
+      kfLogger.info(
         `DealTradingTable hook ${this.locationKey} ${this.tradingTableType} trigger getColumns success`,
       );
 
@@ -84,7 +95,7 @@ export class TradingTableDealer {
 
   resolveData<DataType extends TradingDataTypes>(datas: DataType[]) {
     if (this.dataResolvers.length) {
-      console.log(
+      kfLogger.info(
         `DealTradingTable hook ${this.locationKey} ${this.tradingTableType} trigger resolveDatas success`,
       );
 
@@ -114,23 +125,29 @@ export class DealTradingTableHooks {
       {
         get(target: Record<string, TradingTableDealerMap>, prop: string) {
           const locationPairs = prop.split('_');
-          if (locationPairs.length != 3) {
-            console.warn(`Invalid hook key: ${prop}`);
+          if (locationPairs.length != 4) {
+            kfLogger.warn(`Invalid hook key: ${prop}`);
             return DefaultUnkownTrdaingTableDealerMap;
           }
 
-          const [category, group, name] = prop.split('_');
-          if (target[`${category}_${group}_${name}`]) {
-            return target[`${category}_${group}_${name}`];
-          } else if (target[`${category}_*_${name}`]) {
-            return target[`${category}_*_${name}`];
-          } else if (target[`${category}_${group}_*`]) {
-            return target[`${category}_${group}_*`];
-          } else if (target[`${category}_*_*`]) {
-            return target[`${category}_*_*`];
-          }
+          const [category, group, name, mode] = prop.split('_');
+          const originalKeys: [string, string, string, string] = [
+            category,
+            group,
+            name,
+            mode,
+          ];
 
-          return DefaultUnkownTrdaingTableDealerMap;
+          const findMatchingKey = () => {
+            for (const key of generateLocationCombinations(originalKeys)) {
+              if (target[key]) {
+                return target[key];
+              }
+            }
+            return DefaultUnkownTrdaingTableDealerMap;
+          };
+
+          return findMatchingKey();
         },
 
         set(
@@ -179,7 +196,7 @@ export class DealTradingTableHooks {
           });
 
           Reflect.set(target, prop, exsitedDealerMap);
-          console.log(`DealTradingTable hook ${prop} register success`);
+          kfLogger.info(`DealTradingTable hook ${prop} register success`);
           return true;
         },
       },
@@ -196,8 +213,8 @@ export class DealTradingTableHooks {
       resolvedDatas?: (datas: TradingDataTypes[]) => TradingDataTypes[];
     },
   ) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     Reflect.set(this.hooks, key, { [tradingTableType]: dealer });
   }
 
@@ -205,8 +222,8 @@ export class DealTradingTableHooks {
     kfLocation: KungfuApi.DerivedKfLocation,
     tradingTableType: TradingTableTypes,
   ) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     const dealer = (Reflect.get(this.hooks, key) as TradingTableDealerMap)[
       tradingTableType
     ];

@@ -7,10 +7,8 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import {
-  getAbleHedgeFlag,
-  isShotable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getAbleHedgeFlag } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
 export const LABEL_COL = 6;
@@ -84,7 +82,7 @@ export const getConfigSettings = (
           : t('tradingConfig.protect_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 3,
+      precision: pricePrecision ?? 4,
       step: step || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },
@@ -106,7 +104,7 @@ export const makeOrderConfigKFTypes = [
   'side',
   'offset',
   'hedgeFlag',
-  'pricetype',
+  'priceType',
 ];
 
 export const makeOrderConfigKFKeys = [

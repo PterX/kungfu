@@ -7,7 +7,7 @@
   >
     <template #title>
       <div class="kf-update-controller-title__wrap">
-        <span>{{ $t('globalSettingConfig.update') }}</span>
+        <span>{{ $t('autoUpdater.update') }}</span>
         <CloseOutlined @click="popoverVisible = false" />
       </div>
     </template>
@@ -20,45 +20,108 @@
             stroke-color="#FAAD14"
           ></a-progress>
           <div v-if="process === 100">
-            <span>{{ $t('globalSettingConfig.downloaded') }}</span>
+            <span>{{ $t('autoUpdater.downloaded') }}</span>
             <a-button
               style="margin-left: 8px"
               type="link"
               @click="handleQuitAndInstall"
             >
-              {{ $t('globalSettingConfig.to_install') }}
+              {{ $t('autoUpdater.to_install') }}
             </a-button>
           </div>
           <div v-else-if="errorMessage">
             <span class="color-red">{{ errorMessage }}</span>
+            <a-button type="link" @click="handleToStartDownload">
+              {{ $t('autoUpdater.retry_download') }}
+            </a-button>
           </div>
+        </div>
+        <div v-else-if="hasSkiped">
+          <span>
+            {{ $t('autoUpdater.current_version') + ': ' + currentVersion }}
+          </span>
+          <span style="margin-left: 8px">
+            {{
+              $t('autoUpdater.new_version') +
+              ': ' +
+              newVersion +
+              `(${$t('autoUpdater.has_skipped')})`
+            }}
+          </span>
+          <a-button
+            type="link"
+            size="small"
+            :loading="checkingUpdate"
+            @click="handleToRetryCheckUpdate"
+          >
+            {{ $t('autoUpdater.retry_check') }}
+          </a-button>
         </div>
         <div v-else>
           <span>
-            {{ $t('globalSettingConfig.new_version') + ': ' + newVersion }}
+            {{ $t('autoUpdater.new_version') + ': ' + newVersion }}
           </span>
           <a-button type="link" @click="handleToStartDownload">
-            {{ $t('globalSettingConfig.start_download') }}
+            {{ $t('autoUpdater.start_download') }}
+          </a-button>
+          <a-button
+            type="link"
+            style="padding-left: 0px"
+            @click="skipVersion(newVersion)"
+          >
+            {{ $t('autoUpdater.skip_version') }}
           </a-button>
         </div>
       </template>
+
       <template v-else>
-        <div>
-          {{
-            $t('globalSettingConfig.current_version') +
-            ': ' +
-            currentVersion +
-            ' ( ' +
-            $t('globalSettingConfig.already_latest_version') +
-            ' )'
-          }}
+        <div v-if="hasSkiped">
+          <span>
+            {{ $t('autoUpdater.current_version') + ': ' + currentVersion }}
+          </span>
+          <span style="margin-left: 8px">
+            {{
+              $t('autoUpdater.new_version') +
+              ': ' +
+              newVersion +
+              `(${$t('autoUpdater.has_skipped')})`
+            }}
+          </span>
+          <a-button
+            type="link"
+            size="small"
+            :loading="checkingUpdate"
+            @click="handleToRetryCheckUpdate"
+          >
+            {{ $t('autoUpdater.retry_check') }}
+          </a-button>
+        </div>
+        <div v-else>
+          <span>
+            {{
+              $t('autoUpdater.current_version') +
+              ': ' +
+              currentVersion +
+              ' ( ' +
+              $t('autoUpdater.already_latest_version') +
+              ' )'
+            }}
+          </span>
+          <a-button
+            type="link"
+            size="small"
+            :loading="checkingUpdate"
+            @click="handleToRetryCheckUpdate"
+          >
+            {{ $t('autoUpdater.retry_check') }}
+          </a-button>
         </div>
       </template>
     </template>
     <div class="kf-update-controller-entry__wrap">
       <interaction-outlined />
       <span style="margin-left: 4px">
-        {{ $t('globalSettingConfig.update') }}
+        {{ $t('autoUpdater.update') }}
       </span>
     </div>
   </a-popover>
@@ -71,13 +134,17 @@ import { useUpdateVersion } from '@kungfu-trader/kungfu-app/src/renderer/assets/
 const {
   popoverVisible,
   newVersion,
+  hasSkiped,
   currentVersion,
+  checkingUpdate,
   hasNewVersion,
   downloadStarted,
   process,
   progressStatus,
   errorMessage,
+  handleToRetryCheckUpdate,
   handleToStartDownload,
+  skipVersion,
   handleQuitAndInstall,
 } = useUpdateVersion();
 </script>

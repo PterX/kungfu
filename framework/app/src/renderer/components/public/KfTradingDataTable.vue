@@ -1,7 +1,13 @@
 <script lang="ts" setup>
-import { sum } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { sum } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { createReusableTemplate } from '@vueuse/core';
 import { Empty } from 'ant-design-vue';
-import { CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons-vue';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  UpOutlined,
+  DownOutlined,
+} from '@ant-design/icons-vue';
 import { filter } from 'rxjs';
 import {
   computed,
@@ -11,7 +17,16 @@ import {
   onMounted,
   ref,
   toRaw,
+  nextTick,
+  watchEffect,
+  ComputedRef,
 } from 'vue';
+import { throttle } from 'lodash';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { useFastFindObjArrIndex } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { useScrollerTableSearch } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
+const { t } = VueI18n.global;
 
 type TableDataItem =
   | KungfuApi.TradingDataItem
@@ -20,23 +35,40 @@ type TableDataItem =
 
 const props = withDefaults(
   defineProps<{
+    dynamic?: boolean;
+    willSwitchDynamic?: boolean;
     dataSource: TableDataItem[];
     columns: KfTradingDataTableHeaderConfig[];
     keyField?: string;
     resizable?: boolean;
     itemSize?: number;
+    minItemSize?: number;
+    sizeDependenciesFields?: string[];
     selectable?: boolean;
     selection?: KfTradingDataTableSelection; // 仅在 selectable 为 true 的时候生效
+    searchOption?: {
+      enabled: boolean;
+      keysForSearch: string[];
+      dynamicTableInSearching?: boolean;
+    };
     customRowClass?: (row: TableDataItem) => string;
   }>(),
   {
+    dynamic: false,
+    willSwitchDynamic: false,
     columns: () => [],
     dataSource: () => [],
     keyField: 'id',
     resizable: true,
     itemSize: 26,
+    minItemSize: 26,
+    sizeDependenciesFields: () => [],
     selectable: false,
     selection: () => ({}),
+    searchOption: () => ({
+      enabled: false,
+      keysForSearch: [],
+    }),
     customRowClass: () => '',
   },
 );
@@ -60,13 +92,28 @@ defineEmits<{
   ): void;
   (e: 'rightClickRow', data: { event: MouseEvent; row: TableDataItem }): void;
   (e: 'update:selectedKey', data: number | string): void;
+  (e: 'onScrollToTop'): void;
+  (e: 'onScrollToBottom'): void;
 }>();
 
 const app = getCurrentInstance();
+const TradingDataTableItem = createReusableTemplate<{
+  type: 'dynamic' | 'normal';
+  item: TableDataItem;
+  index: number;
+  active: boolean;
+}>();
+const { findIndexByKeyFieldValue, replaceArray } = useFastFindObjArrIndex(
+  computed(() => props.keyField),
+);
+
+const normalScroller = ref();
+const dynamicScroller = ref();
+const dynamic = ref(props.dynamic);
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const kfScrollerTableBodyRef = ref();
 const kfScrollerTableWidth = ref(0);
-const dataSouceMap = ref<Record<string, TableDataItem>>({});
+const dataSourceMap = ref<Record<string, TableDataItem>>({});
 let allRowKeyFieldTrue: Record<string, boolean> = {};
 let allRowKeyFieldFalse: Record<string, boolean> = {};
 const isSelectAll = ref(false);
@@ -74,6 +121,98 @@ const selectAllIndeterminate = ref(false);
 const selectedRowKeyFieldValues = ref<Record<string, boolean>>({});
 const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
+const currentSorterIndex = ref<string>('');
+const currentSorterOrder = ref<'' | 'ascend' | 'descend'>('');
+let currentSorterFunction:
+  | ((a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number)
+  | undefined = undefined;
+const dataSourceResolved = computed(() => {
+  if (
+    currentSorterIndex.value &&
+    currentSorterFunction &&
+    currentSorterOrder.value !== ''
+  ) {
+    if (currentSorterOrder.value === 'ascend') {
+      return props.dataSource.slice(0).sort((a, b): number => {
+        if (currentSorterFunction) {
+          return currentSorterFunction(a, b, currentSorterOrder.value);
+        } else {
+          return 0;
+        }
+      });
+    } else {
+      return props.dataSource
+        .slice(0)
+        .sort((a, b): number => {
+          if (currentSorterFunction) {
+            return currentSorterFunction(a, b, currentSorterOrder.value);
+          } else {
+            return 0;
+          }
+        })
+        .reverse();
+    }
+  }
+  return props.dataSource;
+});
+watchEffect(() => {
+  replaceArray(dataSourceResolved.value);
+});
+
+const scrollerRef = computed(() => {
+  if (dynamic.value) {
+    return dynamicScroller.value;
+  } else {
+    return normalScroller.value;
+  }
+});
+
+const searchEnabled = computed(
+  () =>
+    props.searchOption.enabled && props.searchOption.keysForSearch.length > 0,
+);
+const {
+  searchInUsing,
+  inputSearchRef,
+  searchKeyword,
+  currentResultIndex,
+  totalResultCount,
+  handleToDownSearchResult,
+  handleToUpSearchResult,
+  getItemHtmlResult,
+  switchSearchable,
+} = useScrollerTableSearch(
+  dataSourceResolved as ComputedRef<Record<string, KungfuApi.KfConfigValue>[]>,
+  props.keyField,
+  props.searchOption.keysForSearch,
+  scrollerRef,
+);
+watchEffect(() => switchSearchable(searchEnabled.value));
+const willSwitchDynamic = computed(() =>
+  searchEnabled.value
+    ? props.searchOption.dynamicTableInSearching
+    : props.willSwitchDynamic,
+);
+watchEffect(() => {
+  dynamic.value = searchEnabled.value
+    ? props.searchOption.dynamicTableInSearching
+      ? searchInUsing.value
+      : props.dynamic
+    : props.dynamic;
+});
+watch(searchInUsing, (n, o) => {
+  if (n !== o) {
+    if (scrollerRef.value) {
+      const [startIndex] = getVisibleIndexRange();
+
+      if (startIndex !== undefined && startIndex > -1) {
+        nextTick(() => {
+          scrollerRef.value.scrollToItem(startIndex);
+        });
+      }
+    }
+  }
+});
 
 const headerWidth = computed(() => {
   const widths: KfTradingDataTableHeaderConfig[] = []; //column use with
@@ -102,11 +241,12 @@ const headerWidth = computed(() => {
 });
 
 const tableCellHeight = computed(() => `${props.itemSize}px`);
+const tableCellMinHeight = computed(() => `${props.minItemSize}px`);
 
 watch(
   () => props.dataSource,
   (newDataSource) => {
-    dataSouceMap.value = {};
+    dataSourceMap.value = {};
     allRowKeyFieldTrue = {};
     allRowKeyFieldFalse = {};
 
@@ -115,7 +255,7 @@ watch(
 
     newDataSource.forEach((item) => {
       const key = `${item[props.keyField]}`;
-      dataSouceMap.value[key] = item;
+      dataSourceMap.value[key] = item;
       allRowKeyFieldTrue[key] = true;
       allRowKeyFieldFalse[key] = false;
 
@@ -131,17 +271,30 @@ watch(
   { immediate: true },
 );
 
+const initScrollerTableWidth = () => {
+  // 一上来查表格宽度会是 0, 所以轮询查
+  requestAnimationFrame(() => {
+    if (
+      kfScrollerTableBodyRef.value &&
+      kfScrollerTableBodyRef.value.clientWidth
+    ) {
+      kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
+    } else {
+      initScrollerTableWidth();
+    }
+  });
+};
+
 onMounted(() => {
-  if (kfScrollerTableBodyRef.value) {
-    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
-  }
+  initScrollerTableWidth();
 
   if (app?.proxy && props.resizable) {
     const subscription = app?.proxy.$globalBus
       .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
       .subscribe(() => {
         if (kfScrollerTableBodyRef.value) {
-          kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth;
+          kfScrollerTableWidth.value =
+            kfScrollerTableBodyRef.value.clientWidth - 8;
         }
       });
 
@@ -151,6 +304,9 @@ onMounted(() => {
   }
 });
 
+const getSizeDependencies = (item: TableDataItem) =>
+  props.sizeDependenciesFields.map((field) => item[field]);
+
 function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
   const headerWidthByCalc = headerWidth.value[column.dataIndex];
   const columnWidth = +(column?.width || 0);
@@ -159,6 +315,38 @@ function getHeaderWidth(column: KfTradingDataTableHeaderConfig): string {
     return columnWidth + 'px';
   } else {
     return headerWidthByCalc.toString();
+  }
+}
+
+const emitOnScrollToTop = throttle(() => app && app.emit('onScrollToTop'), 500);
+
+const emitOnScrollToBottom = throttle(
+  () => app && app.emit('onScrollToBottom'),
+  500,
+);
+
+const getSearchResultHtmlForSlot = (
+  item: TableDataItem,
+  column: KfTradingDataTableHeaderConfig,
+) => {
+  if (
+    searchEnabled.value &&
+    props.searchOption.keysForSearch.includes(column.dataIndex)
+  ) {
+    return getItemHtmlResult(item, column.dataIndex);
+  } else {
+    return `${item[column.dataIndex]}`;
+  }
+};
+
+function handleScroll(e: Event): void {
+  const target = e.target as HTMLElement;
+  if (target.scrollTop === 0) {
+    emitOnScrollToTop();
+  }
+
+  if (target.scrollHeight - target.scrollTop === target.clientHeight) {
+    emitOnScrollToBottom();
   }
 }
 
@@ -198,27 +386,11 @@ function handleMousedown(e: MouseEvent, row: TableDataItem): void {
   }
 }
 
-const currentSorterIndex = ref<string>('');
-const currentSorterOrder = ref<'' | 'ascend' | 'descend'>('');
-let currentSorterFunction: ((a: any, b: any) => number) | undefined = undefined;
-const dataSourceResolved = computed(() => {
-  if (
-    currentSorterIndex.value &&
-    currentSorterFunction &&
-    currentSorterOrder.value !== ''
-  ) {
-    if (currentSorterOrder.value === 'ascend') {
-      return props.dataSource.slice(0).sort(currentSorterFunction);
-    } else {
-      return props.dataSource.slice(0).sort(currentSorterFunction).reverse();
-    }
-  }
-  return props.dataSource;
-});
-
 function handleSort(
   dataIndex: string,
-  sorter: undefined | ((a: any, b: any) => number),
+  sorter:
+    | undefined
+    | ((a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number),
 ): void {
   if (!sorter || !dataIndex) {
     return;
@@ -253,7 +425,7 @@ function handleSelectRow(isChecked: boolean, item: TableDataItem) {
   selectedRowKeyFieldValues.value[key] = isChecked;
 
   if (isChecked) {
-    selectedRowsMap.value[key] = toRaw(dataSouceMap.value[key]);
+    selectedRowsMap.value[key] = toRaw(dataSourceMap.value[key]);
   } else {
     delete selectedRowsMap.value[key];
   }
@@ -264,7 +436,16 @@ function handleSelectAll(isChecked: boolean) {
 
   const allSelected = Object.assign({}, allRowKeyFieldTrue);
   const allUnSelected = Object.assign({}, allRowKeyFieldFalse);
-  const allRowsMap = Object.assign({}, toRaw(dataSouceMap.value));
+  const allRowsMap = Object.assign({}, toRaw(dataSourceMap.value));
+
+  Object.keys(props.selection).forEach((key) => {
+    if (props.selection[key].disabled) {
+      const curSelectState = selectedRowKeyFieldValues.value[key];
+      allSelected[key] = curSelectState;
+      allUnSelected[key] = curSelectState;
+      if (!curSelectState) delete allRowsMap[key];
+    }
+  });
 
   selectedRowKeyFieldValues.value = isChecked ? allSelected : allUnSelected;
   selectedRowsMap.value = isChecked ? allRowsMap : {};
@@ -275,10 +456,15 @@ watch(
   (val) => {
     if (!props.selectable) return;
 
-    const allRowLength = props.dataSource.length;
+    const disabledRowLength = Object.values(props.selection).filter(
+      (item) => item.disabled,
+    ).length;
+    const allRowLength = props.dataSource.length - disabledRowLength;
     if (!allRowLength) return;
 
-    const selectedRowLength = Object.values(val).filter((item) => item).length;
+    const selectedRowLength = Object.keys(val).filter(
+      (key) => !props.selection[key]?.disabled && val[key],
+    ).length;
 
     selectAllIndeterminate.value =
       !!selectedRowLength && selectedRowLength < allRowLength;
@@ -289,15 +475,120 @@ watch(
   },
 );
 
+const tableRefScrollToItem = (index: number) => {
+  nextTick(() => {
+    if (scrollerRef.value) {
+      scrollerRef.value.scrollToItem(index);
+    }
+  });
+};
+
+const scrollToItemByKeyFieldValue = (
+  keyFieldValue: string | number | bigint,
+) => {
+  const index = findIndexByKeyFieldValue(keyFieldValue);
+  if (index !== -1) {
+    tableRefScrollToItem(index);
+  }
+};
+
+const scrollToItem = (index: number) => {
+  const keyFieldValue = props.dataSource[index]?.[props.keyField];
+  keyFieldValue && scrollToItemByKeyFieldValue(keyFieldValue);
+};
+
+const scrollToTop = () => {
+  tableRefScrollToItem(0);
+};
+
+const getVisibleIndexRange = (): [number, number] => {
+  if (kfScrollerTableBodyRef.value) {
+    const rect = (
+      kfScrollerTableBodyRef.value as Element
+    ).getBoundingClientRect();
+    const { top, bottom } = rect;
+    const itemNodeList = document.querySelectorAll(
+      `ul[kf-table-item-active="${props.dynamic ? 'dynamic' : 'normal'}-true"]`,
+    );
+    if (itemNodeList.length) {
+      const range: [number, number] = [-1, -1];
+      let minTopDelta = Infinity,
+        minBottomDelta = Infinity;
+      for (let i = 0; i < itemNodeList.length; i++) {
+        const itemNode = itemNodeList[i] as HTMLElement;
+        const itemIndex = itemNode.getAttribute('kf-table-item-index');
+        const itemRect = itemNode.getBoundingClientRect();
+        const topDelta = itemRect.top - top;
+        const bottomDelta = bottom - itemRect.bottom;
+        if (topDelta >= 0 && bottomDelta >= 0) {
+          if (topDelta < minTopDelta) {
+            minTopDelta = topDelta;
+            range[0] = +(itemIndex ?? -1);
+          }
+          if (bottomDelta < minBottomDelta) {
+            minBottomDelta = bottomDelta;
+            range[1] = +(itemIndex ?? -1);
+          }
+        }
+      }
+      return range;
+    }
+  }
+
+  return [-1, -1];
+};
+
+const resetSort = () => {
+  currentSorterFunction = undefined;
+  currentSorterIndex.value = '';
+  currentSorterOrder.value = '';
+};
+
 defineExpose({
+  searchInUsing,
   selectedRowsMap,
   isSelectAll,
   handleSelectRow,
   handleSelectAll,
+  scrollToItemByKeyFieldValue,
+  scrollToItem,
+  scrollToTop,
+  getVisibleIndexRange,
+  resetSort,
 });
 </script>
 <template>
   <div class="kf-table">
+    <Transition name="fade">
+      <div v-show="searchInUsing" class="kf-search-in-table__warp">
+        <div class="kf-search-in-table__content">
+          <a-input-search
+            ref="inputSearchRef"
+            v-model:value="searchKeyword"
+            class="kf-search-in-table__item"
+            :placeholder="$t('keyword_input')"
+          />
+          <div class="kf-search-in-table__item">
+            {{ currentResultIndex }} /
+            {{ totalResultCount }}
+          </div>
+          <div class="kf-search-in-table__item kf-actions__warp">
+            <up-outlined
+              style="font-size: 14px; margin-left: 0px"
+              @click="handleToUpSearchResult"
+            />
+            <down-outlined
+              style="font-size: 14px; margin-left: 8px"
+              @click="handleToDownSearchResult"
+            />
+          </div>
+          <a-button @click="searchInUsing = false">
+            {{ $t('cancel') }}
+          </a-button>
+        </div>
+      </div>
+    </Transition>
+
     <ul class="kf-table-header kf-table-row">
       <li
         v-if="selectable"
@@ -342,60 +633,158 @@ defineExpose({
         </span>
       </li>
     </ul>
+
     <div ref="kfScrollerTableBodyRef" class="kf-table-body">
-      <RecycleScroller
-        v-if="dataSourceResolved && dataSourceResolved.length"
-        class="kf-table-scroller"
-        :items="dataSourceResolved"
-        :item-size="Number(itemSize)"
-        :key-field="keyField"
-        :buffer="100"
-      >
-        <template #default="{ item }: { item: TableDataItem }">
-          <ul
-            :class="['kf-table-row', customRowClass?.(item) || '']"
-            @dblclick="handleDbClickRow($event, item)"
-            @mousedown="handleMousedown($event, item)"
-            @click.stop="handleClickRow($event, item)"
+      <!-- reusable template for trading data item -->
+      <TradingDataTableItem.define v-slot="{ type, item, index, active }">
+        <ul
+          :kf-table-item-active="`${type}-${active}`"
+          :kf-table-item-index="index"
+          :class="['kf-table-row', customRowClass?.(item) || '']"
+          :style="
+            dynamic
+              ? {
+                  minHeight: tableCellMinHeight,
+                  lineHeight: '26px',
+                }
+              : {
+                  height: tableCellHeight,
+                  lineHeight: tableCellHeight,
+                }
+          "
+          @dblclick="handleDbClickRow($event, item)"
+          @mousedown="handleMousedown($event, item)"
+          @click.stop="handleClickRow($event, item)"
+        >
+          <li
+            v-if="selectable"
+            class="kf-table-cell kf-table-select-cell"
+            :style="{
+              width: '36px',
+              flexBasis: '36px',
+              height: '100%',
+            }"
           >
-            <li
-              v-if="selectable"
-              class="kf-table-cell kf-table-select-cell"
-              :style="{
-                width: '36px',
-                flexBasis: '36px',
-                height: tableCellHeight,
-                lineHeight: tableCellHeight,
-              }"
+            <a-checkbox
+              v-model:checked="selectedRowKeyFieldValues[item[keyField]]"
+              :disabled="selection[item[keyField]]?.disabled ?? false"
+              @change="handleSelectRow(!!$event.target.checked, item)"
+            ></a-checkbox>
+          </li>
+          <li
+            v-for="column in columns"
+            :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
+            :class="['kf-table-cell', column.type]"
+            :style="{
+              'max-width': getHeaderWidth(column),
+              height: '100%',
+              'text-overflow': column.textOverflow || 'clip',
+              'white-space': column.wrap ? 'normal' : 'nowrap',
+              overflow: column.wrap ? 'unset' : 'hidden',
+              'text-align': column.align || 'left',
+            }"
+            :title="item[column.dataIndex]"
+            @click.stop="handleClickCell($event, item, column)"
+          >
+            <slot
+              :item="item"
+              :column="column"
+              :html="getSearchResultHtmlForSlot(item, column)"
             >
-              <a-checkbox
-                v-model:checked="selectedRowKeyFieldValues[item[keyField]]"
-                :disabled="selection[item[keyField]]?.disabled ?? false"
-                @change="handleSelectRow(!!$event.target.checked, item)"
-              ></a-checkbox>
-            </li>
-            <li
-              v-for="column in columns"
-              :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
-              :class="['kf-table-cell', column.type]"
-              :style="{
-                'max-width': getHeaderWidth(column),
-                height: tableCellHeight,
-                lineHeight: tableCellHeight,
-              }"
-              :title="item[column.dataIndex]"
-              @click.stop="handleClickCell($event, item, column)"
-            >
-              <slot :item="item" :column="column">
+              <template
+                v-if="
+                  searchEnabled &&
+                  props.searchOption.keysForSearch.includes(column.dataIndex)
+                "
+              >
+                <span v-html="getItemHtmlResult(item, column.dataIndex)"></span>
+              </template>
+              <template v-else>
                 <span>
                   {{ item[column.dataIndex as keyof TableDataItem] }}
                 </span>
-              </slot>
-            </li>
-          </ul>
-        </template>
-      </RecycleScroller>
-      <a-empty v-else :image="simpleImage"></a-empty>
+              </template>
+            </slot>
+          </li>
+        </ul>
+      </TradingDataTableItem.define>
+
+      <template v-if="dataSourceResolved && dataSourceResolved.length">
+        <DynamicScroller
+          v-if="willSwitchDynamic || dynamic"
+          v-show="dynamic"
+          ref="dynamicScroller"
+          class="kf-table-scroller"
+          :items="dataSourceResolved"
+          :min-item-size="Number(minItemSize)"
+          :key-field="keyField"
+          :buffer="100"
+          @scroll="handleScroll($event)"
+        >
+          <template
+            #default="{
+              item,
+              index,
+              active,
+            }: {
+              item: TableDataItem,
+              index: number,
+              active: boolean,
+            }"
+          >
+            <DynamicScrollerItem
+              :item="item"
+              :key="`${item[keyField as keyof TableDataItem]}`"
+              :active="active"
+              :data-active="active"
+              :size-dependencies="getSizeDependencies(item)"
+              :data-index="index"
+            >
+              <TradingDataTableItem.reuse
+                type="dynamic"
+                :item="item"
+                :active="active"
+                :index="index"
+              ></TradingDataTableItem.reuse>
+            </DynamicScrollerItem>
+          </template>
+        </DynamicScroller>
+        <RecycleScroller
+          v-if="willSwitchDynamic || !dynamic"
+          v-show="!dynamic"
+          ref="normalScroller"
+          class="kf-table-scroller"
+          :items="dataSourceResolved"
+          :item-size="Number(itemSize)"
+          :key-field="keyField"
+          :buffer="100"
+          @scroll="handleScroll($event)"
+        >
+          <template
+            #default="{
+              item,
+              index,
+              active,
+            }: {
+              item: TableDataItem,
+              index: number,
+              active: boolean,
+            }"
+          >
+            <TradingDataTableItem.reuse
+              type="normal"
+              :item="item"
+              :active="active"
+              :index="index"
+            ></TradingDataTableItem.reuse>
+          </template>
+        </RecycleScroller>
+      </template>
+      <a-empty
+        v-else
+        :image="simpleImage"
+        :description="t('empty_text')"
+      ></a-empty>
     </div>
   </div>
 </template>
@@ -404,7 +793,50 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   position: relative;
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: all 0.3s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    top: -40px;
+  }
+
+  .fade-enter-to,
+  .fade-leave-from {
+    top: 0;
+  }
+
+  .kf-search-in-table__warp {
+    position: absolute;
+    right: 16px;
+    padding: 4px 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 12px;
+    background-color: #1d1d1d;
+    z-index: 999;
+
+    .kf-search-in-table__content {
+      width: 480px;
+      display: flex;
+      align-items: center;
+
+      .kf-search-in-table__item {
+        margin: 0 4px;
+      }
+
+      .ant-input-search {
+        margin-left: 0;
+        flex: 1;
+      }
+    }
+  }
 
   .ant-empty {
     height: auto;
@@ -431,9 +863,8 @@ defineExpose({
     margin-bottom: 4px;
 
     .kf-table-cell {
-      height: 36px;
-      line-height: 36px;
       display: flex;
+      align-items: center;
       user-select: none;
       position: relative;
 
@@ -503,6 +934,10 @@ defineExpose({
     background: @table-row-hover-bg;
   }
 
+  .kf-current-table-select {
+    background: #434343;
+  }
+
   .kf-table-cell {
     padding: 0 6px;
     box-sizing: border-box;
@@ -518,6 +953,10 @@ defineExpose({
 
     &.number {
       text-align: right;
+    }
+
+    &.actions {
+      text-align: center;
     }
   }
 

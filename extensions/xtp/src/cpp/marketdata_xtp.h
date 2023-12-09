@@ -192,7 +192,7 @@ public:
   /// 表示当前退订的市场，如果为XTP_EXCHANGE_UNKNOWN，表示沪深全市场，XTP_EXCHANGE_SH表示为上海全市场，XTP_EXCHANGE_SZ表示为深圳全市场
   ///@param error_info
   /// 取消订阅合约时发生错误时返回的错误信息，当error_info为空，或者error_info.error_id为0时，表明没有错误
-  ///@remark 需要快速返回
+  ///@remark 需要快速返回`
   void OnUnSubscribeAllOptionOrderBook(XTP_EXCHANGE_TYPE exchange_id, XTPRI *error_info) override{};
 
   /// 订阅全市场的期权逐笔行情应答
@@ -217,14 +217,20 @@ public:
   /// 查询合约完整静态信息时发生错误时返回的错误信息，当error_info为空，或者error_info.error_id为0时，表明没有错误
   ///@param is_last
   /// 是否此次查询合约完整静态信息的最后一个应答，当为最后一个的时候为true，如果为false，表示还有其他后续消息响应
-  virtual void OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_info, bool is_last) override;
+  void OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_info, bool is_last) override;
 
 protected:
   void on_start() override;
 
+  void pre_start() override;
+
 private:
   XTP::API::QuoteApi *api_{};
-  uint32_t level2_tick_band_uid_;
+  uint32_t entrust_band_uid_{};
+  uint32_t transaction_band_uid_{};
+
+  inline static thread_local yijinjing::journal::writer_ptr entrust_band_writer_{};
+  inline static thread_local yijinjing::journal::writer_ptr transaction_band_writer_{};
 
   bool subscribe(const std::vector<std::string> &instruments, const std::string &exchange_id);
 };

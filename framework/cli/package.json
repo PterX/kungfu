@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.0-alpha.0",
+  "version": "2.7.0-alpha.28",
   "description": "Kungfu App Framework",
   "license": "Apache-2.0",
   "repository": {
@@ -26,27 +26,28 @@
     "cli": "node lib/dev/cli.dev.js",
     "dev": "node lib/dev/run.js",
     "build": "node lib/webpack/build.js",
-    "clean": "rimraf build dist",
+    "clean": "rimraf build dist node_modules/.cache/webpack",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",
     "lint": "eslint src",
     "format": "prettier -l -w --config ../core/.prettierrc.js ."
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-js-api": "^2.7.0-alpha.0",
+    "@kungfu-trader/kungfu-js-api": "^2.7.0-alpha.28",
     "blessed": "^0.1.81",
     "core-js": "^3.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
     "@babel/polyfill": "^7.12.1",
-    "@kungfu-trader/kungfu-toolchain": "^2.7.0-alpha.0",
+    "@kungfu-trader/kungfu-toolchain": "^2.7.0-alpha.28",
     "@types/blessed": "^0.1.19",
     "colors": "^1.4.0",
     "commander": "^9.0.0",
     "console-success": "^1.0.4",
     "inquirer": "^8.2.0",
     "inquirer-autocomplete-prompt": "^2.0.0",
-    "inquirer-path": "^1.0.0-beta5"
+    "inquirer-checkbox-plus-prompt": "^1.4.2",
+    "inquirer-path-pro": "^1.0.0-alpha.5"
   }
 }

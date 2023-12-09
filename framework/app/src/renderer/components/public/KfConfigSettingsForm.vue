@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import path from 'path';
+import os from 'os';
 import { dialog } from '@electron/remote';
 import {
   DeleteOutlined,
@@ -18,30 +19,41 @@ import {
   computed,
   nextTick,
   defineComponent,
+  inject,
 } from 'vue';
+import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
   KfCategory,
   BasketVolumeType,
   PriceLevel,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import { omitObject } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  getIdByKfLocation,
-  transformSearchInstrumentResultToInstrument,
   numberEnumRadioType,
   numberEnumSelectType,
   stringEnumSelectType,
   KfConfigValueNumberType,
   KfConfigValueArrayType,
   KfConfigValueBooleanType,
+  KfConfigValueAnyType,
   getCombineValueByPrimaryKeys,
   getPriceTypeConfig,
   initFormStateByConfig,
-  getPrimaryKeys,
-  dealPriceType,
-  dealPriceLevel,
-  dealSide,
+  replaceNonAlphaNumericWithSpace,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
+import {
+  getIdByKfLocation,
+  getPrimaryKeys,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealPriceType,
+  dealSide,
+  dealPriceLevel,
+  transformSearchInstrumentResultToInstrument,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import {
   useActiveInstruments,
@@ -56,6 +68,7 @@ import {
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
+  OffsetEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -69,6 +82,7 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
+import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
 
@@ -96,6 +110,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify?: boolean;
     isPrimaryDisabled?: boolean;
     willReplaceWholeFormState?: boolean;
+    formStyle?: Record<string, string>;
   }>(),
   {
     formState: () => ({}),
@@ -113,6 +128,7 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify: false,
     isPrimaryDisabled: false,
     willReplaceWholeFormState: false,
+    formStyle: () => ({}),
   },
 );
 
@@ -152,6 +168,12 @@ type TablesSearchRelated = Record<
 
 const app = getCurrentInstance();
 const formRef = ref();
+const innerFormRefKeys: string[] = [];
+const buildInnerFormRef = (item: KungfuApi.KfConfigItem) => {
+  const key = `inner-form-ref-${item.key}`;
+  if (!innerFormRefKeys.includes(key)) innerFormRefKeys.push(key);
+  return key;
+};
 
 const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
@@ -160,6 +182,7 @@ const { isLanguageKeyAvailable } = useLanguage();
 
 const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
+const numberEnumRadioTypeResolved = ref({ ...numberEnumRadioType });
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
 const customerFormItemTips = reactive<Record<string, string>>({});
 const instrumentKeys = ref<
@@ -171,6 +194,16 @@ const instrumentsCsvData = reactive<
 const tableKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterTableKeysFromConfigSettings(props.configSettings),
 );
+// 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
+const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
+  filterNumberKeysFromConfigSettings(props.configSettings),
+);
+const numbersTyping = ref<Record<string, boolean>>({});
+
+const configSettingFormInject = inject(
+  BuiltinComponentInjectKeysMap.ConfigSettingForm,
+  {},
+);
 
 watch(
   () => props.configSettings,
@@ -178,6 +211,10 @@ watch(
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);
+    numberKeys.value = filterNumberKeysFromConfigSettings(newVal);
+    Object.keys(numbersTyping.value).forEach((key) => {
+      if (!(key in numberKeys.value)) delete numbersTyping.value[key];
+    });
 
     const rowFormState = toRaw(props.formState);
     Object.keys(rowFormState).forEach(
@@ -240,7 +277,30 @@ if (props.willReplaceWholeFormState) {
 
 watch(
   () => formState.value,
-  (newVal) => {
+  (newVal, oldVal) => {
+    nextTick(() => {
+      // 解决 a-input-number ui 上自动 format 之后的值和真实的响应式数据对不上的问题
+      Object.keys(numberKeys.value).forEach((key) => {
+        if (key in oldVal && key in newVal) {
+          if (!numbersTyping.value[key]) {
+            if (typeof newVal[key] === 'number') {
+              switch (numberKeys.value[key].type) {
+                case 'int':
+                  formState.value[key] = Math.floor(newVal[key]);
+                  break;
+                case 'float':
+                case 'percent':
+                  formState.value[key] = Number(newVal[key]).kfRound(
+                    numberKeys.value[key].precision ?? 4,
+                  );
+                  break;
+              }
+            }
+          }
+        }
+      });
+    });
+
     app && app.emit('update:formState', newVal);
   },
   {
@@ -248,7 +308,7 @@ watch(
   },
 );
 
-if ('instrument' in formState.value && 'side' in formState.value) {
+if ('instrument' in formState.value) {
   watch(
     () => formState.value.instrument,
     (newInstrument: string) => {
@@ -256,14 +316,29 @@ if ('instrument' in formState.value && 'side' in formState.value) {
         const instrumentResolved =
           transformSearchInstrumentResultToInstrument(newInstrument);
         if (instrumentResolved) {
-          const { instrumentType } = instrumentResolved;
+          const { instrumentType, exchangeId } = instrumentResolved;
           if (instrumentType === InstrumentTypeEnum.stockoption) {
             sideRadiosList.value = [
               ...Object.keys(Side).slice(0, 2),
               SideEnum.Exec + '',
             ];
+          } else if (instrumentType === InstrumentTypeEnum.future) {
+            if (exchangeId === 'SHFE' || exchangeId === 'INE') {
+              numberEnumRadioTypeResolved.value['offset'] =
+                numberEnumRadioType['offset'];
+            } else {
+              numberEnumRadioTypeResolved.value['offset'] = omitObject(
+                numberEnumRadioType['offset'],
+                [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
+              );
+            }
           } else {
-            sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            if (configSettingFormInject?.sideFilter) {
+              sideRadiosList.value =
+                configSettingFormInject.sideFilter?.(instrumentType);
+            } else {
+              sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            }
           }
         }
       }
@@ -337,13 +412,15 @@ function getTablesSearchRelated(
 
 function getValidatorType(
   type: string,
-): 'number' | 'string' | 'array' | 'boolean' {
+): 'number' | 'string' | 'array' | 'boolean' | 'any' {
   if (KfConfigValueNumberType.includes(type)) {
     return 'number';
   } else if (KfConfigValueArrayType.includes(type)) {
     return 'array';
   } else if (KfConfigValueBooleanType.includes(type)) {
     return 'boolean';
+  } else if (KfConfigValueAnyType.includes(type)) {
+    return 'any';
   } else {
     return 'string';
   }
@@ -379,28 +456,33 @@ function filterTableKeysFromConfigSettings(
     }, {} as Record<string, KungfuApi.KfConfigItem>);
 }
 
+function filterNumberKeysFromConfigSettings(
+  configSettings: KungfuApi.KfConfigItem[],
+) {
+  return configSettings
+    .filter((item) => isNumberInputType(item.type))
+    .reduce((data, setting) => {
+      data[setting.key.toString()] = setting;
+      return data;
+    }, {} as Record<string, KungfuApi.KfConfigItem>);
+}
+
 function isNumberInputType(type: string): boolean {
   const numberInputTypes: string[] = ['int', 'float', 'percent'];
   return numberInputTypes.includes(type);
 }
 
-const SpecialWordsReg = new RegExp(
-  "[`~!@#$^&*()=|{}';',\\[\\]<>《》?~！@#￥……&*（）——|{}【】‘；”“'。，、？_]",
-);
 function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
   const combineValue: string = getCombineValueByPrimaryKeys(
     primaryKeys.value,
     formState.value,
     props.primaryKeyAvoidRepeatCompareExtra,
   );
-  if (
-    props.primaryKeyAvoidRepeatCompareTarget
-      .map((item): string => item.toLowerCase())
-      .includes(combineValue.toLowerCase())
-  ) {
+
+  if (!combineValue || replaceNonAlphaNumericWithSpace(value) === '') {
     return Promise.reject(
       new Error(
-        t('validate.value_existing', {
+        t('validate.single_characters', {
           value: combineValue,
         }),
       ),
@@ -419,6 +501,31 @@ function primaryKeyValidator(_rule: RuleObject, value: string): Promise<void> {
     !props.passPrimaryKeySpecialWordsVerify
   ) {
     return Promise.reject(new Error(t('validate.no_underline')));
+  }
+
+  if (
+    props.primaryKeyAvoidRepeatCompareTarget
+      .map((item): string => item.toLowerCase())
+      .includes(combineValue.toLowerCase())
+  ) {
+    return Promise.reject(
+      new Error(
+        t('validate.value_existing', {
+          value: combineValue,
+        }),
+      ),
+    );
+  }
+
+  return Promise.resolve();
+}
+
+function emptyValidator(
+  _rule: RuleObject,
+  value: KungfuApi.KfConfigValue,
+): Promise<void> {
+  if (value === '' || value === null || value === undefined) {
+    return Promise.reject(new Error(t('validate.mandatory')));
   }
 
   return Promise.resolve();
@@ -597,19 +704,6 @@ function csvTableCallback(
   };
 }
 
-function buildCsvHeadersDescription(headers: KungfuApi.KfConfigItemHeader[]) {
-  return (
-    headers
-      .map((header) =>
-        [
-          header.title,
-          ...(header.description ? [header.description] : []),
-        ].join(': '),
-      )
-      .join('. ') + '.'
-  );
-}
-
 function buildCsvHeadersValidator(
   headers: KungfuApi.KfConfigItemHeader[] | undefined,
 ) {
@@ -642,12 +736,11 @@ function buildCsvHeadersValidator(
 
       switch (type) {
         case 'str':
-          if (!value) return false;
           break;
         case 'num':
           if (Number.isNaN(Number(value))) return false;
           break;
-        case 'precent':
+        case 'percent':
           if (
             !value.endsWith('%') ||
             Number.isNaN(Number(value.replace('%', '')))
@@ -698,7 +791,7 @@ function buildCsvHeadersTransformer(
         case 'num':
           row[header.title] = Number(value);
           break;
-        case 'precent':
+        case 'percent':
           row[header.title] = Number(value.replace('%', ''));
           break;
         case 'bool':
@@ -777,7 +870,7 @@ function handleDownloadCsvTemplate(
                 filePaths[0],
                 template.name || t('settingsFormConfig.csv_template') + '.csv',
               );
-              return writeCsvWithUTF8Bom(filePath, template.data || []);
+              return writeCsvWithUTF8Bom(filePath, template.data || [], true);
             }),
           ).then(() => {
             messagePrompt().success();
@@ -794,6 +887,31 @@ function handleSelectFile(targetKey: string): void {
     })
     .then((res) => {
       const { filePaths } = res;
+      if (filePaths.length) {
+        formState.value[targetKey] = filePaths[0];
+        formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
+      }
+    });
+}
+
+function handleSelectDirectory(
+  target: KungfuApi.KfConfigItem,
+  type?: 'default',
+): void {
+  const targetKey = target.key;
+  if (type === 'default') {
+    formState.value[targetKey] = target.default;
+    formRef.value.validateFields([targetKey]);
+    return;
+  }
+  dialog
+    .showOpenDialog({
+      defaultPath: formState.value[targetKey] || os.homedir(),
+      properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+    })
+    .then((res) => {
+      const { filePaths } = res;
+
       if (filePaths.length) {
         formState.value[targetKey] = filePaths[0];
         formRef.value.validateFields([targetKey]); //手动进行再次验证, 因数据放在span中, 改变数据后无法触发验证
@@ -926,6 +1044,51 @@ function disabledEndTime(
   };
 }
 
+function initDisabledTime(stratTime: string, endTimeLstring) {
+  const [startHour, startMinute] = stratTime.split(':');
+  const [endHour, endMinute] = endTimeLstring.split(':');
+  let hours: number[] = [];
+  let minutes: number[] = [];
+  let seconds: number[] = [];
+  if (!startHour || !startMinute || !endHour || !endMinute) {
+    return {
+      disabledHours: () => [],
+      disabledMinutes: () => [],
+    };
+  }
+  return {
+    disabledHours: () => {
+      for (let i = 0; i < Number(startHour); i++) {
+        hours.push(i);
+      }
+      for (let i = Number(endHour) + 1; i < 24; i++) {
+        hours.push(i);
+      }
+      return hours;
+    },
+    disabledMinutes: (seletedHour: number) => {
+      if (seletedHour === -1) return Array.from({ length: 60 }, (_, i) => i);
+      if (seletedHour === Number(startHour)) {
+        for (let i = 0; i < Number(startMinute); i++) {
+          minutes.push(i);
+        }
+      }
+      if (seletedHour === Number(endHour)) {
+        for (let i = Number(endMinute) + 1; i < 60; i++) {
+          minutes.push(i);
+        }
+      }
+      return minutes;
+    },
+    disabledSeconds: (seletedMinute: number) => {
+      if (seletedMinute === -1) {
+        return Array.from({ length: 60 }, (_, i) => i);
+      }
+      return seconds;
+    },
+  };
+}
+
 function handleRangePickerChange(date: Dayjs[], key: string) {
   if (date) {
     formState.value[key] = date.map((d) =>
@@ -974,8 +1137,31 @@ function handleInstrumentDeselected(val: string, key: string) {
   }
 }
 
-function validate(): Promise<void> {
-  return formRef.value.validate();
+function validate(): Promise<Record<string, KungfuApi.KfConfigValue>> {
+  const innerFormRefs = innerFormRefKeys
+    .map((refKey) => {
+      type FormRef = InstanceType<typeof KfConfigSettingsForm>;
+      if (app?.proxy?.$refs?.[refKey]) {
+        const refs = app.proxy.$refs[refKey] as FormRef | Array<FormRef>;
+        return refs;
+      }
+      return null;
+    })
+    .flat();
+
+  const innerFormValidates = innerFormRefs
+    .filter((formRef) => !!formRef && formRef?.validate)
+    .map((formRef) => formRef?.validate() as unknown as Promise<void>);
+
+  const mainFormValidation = formRef.value?.validate?.().then(() => {
+    return formState.value;
+  });
+
+  return Promise.all([mainFormValidation].concat(...innerFormValidates)).then(
+    (results) => {
+      return results[0];
+    },
+  );
 }
 
 function clearValidate(): void {
@@ -1031,6 +1217,7 @@ defineExpose({
     :colon="false"
     :scroll-to-first-error="true"
     :layout="layout"
+    :style="props.formStyle"
   >
     <a-form-item
       v-for="item in configSettings"
@@ -1058,6 +1245,7 @@ defineExpose({
                     {
                       required: item.required,
                       type: getValidatorType(item.type),
+                      validator: emptyValidator,
                       message: item.errMsg
                         ? isLanguageKeyAvailable(item.errMsg)
                           ? $t(item.errMsg)
@@ -1117,6 +1305,7 @@ defineExpose({
       <a-input
         v-if="item.type === 'str'"
         v-model:value.trim="formState[item.key]"
+        :maxlength="item.maxlength || null"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1125,6 +1314,7 @@ defineExpose({
       <a-input-password
         v-else-if="item.type === 'password'"
         v-model:value.trim="formState[item.key]"
+        :maxlength="item.maxlength || null"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
@@ -1142,17 +1332,26 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-input-number
         v-else-if="item.type === 'float'"
         v-model:value="formState[item.key]"
         :max="item.max ?? Infinity"
         :min="item.min ?? -Infinity"
-        :precision="item.precision ?? 3"
-        :step="item.step ?? 0.001"
+        :precision="item.precision ?? 4"
+        :step="item.step ?? 0.0001"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
+        "
+        @focus="numbersTyping[item.key] = true"
+        @blur="
+          () => {
+            formState[item.key] = Number(formState[item.key]); // change value '' to 0.0000
+            numbersTyping[item.key] = false;
+          }
         "
       ></a-input-number>
       <a-input-number
@@ -1168,6 +1367,8 @@ defineExpose({
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled
         "
+        @focus="numbersTyping[item.key] = true"
+        @blur="numbersTyping[item.key] = false"
       ></a-input-number>
       <a-radio-group
         v-else-if="item.type === 'side'"
@@ -1217,7 +1418,7 @@ defineExpose({
         </a-select-option>
       </a-select>
       <a-radio-group
-        v-else-if="numberEnumRadioType[item.type]"
+        v-else-if="numberEnumRadioTypeResolved[item.type]"
         v-model:value="formState[item.key]"
         :name="item.key"
         :disabled="
@@ -1226,11 +1427,11 @@ defineExpose({
         "
       >
         <a-radio
-          v-for="key in Object.keys(numberEnumRadioType[item.type])"
+          v-for="key in Object.keys(numberEnumRadioTypeResolved[item.type])"
           :key="key"
           :value="+key"
         >
-          {{ getKfTradeValueName(numberEnumRadioType[item.type], key) }}
+          {{ getKfTradeValueName(numberEnumRadioTypeResolved[item.type], key) }}
         </a-radio>
       </a-radio-group>
       <a-radio-group
@@ -1279,6 +1480,15 @@ defineExpose({
           item.disabled
         "
       ></a-checkbox>
+      <a-checkbox-group
+        v-else-if="item.type === 'checkboxGroup'"
+        v-model:value="formState[item.key]"
+        :options="item.options"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      ></a-checkbox-group>
       <a-select
         v-else-if="numberEnumSelectType[item.type]"
         v-model:value="formState[item.key]"
@@ -1324,6 +1534,51 @@ defineExpose({
         <a-select-option
           v-for="option in item.options"
           :key="option.value"
+          :value="option.value"
+        >
+          <a-tag
+            v-if="option.type === 'tag'"
+            :color="dealKungfuColorToStyleColor(option.color || 'default')"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </a-tag>
+          <span
+            v-else
+            :class="dealKungfuColorToClassname(option.color || 'text')"
+            :style="{
+              color: dealKungfuColorToStyleColor(option.color || 'text'),
+            }"
+          >
+            {{
+              isLanguageKeyAvailable(option.label + '')
+                ? $t(option.label + '')
+                : option.label
+            }}
+          </span>
+        </a-select-option>
+      </a-select>
+      <a-select
+        v-else-if="item.type === 'multiSelect'"
+        v-model:value="formState[item.key]"
+        mode="multiple"
+        :filter-option="
+          (inputValue, option) =>
+            option.key.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
+        "
+        allow-clear
+        show-search
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-select-option
+          v-for="option in item.options"
+          :key="option.label"
           :value="option.value"
         >
           <a-tag
@@ -1549,6 +1804,36 @@ defineExpose({
         </div>
       </div>
       <div
+        v-else-if="item.type === 'directory'"
+        class="kf-form-item__warp file"
+      >
+        <a-button
+          size="small"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+          @click="handleSelectDirectory(item)"
+        >
+          <template #icon><DashOutlined /></template>
+        </a-button>
+        <a-button
+          v-if="item.default"
+          size="small"
+          style="margin-left: 4px; vertical-align: middle"
+          @click="handleSelectDirectory(item, 'default')"
+        >
+          {{ $t('globalSettingConfig.reset_order') }}
+        </a-button>
+        <div
+          v-if="formState[item.key]"
+          class="file-path"
+          :title="(formState[item.key] || '').toString()"
+        >
+          <span class="name">{{ formState[item.key] }}</span>
+        </div>
+      </div>
+      <div
         v-else-if="item.type === 'instrumentsCsv'"
         class="kf-form-item__warp instruments-csv__wrap"
       >
@@ -1604,13 +1889,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
         <div
           v-if="customerFormItemTips[item.key]"
@@ -1719,6 +2016,12 @@ defineExpose({
           item.disabled
         "
         :value="formState[item.key] == null ? null : dayjs(formState[item.key])"
+        :disabled-time="
+          item.abledTimeRange ? ()=>{return initDisabledTime(...item.abledTimeRange as [string,string])} : ()=>{    return {
+      disabledHours: () => {return[1]},
+      disabledMinutes: () => [],
+    };}
+        "
         @change="handleTimePickerChange($event as unknown as Dayjs, item.key)"
       ></a-time-picker>
       <div
@@ -1757,13 +2060,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="!!item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
 
         <div class="table-in-config-setting-form-head">
@@ -1801,15 +2116,13 @@ defineExpose({
               tablesSearchRelated[item.key].tableData.value.length
             "
             :style="{
-              maxHeight: `${
-                calcTableItemHeight(layout, !!item.noDivider) * 10
-              }px`,
-              overflowY: 'overlay',
+              height: `${calcTableItemHeight(layout, !!item.noDivider) * 10}px`,
+              overflowY: 'auto',
             }"
             :items="tablesSearchRelated[item.key].tableData.value"
             :item-size="calcTableItemHeight(layout, !!item.noDivider)"
             key-field="id"
-            :buffer="0"
+            :buffer="calcTableItemHeight(layout, !!item.noDivider)"
           >
             <template
               #default="{
@@ -1828,10 +2141,14 @@ defineExpose({
                 class="table-in-config-setting-row"
                 :style="{
                   paddingBottom: item.noDivider ? '8px' : '',
+                  maxHeight: calcTableItemHeight(layout, !!item.noDivider),
+                  height: calcTableItemHeight(layout, !!item.noDivider),
+                  overflowY: 'hidden',
                 }"
               >
                 <div class="table-in-config-setting-row-from__wrap">
                   <KfConfigSettingsForm
+                    :ref="buildInnerFormRef(item)"
                     v-model:formState="_item.data"
                     :style="{
                       flexWrap: item.wrap || '',
@@ -1899,6 +2216,7 @@ defineExpose({
           >
             <div class="table-in-config-setting-row-from__wrap">
               <KfConfigSettingsForm
+                :ref="buildInnerFormRef(item)"
                 v-model:formState="formState[item.key][index]"
                 :config-settings="item.columns || []"
                 :change-type="changeType"

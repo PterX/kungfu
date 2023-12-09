@@ -16,7 +16,12 @@ export const getColumns = (): AntTableColumns => [
     dataIndex: 'operatorFile',
     align: 'left',
     width: 120,
-    fixed: 'left',
+  },
+  {
+    title: t('operatorConfig.operator_ext'),
+    dataIndex: 'operatorExt',
+    align: 'left',
+    width: 80,
   },
   {
     title: t('operatorConfig.state_status'),
@@ -29,7 +34,6 @@ export const getColumns = (): AntTableColumns => [
     dataIndex: 'processStatus',
     align: 'center',
     width: 60,
-    fixed: 'left',
   },
   {
     title: t('operatorConfig.actions'),
@@ -57,12 +61,20 @@ export const addOperatorConfig: KungfuApi.KfConfigItem = {
   ],
 };
 
-export const setOperatorConfig: KungfuApi.KfExtConfig = {
+export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
   type: [],
   name: t('operatorConfig.operator'),
   category: 'operator',
   key: 'default',
+  silent: true,
+  access: {},
+  assets: {},
   extPath: '',
+  version: '',
+  description: '',
+  dependencies: {},
+  readmePath: '',
+  releaseNotePath: '',
   settings: [
     {
       key: 'operator_id',

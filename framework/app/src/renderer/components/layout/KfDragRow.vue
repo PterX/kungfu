@@ -158,16 +158,16 @@ export default defineComponent({
       this.setBoardsMapAttrById(
         +this.leftBoardId,
         'width',
-        Number((this.leftColWidth * 100) / this.paBoundingRect.width).toFixed(
+        Number((this.leftColWidth * 100) / this.paBoundingRect.width).kfToFixed(
           3,
         ) + '%',
       );
       this.setBoardsMapAttrById(
         +this.rightBoardId,
         'width',
-        Number((this.rightColWidth * 100) / this.paBoundingRect.width).toFixed(
-          3,
-        ) + '%',
+        Number(
+          (this.rightColWidth * 100) / this.paBoundingRect.width,
+        ).kfToFixed(3) + '%',
       );
 
       this.$globalBus.next({

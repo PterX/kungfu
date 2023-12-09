@@ -15,10 +15,14 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::broker {
 MarketDataVendor::MarketDataVendor(locator_ptr locator, const std::string &group, const std::string &name,
-                                   bool low_latency)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::MD, group, name, std::move(locator)), low_latency) {}
+                                   bool low_latency, const std::string &arguments)
+    : BrokerVendor(location::make_shared(mode::LIVE, category::MD, group, name, std::move(locator)), low_latency,
+                   arguments) {}
 
-void MarketDataVendor::set_service(MarketData_ptr service) { service_ = std::move(service); }
+void MarketDataVendor::set_service(MarketData_ptr service) {
+  service_ = std::move(service);
+  service_->on_arguments(get_arguments());
+}
 
 void MarketDataVendor::on_react() {
   BrokerVendor::on_react();
@@ -27,6 +31,7 @@ void MarketDataVendor::on_react() {
 
 void MarketDataVendor::on_start() {
   BrokerVendor::on_start();
+  service_->pre_start();
   events_ | is(CustomSubscribe::tag) | $$(service_->subscribe_custom(event->data<CustomSubscribe>()));
   events_ | is(InstrumentKey::tag) | $$(service_->add_instrument_key(event->data<InstrumentKey>()));
   events_ | is(Band::tag) | $$(service_->on_band(event));

@@ -3,10 +3,19 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const findRoot = require('find-root');
 
+exports.customResolve = (path) => {
+  if (process.env.NODE_ENV === 'production') {
+    // eslint-disable-next-line no-undef
+    return __non_webpack_require__.resolve(path);
+  } else {
+    return require.resolve(path);
+  }
+};
+
 exports.getKungfuBuildInfo = () => {
   try {
     const buildInfoRaw = fs.readFileSync(
-      require.resolve(
+      this.customResolve(
         '@kungfu-trader/kungfu-core/dist/kfc/kungfubuildinfo.json',
       ),
       'utf-8',
@@ -66,7 +75,7 @@ exports.getPagesConfig = (argv) => {
 
 const tryGetAppPackageJSON = () => {
   try {
-    const appPackageJSONPath = require.resolve(
+    const appPackageJSONPath = this.customResolve(
       '@kungfu-trader/kungfu-app/package.json',
     );
     const appPackageJSON = fs.readJSONSync(appPackageJSONPath);
@@ -79,7 +88,7 @@ const tryGetAppPackageJSON = () => {
 
 const tryGetCliPackageJSON = () => {
   try {
-    const cliPackageJSONPath = require.resolve(
+    const cliPackageJSONPath = this.customResolve(
       '@kungfu-trader/kungfu-cli/package.json',
     );
     const cliPackageJSON = fs.readJSONSync(cliPackageJSONPath);
@@ -92,13 +101,13 @@ const tryGetCliPackageJSON = () => {
 
 exports.getWebpackExternals = () => {
   // 有些package会作为其他package依赖，需要放在此处处理
-  const apiPackageJSONPath = require.resolve(
+  const apiPackageJSONPath = this.customResolve(
     '@kungfu-trader/kungfu-js-api/package.json',
   );
-  const sdkPackageJSONPath = require.resolve(
+  const sdkPackageJSONPath = this.customResolve(
     '@kungfu-trader/kungfu-sdk/package.json',
   );
-  const corePackageJSONPath = require.resolve(
+  const corePackageJSONPath = this.customResolve(
     '@kungfu-trader/kungfu-core/package.json',
   );
 
@@ -151,7 +160,7 @@ exports.getSdkDefaultDistDir = () => {
 
 exports.getAppDir = () => {
   try {
-    const appPackageJSONPath = require.resolve(
+    const appPackageJSONPath = this.customResolve(
       '@kungfu-trader/kungfu-app/package.json',
     );
     return path.dirname(appPackageJSONPath);
@@ -163,13 +172,13 @@ exports.getAppDir = () => {
 
 exports.getApiDir = () => {
   return path.dirname(
-    require.resolve('@kungfu-trader/kungfu-js-api/package.json'),
+    this.customResolve('@kungfu-trader/kungfu-js-api/package.json'),
   );
 };
 
 exports.getCliDir = () => {
   try {
-    const cliPackageJSONPath = require.resolve(
+    const cliPackageJSONPath = this.customResolve(
       '@kungfu-trader/kungfu-cli/package.json',
     );
     return path.dirname(cliPackageJSONPath);
@@ -182,7 +191,7 @@ exports.getCliDir = () => {
 exports.getJsApi = () => {
   try {
     return path.dirname(
-      require.resolve('@kungfu-trader/kungfu-js-api/package.json'),
+      this.customResolve('@kungfu-trader/kungfu-js-api/package.json'),
     );
   } catch (err) {
     return '.';
@@ -191,13 +200,13 @@ exports.getJsApi = () => {
 
 exports.getCoreDir = () => {
   return path.dirname(
-    require.resolve('@kungfu-trader/kungfu-core/package.json'),
+    this.customResolve('@kungfu-trader/kungfu-core/package.json'),
   );
 };
 
 exports.getKfcDir = () => {
   return path.join(
-    path.dirname(require.resolve('@kungfu-trader/kungfu-core/package.json')),
+    path.dirname(this.customResolve('@kungfu-trader/kungfu-core/package.json')),
     'dist',
     'kfc',
   );
@@ -205,7 +214,7 @@ exports.getKfcDir = () => {
 
 exports.getSdkDir = () => {
   return path.dirname(
-    require.resolve('@kungfu-trader/kungfu-sdk/package.json'),
+    this.customResolve('@kungfu-trader/kungfu-sdk/package.json'),
   );
 };
 
@@ -224,7 +233,7 @@ exports.getExtensionDirs = (production = false) => {
     .map((name) => {
       let fullPath = '';
       try {
-        const jsonPath = require.resolve(name + '/package.json');
+        const jsonPath = this.customResolve(name + '/package.json');
         const json = fs.readJSONSync(jsonPath);
         if (json.kungfuConfig) {
           fullPath = path.dirname(jsonPath);
@@ -251,6 +260,7 @@ exports.buildDevArgv = (distDir, distName) => {
   process.env.APP_PUBLIC_DIR = path.join(appDir, 'public');
   process.env.CLI_DIR = path.join(cliDir, 'dist', 'cli');
   process.env.KFC_DEV = 'true';
+  process.env.IS_KF_DEV = true;
   process.env.EXTENSION_DIRS = [distDir, ...extdirs].join(path.delimiter);
 
   return {

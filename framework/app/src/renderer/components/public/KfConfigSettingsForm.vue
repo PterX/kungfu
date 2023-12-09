@@ -326,13 +326,11 @@ if ('instrument' in formState.value) {
             if (exchangeId === 'SHFE' || exchangeId === 'INE') {
               numberEnumRadioTypeResolved.value['offset'] =
                 numberEnumRadioType['offset'];
-              debugger;
             } else {
               numberEnumRadioTypeResolved.value['offset'] = omitObject(
                 numberEnumRadioType['offset'],
                 [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
               );
-              debugger;
             }
           } else {
             if (configSettingFormInject?.sideFilter) {

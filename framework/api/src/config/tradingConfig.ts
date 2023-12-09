@@ -23,7 +23,6 @@ import {
   AddOperatorTypeEnum,
   PriceLevelEnum,
   BasketVolumeTypeEnum,
-  BasketOrderStatusEnum,
   CurrencyEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
@@ -331,32 +330,6 @@ export const OrderStatus: Record<
   [OrderStatusEnum.Pause]: {
     name: t('tradingConfig.pause'),
     color: 'default',
-  },
-};
-
-export const BasketOrderStatus: Record<
-  BasketOrderStatusEnum,
-  KungfuApi.KfTradeValueCommonData
-> = {
-  [BasketOrderStatusEnum.Unknown]: {
-    name: t('tradingConfig.unknown'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.Pending]: {
-    name: t('tradingConfig.pending'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.PartialFilledNotActive]: {
-    name: t('tradingConfig.partial_filled_not_active'),
-    color: 'green',
-  },
-  [BasketOrderStatusEnum.PartialFilledActive]: {
-    name: t('tradingConfig.partial_filled_active'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.Filled]: {
-    name: t('tradingConfig.filled'),
-    color: 'green',
   },
 };
 

@@ -47,7 +47,6 @@ declare namespace KungfuApi {
     KfExhibitConfigTypes,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
-    BasketOrderStatusEnum,
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
@@ -199,6 +198,7 @@ declare namespace KungfuApi {
     options?: KfSelectOption[];
     data?: KfSelectOption[];
     headers?: KfConfigItemHeader[];
+    extraHeadersTip?: string;
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
@@ -206,6 +206,7 @@ declare namespace KungfuApi {
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
 
     maxlength?: number;
+    showArg?: boolean; // 交易任务是否显示参数
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -477,9 +478,9 @@ declare namespace KungfuApi {
   >;
 
   export type KfExtLanguages = {
-    'zh-CN': Record<string, Record<string, string>>;
-    'en-US': Record<string, Record<string, string>>;
-    [langName: string]: Record<string, Record<string, string>>;
+    'zh-CN': Record<string, string | Record<string, string>>;
+    'en-US': Record<string, string | Record<string, string>>;
+    [langName: string]: Record<string, string | Record<string, string>>;
   };
 
   export interface SetKfConfigPayload {
@@ -557,12 +558,15 @@ declare namespace KungfuApi {
   export interface BasketStore {
     getAllBasket(): Basket[] | false;
     setAllBasket(baskets: Basket[]): boolean;
+    setBasket(basket: Basket): boolean;
+    setBaskets(baskets: Basket[]): boolean;
   }
 
   export interface BasketInstrumentStore {
     getAllBasketInstrument(): BasketInstrument[] | false;
     setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     setBasketInstrument(basketInstrument: BasketInstrument): boolean;
+    setBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     removeAllBasketInstruments(): boolean;
     removeAllBasketInstrumentsByBasket(basketId: number): boolean;
   }
@@ -586,6 +590,8 @@ declare namespace KungfuApi {
     realized_pnl: number; //累计收益
     unrealized_pnl: number;
     avail: number; //可用资金
+    long_avail: number; // otc业务可用资金(多)
+    short_avail: number; // otc业务可用资金(空）
     market_value: number; //市值(股票)
     margin: number; //保证金(期货)
     accumulated_fee: number; //累计手续费
@@ -627,7 +633,7 @@ declare namespace KungfuApi {
 
     contract_multiplier: number; //合约乘数
     price_tick: number; //最小变动价位
-    quantity_unit: number; //最小变动价位
+    quantity_unit: number; //最小数量单位
 
     open_date: string; //上市日
     create_date: string; //创建日
@@ -902,7 +908,7 @@ declare namespace KungfuApi {
     price_offset: number; // 价格偏移
     volume: bigint;
     volume_left: bigint;
-    status: BasketOrderStatusEnum;
+    status: OrderStatusEnum;
 
     source_id: number; // 下单方
     dest_id: number;
@@ -922,6 +928,7 @@ declare namespace KungfuApi {
 
   export interface AlgoOrderInput {
     order_id: bigint;
+    origin_order_id: bigint;
     insert_time: bigint;
     begin_time: bigint;
     end_time: bigint;
@@ -930,9 +937,13 @@ declare namespace KungfuApi {
     exchange_id: string;
     instrument_type: InstrumentTypeEnum;
 
+    basket_uid: number; // basket订单的id
+
     side: SideEnum;
     offset: OffsetEnum;
     price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
     volume: bigint;
 
     algo_type_id: string; // 算法类型
@@ -954,9 +965,13 @@ declare namespace KungfuApi {
     exchange_id: string; // 交易所代码
     instrument_type: InstrumentTypeEnum;
 
+    basket_uid: number; // basket订单的id
+
     side: SideEnum;
     offset: OffsetEnum;
     price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
 
     volume: bigint; // 目标量
     volume_left: bigint; // 剩余数量
@@ -966,6 +981,9 @@ declare namespace KungfuApi {
 
     status: OrderStatusEnum; // 订单状态
     error_msg: string; // 错误信息
+
+    source: number; // 下单方
+    dest: number;
   }
 
   export interface AlgoOrderAction {
@@ -1195,6 +1213,7 @@ declare namespace KungfuApi {
     max_redemption_volume: bigint; // 赎回上限
     min_volume: bigint; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
+    etf_status: ETFStatus; // etf状态
   }
 
   export interface BasketResolved extends Basket {
@@ -1224,6 +1243,7 @@ declare namespace KungfuApi {
     todayVolume?: string;
     yesterdayVolume?: string;
     posVolume?: string;
+    lastPrice?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {

@@ -261,7 +261,7 @@ class Strategy(wc.Strategy):
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
         self.ctx.insert_algo_order = wc_context.insert_algo_order
-        self.ctx.update_algo_order = wc_context.update_algo_order
+        self.ctx.update_algo_order_volume = wc_context.update_algo_order_volume
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
         self.ctx.cancel_algo_order = wc_context.cancel_algo_order

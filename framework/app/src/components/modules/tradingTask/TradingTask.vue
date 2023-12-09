@@ -33,7 +33,7 @@ import {
   getStrategyKfLocationByProcessId,
   parseTaskSettingsFromEnv,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { kfConfigItemsToArgsByPrimaryForShow } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { kfConfigItemsToArgsByShowArgForShow } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   graceStopProcess,
   Pm2ProcessStatusDetail,
@@ -286,7 +286,7 @@ function resolveArgs(record: Pm2ProcessStatusDetail) {
 
   const configSettings = parseTaskSettingsFromEnv(record.config_settings);
   const formState = fromProcessArgsToKfConfigItems(record.args || []);
-  const argsForShow = kfConfigItemsToArgsByPrimaryForShow(
+  const argsForShow = kfConfigItemsToArgsByShowArgForShow(
     configSettings,
     formState,
   );

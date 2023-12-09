@@ -128,6 +128,9 @@ export default {
     import_successed: '导入成功',
     import_failed: '导入失败',
     csv_format_error: 'csv 格式错误, 请检查后重试',
+    add_csv_tip_prefix: '注: csv填写规则如下, ',
+    add_csv_tip_required: '*为必填项',
+    add_csv_tip_suffix: ', 必填项未填会导致上传失败',
   },
 
   tradingConfig: {
@@ -496,6 +499,8 @@ export default {
     total_asset: '总资产',
     actions: '操作',
 
+    asset_details: '资金',
+
     add_td: '添加',
     add_group_placeholder: '添加分组',
     set_td_group: '账户分组设置',
@@ -516,6 +521,7 @@ export default {
     target: '划入节点',
     amount: '发生金额',
     update_time: '划转时间',
+    source_target_cannot_be_same: '划入节点和划出节点不能一致，请重新选择!',
     tip_error: '划转失败,请联系管理员!',
     capitalaccountor: '资金账号',
     trade_password: '交易密码',
@@ -858,6 +864,9 @@ export default {
     skip_confirm_make_order: '跳过下单确认弹窗',
     set_skip_confirm_make_order:
       '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
+    skip_sync_position: '跳过每分钟一次的持仓同步',
+    set_skip_sync_position:
+      '开启后, 不再进行每分钟一次的持仓同步, 仅在启动交易账户时拉取最新持仓(每分钟一次的持仓同步有概率会因为在途成交回报问题导致持仓重复计算, 开启该选项后仅在功夫本地计算持仓, 但如果涉及功夫系统外委托对持仓造成的影响, 则不会更新到本地), 重启后生效',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',
@@ -908,7 +917,7 @@ export default {
 
   validate: {
     no_special_characters: '不能含有特殊字符和中文',
-    single_characters: '必须包含数字和字母',
+    single_characters: '至少包含一个字母或数字',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',
     no_negative_number: '请输入非负数',
@@ -940,6 +949,7 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+    loading_data: '正在加载中...',
   },
 
   replay: {
@@ -1023,11 +1033,11 @@ export default {
   请输入文件夹路径: '请输入文件夹路径',
   请输入一个目录: '请输入一个目录',
 
-  可用仓位: '可用仓位',
-  可用资金: '可用资金',
-  交易金额: '交易金额',
-  保证金占用: '保证金占用',
-  保证金返还: '保证金返还',
-  剩余资金: '剩余资金',
-  剩余仓位: '剩余仓位',
+  可用仓位: '参考可用仓位',
+  可用资金: '参考可用资金',
+  交易金额: '参考交易金额',
+  保证金占用: '参考保证金占用',
+  保证金返还: '参考保证金返还',
+  剩余资金: '参考剩余资金',
+  剩余仓位: '参考剩余仓位',
 };

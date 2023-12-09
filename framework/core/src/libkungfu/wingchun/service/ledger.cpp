@@ -15,6 +15,7 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
+using namespace kungfu::wingchun::map;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::cache;
@@ -27,7 +28,11 @@ namespace kungfu::wingchun::service {
 Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
-      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {}
+      broker_client_(*this), bookkeeper_(*this, broker_client_, true) {
+  sync_asset_ = std::getenv("KF_SKIP_SYNC_ASSET") == nullptr;
+  sync_position_ = std::getenv("KF_SKIP_SYNC_POSITION") == nullptr;
+  SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
+}
 
 void Ledger::on_exit() {}
 
@@ -56,11 +61,11 @@ void Ledger::on_start() {
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
   events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid));
 
-  if (bookkeeper_.is_sync_asset()) {
+  if (sync_asset_) {
     add_time_interval(time_unit::NANOSECONDS_PER_MINUTE,
                       [&](const event_ptr &e) { request_asset_sync(e->gen_time()); });
   }
-  if (bookkeeper_.is_sync_position()) {
+  if (sync_position_) {
     add_time_interval(time_unit::NANOSECONDS_PER_MINUTE,
                       [&](const event_ptr &e) { request_position_sync(e->gen_time()); });
   }
@@ -135,9 +140,7 @@ void Ledger::update_order_stat(const event_ptr &event, const OrderInput &data) {
 }
 
 void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
-  if (data.error_id == 0) {
-    write_book(event->gen_time(), event->source(), event->dest(), data);
-  }
+  write_book(event->gen_time(), event->source(), event->dest(), data);
   auto &stat = ensure_order_stat(data.order_id, event);
   auto inserted = stat.insert_time != 0;
   auto acked = stat.ack_time != 0;
@@ -296,7 +299,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if ((has_account or is_strategy) or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      write_instrument_factors(trigger_time, strategy_uid, bookkeeper_.get_static_data().get_instrument_factors());
       writer->write(trigger_time, asset);
     }
   }
@@ -309,14 +311,6 @@ void Ledger::write_positions(int64_t trigger_time, uint32_t dest, PositionMap &p
   auto writer = get_writer(dest);
   for (const auto &pair : positions) {
     writer->write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
-  }
-}
-
-void Ledger::write_instrument_factors(int64_t trigger_time, uint32_t dest,
-                                      const InstrumentFactorMap &instrument_factors) {
-  auto writer = get_writer(dest);
-  for (const auto &pair : instrument_factors) {
-    writer->write(trigger_time, pair.second);
   }
 }
 

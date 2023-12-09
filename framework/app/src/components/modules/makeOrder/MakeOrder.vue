@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  getCurrentInstance,
+  nextTick,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import {
@@ -36,10 +43,7 @@ import {
   useProcessStatusDetailData,
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import {
-  getOffsetByOffsetFilter,
-  initFormStateByConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
@@ -54,6 +58,7 @@ import {
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { resolveTriggerOffset } from '../pos/utils';
 import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
@@ -65,6 +70,7 @@ import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/file
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
+const app = getCurrentInstance();
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
@@ -261,30 +267,18 @@ watch(
   () => formState.value.side,
   (newSide) => {
     if (instrumentResolved.value) {
-      const { instrumentType } = instrumentResolved.value;
-
-      const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
-        return pos.yesterday_volume
-          ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
-          : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
-      };
-
-      if (isShotable(instrumentType)) {
-        if (newSide === SideEnum.Sell) {
-          if (currentPositionWithLongDirection.value) {
-            formState.value.offset = currentPositionWithLongDirection.value
-              ? resolveOffsetByPosition(currentPositionWithLongDirection.value)
-              : OffsetEnum.Open;
-          }
-        } else if (newSide === SideEnum.Buy) {
-          formState.value.offset = currentPositionWithShortDirection.value
-            ? resolveOffsetByPosition(currentPositionWithShortDirection.value)
-            : OffsetEnum.Open;
-        }
-      } else {
-        formState.value.offset =
-          newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
+      if (newSide === SideEnum.Sell) {
+        formState.value.offset = currentPositionWithLongDirection.value
+          ? resolveTriggerOffset(currentPositionWithLongDirection.value)
+          : OffsetEnum.Close;
+      } else if (newSide === SideEnum.Buy) {
+        formState.value.offset = currentPositionWithShortDirection.value
+          ? resolveTriggerOffset(currentPositionWithShortDirection.value)
+          : OffsetEnum.Open;
       }
+    } else {
+      formState.value.offset =
+        newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
     }
   },
 );
@@ -614,6 +608,11 @@ async function handleMakeOrder(): Promise<void> {
       if (!tdProcessId) continue;
       await placeOrder(orderInput, currentGlobalKfLocation.value, tdProcessId);
     }
+    app?.proxy?.$globalBus.next({
+      tag: 'main',
+      name: 'click:makeOrder',
+      orderInput: makeOrderInput,
+    });
   } catch (e) {
     if ((<Error>e).message) {
       error((<Error>e).message);

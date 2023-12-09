@@ -407,6 +407,8 @@ enum class CashReplaceFlag : int8_t {
   UnSSEMustReplace,    // 非沪市必须现金替代
   UnSSESZEReplace,     // 非沪深退补现金替代
   UnSSESZEMustReplace, // 非沪深必须现金替代
+  UnHKReplace,         // 港市退补现金替代
+  UnHKMustReplace,     // 港市必须现金替代
   Unknown
 };
 
@@ -418,6 +420,8 @@ KF_JSON_SERIALIZE_ENUM(CashReplaceFlag, {
                                             {CashReplaceFlag::UnSSEMustReplace, "UnSSEMustReplace"},
                                             {CashReplaceFlag::UnSSESZEReplace, "UnSSESZEReplace"},
                                             {CashReplaceFlag::UnSSESZEMustReplace, "UnSSESZEMustReplace"},
+                                            {CashReplaceFlag::UnHKReplace, "UnHKReplace"},
+                                            {CashReplaceFlag::UnHKMustReplace, "UnHKMustReplace"},
                                             {CashReplaceFlag::Unknown, "Unknown"},
                                         })
 
@@ -446,6 +450,24 @@ KF_JSON_SERIALIZE_ENUM(ETFType, {
                                 })
 
 inline std::ostream &operator<<(std::ostream &os, ETFType t) { return os << int32_t(t); }
+
+enum class ETFStatus : int8_t {
+  Forbid,         // 不允许申购也不允许赎回
+  Allow,          // 允许申购和赎回
+  PurchaseOnly,   // 只允许申购
+  RedemptionOnly, // 只允许赎回
+  Unknown
+};
+
+KF_JSON_SERIALIZE_ENUM(ETFStatus, {
+                                      {ETFStatus::Forbid, "Forbid"},
+                                      {ETFStatus::Allow, "Allow"},
+                                      {ETFStatus::PurchaseOnly, "PurchaseOnly"},
+                                      {ETFStatus::RedemptionOnly, "RedemptionOnly"},
+                                      {ETFStatus::Unknown, "Unknown"},
+                                  })
+
+inline std::ostream &operator<<(std::ostream &os, ETFStatus t) { return os << int32_t(t); }
 
 enum class PriceLevel : int8_t {
   Last, // 最新价

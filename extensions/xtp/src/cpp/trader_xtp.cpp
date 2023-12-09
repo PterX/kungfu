@@ -135,7 +135,7 @@ bool TraderXTP::cancel_order(const event_ptr &event) {
     return false;
   }
 
-  if (not is_final_status(order_state.data.status)) {
+  if (not is_final_status(order_state.data.status) or order_state.data.status == OrderStatus::Lost) {
     order_state.data.status = OrderStatus::Cancelling;
     try_write_to(order_state.data, order_state.dest);
   }
@@ -199,7 +199,7 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
   }
 
   auto &order_state = get_order(kf_order_id);
-  if (not is_final_status(order_state.data.status)) {
+  if (not is_final_status(order_state.data.status) or order_state.data.status == OrderStatus::Lost) {
     from_xtp(order_info, order_state.data);
     order_state.data.update_time = yijinjing::time::now_in_nano();
     if (error_info.error_id != 0) {
@@ -235,7 +235,7 @@ bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
   Order &order = writer->open_data<Order>(now());
   order.order_id = writer->current_frame_uid();
   from_xtp(order_info, order);
-  order.insert_time = nano;
+  order.insert_time = nsec_from_xtp_timestamp(order_info.insert_time);
   order.update_time = nano;
   map_kf_to_xtp_order_id_.emplace(uint64_t(order.order_id), order_info.order_xtp_id);
   map_xtp_to_kf_order_id_.emplace(order_info.order_xtp_id, uint64_t(order.order_id));
@@ -303,7 +303,7 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
     try_write_to(trade, order_state.dest);
   }
 
-  if (not is_final_status(order_state.data.status)) {
+  if (not is_final_status(order_state.data.status) or order_state.data.status == OrderStatus::Lost) {
     order_state.data.volume_left = std::min<int64_t>(
         order_state.data.volume_left, order_state.data.volume - get_traded_volume(trade_info.order_xtp_id));
     if (order_state.data.volume_left > 0) {

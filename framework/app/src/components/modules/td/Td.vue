@@ -19,7 +19,13 @@ import Icon, {
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
-import { categoryRegisterConfig, getColumns, getFundTransKey } from './config';
+import {
+  categoryRegisterConfig,
+  getColumns,
+  getFundTransKey,
+  assetDetailShowList,
+  assetMarginDetailShowList,
+} from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
@@ -40,6 +46,7 @@ import {
   useTdGroups,
   useAssets,
   useReplay,
+  showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIfProcessRunning,
@@ -206,13 +213,23 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
 
 const columns = computed(() => {
   const sorter = (dataIndex) => {
-    return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
-      return (
-        (+Number(getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset]) ||
-          0) -
-        (+Number(getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset]) ||
-          0)
-      );
+    return (
+      a: KungfuApi.KfConfig,
+      b: KungfuApi.KfConfig,
+      sorterOrder: '' | 'ascend' | 'descend',
+    ) => {
+      let aVal = getAssetsByKfConfig(a)[dataIndex] ?? '--',
+        bVal = getAssetsByKfConfig(b)[dataIndex] ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
     };
   };
 
@@ -248,6 +265,34 @@ const columns = computed(() => {
     isShowAssetMargin.value,
   );
 });
+
+const customRowResolved = (
+  record: KungfuApi.KfLocation | KungfuApi.KfConfig,
+) => {
+  if (record.category === 'tdGroup') {
+    return customRow(record);
+  }
+
+  const allAssetDetailList = [
+    ...assetDetailShowList,
+    ...(tdAssetMarginMap.value[record.group] ? assetMarginDetailShowList : []),
+  ];
+  const assetGetter = () =>
+    allAssetDetailList.reduce((assetDetails, assetInfo) => {
+      assetDetails[assetInfo.label] = dealAssetPrice(
+        getAssetsByKfConfig(record)[assetInfo.key],
+      );
+      return assetDetails;
+    }, {} as Record<string, string>);
+  return {
+    ...customRow(record),
+    onMousedown: (event: MouseEvent) => {
+      if (event.button === 2) {
+        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'));
+      }
+    },
+  };
+};
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
@@ -400,7 +445,7 @@ function handleConfirmFundTrans(formState) {
     formState.target &&
     formState.source === formState.target
   ) {
-    error('划入节点和划出节点不能一致，请重新选择！');
+    error('');
     return;
   }
 
@@ -562,7 +607,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
         :row-class-name="dealRowClassName"
-        :custom-row="customRow"
+        :custom-row="customRowResolved"
         :default-expand-all-rows="true"
         :empty-text="$t('empty_text')"
       >

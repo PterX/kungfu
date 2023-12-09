@@ -119,9 +119,13 @@ public:
     });
   }
 
-  template <typename DataType> void replace_range(uint32_t dest_id, const std::vector<DataType> &v_s) {
-    ensure_storage(dest_id);
-    storage_map_.at(dest_id)->replace_range(v_s.begin(), v_s.end());
+  template <typename TargetType, typename DataTypes>
+  void restore_to(DataTypes datatypes, TargetType &target, uint32_t dest) {
+    ensure_storage(dest);
+    boost::hana::for_each(datatypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest));
+    });
   }
 
   template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
@@ -132,6 +136,11 @@ public:
   template <typename DataType> void operator<<(const state<DataType> &s) {
     ensure_storage(s.dest);
     storage_map_.at(s.dest)->replace(s.data);
+  }
+
+  template <typename DataType> void replace_range(uint32_t dest, const std::vector<DataType> &v) {
+    ensure_storage(dest);
+    storage_map_.at(dest)->replace_range(v.begin(), v.end());
   }
 
   template <typename DataType> void operator-=(const typed_event_ptr<DataType> &event) {

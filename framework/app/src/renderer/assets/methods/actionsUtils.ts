@@ -62,6 +62,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
+  getNaturalNumber,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -863,38 +864,49 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
-  item: T,
+export const showTradingDataDetail = <
+  T extends Record<string, KungfuApi.KfConfigValue>,
+>(
+  item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
-  const dataResolved = dealTradingDataItem(item, window.watcher);
-  const vnode = Object.keys(dataResolved || {})
-    .filter((key) => {
-      if (filterKeys && (filterKeys as string[]).includes(key)) {
-        return false;
-      }
-      if (dataResolved[key].toString() === '[object Object]') {
-        return false;
-      }
-      return dataResolved[key] !== '';
-    })
-    .map((key) =>
-      h('div', { class: 'trading-data-detail-row' }, [
-        h('span', { class: 'label' }, `${key}`),
-        h('span', { class: 'value' }, `${dataResolved[key]}`),
-      ]),
+  const generateVnode = () => {
+    const itemResolved = typeof item === 'function' ? item() : item;
+    const dataResolved = dealTradingDataItem(
+      itemResolved as unknown as KungfuApi.TradingDataTypes,
+      window.watcher,
     );
 
-  return confirmModal(
-    `${typename} ${t('detail')}`,
-    h(
+    const vnode = Object.keys(dataResolved || {})
+      .filter((key) => {
+        if (filterKeys && (filterKeys as string[]).includes(key)) {
+          return false;
+        }
+        if (dataResolved[key].toString() === '[object Object]') {
+          return false;
+        }
+        return dataResolved[key] !== '';
+      })
+      .map((key) =>
+        h('div', { class: 'trading-data-detail-row' }, [
+          h('span', { class: 'label' }, `${key}`),
+          h('span', { class: 'value' }, `${dataResolved[key]}`),
+        ]),
+      );
+
+    return h(
       'div',
       {
         class: 'trading-data-detail__warp',
       },
       vnode,
-    ),
+    );
+  };
+
+  return confirmModal(
+    `${typename} ${t('detail')}`,
+    generateVnode,
     t('confirm'),
   );
 };
@@ -1477,11 +1489,7 @@ export const useQuote = (): {
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
-      return (
-        (quote.data_time > pos.update_time
-          ? quote.last_price
-          : Number(pos[lastPriceKey]) || quote.last_price) || 0
-      );
+      return quote.last_price || Number(pos[lastPriceKey]) || 0;
     }
     return Number(pos[lastPriceKey]) || 0;
   };
@@ -2439,6 +2447,85 @@ export const useCurrentPositionList = () => {
   };
 };
 
+export const useFormCurrentState = (
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  keys?: {
+    accountKey?: string;
+    instrumentKey?: string;
+  },
+) => {
+  const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
+    window.watcher,
+  );
+  const accountKey = keys?.accountKey || 'account_id';
+  const instrumentKey = keys?.instrumentKey || 'account_id';
+
+  const curInstrumentResolved = computed(() => {
+    const instrument = formState.value[instrumentKey];
+    return instrument
+      ? transformSearchInstrumentResultToInstrument(instrument)
+      : null;
+  });
+
+  const currentAccountLocation = computed(() => {
+    if (
+      currentGlobalKfLocation.value &&
+      currentGlobalKfLocation.value.category === 'td'
+    ) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value[accountKey]) {
+      const { source, id } = formState.value[accountKey].parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  return {
+    curInstrumentResolved,
+    currentAccountLocation,
+  };
+};
+
+export const getPosClosableVolumeByOffset = (
+  position: KungfuApi.Position,
+  offset: OffsetEnum,
+) => {
+  const {
+    instrument_type,
+    exchange_id,
+    volume,
+    yesterday_volume,
+    frozen_total,
+    frozen_yesterday,
+  } = position;
+  const today_volume = volume - yesterday_volume;
+  const frozen_today = frozen_total - frozen_yesterday;
+  const shotable_closable_yesterday = getNaturalNumber(
+    yesterday_volume - frozen_yesterday,
+  );
+  const closable_yesterday = getNaturalNumber(yesterday_volume - frozen_total);
+  const closable_today = getNaturalNumber(today_volume - frozen_today);
+  const closable_total = getNaturalNumber(volume - frozen_total);
+
+  if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
+    if (offset === OffsetEnum.CloseYest) {
+      return shotable_closable_yesterday;
+    } else if (offset === OffsetEnum.CloseToday) {
+      return closable_today;
+    } else {
+      return closable_total;
+    }
+  } else {
+    return closable_yesterday;
+  }
+};
+
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
@@ -2610,30 +2697,14 @@ export const useMakeOrderInfo = (
   const currentAvailPosVolume = computed(() => {
     if (!instrumentResolved.value) return '--';
 
-    const { instrumentType, exchangeId } = instrumentResolved.value;
     const { offset } = formState.value;
 
     if (currentPosition.value) {
-      const { yesterday_volume, volume, frozen_total, frozen_yesterday } =
-        currentPosition.value;
-      const today_volume = volume - yesterday_volume;
-      const frozen_today = frozen_total - frozen_yesterday;
-      const shotable_closable_yesterday = yesterday_volume - frozen_yesterday;
-      const closable_yesterday = yesterday_volume - frozen_total;
-      const closable_today = today_volume - frozen_today;
-      const closable_total = volume - frozen_total;
-
-      if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
-        if (offset === OffsetEnum.CloseYest) {
-          return dealKfNumber(shotable_closable_yesterday) + '';
-        } else if (offset === OffsetEnum.CloseToday) {
-          return dealKfNumber(closable_today) + '';
-        } else {
-          return dealKfNumber(closable_total) + '';
-        }
-      } else {
-        return dealKfNumber(closable_yesterday) + '';
-      }
+      return (
+        dealKfNumber(
+          getPosClosableVolumeByOffset(currentPosition.value, offset),
+        ) + ''
+      );
     }
 
     return '0';
@@ -2890,7 +2961,6 @@ export const useMakeOrderSubscribe = (
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
-
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;
@@ -2948,6 +3018,7 @@ export const useBasket = () => {
   function updateBasketData() {
     store.setBasketList();
 
+    basketList.value = store.basketList;
     return Promise.resolve();
   }
 

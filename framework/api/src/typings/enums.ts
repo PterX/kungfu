@@ -73,6 +73,14 @@ export enum ETFTypeEnum {
   Unknown,
 }
 
+export enum ETFStatusEnum {
+  Forbid, // 不允许申购也不允许赎回
+  Allow, // 允许申购和赎回
+  PurchaseOnly, // 只允许申购
+  RedemptionOnly, // 只允许赎回
+  Unknown,
+}
+
 // ETF成分股信息,标志改成分股是否可以由现金替代
 export enum CashReplaceFlagEnum {
   UnReplace, // 不可替代
@@ -82,6 +90,8 @@ export enum CashReplaceFlagEnum {
   UnSSEMustReplace, // 非沪市必须现金替代
   UnSSESZEReplace, // 非沪深退补现金替代
   UnSSESZEMustReplace, // 非沪深必须现金替代
+  UnHKReplace, // 港市退补现金替代
+  UnHKMustReplace, // 港市必须现金替代
   Unknown,
 }
 
@@ -231,14 +241,6 @@ export enum OrderStatusEnum {
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
-
-export enum BasketOrderStatusEnum {
-  Unknown,
-  Pending,
-  PartialFilledNotActive, // 部分成交已结束
-  PartialFilledActive, // 部分成交未结束
-  Filled,
-}
 
 export enum KfExtTypeEnum {
   Unknown = 'unknown',

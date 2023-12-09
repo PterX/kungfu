@@ -73,11 +73,11 @@ dynamic_equity
 realized_pnl
 unrealized_pnl
 market_value
-short_market_value
 long_market_value
+short_market_value
 margin
-short_margin
 long_margin
+short_margin
 accumulated_fee
 intraday_fee
 frozen_cash
@@ -86,6 +86,8 @@ frozen_fee
 position_pnl
 close_pnl
 avail
+long_avail
+short_avail
 total_asset
 avail_margin
 long_debt
@@ -157,6 +159,8 @@ external_trigger_id
 order_trigger_action_id
 origin_order_id
 basket_uid
+price_level
+price_offset
 algo_type_id
 algo_id
 args
@@ -226,6 +230,7 @@ max_cash_ratio
 max_purchase_volume
 max_redemption_volume
 min_volume
+etf_type
 rate
 replace_flag
 cash_premium_ratio
@@ -333,6 +338,7 @@ has_writer
 add_timer
 add_time_interval
 clear_timer
+request_deregister
 update_broker_state
 subscribe
 subscribe_all
@@ -400,7 +406,7 @@ add_account
 insert_order_input
 insert_block_message
 insert_array_orders
-update_algo_order
+update_algo_order_volume
 hold_book
 hold_positions
 is_book_held
@@ -543,9 +549,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future
@@ -625,6 +628,8 @@ UnSSEReplace
 UnSSEMustReplace
 UnSSESZEReplace
 UnSSESZEMustReplace
+UnHKReplace
+UnHKMustReplace
 CashReplaceFlag
 LocalETF
 CrossCountryETF
@@ -634,6 +639,11 @@ PhysicalBondETF
 CommodityETF
 CashBondETF
 ETFType
+Forbid
+Allow
+PurchaseOnly
+RedemptionOnly
+ETFStatus
 Last
 Sell5
 Sell4

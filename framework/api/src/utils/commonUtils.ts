@@ -753,3 +753,45 @@ export const kfConfigItemsToProcessArgs = (
       }, {} as Record<string, KungfuApi.KfConfigValue>),
   );
 };
+
+export const buildTableColumnSorterWithStrike = <T>(
+  type: 'num' | 'str',
+  dataIndex: keyof T,
+) => {
+  return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
+    if (type === 'num') {
+      let aVal: unknown = a[dataIndex] ?? '--',
+        bVal: unknown = b[dataIndex] ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
+    } else {
+      return `${a[dataIndex] ?? ''}`.localeCompare(`${b[dataIndex] ?? ''}`);
+    }
+  };
+};
+
+export const getNaturalNumber = <T extends number | bigint>(num: T): T => {
+  if (typeof num === 'bigint') {
+    return num > 0n ? num : (0n as T);
+  }
+
+  return num > 0 ? num : (0 as T);
+};
+
+export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
+  const strKeys = keys.map((key) => key.toString());
+  return Object.keys(obj)
+    .filter((key) => !strKeys.includes(key))
+    .reduce((result, key) => {
+      result[key] = obj[key];
+      return result;
+    }, {});
+};

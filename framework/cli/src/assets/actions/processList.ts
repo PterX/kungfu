@@ -476,13 +476,13 @@ export const switchProcess = async (
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
   const { category, group, name, value, cwd, script } = proc;
-  const location = {
+  const masterLocation = buildMasterLocation();
+  const isTargetExtService = isExtService({
     category,
     group,
     name,
     mode: 'live',
-  };
-  const isTargetExtService = isExtService(location);
+  });
 
   const switchProcessExceptMaster = () => {
     if (!watcher) {
@@ -538,8 +538,8 @@ export const switchProcess = async (
 
   switch (category) {
     case 'system':
-      if (proc.processId === getProcessIdByKfLocation(location)) {
-        //开启，要归档, cli 需要clearjournal
+      if (proc.processId === getProcessIdByKfLocation(masterLocation)) {
+        //开启，要归档, cli 需要clear journal
         preSwitchMain(status, messageBoard, loading)
           .then(() => {
             loading.load(`${startOrStop} Master process`);

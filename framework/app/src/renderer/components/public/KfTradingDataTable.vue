@@ -123,7 +123,9 @@ const selectedRowsMap = ref<Record<string, TableDataItem>>({});
 let clickTimer: number | undefined;
 const currentSorterIndex = ref<string>('');
 const currentSorterOrder = ref<'' | 'ascend' | 'descend'>('');
-let currentSorterFunction: ((a: any, b: any) => number) | undefined = undefined;
+let currentSorterFunction:
+  | ((a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number)
+  | undefined = undefined;
 const dataSourceResolved = computed(() => {
   if (
     currentSorterIndex.value &&
@@ -131,9 +133,24 @@ const dataSourceResolved = computed(() => {
     currentSorterOrder.value !== ''
   ) {
     if (currentSorterOrder.value === 'ascend') {
-      return props.dataSource.slice(0).sort(currentSorterFunction);
+      return props.dataSource.slice(0).sort((a, b): number => {
+        if (currentSorterFunction) {
+          return currentSorterFunction(a, b, currentSorterOrder.value);
+        } else {
+          return 0;
+        }
+      });
     } else {
-      return props.dataSource.slice(0).sort(currentSorterFunction).reverse();
+      return props.dataSource
+        .slice(0)
+        .sort((a, b): number => {
+          if (currentSorterFunction) {
+            return currentSorterFunction(a, b, currentSorterOrder.value);
+          } else {
+            return 0;
+          }
+        })
+        .reverse();
     }
   }
   return props.dataSource;
@@ -254,10 +271,22 @@ watch(
   { immediate: true },
 );
 
+const initScrollerTableWidth = () => {
+  // 一上来查表格宽度会是 0, 所以轮询查
+  requestAnimationFrame(() => {
+    if (
+      kfScrollerTableBodyRef.value &&
+      kfScrollerTableBodyRef.value.clientWidth
+    ) {
+      kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
+    } else {
+      initScrollerTableWidth();
+    }
+  });
+};
+
 onMounted(() => {
-  if (kfScrollerTableBodyRef.value) {
-    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
-  }
+  initScrollerTableWidth();
 
   if (app?.proxy && props.resizable) {
     const subscription = app?.proxy.$globalBus
@@ -359,7 +388,9 @@ function handleMousedown(e: MouseEvent, row: TableDataItem): void {
 
 function handleSort(
   dataIndex: string,
-  sorter: undefined | ((a: any, b: any) => number),
+  sorter:
+    | undefined
+    | ((a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number),
 ): void {
   if (!sorter || !dataIndex) {
     return;
@@ -703,7 +734,9 @@ defineExpose({
           >
             <DynamicScrollerItem
               :item="item"
+              :key="`${item[keyField as keyof TableDataItem]}`"
               :active="active"
+              :data-active="active"
               :size-dependencies="getSizeDependencies(item)"
               :data-index="index"
             >
@@ -760,6 +793,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   position: relative;
 
   .fade-enter-active,

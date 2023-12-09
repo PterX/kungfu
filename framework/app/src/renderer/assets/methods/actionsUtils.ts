@@ -2668,7 +2668,6 @@ export const useMakeOrderSubscribe = (
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
-
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;

@@ -93,11 +93,7 @@ public:
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-          position.frozen_yesterday += input.volume;
-        } else {
-          position.frozen_yesterday = position.yesterday_volume;
-        }
+        position.frozen_yesterday += input.volume;
       }
 
       update_position(book, position);
@@ -235,8 +231,9 @@ private:
 
     if (is_local) {
       position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
-      if (trade.offset != Offset::CloseToday)
+      if (trade.offset != Offset::CloseToday) {
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
+      }
     }
 
     auto close_today_volume = 0.0;

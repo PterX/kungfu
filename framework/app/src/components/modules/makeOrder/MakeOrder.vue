@@ -47,7 +47,6 @@ import {
   dealVolumeByInstrumentType,
   getExtConfigList,
   getIdByKfLocation,
-  getOffsetByOffsetFilter,
   getProcessIdByKfLocation,
   initFormStateByConfig,
   isShotable,
@@ -57,6 +56,7 @@ import {
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { resolveTriggerOffset } from '../pos/utils';
 import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
@@ -265,30 +265,18 @@ watch(
   () => formState.value.side,
   (newSide) => {
     if (instrumentResolved.value) {
-      const { instrumentType } = instrumentResolved.value;
-
-      const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
-        return pos.yesterday_volume
-          ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
-          : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
-      };
-
-      if (isShotable(instrumentType)) {
-        if (newSide === SideEnum.Sell) {
-          if (currentPositionWithLongDirection.value) {
-            formState.value.offset = currentPositionWithLongDirection.value
-              ? resolveOffsetByPosition(currentPositionWithLongDirection.value)
-              : OffsetEnum.Open;
-          }
-        } else if (newSide === SideEnum.Buy) {
-          formState.value.offset = currentPositionWithShortDirection.value
-            ? resolveOffsetByPosition(currentPositionWithShortDirection.value)
-            : OffsetEnum.Open;
-        }
-      } else {
-        formState.value.offset =
-          newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
+      if (newSide === SideEnum.Sell) {
+        formState.value.offset = currentPositionWithLongDirection.value
+          ? resolveTriggerOffset(currentPositionWithLongDirection.value)
+          : OffsetEnum.Close;
+      } else if (newSide === SideEnum.Buy) {
+        formState.value.offset = currentPositionWithShortDirection.value
+          ? resolveTriggerOffset(currentPositionWithShortDirection.value)
+          : OffsetEnum.Open;
       }
+    } else {
+      formState.value.offset =
+        newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
     }
   },
 );

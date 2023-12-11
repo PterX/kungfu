@@ -295,6 +295,11 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
               style="font-size: 12px; margin-left: 7px"
             />
           </template>
+          <template v-else-if="column.dataIndex === 'remarks'">
+            {{
+              JSON.parse((record as KungfuApi.KfConfig).value).remarks || '--'
+            }}
+          </template>
           <template v-else-if="column.dataIndex === 'operatorFile'">
             {{ getOperatorPathShowName(record) }}
           </template>

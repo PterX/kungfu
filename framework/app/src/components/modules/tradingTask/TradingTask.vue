@@ -332,7 +332,10 @@ function getProcessStatusName(
             style="width: 120px"
           />
         </KfDashboardItem>
-        <KfDashboardItem v-for="config in TradingTaskViewComponentConfigs">
+        <KfDashboardItem
+          v-for="config in TradingTaskViewComponentConfigs"
+          :key="config.key"
+        >
           <component :is="config.key"></component>
         </KfDashboardItem>
         <KfDashboardItem>

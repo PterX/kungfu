@@ -108,6 +108,8 @@ export default {
   please_wait: 'Please wait...',
   please_wait_and_retry: 'Please wait and retry',
 
+  remarks: 'Remarks',
+
   select_broker_ext: 'Select a broker api',
   select_operator_ext: 'Select a operator ext',
   select_trade_task: 'Select trade task',

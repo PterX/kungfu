@@ -157,6 +157,7 @@ void bind_enums(py::module &m) {
       .value("EnhancedLimit", PriceType::EnhancedLimit)
       .value("AtAuctionLimit", PriceType::AtAuctionLimit)
       .value("AtAuction", PriceType::AtAuction)
+      .value("Unknown", PriceType::Unknown)
       .export_values()
       .def("__eq__", [](const PriceType &a, int b) { return static_cast<int>(a) == b; });
 
@@ -415,6 +416,29 @@ void bind_enums(py::module &m) {
       .value("PurchaseOnly", ETFStatus::PurchaseOnly)
       .value("RedemptionOnly", ETFStatus::RedemptionOnly)
       .value("Unknown", ETFStatus::Unknown)
+      .export_values()
       .def("__eq__", [](const ETFStatus &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<Currency>(m_enums, "Currency", py::arithmetic())
+      .value("Unknown", Currency::Unknown)
+      .value("CNY", Currency::CNY)
+      .value("HKD", Currency::HKD)
+      .value("USD", Currency::USD)
+      .value("JPY", Currency::JPY)
+      .value("GBP", Currency::GBP)
+      .value("EUR", Currency::EUR)
+      .value("CNH", Currency::CNH)
+      .value("SGD", Currency::SGD)
+      .value("MYR", Currency::MYR)
+      .value("CEN", Currency::CEN)
+      .export_values()
+      .def("__eq__", [](const Currency &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<Priority>(m_enums, "Priority", py::arithmetic())
+      .value("Low", Priority::Low)
+      .value("Medium", Priority::Medium)
+      .value("High", Priority::High)
+      .export_values()
+      .def("__eq__", [](const Priority &a, int b) { return static_cast<int>(a) == b; });
 }
 } // namespace kungfu::longfist::pybind

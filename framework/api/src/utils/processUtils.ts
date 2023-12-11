@@ -1291,27 +1291,40 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
   }
 };
 
-export async function quitClean(): Promise<void> {
+function promiseWithTimeout<T>(
+  promise: Promise<T | T[]>,
+  ms: number = 15000,
+): Promise<T | T[]> {
+  return Promise.race([
+    promise,
+    new Promise<T | T[]>((_, reject) => {
+      setTimeout(() => {
+        reject(`${promise} Timed out in ${ms}ms.`);
+      }, ms);
+    }),
+  ]);
+}
+
+export function quitClean(): Promise<void> {
   //不需要加kill daemon
-  try {
-    await pm2Kill();
-  } catch (error) {
-    kfLogger.error('quitClean pm2Kill error: ', error);
-  }
-
-  try {
-    await killExtra(false);
-  } catch (error) {
-    kfLogger.error('quitClean killExtra error: ', error);
-  }
-
-  await delayMilliSeconds(1000);
-
-  try {
-    await deleteNNFiles();
-  } catch (error) {
-    kfLogger.error(error);
-  }
+  return new Promise((resolve) => {
+    //防止pm2 kill失败, 导致kungfu无法退出
+    promiseWithTimeout(pm2Kill())
+      .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
+      .finally(() => {
+        killExtra(false)
+          .catch((err) => kfLogger.error('quitClean killExtra error: ', err))
+          .finally(() => {
+            delayMilliSeconds(1000).then(() => {
+              deleteNNFiles()
+                .catch((err) => kfLogger.error(err))
+                .finally(() => {
+                  resolve();
+                });
+            });
+          });
+      });
+  });
 }
 
 //================ business related end =================

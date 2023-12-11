@@ -96,6 +96,8 @@ void bind_enums(py::module &m) {
       .value("SurplusStockTransfer", Side::SurplusStockTransfer)
       .value("GuaranteeStockTransferIn", Side::GuaranteeStockTransferIn)
       .value("GuaranteeStockTransferOut", Side::GuaranteeStockTransferOut)
+      .value("GuaranteeStockBuy", Side::GuaranteeStockBuy)
+      .value("GuaranteeStockSell", Side::GuaranteeStockSell)
       .value("Unknown", Side::Unknown)
       .export_values()
       .def("__eq__", [](const Side &a, int b) { return static_cast<int>(a) == b; });
@@ -134,6 +136,7 @@ void bind_enums(py::module &m) {
       .value("PartialFilledActive", OrderStatus::PartialFilledActive)
       .value("Lost", OrderStatus::Lost)
       .value("Cancelling", OrderStatus::Cancelling)
+      .value("Clearing", OrderStatus::Clearing)
       .export_values()
       .def("__eq__", [](const OrderStatus &a, int b) { return static_cast<int>(a) == b; });
 
@@ -205,6 +208,27 @@ void bind_enums(py::module &m) {
       .value("Unknown", TimeCondition::Unknown)
       .export_values()
       .def("__eq__", [](const TimeCondition &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ContractType>(m_enums, "ContractType", py::arithmetic())
+      .value("CrdBuyContract", ContractType::CrdBuyContract)
+      .value("CrdSellContract", ContractType::CrdSellContract)
+      .value("CrdBuyInterest", ContractType::CrdBuyInterest)
+      .value("CrdSellFee", ContractType::CrdSellFee)
+      .value("CapitalRightsCompensation", ContractType::CapitalRightsCompensation)
+      .value("ShareRightsCompensation", ContractType::ShareRightsCompensation)
+      .value("OverdueInterest", ContractType::OverdueInterest)
+      .value("BadDebtInterest", ContractType::BadDebtInterest)
+      .value("CapitalOccupationFee", ContractType::CapitalOccupationFee)
+      .value("ManagementFee", ContractType::ManagementFee)
+      .export_values()
+      .def("__eq__", [](const ContractType &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<CloseOutFlag>(m_enums, "CloseOutFlag", py::arithmetic())
+      .value("NotCloseOut", CloseOutFlag::NotCloseOut)
+      .value("CloseOut", CloseOutFlag::CloseOut)
+      .value("InitNotCloseOut", CloseOutFlag::InitNotCloseOut)
+      .export_values()
+      .def("__eq__", [](const CloseOutFlag &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<OrderActionFlag>(m_enums, "OrderActionFlag", py::arithmetic())
       .value("Cancel", OrderActionFlag::Cancel)

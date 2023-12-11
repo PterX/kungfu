@@ -122,6 +122,7 @@ void TraderVendor::on_start() {
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(OrderTriggerRequest::tag) | $$(service_->req_order_trigger());
+  events_ | is(ContractRequest::tag) | $$(service_->req_contract());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->on_asset_sync());

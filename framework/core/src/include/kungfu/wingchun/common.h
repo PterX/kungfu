@@ -628,6 +628,7 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
 
   strcpy(order.instrument_id, input.instrument_id);
   strcpy(order.exchange_id, input.exchange_id);
+  strcpy(order.contract_id, input.contract_id);
 
   order.instrument_type = input.instrument_type;
 

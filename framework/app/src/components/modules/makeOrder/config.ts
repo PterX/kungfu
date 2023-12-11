@@ -1,7 +1,6 @@
 import {
   HedgeFlagEnum,
   InstrumentTypeEnum,
-  KfCategoryTypes,
   OffsetEnum,
   PriceTypeEnum,
   SideEnum,
@@ -15,15 +14,25 @@ export const LABEL_COL = 6;
 export const WRAPPER_COL = 14;
 
 export const getConfigSettings = (
-  category?: KfCategoryTypes,
+  location?:
+    | KungfuApi.KfLocation
+    | KungfuApi.KfLocationGroup
+    | KungfuApi.KfConfig
+    | null,
   instrumentTypeEnum?: InstrumentTypeEnum,
+  extConfigs?: KungfuApi.KfExtConfigs,
   sideEnum?: SideEnum,
   priceType?: PriceTypeEnum,
   pricePrecision?: number,
   step?: number,
 ): KungfuApi.KfConfigItem[] => {
+  const supportMargin =
+    extConfigs?.td?.[location?.group || '']?.margin?.marginMakeOrder;
+  const SpecifyContract =
+    extConfigs?.td?.[location?.group || '']?.margin?.specifyContract;
+  console.log('supportMargin', supportMargin, SpecifyContract);
   const defaultSettings: KungfuApi.KfConfigItem[] = [
-    category === 'td'
+    location?.category === 'td'
       ? null
       : {
           key: 'account_id',
@@ -37,14 +46,40 @@ export const getConfigSettings = (
       type: 'instrument',
       required: true,
     },
-    {
-      key: 'side',
-      name: t('tradingConfig.side'),
-      type: 'side',
-      default: SideEnum.Buy,
-      required: true,
-    },
-    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown)
+
+    ...[
+      supportMargin
+        ? {
+            key: 'side',
+            name: t('tradingConfig.side'),
+            type: 'marginSide',
+            default: SideEnum.GuaranteeStockBuy,
+            required: true,
+          }
+        : {
+            key: 'side',
+            name: t('tradingConfig.side'),
+            type: 'side',
+            default: SideEnum.Buy,
+            required: true,
+          },
+    ],
+    ...[
+      supportMargin &&
+      (sideEnum === SideEnum.RepayStock || sideEnum === SideEnum.RepayMargin)
+        ? {
+            key: 'unique_id',
+            name: t('tradingConfig.specfy_contract'),
+            type: 'contract',
+            placeholder: t('tradingConfig.specfy_contract_placeholder'),
+            disabled:
+              sideEnum === SideEnum.RepayMargin ? !SpecifyContract : false,
+          }
+        : null,
+    ],
+
+    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown) &&
+    !supportMargin
       ? ([
           instrumentTypeEnum === InstrumentTypeEnum.stockoption &&
           sideEnum === SideEnum.Exec

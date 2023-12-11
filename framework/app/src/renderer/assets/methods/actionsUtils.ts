@@ -2493,6 +2493,7 @@ export const useFormCurrentState = (
 
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  isMarginMakeOrder: Ref<boolean>,
 ) => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
@@ -2519,6 +2520,9 @@ export const useMakeOrderInfo = (
   );
 
   const isAccountOrInstrumentConfirmed = computed(() => {
+    if (isMarginMakeOrder.value) {
+      return true;
+    }
     if (formState.value?.side === SideEnum.Buy) {
       return isCurrentCategoryIsTd.value ? true : !!formState.value.account_id;
     } else if (formState.value.side === SideEnum.Sell) {

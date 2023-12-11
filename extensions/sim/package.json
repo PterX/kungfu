@@ -96,6 +96,11 @@
             "required": true
           }
         ],
+        "margin": {
+          "showMargin": true,
+          "marginMakeOrder": true,
+          "specifyContract": false
+        },
         "order_trigger": {
           "MakeOrder": true,
           "CancelOrder": true

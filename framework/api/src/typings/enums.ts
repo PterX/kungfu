@@ -49,6 +49,13 @@ export enum InstrumentTypeEnum {
 }
 export type InstrumentTypes = keyof typeof InstrumentTypeEnum;
 
+export enum ContractTypeEnum {
+  MarginFinancing,
+  SecuritiesLending,
+}
+
+export type ContractTypes = keyof typeof ContractTypeEnum;
+
 export enum BasketVolumeTypeEnum {
   Unknown,
   Quantity,
@@ -209,6 +216,8 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  GuaranteeStockBuy,
+  GuaranteeStockSell,
   Unknown = 99,
 }
 

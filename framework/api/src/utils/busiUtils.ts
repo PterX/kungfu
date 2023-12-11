@@ -936,6 +936,7 @@ export const numberEnumSelectType: Record<
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
   side: Side,
+  marginSide: Side,
   priceType: PriceType,
   priceLevel: PriceLevel,
   instrumentType: InstrumentType,

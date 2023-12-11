@@ -67,6 +67,7 @@ import {
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
+  // ContractTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -181,6 +182,14 @@ const { isLanguageKeyAvailable } = useLanguage();
 const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
+const marginSideRadioList = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayStock,
+  SideEnum.RepayMargin,
+];
 const customerFormItemTips = reactive<Record<string, string>>({});
 const instrumentKeys = ref<
   Record<string, 'instrument' | 'instruments' | 'instrumentsCsv'>
@@ -196,6 +205,8 @@ const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
 const numbersTyping = ref<Record<string, boolean>>({});
+
+const contractList = ref<{ label: string; value: string }[]>([]);
 
 const configSettingFormInject = inject(
   BuiltinComponentInjectKeysMap.ConfigSettingForm,
@@ -247,6 +258,16 @@ const instrumentsInFrom = computed(() =>
     value: formState.value[key],
   })),
 );
+
+// const contractOptionsReactiveData = computed(() => {
+//   const instrument = formState.value.instrument;
+//   if (instrument && instrumentOptionsReactiveData.data[instrument]) {
+//     return instrumentOptionsReactiveData.data[instrument];
+//   }
+//   return [];
+// });
+
+// Use filteredInstrumentOptions as options for <a-select>
 watch(instrumentsInFrom, (insts) => {
   // have to be after watch(() => instrumentKeys.value, xxx)
   nextTick().then(() => {
@@ -332,6 +353,8 @@ if ('instrument' in formState.value && 'side' in formState.value) {
     },
   );
 }
+
+console.log('sideRadiosList.value', marginSideRadioList);
 
 function getInstrumentsSearchRelated(
   instrumentKeys: Record<
@@ -1187,6 +1210,21 @@ function calcTableItemHeight(
   return baseHeight + dividerHeight;
 }
 
+function getContracData(open) {
+  // if (open) {
+  //   const list: KungfuApi.Contract[] = window.watcher.ledger.Contract.list();
+  //   contractList.value = list.filter((item) => {
+  //     item.instrument_id === formState.value.instrument
+  //   }).map((item) => {
+  //     return {
+  //       value: `${t('tradingConfig.instrument')}${item.instrument_id},${t('tradingConfig.repaid')}${item.contract_type === ContractTypeEnum.MarginFinancing ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`}`,
+  //       label: item.unique_id,
+  //     };
+  //   });
+  //   console.log('open', open);
+  // }
+}
+
 defineExpose({
   validate,
   clearValidate,
@@ -1367,6 +1405,19 @@ defineExpose({
         "
       >
         <a-radio v-for="key in sideRadiosList" :key="key" :value="+key">
+          {{ dealSide(+key).name }}
+        </a-radio>
+      </a-radio-group>
+      <a-radio-group
+        v-else-if="item.type === 'marginSide'"
+        v-model:value="formState[item.key]"
+        :name="item.key"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+      >
+        <a-radio v-for="key in marginSideRadioList" :key="key" :value="+key">
           {{ dealSide(+key).name }}
         </a-radio>
       </a-radio-group>
@@ -1625,6 +1676,24 @@ defineExpose({
         @select="handleInstrumentSelected($event, item.key)"
         @deselect="handleInstrumentDeselected($event, item.key)"
         @blur="instrumentsSearchRelated[item.key].handleSearchInstrumentBlur"
+      ></a-select>
+      <a-select
+        v-else-if="item.type === 'contract'"
+        :ref="item.key"
+        v-model:value="formState[item.key]"
+        class="instrument-select"
+        :disabled="
+          (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+          item.disabled
+        "
+        show-search
+        :filter-option="false"
+        @dropdownVisibleChange="getContracData"
+        :options="instrumentOptionsReactiveData.data['instrument']"
+        @search="instrumentsSearchRelated['instrument'].handleSearchInstrument"
+        @blur="
+          instrumentsSearchRelated['instrument'].handleSearchInstrumentBlur
+        "
       ></a-select>
 
       <a-select

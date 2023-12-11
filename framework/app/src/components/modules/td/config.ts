@@ -62,7 +62,7 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.marked_value'),
+        title: t('tdConfig.market_value'),
         dataIndex: 'marketValue',
         align: 'right',
         sorter: {
@@ -71,7 +71,7 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.margin'),
+        title: t('tdConfig.used_margin'),
         dataIndex: 'margin',
         align: 'right',
         sorter: {
@@ -80,7 +80,7 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.avail_money'),
+        title: t('tdConfig.avail_funds'),
         dataIndex: 'avail',
         align: 'right',
         sorter: {
@@ -132,9 +132,9 @@ export const getColumns = (
 
 export const assetDetailShowList = [
   { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
-  { key: 'market_value', label: t('tdConfig.marked_value') },
-  { key: 'margin', label: t('tdConfig.margin') },
-  { key: 'avail', label: t('tdConfig.avail_money') },
+  { key: 'market_value', label: t('tdConfig.market_value') },
+  { key: 'margin', label: t('tdConfig.used_margin') },
+  { key: 'avail', label: t('tdConfig.avail_funds') },
 ] as const;
 
 export const assetMarginDetailShowList = [

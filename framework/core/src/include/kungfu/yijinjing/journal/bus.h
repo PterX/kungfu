@@ -22,11 +22,16 @@ public:
 
   void wait();
 
+  static void set_trigger_frame_uid(uint64_t frame_uid);
+
+  static uint64_t get_trigger_frame_uid();
+
 private:
   std::condition_variable cv_{};
   std::mutex cv_mutex_{};
   std::atomic<bool> ready_{false};
   const bool on_load_page_required_;
+  inline static thread_local uint64_t trigger_frame_uid_ = 0;
 };
 
 DECLARE_PTR(bus);

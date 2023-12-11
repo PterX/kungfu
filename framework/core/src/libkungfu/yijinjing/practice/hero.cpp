@@ -414,7 +414,9 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   const std::string &notice = io_device_->get_observer()->get_notice();
   now_ = time::now_in_nano();
   if (notice.length() > 2) {
-    sb.on_next(std::make_shared<nanomsg_json>(notice));
+    const auto frame = std::make_shared<nanomsg_json>(notice);
+    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    sb.on_next(frame);
   } else if (notify) {
     on_notify();
   }
@@ -426,6 +428,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   while (live_ and reader_->data_available()) {
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
+    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
     if (frame->gen_time() <= end_time_) {
       int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {

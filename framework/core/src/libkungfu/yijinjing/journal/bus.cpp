@@ -22,4 +22,8 @@ void bus::consume() { ready_.store(false); }
 
 void bus::produce() { ready_.store(true); }
 
+void bus::set_trigger_frame_uid(uint64_t frame_uid) { trigger_frame_uid_ = frame_uid; }
+
+uint64_t bus::get_trigger_frame_uid() { return trigger_frame_uid_; }
+
 } // namespace kungfu::yijinjing::journal

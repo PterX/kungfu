@@ -68,7 +68,11 @@ KF_DEFINE_PACK_TYPE(                                           //
     /** json or raw struct */                                  //
     (enums::FrameDataType, data_type),                         //
     /** the real writer of this frame */                       //
-    (uint32_t, initial_source)                                 //
+    (uint32_t, initial_source),                                //
+    /** key of frame */                                        //
+    (uint64_t, frame_uid),                                     //
+    /** current_frame of reader when generate this frame */    //
+    (uint64_t, trigger_frame_uid)                              //
 );
 
 KF_DEFINE_PACK_TYPE(                          //

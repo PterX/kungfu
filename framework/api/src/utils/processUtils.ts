@@ -1291,25 +1291,27 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
   }
 };
 
-export function quitClean(): Promise<void> {
+export async function quitClean(): Promise<void> {
   //不需要加kill daemon
-  return new Promise((resolve) => {
-    pm2Kill()
-      .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
-      .finally(() => {
-        killExtra(false)
-          .catch((err) => kfLogger.error('quitClean killExtra error: ', err))
-          .finally(() => {
-            delayMilliSeconds(1000).then(() => {
-              deleteNNFiles()
-                .catch((err) => kfLogger.error(err))
-                .finally(() => {
-                  resolve();
-                });
-            });
-          });
-      });
-  });
+  try {
+    await pm2Kill();
+  } catch (error) {
+    kfLogger.error('quitClean pm2Kill error: ', error);
+  }
+
+  try {
+    await killExtra(false);
+  } catch (error) {
+    kfLogger.error('quitClean killExtra error: ', error);
+  }
+
+  await delayMilliSeconds(1000);
+
+  try {
+    await deleteNNFiles();
+  } catch (error) {
+    kfLogger.error(error);
+  }
 }
 
 //================ business related end =================

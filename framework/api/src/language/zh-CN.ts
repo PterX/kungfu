@@ -113,6 +113,8 @@ export default {
   please_wait: '请稍后',
   please_wait_and_retry: '请稍后重试',
 
+  remarks: '备注',
+
   baseConfig: {
     main_panel: '主面板',
     control_center: '控制中心',

@@ -12,6 +12,13 @@ export const getColumns = (): AntTableColumns => [
     fixed: 'left',
   },
   {
+    title: t('remarks'),
+    dataIndex: 'remarks',
+    align: 'left',
+    width: 80,
+    fixed: 'left',
+  },
+  {
     title: t('operatorConfig.operator_file'),
     dataIndex: 'operatorFile',
     align: 'left',
@@ -83,6 +90,11 @@ export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
       primary: true,
       required: true,
       tip: t('operatorConfig.operator_tip'),
+    },
+    {
+      key: 'remarks',
+      name: t('remarks'),
+      type: 'str',
     },
     {
       key: 'file_path',

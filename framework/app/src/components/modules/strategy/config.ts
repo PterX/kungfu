@@ -18,6 +18,13 @@ export const getColumns = (
     fixed: 'left',
   },
   {
+    title: t('remarks'),
+    dataIndex: 'remarks',
+    align: 'left',
+    width: 80,
+    fixed: 'left',
+  },
+  {
     title: t('strategyConfig.strategy_file'),
     dataIndex: 'strategyFile',
     align: 'left',
@@ -80,6 +87,11 @@ export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
       primary: true,
       required: true,
       tip: t('strategyConfig.strategy_tip'),
+    },
+    {
+      key: 'remarks',
+      name: t('remarks'),
+      type: 'str',
     },
     {
       key: 'file_path',

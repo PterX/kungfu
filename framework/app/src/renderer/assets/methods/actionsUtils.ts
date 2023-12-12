@@ -62,6 +62,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
+  getNaturalNumber,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -2491,6 +2492,40 @@ export const useFormCurrentState = (
   };
 };
 
+export const getPosClosableVolumeByOffset = (
+  position: KungfuApi.Position,
+  offset: OffsetEnum,
+) => {
+  const {
+    instrument_type,
+    exchange_id,
+    volume,
+    yesterday_volume,
+    frozen_total,
+    frozen_yesterday,
+  } = position;
+  const today_volume = volume - yesterday_volume;
+  const frozen_today = frozen_total - frozen_yesterday;
+  const shotable_closable_yesterday = getNaturalNumber(
+    yesterday_volume - frozen_yesterday,
+  );
+  const closable_yesterday = getNaturalNumber(yesterday_volume - frozen_total);
+  const closable_today = getNaturalNumber(today_volume - frozen_today);
+  const closable_total = getNaturalNumber(volume - frozen_total);
+
+  if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
+    if (offset === OffsetEnum.CloseYest) {
+      return shotable_closable_yesterday;
+    } else if (offset === OffsetEnum.CloseToday) {
+      return closable_today;
+    } else {
+      return closable_total;
+    }
+  } else {
+    return closable_yesterday;
+  }
+};
+
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
   isMarginMakeOrder: Ref<boolean>,
@@ -2666,30 +2701,14 @@ export const useMakeOrderInfo = (
   const currentAvailPosVolume = computed(() => {
     if (!instrumentResolved.value) return '--';
 
-    const { instrumentType, exchangeId } = instrumentResolved.value;
     const { offset } = formState.value;
 
     if (currentPosition.value) {
-      const { yesterday_volume, volume, frozen_total, frozen_yesterday } =
-        currentPosition.value;
-      const today_volume = volume - yesterday_volume;
-      const frozen_today = frozen_total - frozen_yesterday;
-      const shotable_closable_yesterday = yesterday_volume - frozen_yesterday;
-      const closable_yesterday = yesterday_volume - frozen_total;
-      const closable_today = today_volume - frozen_today;
-      const closable_total = volume - frozen_total;
-
-      if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
-        if (offset === OffsetEnum.CloseYest) {
-          return dealKfNumber(shotable_closable_yesterday) + '';
-        } else if (offset === OffsetEnum.CloseToday) {
-          return dealKfNumber(closable_today) + '';
-        } else {
-          return dealKfNumber(closable_total) + '';
-        }
-      } else {
-        return dealKfNumber(closable_yesterday) + '';
-      }
+      return (
+        dealKfNumber(
+          getPosClosableVolumeByOffset(currentPosition.value, offset),
+        ) + ''
+      );
     }
 
     return '0';
@@ -2946,7 +2965,6 @@ export const useMakeOrderSubscribe = (
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
-
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;

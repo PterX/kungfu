@@ -29,6 +29,7 @@ import {
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import { omitObject } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   numberEnumRadioType,
   numberEnumSelectType,
@@ -181,6 +182,7 @@ const { isLanguageKeyAvailable } = useLanguage();
 
 const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
+const numberEnumRadioTypeResolved = ref({ ...numberEnumRadioType });
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
 const marginSideRadioList = [
   SideEnum.GuaranteeStockBuy,
@@ -326,7 +328,7 @@ watch(
   },
 );
 
-if ('instrument' in formState.value && 'side' in formState.value) {
+if ('instrument' in formState.value) {
   watch(
     () => formState.value.instrument,
     (newInstrument: string) => {
@@ -334,12 +336,22 @@ if ('instrument' in formState.value && 'side' in formState.value) {
         const instrumentResolved =
           transformSearchInstrumentResultToInstrument(newInstrument);
         if (instrumentResolved) {
-          const { instrumentType } = instrumentResolved;
+          const { instrumentType, exchangeId } = instrumentResolved;
           if (instrumentType === InstrumentTypeEnum.stockoption) {
             sideRadiosList.value = [
               ...Object.keys(Side).slice(0, 2),
               SideEnum.Exec + '',
             ];
+          } else if (instrumentType === InstrumentTypeEnum.future) {
+            if (exchangeId === 'SHFE' || exchangeId === 'INE') {
+              numberEnumRadioTypeResolved.value['offset'] =
+                numberEnumRadioType['offset'];
+            } else {
+              numberEnumRadioTypeResolved.value['offset'] = omitObject(
+                numberEnumRadioType['offset'],
+                [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
+              );
+            }
           } else {
             if (configSettingFormInject?.sideFilter) {
               sideRadiosList.value =
@@ -1456,7 +1468,7 @@ defineExpose({
         </a-select-option>
       </a-select>
       <a-radio-group
-        v-else-if="numberEnumRadioType[item.type]"
+        v-else-if="numberEnumRadioTypeResolved[item.type]"
         v-model:value="formState[item.key]"
         :name="item.key"
         :disabled="
@@ -1465,11 +1477,11 @@ defineExpose({
         "
       >
         <a-radio
-          v-for="key in Object.keys(numberEnumRadioType[item.type])"
+          v-for="key in Object.keys(numberEnumRadioTypeResolved[item.type])"
           :key="key"
           :value="+key"
         >
-          {{ getKfTradeValueName(numberEnumRadioType[item.type], key) }}
+          {{ getKfTradeValueName(numberEnumRadioTypeResolved[item.type], key) }}
         </a-radio>
       </a-radio-group>
       <a-radio-group

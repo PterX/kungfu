@@ -518,7 +518,7 @@ void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int
   add_location(0, state_location);
   // serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
   // for hidden pos && asset
-  serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset>(from, to, sync_schema);
+  serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset, Contract>(from, to, sync_schema);
 }
 
 Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {

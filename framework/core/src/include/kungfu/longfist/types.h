@@ -144,7 +144,7 @@ KF_DEFINE_PACK_TYPE(                         //
 );
 
 KF_DEFINE_PACK_TYPE(                            //
-    Contract, 102, PK(holder_uid), PERPETUAL(), //
+    Contract, 102, PK(holder_uid, contract_id), PERPETUAL(), //
     (int64_t, update_time),                     // 更新时间
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),             // 证券代码

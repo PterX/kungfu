@@ -1229,8 +1229,8 @@ function getContracData(open) {
   //     item.instrument_id === formState.value.instrument
   //   }).map((item) => {
   //     return {
-  //       value: `${t('tradingConfig.instrument')}${item.instrument_id},${t('tradingConfig.repaid')}${item.contract_type === ContractTypeEnum.MarginFinancing ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`}`,
-  //       label: item.unique_id,
+  //       value: `${t('tradingConfig.instrument')}${item.instrument_id},${t('tradingConfig.repaid')}${item.contract_type === ContractTypeEnum.CrdBuyContract ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`}`,
+  //       label: item.contract_id,
   //     };
   //   });
   //   console.log('open', open);

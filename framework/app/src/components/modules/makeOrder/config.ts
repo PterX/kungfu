@@ -68,7 +68,7 @@ export const getConfigSettings = (
       supportMargin &&
       (sideEnum === SideEnum.RepayStock || sideEnum === SideEnum.RepayMargin)
         ? {
-            key: 'unique_id',
+            key: 'contract_id',
             name: t('tradingConfig.specfy_contract'),
             type: 'contract',
             placeholder: t('tradingConfig.specfy_contract_placeholder'),

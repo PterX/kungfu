@@ -288,8 +288,8 @@ watch(
     }
     console.log('instrument change', newVal);
 
-    if (formState.value.unique_id) {
-      formState.value.unique_id = '';
+    if (formState.value.contract_id) {
+      formState.value.contract_id = '';
     }
 
     if (!instrumentResolved.value) {
@@ -343,7 +343,7 @@ watch(
         : (formState.value.offset = OffsetEnum.Close);
 
       if (!isSpecifyContract.value && newSide === SideEnum.RepayMargin) {
-        formState.value.unique_id = '';
+        formState.value.contract_id = '';
       }
     } else {
       if (instrumentResolved.value) {
@@ -439,7 +439,7 @@ function initOrderInputData(): Promise<KungfuApi.MakeOrderInput> {
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
   const {
-    unique_id,
+    contract_id,
     limit_price,
     volume,
     price_type,
@@ -461,7 +461,7 @@ function initOrderInputData(): Promise<KungfuApi.MakeOrderInput> {
     hedge_flag: +(hedge_flag || 0),
     is_swap: !!is_swap,
     parent_id: 0n,
-    unique_id: unique_id || '',
+    contract_id: contract_id || '',
   };
 
   return Promise.resolve(makeOrderInput);

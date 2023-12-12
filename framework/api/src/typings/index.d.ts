@@ -59,6 +59,7 @@ declare namespace KungfuApi {
     CashReplaceFlagEnum,
     BasketTypeEnum,
     ContractTypeEnum,
+    CloseOutFlagEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -517,7 +518,7 @@ declare namespace KungfuApi {
     hedge_flag: HedgeFlagEnum;
     is_swap: boolean;
     parent_id: bigint;
-    unique_id: string;
+    contract_id: string;
   }
   export type MakeOrderTriggerInput = MakeOrderInput;
 
@@ -755,7 +756,7 @@ declare namespace KungfuApi {
     exchange_id: string; //交易所代码
     instrument_type: InstrumentTypeEnum; //合约类型
 
-    unique_id: string; //合约唯一标识
+    contract_id: string; //合约唯一标识
 
     limit_price: number; //价格
     frozen_price: number; //冻结价格
@@ -981,16 +982,17 @@ declare namespace KungfuApi {
   export interface Contract {
     instrument_id: string; // 标的
     exchange_id: string; // 交易所id
+    contract_id: string; // 合约id
     contract_type: ContractTypeEnum; // 合约类型
     instrument_type: InstrumentTypeEnum; // 标的类型
-    unique_id: string; // 唯一标识
     opening_date: string; // 开仓日期
-    repayment_amt: number; // 已偿还金额（融资）
-    total_liability_amt: number; // 合约总欠款（融资）
-    repayment_qty: number; // 已偿还数量（融券）
-    total_liability_qty: number; // 合约总欠券 （融券）
-    unsettled_interest: number; // 未结利息罚息 未结利息+未结罚息
+    repayment_amt: bigint; // 已偿还金额（融资）
+    total_liability_amt: bigint; // 合约总欠款（融资）
+    repayment_qty: bigint; // 已偿还数量（融券）
+    total_liability_qty: bigint; // 合约总欠券 （融券）
+    unsettled_interest: bigint; // 未结利息罚息 未结利息+未结罚息
     expiration_date: string; // 归还截止日期
+    close_out_flag: CloseOutFlagEnum; // 合约了结状态
   }
 
   export interface AlgoOrder {
@@ -1367,6 +1369,7 @@ declare namespace KungfuApi {
       instrumentId: string,
     ): boolean;
     requestPosition(): boolean;
+    requestContract(): boolean;
     cancelOrder(
       orderAction: OrderAction,
       tdLocation: KfLocation,

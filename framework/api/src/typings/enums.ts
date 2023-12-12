@@ -50,11 +50,25 @@ export enum InstrumentTypeEnum {
 export type InstrumentTypes = keyof typeof InstrumentTypeEnum;
 
 export enum ContractTypeEnum {
-  MarginFinancing,
-  SecuritiesLending,
+  CrdBuyContract, //融资合约
+  CrdSellContract, //融券合约
+  CrdBuyInterest, //融资利息
+  CrdSellFee, //融券费用
+  CapitalRightsCompensation, //资金权益补偿
+  ShareRightsCompensation, //股份权益补偿
+  OverdueInterest, //逾期罚息
+  BadDebtInterest, //坏账罚息
+  Capital0ccupationFee, //资金占用费
+  ManagementFee, //管理费
 }
 
 export type ContractTypes = keyof typeof ContractTypeEnum;
+
+export enum CloseOutFlagEnum {
+  NotCloseOut, //未了結
+  closeout, //了結
+  InitNotc1o, //初始化未了結
+}
 
 export enum BasketVolumeTypeEnum {
   Unknown,

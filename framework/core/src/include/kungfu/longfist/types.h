@@ -121,7 +121,7 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, long_avail),  // otc业务可用资金(多)
     (double, short_avail), // otc业务可用资金(空）
 
-    (double, total_asset),  // 总资产
+    (double, total_asset),  // 资产总值(现金+融券卖出金额)
     (double, avail_margin), // 可用保证金
 
     (double, long_debt),  // 融资欠款金额（原融资负债字段 现更新定义）
@@ -134,7 +134,7 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, collateral_ratio), // 担保比例
 
     (double, total_debt),                  // 总负债
-    (double, net_assets double),           // 净资产
+    (double, net_assets ),           // 净资产
     (double, long_total_debt),             // 融资总负债（融资欠款+融资利息+融资费用）
     (double, short_total_debt),            // 融券总负债（融券市值+融券利息+融券费用）
     (double, gage_buy_fund_available),     // 担保品买入可用资金
@@ -163,6 +163,7 @@ KF_DEFINE_PACK_TYPE(                            //
 
     (int64_t, repayment_qty),       // 已偿还数量(融券)
     (int64_t, total_liability_qty), // 融券总数量
+    (uint32_t, holder_uid)
 );
 
 KF_DEFINE_PACK_TYPE(                                                                                 //
@@ -265,6 +266,7 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id), // 两融合约唯一标识
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
@@ -304,6 +306,7 @@ KF_DEFINE_PACK_TYPE(                                 //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id), // 两融合约唯一标识
 
     (enums::InstrumentType, instrument_type), // 合约类型
 

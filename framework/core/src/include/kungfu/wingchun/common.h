@@ -657,6 +657,7 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
   strcpy(trade.instrument_id, order.instrument_id);
   strcpy(trade.exchange_id, order.exchange_id);
   strcpy(trade.external_order_id, order.external_order_id);
+  strcpy(trade.contract_id, order.contract_id);
   trade.instrument_type = order.instrument_type;
   trade.side = order.side;
   trade.offset = order.offset;

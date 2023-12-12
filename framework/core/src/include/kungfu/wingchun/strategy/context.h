@@ -219,7 +219,7 @@ public:
                       std::vector<double> limit_prices, std::vector<int64_t> volumes,
                       std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
                       std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
-                      std::vector<bool> is_swaps, const std::vector<std::string> &contract_id = {}) = 0;
+                      std::vector<bool> is_swaps, const std::vector<std::string> &contract_ids = {}) = 0;
 
   /**
    * Insert Batch Orders

@@ -298,7 +298,8 @@ void master::on_request_write_to_band(const event_ptr &event) {
     return;
   }
 
-  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band slowly
+  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
+  // slowly
   cached_.try_ensure_cached_storage(get_location(app_uid), request.location_uid);
   reader_->join(get_location(app_uid), request.location_uid, trigger_time, page_size);
   require_write_to_band(trigger_time, app_uid, target_location, page_size);
@@ -318,7 +319,8 @@ void master::on_request_write_to(const event_ptr &event) {
     return;
   }
 
-  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band slowly
+  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
+  // slowly
   cached_.try_ensure_cached_storage(get_location(app_uid), request.dest_id);
   reader_->join(get_location(app_uid), request.dest_id, trigger_time);
   require_write_to(trigger_time, app_uid, request.dest_id);
@@ -341,8 +343,9 @@ void master::on_request_read_from(const event_ptr &event) {
   if (not check_location_live(request.source_id, app_uid)) {
     return;
   }
-  
-  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band slowly
+
+  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
+  // slowly
   cached_.try_ensure_cached_storage(get_location(request.source_id), app_uid);
   reader_->join(get_location(request.source_id), app_uid, trigger_time);
   require_write_to(trigger_time, request.source_id, app_uid);

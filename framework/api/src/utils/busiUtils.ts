@@ -67,7 +67,6 @@ import {
   parseTaskSettingsFromEnv,
   deepClone,
   initFormTimePicker,
-  concatPrimaryKey,
   dealMillionSencond2NanoSecond,
   dealDateDayOrMonth,
 } from './commonUtils';

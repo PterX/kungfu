@@ -423,24 +423,6 @@ export const initFormTimePicker = (initValue?: string | string[]) => {
   return null;
 };
 
-export const concatPrimaryKey = (arr: string[]) => {
-  if (arr.length === 0) return '';
-
-  let result = arr[0];
-
-  if (arr.length > 1) {
-    result += '_' + arr[1];
-  }
-
-  if (arr.length > 2) {
-    for (let i = 2; i < arr.length; i++) {
-      result += '-' + arr[i];
-    }
-  }
-
-  return result;
-};
-
 export const getPrimaryKeyFromKfConfigItem = (
   settings: KungfuApi.KfConfigItem[],
 ): KungfuApi.KfConfigItem[] => {

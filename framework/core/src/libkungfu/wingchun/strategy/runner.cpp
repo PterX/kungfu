@@ -129,6 +129,7 @@ void Runner::on_start() {
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));
+
   if (context_->is_started()) {
     post_start();
   } else {
@@ -148,6 +149,10 @@ void Runner::post_start() {
   if (not context_->is_started()) {
     return; // safe guard for live mode, in that case we will run truly when prepare process is done.
   }
+
+  invoke(&Strategy::post_start);
+  has_post_started_ = true;
+
   events_ | is(Order::tag) |
       $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
   events_ | is(OrderTrigger::tag) |
@@ -182,8 +187,6 @@ void Runner::post_start() {
       $$(invoke(&Strategy::on_custom_data, event->msg_type(),
                 {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
                 get_location(event->source()), event->dest()));
-  invoke(&Strategy::post_start);
-  has_post_started_ = true;
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }

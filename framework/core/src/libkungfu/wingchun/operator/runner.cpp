@@ -94,6 +94,7 @@ void Runner::on_start() {
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));
+
   if (context_->is_started()) {
     post_start();
   } else {
@@ -113,6 +114,7 @@ void Runner::post_start() {
   if (not context_->is_started()) {
     return;
   }
+
   invoke(&Operator::post_start);
   has_post_started_ = true;
 }

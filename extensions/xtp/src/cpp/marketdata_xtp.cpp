@@ -52,6 +52,9 @@ void MarketDataXTP::pre_start() {
 }
 
 void MarketDataXTP::on_start() {
+  //  update_broker_state(BrokerState::Ready);
+  //  return;
+
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
@@ -85,6 +88,60 @@ void MarketDataXTP::on_start() {
 }
 
 bool MarketDataXTP::subscribe(const std::vector<InstrumentKey> &instrument_keys) {
+  //  auto writer = get_public_writer();
+  //  for (int i = 0; i < 10000; ++i) {
+  //    auto &quote = writer->open_data<Quote>(0);
+  //    quote.instrument_id = "100001";
+  //    quote.exchange_id = "SSE";
+  //    quote.instrument_type = get_instrument_type(quote.exchange_id, quote.instrument_id);
+  //    quote.last_price = i;
+  //    quote.data_time = time::now_in_nano();
+  //    writer->close_data();
+  //
+  //    auto &quote1 = writer->open_data<Quote>(now());
+  //    quote1.instrument_id = "100001";
+  //    quote1.exchange_id = "SSE";
+  //    quote1.instrument_type = get_instrument_type(quote1.exchange_id, quote1.instrument_id);
+  //    quote1.last_price = i;
+  //    quote1.data_time = time::now_in_nano();
+  //    writer->close_data();
+  //  }
+
+  //  auto &en = writer->open_data<Entrust>();
+  //  en.instrument_id = "000002";
+  //  en.exchange_id = "SSE";
+  //  en.price = 110;
+  //  en.instrument_type = get_instrument_type(en.exchange_id, en.instrument_id);
+  //  en.data_time = time::now_in_nano();
+  //  writer->close_data();
+
+  //  auto &quote1 = writer->open_data<Quote>(now());
+  //  quote1.instrument_id = "000002";
+  //  quote1.exchange_id = "SSE";
+  //  quote1.instrument_type = get_instrument_type(quote1.exchange_id, quote1.instrument_id);
+  //  quote1.last_price = 110;
+  //  quote1.data_time = time::now_in_nano();
+  //  writer->close_data();
+
+  //  for (int i = 0; i < 10000; ++i) {
+  //    auto &tr = writer->open_data<Transaction>();
+  //    tr.instrument_id = "000001";
+  //    tr.exchange_id = "SSE";
+  //    tr.instrument_type = get_instrument_type(tr.exchange_id, tr.instrument_id);
+  //    //    tr.last_price = i;
+  //    tr.data_time = time::now_in_nano();
+  //    writer->close_data();
+  //  }
+  //
+  //  auto &tree = writer->open_data<Tree>();
+  //  tree.instrument_id = "600000";
+  //  tree.exchange_id = "SSE";
+  //  tree.last_price = 110;
+  //  tree.instrument_type = get_instrument_type(tree.exchange_id, tree.instrument_id);
+  //  tree.data_time = time::now_in_nano();
+  //  writer->close_data();
+
+  //  return true;
   bool result = true;
   std::vector<std::string> sse_tickers;
   std::vector<std::string> sze_tickers;

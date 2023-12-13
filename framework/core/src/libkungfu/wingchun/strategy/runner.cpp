@@ -191,6 +191,32 @@ void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
 void Runner::post_stop() { invoke(&Strategy::post_stop); }
 
+bool Runner::is_rx(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    invoke(&Strategy::on_custom_data, event->msg_type(),
+           {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+           get_location(event->source()), event->dest());
+    return false;
+  }
+
+  static const std::unordered_map<int32_t, std::function<bool(const Client &broker_client, const event_ptr &)>>
+      map_is_own = {
+          {Quote::tag, is_own_event<Quote>},
+          {Tree::tag, is_own_event<Tree>},
+          {Entrust::tag, is_own_event<Entrust>},
+          {Transaction::tag, is_own_event<Transaction>},
+          {BrokerStateUpdate::tag, is_own_event<BrokerStateUpdate>},
+          {OperatorStateUpdate::tag, is_own_event<OperatorStateUpdate>},
+          {Deregister::tag, is_own_event<Deregister>},
+      };
+
+  auto iter = map_is_own.find(event->msg_type());
+  if (iter != map_is_own.end()) {
+    return iter->second(context_->get_broker_client(), event);
+  }
+  return true;
+}
+
 Runner::BookListener::BookListener(Runner &runner) : runner_(runner) {}
 
 void Runner::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {

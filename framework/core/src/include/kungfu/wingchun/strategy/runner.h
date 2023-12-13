@@ -19,7 +19,7 @@ public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
          longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
 
-  ~Runner() = default;
+  ~Runner() override = default;
 
   [[nodiscard]] Context_ptr get_context() const;
 
@@ -40,6 +40,8 @@ public:
   void set_backtest_config(const std::string &backtest_config);
 
   void on_exit() override;
+
+  bool is_rx(const event_ptr &event) override;
 
 protected:
   void react() override;
@@ -77,6 +79,16 @@ private:
     for (const auto &strategy : strategies_) {
       (*strategy.*method)(context);
     }
+  }
+
+  template <typename OnMethod = bool (Strategy::*)(Context_ptr &, const event_ptr &event)>
+  bool invoke(OnMethod method, const event_ptr &event) {
+    auto context = std::dynamic_pointer_cast<Context>(context_);
+    bool flag = false;
+    for (const auto &strategy : strategies_) {
+      flag |= (*strategy.*method)(context, event);
+    }
+    return flag;
   }
 
   template <typename TradingData, typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &)>

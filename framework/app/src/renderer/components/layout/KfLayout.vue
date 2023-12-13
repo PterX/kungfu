@@ -67,14 +67,15 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     }
   }
 
-  if (data.tag === 'route-push-to-sidebar-extension') {
-    const targetExtKey = data.targetExtKey || '';
+  if (data.tag === 'switch-sidebar') {
+    const targetKey = data.targetKey || '';
+    const isMain = targetKey === 'main';
     const isExtInSidebar = sidebarComponentConfigs.value.some(
-      (item) => item.key === targetExtKey,
+      (item) => item.key === targetKey,
     );
-    if (isExtInSidebar) {
-      menuSelectedKeys.value = [targetExtKey];
-      handleToPage(`/${targetExtKey}`);
+    if (isMain || isExtInSidebar) {
+      menuSelectedKeys.value = [targetKey];
+      handleToPage(`/${isMain ? '' : targetKey}`);
     }
   }
 

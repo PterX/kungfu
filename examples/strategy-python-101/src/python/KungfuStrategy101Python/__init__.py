@@ -5,7 +5,7 @@ import kungfu
 wc = kungfu.__binding__.wingchun
 
 source = "sim"  # 目标交易账户的柜台名称
-account = "123456"  # 目标交易账户的账户号, 需添加 sim 柜台的账户号为 123456 的账户
+account = "simTest"  # 目标交易账户的账户号, 需添加 sim 柜台的账户号为 simTest 的账户
 md_source = "sim"  # 目标行情源的柜台名称, 需添加 sim 行情源
 
 

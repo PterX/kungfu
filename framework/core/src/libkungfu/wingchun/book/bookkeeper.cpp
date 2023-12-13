@@ -148,6 +148,8 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
   std::lock_guard<std::mutex> lock(update_book_mutex_);
+  SPDLOG_DEBUG("update_book by instrument_key {}, from {} to {}", instrument_key.to_string(),
+               app_.get_location_uname(event->source()), app_.get_location_uname(event->dest()));
   broker_client_.subscribe(instrument_key);
   get_book(event->source())->ensure_position_for(instrument_key);
 }
@@ -304,15 +306,14 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_long_positions(reset_positions);
 
   auto copy_positions = [&](auto &position) {
-    if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
-                                    position.instrument_id)) {
-      auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
-                                                            position.exchange_id, position.instrument_id);
+    if (strategy_book->has_position_for(position)) {
+      auto &strategy_position = strategy_book->get_position_for(position);
       longfist::copy(strategy_position, position);
       strategy_position.holder_uid = strategy_uid;
       strategy_position.ledger_category = LedgerCategory::Strategy;
       strategy_position.update_time = trigger_time;
       strategy_position.source_id = position.source_id;
+      strategy_position.source_op_id = get_source_op_id(strategy_uid, position.source_id);
     }
   };
 

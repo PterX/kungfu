@@ -69,6 +69,7 @@ private:
   tool::Report_ptr report_;
   int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
   std::string backtest_config_;
+  bool has_post_started_ = false;
 
   void inspect_channel(const event_ptr &event);
 

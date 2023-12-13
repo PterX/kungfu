@@ -59,9 +59,24 @@ bool Book::has_short_position(const std::string &source, const std::string &acco
   return has_short_position(location->uid, exchange_id, instrument_id);
 }
 
-bool Book::has_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
+bool Book::has_position_for(uint32_t source_id, const char *exchange_id, const char *instrument_id) const {
   return has_long_position(source_id, exchange_id, instrument_id) or
          has_short_position(source_id, exchange_id, instrument_id);
+}
+
+bool Book::has_position_for(const Position &position) const {
+  return has_position(position.source_id, position.direction, position.exchange_id, position.instrument_id);
+}
+
+bool Book::has_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
+                        const char *instrument_id) const {
+  const map::PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
+  auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
+  if (positions.find(position_id) == positions.end()) {
+    return false;
+  }
+
+  return true;
 }
 
 Position &Book::get_long_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
@@ -84,6 +99,10 @@ Position &Book::get_short_position(const std::string &source, const std::string 
   return get_short_position(location->uid, exchange_id, instrument_id);
 }
 
+Position &Book::get_position_for(const longfist::types::Position &position) {
+  return get_position(position.source_id, position.direction, position.exchange_id, position.instrument_id);
+}
+
 Position &Book::get_position(uint32_t source_id, Direction direction, const char *exchange_id,
                              const char *instrument_id) {
   assert(asset.holder_uid != 0);
@@ -103,17 +122,6 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
   }
   add_source_id(source_id);
   return position;
-}
-
-bool Book::has_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
-                        const char *instrument_id) {
-  map::PositionMap &positions = direction == Direction::Long ? long_positions : short_positions;
-  auto position_id = hash_instrument(source_id, exchange_id, instrument_id);
-  if (positions.find(position_id) == positions.end()) {
-    return false;
-  }
-
-  return true;
 }
 
 void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {

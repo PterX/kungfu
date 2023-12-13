@@ -305,11 +305,9 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_short_positions(reset_positions);
   strategy_book->apply_long_positions(reset_positions);
 
-  auto copy_positions = [&](auto &position) {
-    if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
-                                    position.instrument_id)) {
-      auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
-                                                            position.exchange_id, position.instrument_id);
+  auto copy_positions = [&](const auto &position) {
+    if (strategy_book->has_position_for(position)) {
+      auto &strategy_position = strategy_book->get_position_for(position);
       longfist::copy(strategy_position, position);
       strategy_position.holder_uid = strategy_uid;
       strategy_position.ledger_category = LedgerCategory::Strategy;

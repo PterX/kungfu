@@ -909,14 +909,14 @@ export const getCombineValueByPrimaryKeys = (
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return concatPrimaryKey(
-    [
-      extraValue || '',
-      ...primaryKeys.map((key) =>
-        replaceNonAlphaNumericWithSpace(formState[key]),
-      ),
-    ].filter((item) => item !== ''),
-  );
+  return [
+    extraValue || '',
+    ...primaryKeys.map((key) =>
+      replaceNonAlphaNumericWithSpace(formState[key]),
+    ),
+  ]
+    .filter((item) => item !== '')
+    .join('-');
 };
 
 export const numberEnumRadioType: Record<

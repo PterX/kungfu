@@ -17,6 +17,7 @@ def pre_start(context):
     context.subscribe(md_source, ["rb2401"], Exchange.SHFE)  # 订阅行情
     context.subscribe(md_source, ["sc2401"], Exchange.INE)  # 订阅行情
     # context.subscribe_operator("bar", "123") # 需从算子入口添加bar插件, 并定义bar的id为123
+    context.throttle_insert_order = {}
 
 
 def post_start(context):
@@ -25,6 +26,14 @@ def post_start(context):
 
 
 def on_quote(context, quote, location, dest):
+    # insert order interval 10s
+    if (
+        context.now() - context.throttle_insert_order.get(quote.instrument_id, 0)
+        < 10000000000
+    ):
+        return
+    context.throttle_insert_order[quote.instrument_id] = context.now()
+
     side = random.choice([Side.Buy, Side.Sell])
     offset = random.choice([Offset.Open, Offset.Close])
     side = random.choice([Side.Buy, Side.Sell])
@@ -43,8 +52,6 @@ def on_quote(context, quote, location, dest):
         offset,
     )
     context.log.info(f"insert order: {order_id}")
-    # 报完即撤
-    context.cancel_order(order_id)
 
 
 # 监听算子广播信息
@@ -54,6 +61,9 @@ def on_synthetic_data(context, synthetic_dataa, location, dest):
 
 def on_order(context, order, location, dest):
     context.log.info(f"on_order: {order}, from {location} to {dest}")
+
+    if not wc.utils.is_final_status(order.status):
+        context.cancel_order(order.order_id)
 
 
 def on_trade(context, trade, location, dest):

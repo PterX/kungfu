@@ -148,7 +148,11 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
       SPDLOG_WARN("page not existed, source_location: {}, dest: {}", source_location->uname, location::SYNC);
     }
   }
-  if (frame->dest() == home_->uid and frame->msg_type() == RequestReadFromOthers::tag) {
+
+  // This step is quite special because "RequestReadFromOthers" is sent after joining the journal. To leave a trace, it
+  // should be processed at the time of sending, not waiting for the master to return.
+  if ((frame->dest() == home_->uid or frame->source() == home_->uid) and
+      frame->msg_type() == RequestReadFromOthers::tag) {
     auto request = frame->data<RequestReadFromOthers>();
     if (locations_.find(request.source_id) == locations_.end()) {
       SPDLOG_WARN("RequestReadFromOthers no location {}", (uint32_t)request.source_id);

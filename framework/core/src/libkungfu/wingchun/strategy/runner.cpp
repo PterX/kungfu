@@ -61,30 +61,6 @@ void Runner::on_start() {
   pre_start();
   enable(*context_);
 
-  auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
-  start_events | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Tree>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
-  start_events | is(Order::tag) |
-      $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
-  start_events | is(OrderTrigger::tag) |
-      $$(invoke(&Strategy::on_order_trigger, event->data<OrderTrigger>(), get_location(event->source()),
-                event->dest()));
-  start_events | is(Trade::tag) |
-      $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
-  start_events | is(SyntheticData::tag) |
-      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
-                event->dest()));
-  start_events | is_custom() |
-      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
-                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
-                get_location(event->source()), event->dest()));
-
   // TODO add skip_until for broker_states_requested_ == true later
   events_ | is_own<Deregister>(context_->get_broker_client()) |
       $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
@@ -110,6 +86,32 @@ void Runner::post_start() {
     return; // safe guard for live mode, in that case we will run truly when prepare process is done.
   }
 
+  invoke(&Strategy::post_start);
+  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
+
+  events_ | is_own<Quote>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
+  events_ | is_own<Tree>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
+  events_ | is_own<Entrust>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
+  events_ | is_own<Transaction>(context_->get_broker_client()) |
+      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  events_ | is(Order::tag) |
+      $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
+  events_ | is(OrderTrigger::tag) |
+      $$(invoke(&Strategy::on_order_trigger, event->data<OrderTrigger>(), get_location(event->source()),
+                event->dest()));
+  events_ | is(Trade::tag) |
+      $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
+  events_ | is(SyntheticData::tag) |
+      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
+                event->dest()));
+  events_ | is_custom() |
+      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
+                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+                get_location(event->source()), event->dest()));
+
   events_ | is(HistoryOrder::tag) |
       $$(invoke(&Strategy::on_history_order, event->data<HistoryOrder>(), get_location(event->source()),
                 event->dest()));
@@ -128,8 +130,6 @@ void Runner::post_start() {
   events_ | is(OrderTriggerActionError::tag) |
       $$(invoke(&Strategy::on_order_trigger_action_error, event->data<OrderTriggerActionError>(),
                 get_location(event->source()), event->dest()));
-  invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }

@@ -87,14 +87,20 @@ public:
                                                          position.exchange_id, position.instrument_id);
       double frozen_fee = 0;
 
-      if (input.side == Side::Sell || input.side == Side::RepayMargin ||
-          input.side == Side::RepayStock) { // Offset: Close
+      if (input.side == Side::Sell || input.side == Side::GuaranteeStockSell || input.side == Side::RepayMargin ||
+          input.side == Side::StockRepayStock) { // Offset: Close
         position.frozen_total += input.volume;
         position.frozen_yesterday += input.volume;
-      } else if (input.side == Side::Buy) { // Offset: Open
+      } else if (input.side == Side::Buy || input.side == Side::GuaranteeStockBuy ||
+                 input.side == Side::RepayStock) { // Offset: Open
         double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate * cd_mr.margin_ratio;
         book->asset.frozen_cash += frozen_cash;
         book->asset.avail -= frozen_cash;
+      } else if (input.side == Side::MarginTrade || input.side == Side::ShortSell) {
+        book->asset.avail_margin -= input.limit_price * input.volume;
+        book->asset.credit_buy_fund_available -= input.limit_price * input.volume;
+      } else if (input.side == Side::CashRepayMargin) {
+        book->asset.avail -= input.limit_price;
       }
     };
 
@@ -110,14 +116,32 @@ public:
       auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                          position.exchange_id, position.instrument_id);
       auto &asset = book->asset;
-      if (order.side == Side::Buy) {
+      if (order.side == Side::Buy || order.side == Side::GuaranteeStockBuy || order.side == Side::RepayStock) {
         auto frozen =
             book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
         book->asset.frozen_cash -= frozen;
         book->asset.avail += frozen;
-      } else if (order.side == Side::Sell || order.side == Side::RepayMargin || order.side == Side::RepayStock) {
+      } else if (order.side == Side::Sell || order.side == Side::GuaranteeStockSell ||
+                 order.side == Side::RepayMargin) {
         position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
+      } else if (order.side == Side::MarginTrade || order.side == Side::ShortSell) {
+        book->asset.avail_margin += order.limit_price * order.volume_left;
+        book->asset.credit_buy_fund_available += order.limit_price * order.volume_left;
+      } else if (order.side == Side::CashRepayMargin) {
+        book->asset.avail += order.limit_price;
+      } else if (order.side == Side::StockRepayStock) {
+        // 现券还券没有成交回报 当状态为清算中的时候 此时为最终状态 会更新持仓
+        // 由于现券还券委托价格为0 所以涉及持仓的盈亏以及最新价格暂时无法处理
+        if (order.status == OrderStatus::PendingSettlement) {
+          position.volume = std::max(position.volume - order.volume, VOLUME_ZERO);
+          position.frozen_total = std::max(position.frozen_total - order.volume, VOLUME_ZERO);
+          position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume, VOLUME_ZERO);
+          position.yesterday_volume = std::max(position.yesterday_volume - order.volume, VOLUME_ZERO);
+        } else {
+          position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+          position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
+        }
       }
       // it assumes position.volume is changed already(apply_trade), otherwise position.volume would be inconsistant.
       update_position(book, position);
@@ -134,9 +158,9 @@ public:
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     auto apply = [&](auto &position) {
-      if (trade.side == Side::Sell) {
+      if (trade.side == Side::Sell || trade.side == Side::GuaranteeStockSell) {
         apply_sell(book, position, trade, is_local);
-      } else if (trade.side == Side::Buy) {
+      } else if (trade.side == Side::Buy || trade.side == Side::GuaranteeStockBuy) {
         apply_buy(book, position, trade, is_local);
       }
 

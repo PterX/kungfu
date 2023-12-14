@@ -594,7 +594,7 @@ enum class OrderStatus : int8_t {
   Lost,                   // 丢失
   Cancelling,             // 待撤
   Pause,                  // 暂停
-  Clearing                // 清算中
+  PendingSettlement       // 等待结算
 };
 
 KF_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -609,7 +609,7 @@ KF_JSON_SERIALIZE_ENUM(OrderStatus, {
                                         {OrderStatus::Lost, "Lost"},
                                         {OrderStatus::Cancelling, "Cancelling"},
                                         {OrderStatus::Pause, "Pause"},
-                                        {OrderStatus::Clearing, "Clearing"},
+                                        {OrderStatus::PendingSettlement, "PendingSettlement"},
                                     })
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int32_t(t); }

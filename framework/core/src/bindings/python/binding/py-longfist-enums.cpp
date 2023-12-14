@@ -136,7 +136,7 @@ void bind_enums(py::module &m) {
       .value("PartialFilledActive", OrderStatus::PartialFilledActive)
       .value("Lost", OrderStatus::Lost)
       .value("Cancelling", OrderStatus::Cancelling)
-      .value("Clearing", OrderStatus::Clearing)
+      .value("PendingSettlement", OrderStatus::PendingSettlement)
       .export_values()
       .def("__eq__", [](const OrderStatus &a, int b) { return static_cast<int>(a) == b; });
 

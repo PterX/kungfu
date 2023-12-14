@@ -240,8 +240,9 @@ uint64_t BacktestContext::insert_block_message(const std::string &source, const 
 
 uint64_t BacktestContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                        const std::string &source, const std::string &account, double limit_price,
-                                       int64_t volume, PriceType type, Side side, Offset offset, const std::string &contract_id, HedgeFlag hedge_flag,
-                                       bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                       int64_t volume, PriceType type, Side side, Offset offset,
+                                       const std::string &contract_id, HedgeFlag hedge_flag, bool is_swap,
+                                       uint64_t block_id, uint64_t parent_id) {
   auto insert_time = now();
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
   if (instrument_type == InstrumentType::Unknown) {

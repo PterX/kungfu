@@ -18,7 +18,6 @@ export const getColumns = (
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
-  isShowMarginTrading: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'td')
@@ -88,38 +87,78 @@ export const getColumns = (
         },
         width: 110,
       },
-
-      ...(isShowMarginTrading
-        ? [
-            {
-              title: t('tdConfig.avail_margin'),
-              dataIndex: 'avail_margin',
-              align: 'right',
-              sorter: {
-                compare: marginSorter('avail_margin'),
-              },
-              width: 110,
-            },
-            {
-              title: t('tdConfig.cash_debt'),
-              dataIndex: 'cash_debt',
-              align: 'right',
-              sorter: {
-                compare: marginSorter('cash_debt'),
-              },
-              width: 110,
-            },
-            {
-              title: t('tdConfig.total_asset'),
-              dataIndex: 'total_asset',
-              align: 'right',
-              sorter: {
-                compare: marginSorter('total_asset'),
-              },
-              width: 110,
-            },
-          ]
-        : []),
+      {
+        title: t('tdConfig.frozen_funds'),
+        dataIndex: 'frozen_funds',
+        align: 'right',
+        sorter: {
+          compare: sorter('frozen_funds'),
+        },
+        width: 110,
+      },
+      {
+        title: t('tdConfig.short_sale_proceeds'),
+        dataIndex: 'short_sale_proceeds',
+        align: 'right',
+        sorter: {
+          compare: sorter('short_sale_proceeds'),
+        },
+        width: 160,
+      },
+      {
+        title: t('tdConfig.maintain_margin_ratio'),
+        dataIndex: 'maintain_margin_ratio',
+        align: 'right',
+        sorter: {
+          compare: sorter('maintain_margin_ratio'),
+        },
+        width: 110,
+      },
+      {
+        title: t('tdConfig.avail_margin'),
+        dataIndex: 'avail_margin',
+        align: 'right',
+        sorter: {
+          compare: marginSorter('avail_margin'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.total_liabilities'),
+        dataIndex: 'total_liabilities',
+        align: 'right',
+        sorter: {
+          compare: sorter('total_liabilities'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.equity'),
+        dataIndex: 'equity',
+        align: 'right',
+        sorter: {
+          compare: sorter('equity'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.total_borrowed_funds'),
+        dataIndex: 'total_borrowed_funds',
+        align: 'right',
+        sorter: {
+          compare: sorter('total_borrowed_funds'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.total_short_liabilities'),
+        dataIndex: 'total_short_liabilities',
+        align: 'right',
+        sorter: {
+          compare: sorter('total_short_liabilities'),
+        },
+        width: 140,
+      },
 
       {
         title: t('tdConfig.actions'),
@@ -138,9 +177,17 @@ export const assetDetailShowList = [
 ] as const;
 
 export const assetMarginDetailShowList = [
+  { key: 'frozen_cash', label: t('tdConfig.frozen_funds') },
+  { key: 'collateral_ratio', label: t('tdConfig.maintain_margin_ratio') },
   { key: 'avail_margin', label: t('tdConfig.avail_margin') },
-  { key: 'cash_debt', label: t('tdConfig.cash_debt') },
-  { key: 'total_asset', label: t('tdConfig.total_asset') },
+  { key: 'short_cash', label: t('tdConfig.short_sale_proceeds') },
+  { key: 'total_debt', label: t('tdConfig.total_liabilities') },
+  { key: 'net_assets', label: t('tdConfig.equity') },
+  { key: 'long_total_debt', label: t('tdConfig.total_borrowed_funds') },
+  {
+    key: 'short_total_debt',
+    label: t('tdConfig.total_short_liabilities'),
+  },
 ] as const;
 
 const orderSortKey = getTradingDataSortKey('Order');

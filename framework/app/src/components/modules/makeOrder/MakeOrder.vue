@@ -97,17 +97,17 @@ const formState = ref(
 
 const isMarginMakeOrder = computed(() => {
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.marginMakeOrder || false
+  extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
+  ?.marginMakeOrder || false
   );
-});
+  });
 
 const isSpecifyContract = computed(() => {
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.specifyContract || false
+  extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
+  ?.specifyContract || false
   );
-});
+  });
 
 const formRef = ref();
 const { subscribeAllInstrumentByAppStates } = useInstruments();
@@ -205,7 +205,7 @@ const makeOrderData = computed(() => {
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
 
-  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap } =
+  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap,contract_id } =
     formState.value;
 
   const makeOrderInput: KungfuApi.MakeOrderInput = {
@@ -220,6 +220,7 @@ const makeOrderData = computed(() => {
     hedge_flag: +(hedge_flag || 0),
     is_swap: !!is_swap,
     parent_id: 0n,
+    contract_id: contract_id || '',
   };
   return makeOrderInput;
 });
@@ -286,7 +287,6 @@ watch(
     ) {
       formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
     }
-    console.log('instrument change', newVal);
 
     if (formState.value.contract_id) {
       formState.value.contract_id = '';
@@ -341,7 +341,10 @@ watch(
       ].includes(newSide)
         ? (formState.value.offset = OffsetEnum.Open)
         : (formState.value.offset = OffsetEnum.Close);
-
+        if(  newSide !== SideEnum.RepayStock || newSide !== SideEnum.RepayMargin){
+          formState.value.contract_id = '';
+        }
+      
       if (!isSpecifyContract.value && newSide === SideEnum.RepayMargin) {
         formState.value.contract_id = '';
       }
@@ -349,24 +352,19 @@ watch(
       if (instrumentResolved.value) {
         const { instrumentType } = instrumentResolved.value;
 
-        const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
-          return pos.yesterday_volume
-            ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
-            : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
-        };
 
         if (isShotable(instrumentType)) {
           if (newSide === SideEnum.Sell) {
             if (currentPositionWithLongDirection.value) {
               formState.value.offset = currentPositionWithLongDirection.value
-                ? resolveOffsetByPosition(
+                ? resolveTriggerOffset(
                     currentPositionWithLongDirection.value,
                   )
                 : OffsetEnum.Open;
             }
           } else if (newSide === SideEnum.Buy) {
             formState.value.offset = currentPositionWithShortDirection.value
-              ? resolveOffsetByPosition(currentPositionWithShortDirection.value)
+              ? resolveTriggerOffset(currentPositionWithShortDirection.value)
               : OffsetEnum.Open;
           }
         } else {

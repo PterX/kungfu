@@ -499,6 +499,7 @@ export default {
     unrealized_pnl: '浮动盈亏',
     market_value: '市值',
     used_margin: '占用保证金',
+
     avail_funds: '可用资金',
     avail_margin: '可用保证金',
     cash_debt: '融资负债',

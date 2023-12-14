@@ -68,7 +68,7 @@ import {
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
-  // ContractTypeEnum,
+  ContractTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -1223,18 +1223,34 @@ function calcTableItemHeight(
 }
 
 function getContracData(open) {
-  // if (open) {
-  //   const list: KungfuApi.Contract[] = window.watcher.ledger.Contract.list();
-  //   contractList.value = list.filter((item) => {
-  //     item.instrument_id === formState.value.instrument
-  //   }).map((item) => {
-  //     return {
-  //       value: `${t('tradingConfig.instrument')}${item.instrument_id},${t('tradingConfig.repaid')}${item.contract_type === ContractTypeEnum.CrdBuyContract ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`}`,
-  //       label: item.contract_id,
-  //     };
-  //   });
-  //   console.log('open', open);
-  // }
+  if (open) {
+    const list: KungfuApi.Contract[] = window.watcher.ledger.Contract.list();
+    contractList.value = list.filter((item) => {
+      const instrument = formState.value.instrument ?  formState.value.instrument.split('_')[1] : '';
+     return item.instrument_id === instrument;
+    }).map((item) => {
+      return {
+        label: `${t('tradingConfig.instrument')} ${item.instrument_id}, ${t('tradingConfig.repaid')} ${item.contract_type === ContractTypeEnum.CrdBuyContract ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`} ${item.contract_id}`,
+        value: item.contract_id,
+      };
+    });
+    console.log('open', contractList.value);
+  }
+}
+
+function handleContractSearch(str: string) {
+  if (str) {
+contractList.value = contractList.value.filter((item) => {
+  return item.label.includes(str);
+  });
+  
+}
+}
+
+function handleContractBlur() {
+  if (contractList.value.length === 1 && formState.value.contract_id) {
+    formState.value.contract_id = contractList.value[0].value;
+  }
 }
 
 defineExpose({
@@ -1700,12 +1716,10 @@ defineExpose({
         "
         show-search
         :filter-option="false"
+        @search="handleContractSearch"
+        @blur="handleContractBlur"
         @dropdownVisibleChange="getContracData"
-        :options="instrumentOptionsReactiveData.data['instrument']"
-        @search="instrumentsSearchRelated['instrument'].handleSearchInstrument"
-        @blur="
-          instrumentsSearchRelated['instrument'].handleSearchInstrumentBlur
-        "
+        :options="contractList"
       ></a-select>
 
       <a-select

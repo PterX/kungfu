@@ -870,6 +870,7 @@ export const showTradingDataDetail = <
   item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
+  renameValues?: Record<string, string>,
 ): Promise<boolean> => {
   const generateVnode = () => {
     const itemResolved = typeof item === 'function' ? item() : item;
@@ -888,12 +889,13 @@ export const showTradingDataDetail = <
         }
         return dataResolved[key] !== '';
       })
-      .map((key) =>
-        h('div', { class: 'trading-data-detail-row' }, [
+      .map((key) => {
+        const value = renameValues?.[key] || dataResolved[key];
+        return h('div', { class: 'trading-data-detail-row' }, [
           h('span', { class: 'label' }, `${key}`),
-          h('span', { class: 'value' }, `${dataResolved[key]}`),
-        ]),
-      );
+          h('span', { class: 'value' }, `${value}`),
+        ]);
+      });
 
     return h(
       'div',
@@ -1665,7 +1667,7 @@ export const useDealInstruments = (): void => {
 };
 
 export const useActiveInstruments = () => {
-  const { instrumentsMap } = useGlobalStore();
+  const { instrumentsMap } = storeToRefs(useGlobalStore());
 
   const getInstrumentByIds = (
     instrumentId: string,
@@ -1673,8 +1675,7 @@ export const useActiveInstruments = () => {
     forceConvert = false,
   ) => {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved = instrumentsMap[ukey];
-
+    const instrumentResolved = instrumentsMap.value[ukey];
     if (instrumentResolved) {
       return instrumentResolved;
     } else {

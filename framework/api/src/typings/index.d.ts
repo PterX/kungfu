@@ -983,6 +983,7 @@ declare namespace KungfuApi {
     instrument_id: string; // 标的
     exchange_id: string; // 交易所id
     contract_id: string; // 合约id
+    holder_uid: number; // 账户id
     contract_type: ContractTypeEnum; // 合约类型
     instrument_type: InstrumentTypeEnum; // 标的类型
     opening_date: string; // 开仓日期

@@ -66,7 +66,7 @@ export type ContractTypes = keyof typeof ContractTypeEnum;
 
 export enum CloseOutFlagEnum {
   NotCloseOut, //未了結
-  closeout, //了結
+  Closeout, //了結
   InitNotc1o, //初始化未了結
 }
 
@@ -261,6 +261,7 @@ export enum OrderStatusEnum {
   Lost,
   Cancelling,
   Pause,
+  PendingSettlement,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;

@@ -30,7 +30,6 @@ export const getConfigSettings = (
     extConfigs?.td?.[location?.group || '']?.margin?.marginMakeOrder;
   const SpecifyContract =
     extConfigs?.td?.[location?.group || '']?.margin?.specifyContract;
-  console.log('supportMargin', supportMargin, SpecifyContract);
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     location?.category === 'td'
       ? null

@@ -340,6 +340,10 @@ export const OrderStatus: Record<
     name: t('tradingConfig.pause'),
     color: 'default',
   },
+  [OrderStatusEnum.PendingSettlement]: {
+    name: t('tradingConfig.pending_settlement'),
+    color: 'default',
+  },
 };
 
 export const UnfinishedOrderStatus = [

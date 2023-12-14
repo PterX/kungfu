@@ -67,7 +67,6 @@ import {
   parseTaskSettingsFromEnv,
   deepClone,
   initFormTimePicker,
-  concatPrimaryKey,
   dealMillionSencond2NanoSecond,
   dealDateDayOrMonth,
 } from './commonUtils';
@@ -470,6 +469,7 @@ export const buildIdByPrimaryKeysFromKfConfigSettings = (
   kfConfigState: Record<string, KungfuApi.KfConfigValue>,
   keys: string[],
 ) => {
+  console.log('keys', keys);
   return keys
     .map((key) => replaceNonAlphaNumericWithSpace(kfConfigState[key]))
     .filter((value) => value !== undefined)
@@ -909,14 +909,14 @@ export const getCombineValueByPrimaryKeys = (
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return concatPrimaryKey(
-    [
-      extraValue || '',
-      ...primaryKeys.map((key) =>
-        replaceNonAlphaNumericWithSpace(formState[key]),
-      ),
-    ].filter((item) => item !== ''),
-  );
+  return [
+    extraValue || '',
+    ...primaryKeys.map((key) =>
+      replaceNonAlphaNumericWithSpace(formState[key]),
+    ),
+  ]
+    .filter((item) => item !== '')
+    .join('-');
 };
 
 export const numberEnumRadioType: Record<

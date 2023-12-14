@@ -228,12 +228,10 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
   SPDLOG_DEBUG("rebuild_positions {} {}", strategy_uid, get_location_uname(strategy_uid));
 
   auto rebuild_book = [&](auto &tmp_position) {
-    if (not strategy_book->has_position(tmp_position.source_id, tmp_position.direction, tmp_position.exchange_id,
-                                        tmp_position.instrument_id)) {
+    if (not strategy_book->has_position_for(tmp_position)) {
       return;
     }
-    auto &strategy_position = strategy_book->get_position(tmp_position.source_id, tmp_position.direction,
-                                                          tmp_position.exchange_id, tmp_position.instrument_id);
+    auto &strategy_position = strategy_book->get_position_for(tmp_position);
     auto avg_open_price = strategy_position.avg_open_price;
     auto position_cost_price = strategy_position.position_cost_price;
     longfist::copy(strategy_position, tmp_position);
@@ -252,9 +250,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     auto reset_positions = [&](auto &position) {
       // pos in tmp_book is influenced by instrumentKey event of subscribe, which trigger update_book method and build a
       // target pos with 0 volume;
-      if (tmp_book.has_position(position.source_id, position.direction, position.exchange_id, position.instrument_id) &&
-          tmp_book.get_position(position.source_id, position.direction, position.exchange_id, position.instrument_id)
-                  .volume != 0) {
+      if (tmp_book.has_position_for(position) && tmp_book.get_position_for(position).volume != 0) {
         return;
       }
       position.volume = 0;

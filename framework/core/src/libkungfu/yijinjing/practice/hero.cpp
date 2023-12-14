@@ -450,4 +450,6 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 #endif
 }
 
+bool hero::is_rx(const event_ptr &event) { return true; }
+
 } // namespace kungfu::yijinjing::practice

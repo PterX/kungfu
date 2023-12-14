@@ -37,6 +37,14 @@ void BrokerVendor::notify_broker_state() {
   service->update_broker_state(service->get_state());
 }
 
+bool BrokerVendor::is_rx(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    get_service()->on_custom_event(event);
+    return false;
+  }
+  return true;
+}
+
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
 
 void BrokerService::pre_start() {}

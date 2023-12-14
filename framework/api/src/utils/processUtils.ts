@@ -1667,10 +1667,25 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
   }
 };
 
+function promiseWithTimeout<T>(
+  promise: Promise<T | T[]>,
+  ms: number = 15000,
+): Promise<T | T[]> {
+  return Promise.race([
+    promise,
+    new Promise<T | T[]>((_, reject) => {
+      setTimeout(() => {
+        reject(`${promise} Timed out in ${ms}ms.`);
+      }, ms);
+    }),
+  ]);
+}
+
 export function quitClean(): Promise<void> {
   //不需要加kill daemon
   return new Promise((resolve) => {
-    pm2Kill()
+    //防止pm2 kill失败, 导致kungfu无法退出
+    promiseWithTimeout(pm2Kill())
       .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
       .finally(() => {
         killExtra(false)

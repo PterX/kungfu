@@ -611,6 +611,9 @@ export const openNewBrowserWindow = (
     });
 
     win.on('closed', () => {
+      if (isMacOS) {
+        currentWindow.removeAllListeners('resize');
+      }
       resolve(win);
     });
 
@@ -634,7 +637,12 @@ export const openNewBrowserWindow = (
 
       if (win && !win.isDestroyed()) {
         currentWindow.on('resize', () => {
-          if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+          if (
+            win &&
+            !win.isDestroyed() &&
+            win.getSize()[0] === 300 &&
+            win.getSize()[1] === 30
+          ) {
             const [parentX, parentY, parentWidth, parentHeight] = [
               currentWindow.getPosition()[0],
               currentWindow.getPosition()[1],

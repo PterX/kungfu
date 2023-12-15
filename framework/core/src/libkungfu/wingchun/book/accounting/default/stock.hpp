@@ -97,8 +97,9 @@ public:
         book->asset.frozen_cash += frozen_cash;
         book->asset.avail -= frozen_cash;
       } else if (input.side == Side::MarginTrade || input.side == Side::ShortSell) {
-        book->asset.avail_margin -= input.limit_price * input.volume;
-        book->asset.credit_buy_fund_available -= input.limit_price * input.volume;
+        // 融资买入 融券卖出 刚收到OrderInput时，可用保证金和融资融券可用资金应该减少 本次更新暂时不做处理
+        // book->asset.avail_margin -= input.limit_price * input.volume;
+        // book->asset.credit_buy_fund_available -= input.limit_price * input.volume;
       } else if (input.side == Side::CashRepayMargin) {
         book->asset.avail -= input.limit_price;
       }
@@ -126,10 +127,11 @@ public:
         position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
       } else if (order.side == Side::MarginTrade || order.side == Side::ShortSell) {
-        book->asset.avail_margin += order.limit_price * order.volume_left;
-        book->asset.credit_buy_fund_available += order.limit_price * order.volume_left;
+        // book->asset.avail_margin += order.limit_price * order.volume_left;
+        // book->asset.credit_buy_fund_available += order.limit_price * order.volume_left;
       } else if (order.side == Side::CashRepayMargin) {
-        book->asset.avail += order.limit_price;
+        // 现金还款 只有成交回报 没有撤单功能 不会有冻结 所以在下单的时候已经处理了可用资金 这里就不需要再处理
+        // book->asset.avail += order.limit_price;
       } else if (order.side == Side::StockRepayStock) {
         // 现券还券没有成交回报 当状态为清算中的时候 此时为最终状态 会更新持仓
         // 由于现券还券委托价格为0 所以涉及持仓的盈亏以及最新价格暂时无法处理

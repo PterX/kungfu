@@ -8,7 +8,7 @@
 #define KUNGFU_LONGFIST_H
 
 #include <kungfu/longfist/types.h>
-#include <unordered_set>
+#include <set>
 
 #define TYPE_PAIR(DataType) boost::hana::make_pair(HANA_STR(#DataType), boost::hana::type_c<types::DataType>)
 
@@ -255,7 +255,7 @@ template <typename DataType> constexpr bool is_profile_data() { return is_in_typ
 template <typename DataType> constexpr bool is_market_data() { return is_in_types<DataType>(MarketDataTypes); };
 
 const auto build_data_set = [](auto types) {
-  std::unordered_set<int32_t> s;
+  std::set<int32_t> s;
   boost::hana::for_each(types, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     s.emplace(DataType::tag);

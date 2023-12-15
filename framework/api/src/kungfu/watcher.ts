@@ -87,10 +87,8 @@ export const startWatcherSyncTask = (
 ) => {
   if (watcher === null) return;
   return setTimerPromiseTask(async () => {
-    if (watcher.isLive() && watcher.isStarted()) {
-      watcher.sync();
-      callback && (await callback(watcher));
-    }
+    watcher.sync();
+    callback && (await callback(watcher));
     return true;
   }, interval);
 };

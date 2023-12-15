@@ -440,4 +440,11 @@ void master::write_bands(int64_t trigger_time, const writer_ptr &writer) {
   }
 }
 
+bool master::is_rx(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    return false;
+  }
+  return true;
+}
+
 } // namespace kungfu::yijinjing::practice

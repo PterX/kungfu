@@ -415,20 +415,23 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_notice(false, true, sb);
-  bool bypass = io_device_->is_lazy();
+  bool bypass = io_device_->is_lazy() and is_low_latency();
+  deal_notice(bypass, true, sb);
   while (live_ and reader_->data_available()) {
-    deal_notice(bypass, false, sb);
-    if (reader_->current_frame()->gen_time() <= end_time_) {
-      int64_t frame_time = reader_->current_frame()->gen_time();
+    deal_notice(io_device_->is_lazy(), false, sb);
+    const frame_ptr frame = reader_->current_frame();
+    if (frame->gen_time() <= end_time_) {
+      int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {
         now_ = frame_time;
       }
-      sb.on_next(reader_->current_frame());
+      if (is_rx(frame)) {
+        sb.on_next(frame);
+      }
       on_frame();
       reader_->next();
     } else {
-      SPDLOG_INFO("reached journal end {}", time::strftime(reader_->current_frame()->gen_time()));
+      SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
     }
   }

@@ -47,6 +47,8 @@ public:
 
   void on_request_deregister(const event_ptr &event);
 
+  bool is_rx(const event_ptr &event) override;
+
 protected:
   int64_t last_check_;
   yijinjing::cache::cached cached_;

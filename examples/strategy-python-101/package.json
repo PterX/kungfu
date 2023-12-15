@@ -37,7 +37,7 @@
     "key": "KungfuStrategy101Python",
     "assets": [
       {
-        "name": "strategyDemo",
+        "name": "功夫示例策略",
         "src": "./src/python/KungfuStrategy101Python/__init__.py",
         "dest": "strategyDemo.py"
       }

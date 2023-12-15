@@ -46,13 +46,13 @@ using namespace boost::hana::literals;
 #ifdef _WINDOWS
 #define strcpy(dest, src) strcpy_s(dest, sizeof(dest), src)
 #define strncpy(dest, src, max_length) strncpy_s(dest, sizeof(dest), src, max_length)
-#define KF_PACK_TYPE_BEGIN __pragma(pack(push, 1))
+#define KF_PACK_TYPE_BEGIN __pragma(pack(push, 8))
 #define KF_PACK_TYPE_END                                                                                               \
   ;                                                                                                                    \
   __pragma(pack(pop))
 #else
 #define KF_PACK_TYPE_BEGIN
-#define KF_PACK_TYPE_END __attribute__((packed));
+#define KF_PACK_TYPE_END __attribute__((aligned(8)));
 #endif
 //------------------------------------------------------------------------
 

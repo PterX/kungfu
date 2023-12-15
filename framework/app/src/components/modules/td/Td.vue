@@ -193,13 +193,23 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
 
 const columns = computed(() => {
   const sorter = (dataIndex) => {
-    return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
-      return (
-        (+Number(getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset]) ||
-          0) -
-        (+Number(getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset]) ||
-          0)
-      );
+    return (
+      a: KungfuApi.KfConfig,
+      b: KungfuApi.KfConfig,
+      sorterOrder: '' | 'ascend' | 'descend',
+    ) => {
+      let aVal = getAssetsByKfConfig(a)[dataIndex] ?? '--',
+        bVal = getAssetsByKfConfig(b)[dataIndex] ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
     };
   };
 

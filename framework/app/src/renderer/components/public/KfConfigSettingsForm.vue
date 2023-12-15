@@ -29,6 +29,7 @@ import {
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import { omitObject } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getIdByKfLocation,
   transformSearchInstrumentResultToInstrument,
@@ -61,6 +62,7 @@ import {
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
+  OffsetEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -174,6 +176,7 @@ const { isLanguageKeyAvailable } = useLanguage();
 
 const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
+const numberEnumRadioTypeResolved = ref({ ...numberEnumRadioType });
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
 const customerFormItemTips = reactive<Record<string, string>>({});
 const instrumentKeys = ref<
@@ -299,7 +302,7 @@ watch(
   },
 );
 
-if ('instrument' in formState.value && 'side' in formState.value) {
+if ('instrument' in formState.value) {
   watch(
     () => formState.value.instrument,
     (newInstrument: string) => {
@@ -307,12 +310,22 @@ if ('instrument' in formState.value && 'side' in formState.value) {
         const instrumentResolved =
           transformSearchInstrumentResultToInstrument(newInstrument);
         if (instrumentResolved) {
-          const { instrumentType } = instrumentResolved;
+          const { instrumentType, exchangeId } = instrumentResolved;
           if (instrumentType === InstrumentTypeEnum.stockoption) {
             sideRadiosList.value = [
               ...Object.keys(Side).slice(0, 2),
               SideEnum.Exec + '',
             ];
+          } else if (instrumentType === InstrumentTypeEnum.future) {
+            if (exchangeId === 'SHFE' || exchangeId === 'INE') {
+              numberEnumRadioTypeResolved.value['offset'] =
+                numberEnumRadioType['offset'];
+            } else {
+              numberEnumRadioTypeResolved.value['offset'] = omitObject(
+                numberEnumRadioType['offset'],
+                [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
+              );
+            }
           } else {
             if (configSettingFormInject?.sideFilter) {
               sideRadiosList.value =
@@ -670,19 +683,6 @@ function csvTableCallback(
       resolve();
     });
   };
-}
-
-function buildCsvHeadersDescription(headers: KungfuApi.KfConfigItemHeader[]) {
-  return (
-    headers
-      .map((header) =>
-        [
-          header.title,
-          ...(header.description ? [header.description] : []),
-        ].join(': '),
-      )
-      .join('. ') + '.'
-  );
 }
 
 function buildCsvHeadersValidator(
@@ -1353,7 +1353,7 @@ defineExpose({
         </a-select-option>
       </a-select>
       <a-radio-group
-        v-else-if="numberEnumRadioType[item.type]"
+        v-else-if="numberEnumRadioTypeResolved[item.type]"
         v-model:value="formState[item.key]"
         :name="item.key"
         :disabled="
@@ -1362,11 +1362,11 @@ defineExpose({
         "
       >
         <a-radio
-          v-for="key in Object.keys(numberEnumRadioType[item.type])"
+          v-for="key in Object.keys(numberEnumRadioTypeResolved[item.type])"
           :key="key"
           :value="+key"
         >
-          {{ getKfTradeValueName(numberEnumRadioType[item.type], key) }}
+          {{ getKfTradeValueName(numberEnumRadioTypeResolved[item.type], key) }}
         </a-radio>
       </a-radio-group>
       <a-radio-group
@@ -1824,13 +1824,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
         <div
           v-if="customerFormItemTips[item.key]"
@@ -1977,13 +1989,25 @@ defineExpose({
               {{ $t('settingsFormConfig.csv_template') }}
             </a-button>
           </div>
-          <span v-if="!!item.headers" class="select-csv-tip">
-            {{
-              $t('settingsFormConfig.add_csv_desc', {
-                header: buildCsvHeadersDescription(item.headers),
-              })
-            }}
-          </span>
+          <div v-if="!!item.headers" class="select-csv-tip">
+            <p>
+              {{ $t('settingsFormConfig.add_csv_tip_prefix') }}
+              <span class="color-red">
+                {{ $t('settingsFormConfig.add_csv_tip_required') }}
+              </span>
+              {{ $t('settingsFormConfig.add_csv_tip_suffix') }}
+              <span v-if="item.extraHeadersTip">
+                {{ item.extraHeadersTip }}
+              </span>
+            </p>
+            <p>
+              <span v-for="header in item.headers" :key="header.title">
+                <span v-if="header.required" class="color-red">*</span>
+                <span class="color-primary">{{ header.title }}</span>
+                <span>{{ `: ${header.description}` }}</span>
+              </span>
+            </p>
+          </div>
         </div>
 
         <div class="table-in-config-setting-form-head">

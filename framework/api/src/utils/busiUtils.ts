@@ -2153,37 +2153,20 @@ export const replaceNonAlphaNumericWithSpace = (
     return value;
   }
 };
-const concatPrimaryKey = (arr: string[]) => {
-  if (arr.length === 0) return '';
-
-  let result = arr[0];
-
-  if (arr.length > 1) {
-    result += '_' + arr[1];
-  }
-
-  if (arr.length > 2) {
-    for (let i = 2; i < arr.length; i++) {
-      result += '-' + arr[i];
-    }
-  }
-
-  return result;
-};
 
 export const getCombineValueByPrimaryKeys = (
   primaryKeys: string[],
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return concatPrimaryKey(
-    [
-      extraValue || '',
-      ...primaryKeys.map((key) =>
-        replaceNonAlphaNumericWithSpace(formState[key]),
-      ),
-    ].filter((item) => item !== ''),
-  );
+  return [
+    extraValue || '',
+    ...primaryKeys.map((key) =>
+      replaceNonAlphaNumericWithSpace(formState[key]),
+    ),
+  ]
+    .filter((item) => item !== '')
+    .join('-');
 };
 
 export const transformSearchInstrumentResultToInstrument = (
@@ -2714,4 +2697,28 @@ export const ifTodayFirstStart = () => {
     }
   }
   return true;
+};
+
+export const buildTableColumnSorterWithStrike = <T>(
+  type: 'num' | 'str',
+  dataIndex: keyof T,
+) => {
+  return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
+    if (type === 'num') {
+      let aVal: unknown = a[dataIndex] ?? '--',
+        bVal: unknown = b[dataIndex] ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
+    } else {
+      return `${a[dataIndex] ?? ''}`.localeCompare(`${b[dataIndex] ?? ''}`);
+    }
+  };
 };

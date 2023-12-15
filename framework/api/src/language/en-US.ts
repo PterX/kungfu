@@ -127,6 +127,10 @@ export default {
     import_successed: 'Import Successed',
     import_failed: 'Import Failed',
     csv_format_error: 'Csv format error, please check and retry',
+    add_csv_tip_prefix: 'Note: The rules for filling in CSV are as follows, ',
+    add_csv_tip_required: '*Required',
+    add_csv_tip_suffix:
+      ', Failure to fill in required fields will result in upload failure',
   },
 
   tradingConfig: {
@@ -1000,11 +1004,11 @@ export default {
   请输入文件夹路径: 'Please enter the folder path',
   请输入一个目录: 'Please enter a directory',
 
-  可用仓位: 'Avail Pos',
-  可用资金: 'Avail Asset',
-  交易金额: 'Amount',
-  保证金占用: 'Margin',
-  保证金返还: 'Margin',
-  剩余资金: 'Left Asset',
-  剩余仓位: 'Left Pos',
+  可用仓位: 'Reference Avail Pos',
+  可用资金: 'Reference Avail Asset',
+  交易金额: 'Reference Amount',
+  保证金占用: 'Reference Margin',
+  保证金返还: 'Reference Margin',
+  剩余资金: 'Reference Left Asset',
+  剩余仓位: 'Reference Left Pos',
 };

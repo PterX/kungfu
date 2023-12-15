@@ -23,7 +23,7 @@ import {
   categoryRegisterConfig,
   getColumns,
   getFundTransKey,
-  assetDetailShowList,
+  getAssetDetailShowList,
   assetMarginDetailShowList,
 } from './config';
 import {
@@ -264,9 +264,10 @@ const customRowResolved = (
   if (record.category === 'tdGroup') {
     return customRow(record);
   }
+  const supportMargin = getTdmarginSupport(record);
 
   const allAssetDetailList = [
-    ...assetDetailShowList,
+    ...getAssetDetailShowList(supportMargin),
     ...(getTdmarginSupport(record) ? assetMarginDetailShowList : []),
   ];
   const assetGetter = () =>
@@ -280,7 +281,7 @@ const customRowResolved = (
     ...customRow(record),
     onMousedown: (event: MouseEvent) => {
       if (event.button === 2) {
-        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], { [t('tdConfig.maintain_margin_ratio')]: `${Math["floor"](getAssetsByKfConfig(record).collateral_ratio * 100)}%` });
+        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], { [t('tdConfig.maintain_margin_ratio')]:(str)=>(Number(str) * 100).kfToFixed(1) + '%' });
       }
     },
   };
@@ -763,7 +764,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             >
             {{
               getTdmarginSupport(record) && getAssetsByKfConfig(record).collateral_ratio
-                ? `${Math.floor(getAssetsByKfConfig(record).collateral_ratio * 100)}%`
+                ? `${Math.floor(getAssetsByKfConfig(record).collateral_ratio * 100).kfToFixed(1)}%`
                 : '--'
             }}
             </span>

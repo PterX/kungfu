@@ -97,6 +97,7 @@ const { searchKeyword, tableData } =
       'instrument_id',
       'side',
       'offset',
+      'status_uname',
       'exchange_id',
       'source_uname',
       'dest_uname',

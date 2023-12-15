@@ -78,7 +78,7 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
+const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting,instrumentsMap } = storeToRefs(
   useGlobalStore(),
 );
 const { isLanguageKeyAvailable } = useLanguage();
@@ -94,6 +94,7 @@ const formState = ref(
     {},
   ),
 );
+const  autoFillInstrument = ref<boolean>(false);
 
 const isMarginMakeOrder = computed(() => {
   return (
@@ -160,7 +161,6 @@ const configSettings = computed(() => {
     pricePrecision = price_precision;
   }
 
-  // const { category } = currentGlobalKfLocation.value;
   const { side } = formState.value;
   return getConfigSettings(
     currentGlobalKfLocation.value,
@@ -288,8 +288,10 @@ watch(
       formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
     }
 
-    if (formState.value.contract_id) {
+    if (formState.value.contract_id && !autoFillInstrument.value) {
       formState.value.contract_id = '';
+    }else{
+      autoFillInstrument.value = false;
     }
 
     if (!instrumentResolved.value) {
@@ -334,18 +336,23 @@ watch(
   () => formState.value.side,
   (newSide) => {
     if (isMarginMakeOrder.value) {
+      if(newSide === SideEnum.Buy){
+        formState.value.side = SideEnum.GuaranteeStockBuy;
+      }else if(newSide === SideEnum.Sell){
+        formState.value.side = SideEnum.GuaranteeStockSell;
+      }
       [
         SideEnum.GuaranteeStockBuy,
         SideEnum.MarginTrade,
         SideEnum.ShortSell,
-      ].includes(newSide)
+      ].includes(formState.value.side)
         ? (formState.value.offset = OffsetEnum.Open)
         : (formState.value.offset = OffsetEnum.Close);
-        if(  newSide !== SideEnum.RepayStock || newSide !== SideEnum.RepayMargin){
+        if(  formState.value.side !== SideEnum.RepayStock || formState.value.side !== SideEnum.RepayMargin){
           formState.value.contract_id = '';
         }
       
-      if (!isSpecifyContract.value && newSide === SideEnum.RepayMargin) {
+      if (!isSpecifyContract.value && formState.value.side === SideEnum.RepayMargin) {
         formState.value.contract_id = '';
       }
     } else {
@@ -374,6 +381,35 @@ watch(
       }
     }
   },
+);
+
+watch(
+  () => formState.value.contract_id,
+   (newVal) => {
+    try {
+      if (newVal) {
+        const contractList =window.watcher.ledger.Contract.filter('contract_id', newVal).list();
+        if (contractList.length === 0) {
+          return;
+        }
+
+        const { instrument_id, exchange_id } = contractList[0];
+        const ukey = hashInstrumentUKey(instrument_id, exchange_id);
+        const instrumentResolved = instrumentsMap.value[ukey];
+        if (!instrumentResolved) {
+          return;
+        }
+
+        const instrumentStr = `${instrumentResolved.exchangeId}_${instrumentResolved.instrumentId}_${instrumentResolved.instrumentType}_${ukey}_${instrumentResolved.instrumentName}`;
+        if (formState.value.instrument !== instrumentStr) {
+          formState.value.instrument = instrumentStr;
+          autoFillInstrument.value = true;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
 );
 
 watch(

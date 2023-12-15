@@ -352,6 +352,7 @@ export const UnfinishedOrderStatus = [
   OrderStatusEnum.Submitted,
   OrderStatusEnum.PartialFilledActive,
   OrderStatusEnum.Cancelling,
+  OrderStatusEnum.PendingSettlement
 ];
 
 export const NotTradeAllOrderStatus = [

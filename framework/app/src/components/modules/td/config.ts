@@ -169,12 +169,16 @@ export const getColumns = (
       },
     ]);
 
-export const assetDetailShowList = [
-  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
-  { key: 'market_value', label: t('tdConfig.market_value') },
-  { key: 'margin', label: t('tdConfig.used_margin') },
-  { key: 'avail', label: t('tdConfig.avail_funds') },
-] as const;
+export const getAssetDetailShowList = (supportMargin: boolean) =>
+  [
+    { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+    {
+      key: supportMargin ? 'total_asset' : 'market_value',
+      label: t('tdConfig.market_value'),
+    },
+    { key: 'margin', label: t('tdConfig.used_margin') },
+    { key: 'avail', label: t('tdConfig.avail_funds') },
+  ] as const;
 
 export const assetMarginDetailShowList = [
   { key: 'frozen_cash', label: t('tdConfig.frozen_funds') },

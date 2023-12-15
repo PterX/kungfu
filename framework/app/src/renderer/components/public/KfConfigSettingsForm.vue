@@ -69,6 +69,7 @@ import {
   SideEnum,
   KfCategoryEnum,
   ContractTypeEnum,
+  CloseOutFlagEnum
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -208,6 +209,8 @@ const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
 );
 const numbersTyping = ref<Record<string, boolean>>({});
 
+const OriContractList = ref<{ label: string; value: string }[]>([]);
+
 const contractList = ref<{ label: string; value: string }[]>([]);
 
 const configSettingFormInject = inject(
@@ -260,14 +263,6 @@ const instrumentsInFrom = computed(() =>
     value: formState.value[key],
   })),
 );
-
-// const contractOptionsReactiveData = computed(() => {
-//   const instrument = formState.value.instrument;
-//   if (instrument && instrumentOptionsReactiveData.data[instrument]) {
-//     return instrumentOptionsReactiveData.data[instrument];
-//   }
-//   return [];
-// });
 
 // Use filteredInstrumentOptions as options for <a-select>
 watch(instrumentsInFrom, (insts) => {
@@ -1225,22 +1220,25 @@ function calcTableItemHeight(
 function getContracData(open) {
   if (open) {
     const list: KungfuApi.Contract[] = window.watcher.ledger.Contract.list();
-    contractList.value = list.filter((item) => {
+    OriContractList.value = list.filter((item) => {
       const instrument = formState.value.instrument ?  formState.value.instrument.split('_')[1] : '';
-     return item.instrument_id === instrument;
+      const side = formState.value.side;
+      const contractType = side === SideEnum.RepayMargin ? ContractTypeEnum.CrdBuyContract : side === SideEnum.RepayStock ? ContractTypeEnum.CrdSellContract : '';
+     return item.instrument_id.includes(instrument)  && item.close_out_flag !== CloseOutFlagEnum.Closeout && item.contract_type === contractType ;
     }).map((item) => {
       return {
         label: `${t('tradingConfig.instrument')} ${item.instrument_id}, ${t('tradingConfig.repaid')} ${item.contract_type === ContractTypeEnum.CrdBuyContract ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`} ${item.contract_id}`,
         value: item.contract_id,
       };
     });
+    contractList.value = OriContractList.value;
     console.log('open', contractList.value);
   }
 }
 
 function handleContractSearch(str: string) {
   if (str) {
-contractList.value = contractList.value.filter((item) => {
+contractList.value = OriContractList.value.filter((item) => {
   return item.label.includes(str);
   });
   

@@ -870,7 +870,10 @@ export const showTradingDataDetail = <
   item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
-  renameValues?: Record<string, string>,
+  renameValues?: Record<
+    string,
+    (item: KungfuApi.KfConfigValue) => KungfuApi.KfConfigValue
+  >,
 ): Promise<boolean> => {
   const generateVnode = () => {
     const itemResolved = typeof item === 'function' ? item() : item;
@@ -890,7 +893,9 @@ export const showTradingDataDetail = <
         return dataResolved[key] !== '';
       })
       .map((key) => {
-        const value = renameValues?.[key] || dataResolved[key];
+        const value = renameValues?.[key]
+          ? renameValues[key](dataResolved[key])
+          : dataResolved[key];
         return h('div', { class: 'trading-data-detail-row' }, [
           h('span', { class: 'label' }, `${key}`),
           h('span', { class: 'value' }, `${value}`),

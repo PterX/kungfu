@@ -611,9 +611,6 @@ export const openNewBrowserWindow = (
     });
 
     win.on('closed', () => {
-      if (isMacOS) {
-        currentWindow.removeAllListeners('resize');
-      }
       resolve(win);
     });
 

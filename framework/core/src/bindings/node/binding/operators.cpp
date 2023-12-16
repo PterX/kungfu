@@ -15,6 +15,10 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::node::serialize {
+void initObjectReference(const Napi::CallbackInfo &info, Napi::ObjectReference &data) {
+  data = Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1);
+}
+
 void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, const std::string &name) {
   boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
     auto name = std::string(boost::hana::first(it).c_str());

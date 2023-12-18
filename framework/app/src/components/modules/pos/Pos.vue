@@ -180,8 +180,6 @@ function handleClickRow(data: {
       instruments.value,
     );
 
-    console.log(ensuredInstrument);
-
   triggerOrderBook(ensuredInstrument);
 
   const offset = resolveTriggerOffset(row);

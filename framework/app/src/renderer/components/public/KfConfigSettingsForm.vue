@@ -361,8 +361,6 @@ if ('instrument' in formState.value) {
   );
 }
 
-console.log('sideRadiosList.value', marginSideRadioList);
-
 function getInstrumentsSearchRelated(
   instrumentKeys: Record<
     string,
@@ -1232,7 +1230,6 @@ function getContracData(open) {
       };
     });
     contractList.value = OriContractList.value;
-    console.log('open', contractList.value);
   }
 }
 

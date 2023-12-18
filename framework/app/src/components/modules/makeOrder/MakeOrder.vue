@@ -78,9 +78,12 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting,instrumentsMap } = storeToRefs(
-  useGlobalStore(),
-);
+const {
+  instrumentKeyAccountsMap,
+  uiExtConfigs,
+  globalSetting,
+  instrumentsMap,
+} = storeToRefs(useGlobalStore());
 const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
@@ -94,21 +97,21 @@ const formState = ref(
     {},
   ),
 );
-const  autoFillInstrument = ref<boolean>(false);
+const autoFillInstrument = ref<boolean>(false);
 
 const isMarginMakeOrder = computed(() => {
   return (
-  extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-  ?.marginMakeOrder || false
+    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
+      ?.marginMakeOrder || false
   );
-  });
+});
 
 const isSpecifyContract = computed(() => {
   return (
-  extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-  ?.specifyContract || false
+    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
+      ?.specifyContract || false
   );
-  });
+});
 
 const formRef = ref();
 const { subscribeAllInstrumentByAppStates } = useInstruments();
@@ -205,8 +208,16 @@ const makeOrderData = computed(() => {
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
 
-  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap,contract_id } =
-    formState.value;
+  const {
+    limit_price,
+    volume,
+    price_type,
+    side,
+    offset,
+    hedge_flag,
+    is_swap,
+    contract_id,
+  } = formState.value;
 
   const makeOrderInput: KungfuApi.MakeOrderInput = {
     instrument_id: instrumentId,
@@ -290,7 +301,7 @@ watch(
 
     if (formState.value.contract_id && !autoFillInstrument.value) {
       formState.value.contract_id = '';
-    }else{
+    } else {
       autoFillInstrument.value = false;
     }
 
@@ -336,9 +347,9 @@ watch(
   () => formState.value.side,
   (newSide) => {
     if (isMarginMakeOrder.value) {
-      if(newSide === SideEnum.Buy){
+      if (newSide === SideEnum.Buy) {
         formState.value.side = SideEnum.GuaranteeStockBuy;
-      }else if(newSide === SideEnum.Sell){
+      } else if (newSide === SideEnum.Sell) {
         formState.value.side = SideEnum.GuaranteeStockSell;
       }
       [
@@ -348,25 +359,28 @@ watch(
       ].includes(formState.value.side)
         ? (formState.value.offset = OffsetEnum.Open)
         : (formState.value.offset = OffsetEnum.Close);
-        if(  formState.value.side !== SideEnum.RepayStock || formState.value.side !== SideEnum.RepayMargin){
-          formState.value.contract_id = '';
-        }
-      
-      if (!isSpecifyContract.value && formState.value.side === SideEnum.RepayMargin) {
+      if (
+        formState.value.side !== SideEnum.RepayStock ||
+        formState.value.side !== SideEnum.RepayMargin
+      ) {
+        formState.value.contract_id = '';
+      }
+
+      if (
+        !isSpecifyContract.value &&
+        formState.value.side === SideEnum.RepayMargin
+      ) {
         formState.value.contract_id = '';
       }
     } else {
       if (instrumentResolved.value) {
         const { instrumentType } = instrumentResolved.value;
 
-
         if (isShotable(instrumentType)) {
           if (newSide === SideEnum.Sell) {
             if (currentPositionWithLongDirection.value) {
               formState.value.offset = currentPositionWithLongDirection.value
-                ? resolveTriggerOffset(
-                    currentPositionWithLongDirection.value,
-                  )
+                ? resolveTriggerOffset(currentPositionWithLongDirection.value)
                 : OffsetEnum.Open;
             }
           } else if (newSide === SideEnum.Buy) {
@@ -385,10 +399,13 @@ watch(
 
 watch(
   () => formState.value.contract_id,
-   (newVal) => {
+  (newVal) => {
     try {
       if (newVal) {
-        const contractList =window.watcher.ledger.Contract.filter('contract_id', newVal).list();
+        const contractList = window.watcher.ledger.Contract.filter(
+          'contract_id',
+          newVal,
+        ).list();
         if (contractList.length === 0) {
           return;
         }
@@ -409,7 +426,7 @@ watch(
     } catch (error) {
       console.error(error);
     }
-  }
+  },
 );
 
 watch(

@@ -539,6 +539,7 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),     // 两融合约唯一标识
 
     (bool, is_last),                     // 是否为本次查询的最后一条记录
     (enums::HistoryDataType, data_type), // 标记本数据是正常数据, 本页最后一条数据, 全部数据的最后一条
@@ -581,6 +582,7 @@ KF_DEFINE_PACK_TYPE(                                        //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),     // 两融合约唯一标识
 
     (bool, is_last),                     // 是否为本次查询的最后一条记录
     (enums::HistoryDataType, data_type), // 标记本数据是正常数据, 本页最后一条数据, 全部数据的最后一条

@@ -541,19 +541,17 @@ inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType 
   if (side == longfist::enums::Side::MarginTrade) {
     return longfist::enums::Direction::Long;
   } else if (side == longfist::enums::Side::ShortSell) {
-    return longfist::enums::Direction::Long;
-  } else if (side == longfist::enums::Side::RepayMargin) {
     return longfist::enums::Direction::Short;
+  } else if (side == longfist::enums::Side::RepayMargin) {
+    return longfist::enums::Direction::Long;
   } else if (side == longfist::enums::Side::RepayStock) {
     return longfist::enums::Direction::Short;
-  } else if (side == longfist::enums::Side::CashRepayMargin) {
-    return longfist::enums::Direction::Short;
   } else if (side == longfist::enums::Side::StockRepayStock) {
-    return longfist::enums::Direction::Short;
+    return longfist::enums::Direction::Long;
   } else if (side == longfist::enums::Side::GuaranteeStockBuy) {
     return longfist::enums::Direction::Long;
   } else if (side == longfist::enums::Side::GuaranteeStockSell) {
-    return longfist::enums::Direction::Short;
+    return longfist::enums::Direction::Long;
   }
 
   if (side == longfist::enums::Side::Exec) {

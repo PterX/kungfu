@@ -757,8 +757,9 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   reader_->disjoin(get_master_command_uid());
   writers_.clear();
-  strategy_states_ref_.Reset();
-  app_states_ref_.Reset();
+  serialize::initObjectReference(info, app_states_ref_);
+  serialize::initObjectReference(info, strategy_states_ref_);
+  serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }
 

@@ -700,6 +700,7 @@ const getKfUIExtensionConfigByExtKey = (
     .reduce((configByExtraKey, extConfig) => {
       const extKey = extConfig.key;
       const extName = extConfig.name;
+      const keepAlive = extConfig.keepAlive;
       const extPath = extConfig.extPath;
       const uiConfig = extConfig['ui_config'];
       const position = uiConfig?.position || '';
@@ -709,6 +710,7 @@ const getKfUIExtensionConfigByExtKey = (
 
       configByExtraKey[extKey] = {
         name: extName,
+        keepAlive,
         extPath,
         position,
         exhibit,

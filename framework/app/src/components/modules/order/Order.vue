@@ -129,6 +129,7 @@ const columns = computed(() => {
 });
 
 onMounted(() => {
+  console.log('order', '````````````````````');
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {

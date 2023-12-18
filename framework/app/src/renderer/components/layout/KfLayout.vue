@@ -98,11 +98,17 @@ function handleToPage(pathname: string) {
           mode="vertical"
           style="width: 64px"
         >
-          <a-menu-item key="main" @click="handleToPage('/')">
+          <a-menu-item key="main" @click="handleToPage('/index')">
             <template #icon>
               <sliders-outlined style="font-size: 24px" />
             </template>
             <span>{{ $t('baseConfig.main_panel') }}</span>
+          </a-menu-item>
+          <a-menu-item key="test" @click="handleToPage('/test')">
+            <template #icon>
+              <sliders-outlined style="font-size: 24px" />
+            </template>
+            <span>测试</span>
           </a-menu-item>
           <template v-for="config in sidebarComponentConfigs">
             <a-menu-item

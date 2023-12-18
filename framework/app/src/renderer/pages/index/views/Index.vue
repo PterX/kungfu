@@ -24,7 +24,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeUnmount, ref, onMounted } from 'vue';
+import {
+  defineComponent,
+  // onBeforeUnmount,
+  ref,
+  // onMounted,
+  onActivated,
+  onDeactivated,
+} from 'vue';
 import { storeToRefs } from 'pinia';
 
 import KfRowColIter from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfRowColIter.vue';
@@ -39,6 +46,7 @@ import KfAddBoardModalVue from '../../../components/public/KfAddBoardModal.vue';
 import { Empty } from 'ant-design-vue';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
+import { Subscription } from 'rxjs';
 const { success } = messagePrompt();
 
 export default defineComponent({
@@ -60,44 +68,57 @@ export default defineComponent({
 
     const dealDefaultBoardsHook =
       globalThis.HookKeeper.getHooks().dealBoardsMap;
-    const curBoardsMap: KfLayout.BoardsMap =
-      getIndexBoardsMap() || dealDefaultBoardsHook.trigger(defaultBoardsMap);
-
-    initBoardsMap(curBoardsMap);
 
     const addBoardModalVisible = ref<boolean>(false);
     const addBoardTargetBoardId = ref<number>(-1);
 
-    const subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
-      if (data.tag === 'addBoard') {
-        addBoardModalVisible.value = true;
-        addBoardTargetBoardId.value = data.boardId;
-      }
-
-      if (data.tag === 'main') {
-        if (data.name === 'reset-main-dashboard') {
-          initBoardsMap(dealDefaultBoardsHook.trigger(defaultBoardsMap));
-          success();
-        }
-
-        if (data.name == 'record-before-quit') {
-          saveIndexBoardsMap(boardsMap.value);
-          window.watcher && window.watcher.quit();
-        }
-      }
-    });
+    let subscription: Subscription;
 
     const handleAddBoardFromEmpty = () => {
       addBoardModalVisible.value = true;
       addBoardTargetBoardId.value = 0;
     };
 
-    onMounted(() => {
+    // onMounted(() => {
+    //   setCurrentGlobalKfLocation(null);
+    //   setDefaultCurrentGlobalKfLocation();
+    // });
+
+    // onBeforeUnmount(() => {
+    //   subscription.unsubscribe();
+    //   saveIndexBoardsMap(boardsMap.value);
+    // });
+
+    onActivated(() => {
+      const curBoardsMap: KfLayout.BoardsMap =
+        getIndexBoardsMap() || dealDefaultBoardsHook.trigger(defaultBoardsMap);
+
+      initBoardsMap(curBoardsMap);
+
+      subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
+        if (data.tag === 'addBoard') {
+          addBoardModalVisible.value = true;
+          addBoardTargetBoardId.value = data.boardId;
+        }
+
+        if (data.tag === 'main') {
+          if (data.name === 'reset-main-dashboard') {
+            initBoardsMap(dealDefaultBoardsHook.trigger(defaultBoardsMap));
+            success();
+          }
+
+          if (data.name == 'record-before-quit') {
+            saveIndexBoardsMap(boardsMap.value);
+            window.watcher && window.watcher.quit();
+          }
+        }
+      });
+
       setCurrentGlobalKfLocation(null);
       setDefaultCurrentGlobalKfLocation();
     });
 
-    onBeforeUnmount(() => {
+    onDeactivated(() => {
       subscription.unsubscribe();
       saveIndexBoardsMap(boardsMap.value);
     });

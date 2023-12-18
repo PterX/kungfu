@@ -220,6 +220,7 @@ declare namespace KungfuApi {
   export interface KfExtOriginConfig {
     key: string;
     name: string;
+    keepAlive: boolean;
     extPath: string;
     ui_config?: {
       position: KfUIExtLocatorTypes;
@@ -364,6 +365,7 @@ declare namespace KungfuApi {
     string,
     {
       name: string;
+      keepAlive: boolean;
       extPath: string;
       position: KfUIExtLocatorTypes;
       exhibit: KfExhibitConfig;

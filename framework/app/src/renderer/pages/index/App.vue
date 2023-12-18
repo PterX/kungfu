@@ -156,7 +156,20 @@ onBeforeUnmount(() => {
   <a-config-provider :locale="locale" :autoInsertSpaceInButton="false">
     <div class="app__warp">
       <KfLayoutVue>
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component
+              :is="Component"
+              v-if="$route.meta.keepAlive"
+              :key="$route.name"
+            />
+          </keep-alive>
+          <component
+            :is="Component"
+            v-if="!$route.meta.keepAlive"
+            :key="$route.name"
+          />
+        </router-view>
       </KfLayoutVue>
     </div>
 

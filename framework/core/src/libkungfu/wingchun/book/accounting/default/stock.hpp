@@ -133,14 +133,10 @@ public:
         // 现金还款 只有成交回报 没有撤单功能 不会有冻结 所以在下单的时候已经处理了可用资金 这里就不需要再处理
         // book->asset.avail += order.limit_price;
       } else if (order.side == Side::StockRepayStock) {
-        // 现券还券没有成交回报 当状态为清算中的时候 此时为最终状态 会更新持仓
+        // 现券还券没有成交回报 当状态为清算中的时候 此时为最终状态 在账号现券还券权限为直接还券的情况下持仓不变
+        // 现券还券撤单的时候 多仓的冻结会相应减少
         // 由于现券还券委托价格为0 所以涉及持仓的盈亏以及最新价格暂时无法处理
-        if (order.status == OrderStatus::PendingSettlement) {
-          position.volume = std::max(position.volume - order.volume, VOLUME_ZERO);
-          position.frozen_total = std::max(position.frozen_total - order.volume, VOLUME_ZERO);
-          position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume, VOLUME_ZERO);
-          position.yesterday_volume = std::max(position.yesterday_volume - order.volume, VOLUME_ZERO);
-        } else {
+        if (order.status != OrderStatus::PendingSettlement) {
           position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
           position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
         }

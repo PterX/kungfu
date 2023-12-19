@@ -187,7 +187,7 @@ bool io_device_client::is_usable() {
   nanomsg_observer_client observer(*this, false);
   publisher.setup();
   observer.setup();
-  std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
+  std::this_thread::sleep_for(std::chrono::milliseconds(TEST_USABLE_TIMEOUT));
   return publisher.is_usable() and observer.is_usable();
 }
 
@@ -198,13 +198,13 @@ bool io_device_client::setup() {
   auto try_setup = [&]() {
     auto prc = publisher_->setup();
     auto orc = observer_->setup();
-    std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
     return prc && orc;
   };
 
   int count = (REGISTER_TIMEOUT_SECONDS * 1000) / SETUP_TIMEOUT;
   while (not try_setup()) {
     SPDLOG_WARN("try setup failed, retrying...");
+    std::this_thread::sleep_for(std::chrono::milliseconds(SETUP_TIMEOUT));
     if (count-- <= 0) {
       SPDLOG_ERROR("setup failed");
       throw yijinjing_error("setup failed");

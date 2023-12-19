@@ -41,10 +41,11 @@ import {
   useActiveInstruments,
   useQuote,
   showTradingDataDetail,
+  getPosClosableVolumeByOffset,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { getPosClosableVolumeByOffset, resolveTriggerOffset } from './utils';
+import { resolveTriggerOffset } from './utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 const { t } = VueI18n.global;

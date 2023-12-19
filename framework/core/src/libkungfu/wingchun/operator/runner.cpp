@@ -63,6 +63,9 @@ void Runner::post_start() {
     return;
   }
 
+  invoke(&Operator::post_start);
+  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
+
   events_ | is_own<Quote>(context_->get_broker_client()) |
       $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
   events_ | is_own<Entrust>(context_->get_broker_client()) |
@@ -73,9 +76,6 @@ void Runner::post_start() {
   events_ | is(SyntheticData::tag) |
       $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
                 event->dest()));
-
-  invoke(&Operator::post_start);
-  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }

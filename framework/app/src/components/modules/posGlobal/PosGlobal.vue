@@ -36,13 +36,11 @@ import {
   useQuote,
   useDealDataWithCaches,
   showTradingDataDetail,
+  getPosClosableVolumeByOffset,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import {
-  getPosClosableVolumeByOffset,
-  resolveTriggerOffset,
-} from '../pos/utils';
+import { resolveTriggerOffset } from '../pos/utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 

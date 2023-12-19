@@ -59,6 +59,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks/index';
+import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
@@ -136,7 +137,8 @@ app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 app.use(VueI18n);
 
 const globalStore = useGlobalStore();
-const __BYPASS_ARCHIVE__ = false;
+const globalSetting = getKfGlobalSettingsValue();
+const __BYPASS_ARCHIVE__ = globalSetting?.system?.bypassArchiveDev ?? false;
 let appMounted = false;
 
 globalBus.subscribe((data) => {
@@ -147,6 +149,7 @@ globalBus.subscribe((data) => {
 
 const tryArchive = async (bypassArchive = false) => {
   if (bypassArchive) {
+    kfLogger.info('Completely passed the archive');
     globalBus.next({
       tag: 'processStatus',
       name: 'archive',
@@ -215,7 +218,7 @@ const initStartAll = (bypassArchive = false) => {
           });
         });
       })
-      .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
+      .then(() => tryArchive(__BYPASS_ARCHIVE__ || bypassArchive))
       .then(() => startMaster(false))
       .catch((err) => kfLogger.error(err.message))
       .finally(() => syncProcessStatusToPinia());

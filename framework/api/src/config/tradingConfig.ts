@@ -661,6 +661,11 @@ export const ShotableInstrumentTypes = [
   InstrumentTypeEnum.multi,
 ];
 
+export const showVolumeSideTypes = [
+  SideEnum.GuaranteeStockSell,
+  SideEnum.RepayMargin,
+];
+
 export const T0InstrumentTypes = [
   InstrumentTypeEnum.cryptofuture,
   InstrumentTypeEnum.cryptoufuture,

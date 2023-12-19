@@ -12,6 +12,7 @@ import {
   kfRequestMarketData,
   getKungfuHistoryData,
   getNanoDateString,
+  isShowPosition,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -2575,8 +2576,10 @@ export const useMakeOrderInfo = (
   });
 
   const showAmountOrPosition = computed(() => {
-    const { offset } = formState.value;
-
+    const { offset, side } = formState.value;
+    if (isMarginMakeOrder.value) {
+      return isShowPosition(side) ? 'position' : 'amount';
+    }
     return offset === OffsetEnum.Open ? 'amount' : 'position';
   });
 
@@ -2687,6 +2690,7 @@ export const useMakeOrderInfo = (
   });
 
   const currentPosition = computed(() => {
+    if (isMarginMakeOrder.value) return currentPositionWithLongDirection.value;
     if (currentFormDirection.value === DirectionEnum.Long) {
       return currentPositionWithLongDirection.value;
     } else if (currentFormDirection.value === DirectionEnum.Short) {
@@ -2698,6 +2702,28 @@ export const useMakeOrderInfo = (
 
   const currentAvailMoney = computed(() => {
     if (!currentAccountLocation.value) return '--';
+    if (isMarginMakeOrder.value) {
+      const { side } = formState.value;
+      if (side === SideEnum.GuaranteeStockBuy) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).gage_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).credit_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.RepayStock) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).buyredeliver_fund_available;
+
+        return dealKfPrice(avail);
+      }
+    }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
@@ -2710,6 +2736,9 @@ export const useMakeOrderInfo = (
     const { offset } = formState.value;
 
     if (currentPosition.value) {
+      if (isMarginMakeOrder.value) {
+        return dealKfNumber(currentPosition.value.closable_volume);
+      }
       return (
         dealKfNumber(
           getPosClosableVolumeByOffset(currentPosition.value, offset),
@@ -2788,6 +2817,11 @@ export const useMakeOrderInfo = (
     const { volume, offset } = formState.value;
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
+        if (isMarginMakeOrder.value) {
+          return dealKfNumber(
+            Number(currentAvailPosVolume.value) - Number(volume),
+          );
+        }
         if (offset === OffsetEnum.Open) {
           return dealKfNumber(
             Number(currentAvailPosVolume.value) + Number(volume),

@@ -208,7 +208,9 @@ void Runner::prepare(const event_ptr &event) {
     return;
   }
   if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
-    positions_set_ = true;
+    if (event->data<PositionEnd>().holder_uid == get_home_uid()) {
+      positions_set_ = true;
+    }
   }
   if (not positions_set_) {
     return;

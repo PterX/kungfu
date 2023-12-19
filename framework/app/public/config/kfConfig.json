@@ -11,7 +11,8 @@
     "logLevel": "-l info",
     "autoRestartTd": true,
     "language": "zh-CN",
-    "bypassArchive": false
+    "bypassArchive": false,
+    "bypassArchiveDev": false
   },
   "code": { "tabSpaceType": "SPACES", "tabSpaceSize": "TWOINDENT" },
   "trade": {

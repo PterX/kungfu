@@ -808,7 +808,10 @@ export default {
     select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
+    bypass_archive_dev: '跳过归档 (开发者模式)',
+    bypass_archive_dev_desc:
+      '开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用 journal 工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:

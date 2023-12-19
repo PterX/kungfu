@@ -805,7 +805,10 @@ export default {
     select_language_desc: 'Select Language, the modified restart takes effect',
     bypass_archive: 'ByPass Archive',
     bypass_archive_desc:
-      "If open, archive will delete journal and zip files, and these files data can't be recovered, will accelerate start system",
+      "If open, archive will delete journal and zip files, and these files data can't be recovered, will accelerate start system, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.",
+    bypass_archive_dev: 'ByPass Archive (For developer)',
+    bypass_archive_dev_desc:
+      'If open, archive will not do anything, all journal and log file will be retained, help developers troubleshoot issues faster with journal tools, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.',
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:

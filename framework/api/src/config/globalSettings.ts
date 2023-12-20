@@ -84,6 +84,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         default: false,
       },
+      {
+        key: 'bypassArchiveDev',
+        name: t('globalSettingConfig.bypass_archive_dev'),
+        tip: t('globalSettingConfig.bypass_archive_dev_desc'),
+        type: 'bool',
+        default: false,
+      },
     ],
   },
   {

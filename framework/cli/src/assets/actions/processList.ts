@@ -13,7 +13,6 @@ import {
   isExtService,
   kfLogger,
   removeArchiveBeforeToday,
-  removeJournal,
   switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
@@ -39,15 +38,13 @@ import {
   startAllExtServices,
 } from '../methods/utils';
 import { dealProcessName } from '../methods/utils';
-import {
-  ARCHIVE_DIR,
-  KF_HOME,
-} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import { ARCHIVE_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { globalState } from './globalState';
 import {
   LifeCycleHook,
   LifeCycleKeys,
 } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
+import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 export const mdTdStrategyExtServiceObservable = () => {
   return new Observable<
@@ -723,7 +720,14 @@ function preSwitchMain(
 ) {
   if (!status) {
     loading.load(`Start Archive, Please wait...`);
-    return startArchiveMakeTask().then(() => {
+    const globalSetting = getKfGlobalSettingsValue();
+    const bypassArchiveDev = globalSetting?.system?.bypassArchiveDev ?? false;
+    const promise = bypassArchiveDev
+      ? delayMilliSeconds(1000).then(() => {
+          kfLogger.info('Completely pass the archive');
+        })
+      : startArchiveMakeTask();
+    return promise.then(() => {
       loading.stop();
       return message.log(`Archive success`, 2, (err) => {
         if (err) {
@@ -747,7 +751,6 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await deleteNNFiles();
   } else {
     await deleteNNFiles();
-    await removeJournal(KF_HOME);
     await removeArchiveBeforeToday(ARCHIVE_DIR);
     await startMaster(false);
     await delayMilliSeconds(1000);

@@ -174,6 +174,7 @@ function handleAddCommission() {
               <KfConfigSettingsForm
                 v-model:formState="globalSettingsFromStates[config.key]"
                 :configSettings="config.config"
+                :wrapperCol="18"
                 changeType="update"
                 :primaryKeyAvoidRepeatCompareTarget="[]"
                 primaryKeyAvoidRepeatCompareExtra=""

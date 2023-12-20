@@ -44,7 +44,6 @@ import {
   LifeCycleHook,
   LifeCycleKeys,
 } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
-import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 export const mdTdStrategyExtServiceObservable = () => {
   return new Observable<
@@ -720,14 +719,7 @@ function preSwitchMain(
 ) {
   if (!status) {
     loading.load(`Start Archive, Please wait...`);
-    const globalSetting = getKfGlobalSettingsValue();
-    const bypassArchiveDev = globalSetting?.system?.bypassArchiveDev ?? false;
-    const promise = bypassArchiveDev
-      ? delayMilliSeconds(1000).then(() => {
-          kfLogger.info('Completely pass the archive');
-        })
-      : startArchiveMakeTask();
-    return promise.then(() => {
+    return startArchiveMakeTask().then(() => {
       loading.stop();
       return message.log(`Archive success`, 2, (err) => {
         if (err) {

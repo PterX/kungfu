@@ -47,7 +47,7 @@ public:
 
   void on_request_deregister(const event_ptr &event);
 
-  bool is_rx(const event_ptr &event) override;
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   int64_t last_check_;

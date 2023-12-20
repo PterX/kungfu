@@ -189,7 +189,7 @@ void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
 void Runner::post_stop() { invoke(&Strategy::post_stop); }
 
-bool Runner::is_rx(const event_ptr &event) {
+bool Runner::is_reactable(const event_ptr &event) {
   if (is_custom_event(event)) {
     invoke(&Strategy::on_custom_data, event->msg_type(),
            {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),

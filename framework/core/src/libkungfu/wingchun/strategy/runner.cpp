@@ -183,34 +183,19 @@ void Runner::post_start() {
   events_ | is(AlgoOrderActionError::tag) |
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
-  events_ | is_custom() |
-      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
-                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
-                get_location(event->source()), event->dest()));
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
 void Runner::post_stop() { invoke(&Strategy::post_stop); }
 
-bool Runner::is_rx(const event_ptr &event) {
+bool Runner::is_reactable(const event_ptr &event) {
   if (is_custom_event(event)) {
     invoke(&Strategy::on_custom_data, event->msg_type(),
            {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
            get_location(event->source()), event->dest());
     return false;
   }
-
-  //  static const std::unordered_map<int32_t, std::function<bool(const Client &broker_client, const event_ptr &)>>
-  //      map_is_own = {
-  //          {Quote::tag, is_own_event<Quote>},
-  //          {Tree::tag, is_own_event<Tree>},
-  //          {Entrust::tag, is_own_event<Entrust>},
-  //          {Transaction::tag, is_own_event<Transaction>},
-  //          {BrokerStateUpdate::tag, is_own_event<BrokerStateUpdate>},
-  //          {OperatorStateUpdate::tag, is_own_event<OperatorStateUpdate>},
-  //          {Deregister::tag, is_own_event<Deregister>},
-  //      };
 
   auto iter = map_is_own_event.find(event->msg_type());
   if (iter != map_is_own_event.end()) {

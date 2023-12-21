@@ -123,11 +123,11 @@ void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
 void Runner::post_stop() { invoke(&Operator::post_stop); }
 
-bool Runner::is_rx(const event_ptr &event) {
+bool Runner::is_reactable(const event_ptr &event) {
   auto iter = map_is_own_event.find(event->msg_type());
   if (iter != map_is_own_event.end()) {
     return iter->second(context_->get_broker_client(), event);
   }
-  return true;
+  return not is_custom_event(event);
 }
 } // namespace kungfu::wingchun::op

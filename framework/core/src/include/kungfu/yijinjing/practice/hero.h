@@ -124,7 +124,7 @@ public:
 
   virtual void on_exit();
 
-  virtual bool is_rx(const event_ptr &event);
+  virtual bool is_reactable(const event_ptr &event);
 
   void request_deregister() {
     continual_ = false;

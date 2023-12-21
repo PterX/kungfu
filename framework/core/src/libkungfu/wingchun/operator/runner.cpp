@@ -128,6 +128,6 @@ bool Runner::is_reactable(const event_ptr &event) {
   if (iter != map_is_own_event.end()) {
     return iter->second(context_->get_broker_client(), event);
   }
-  return true;
+  return not is_custom_event(event);
 }
 } // namespace kungfu::wingchun::op

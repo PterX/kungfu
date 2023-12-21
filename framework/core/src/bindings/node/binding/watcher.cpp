@@ -793,6 +793,13 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
   }
 }
 
+bool Watcher::is_reactable(const event_ptr &event) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag) {
+    return false;
+  }
+  return not is_custom_event(event);
+}
+
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
   auto book = bookkeeper_.get_book(position.holder_uid);
 

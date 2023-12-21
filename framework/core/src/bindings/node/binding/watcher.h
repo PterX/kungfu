@@ -121,6 +121,8 @@ public:
 
   yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const override;
 
+  bool is_reactable(const event_ptr &event) override;
+
 protected:
   const bool bypass_quote_;
   const bool bypass_trading_data_;

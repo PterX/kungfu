@@ -41,6 +41,8 @@ public:
 
   void on_exit() override;
 
+  bool is_reactable(const event_ptr &event) override;
+
 protected:
   void react() override;
 

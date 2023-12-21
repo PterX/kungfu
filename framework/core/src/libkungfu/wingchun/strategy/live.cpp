@@ -28,14 +28,6 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
 }
 
 void LiveContext::on_start() {
-  SPDLOG_DEBUG("arguments_: {}", get_arguments());
-  if (not get_arguments().empty()) {
-    auto config = nlohmann::json::parse(get_arguments());
-    if (config.value<bool>("bypass_accounting", false)) {
-      bypass_accounting();
-    }
-  }
-
   broker_client_.on_start(events_);
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);

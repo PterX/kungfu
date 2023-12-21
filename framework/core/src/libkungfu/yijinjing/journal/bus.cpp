@@ -8,6 +8,18 @@ void bus::on_load_page() {
   notify_all();
 }
 
-void bus::notify_all() { cv_.notify_all(); }
+void bus::notify_all() {
+  produce();
+  cv_.notify_all();
+}
+
+void bus::wait() {
+  std::unique_lock lk(cv_mutex_);
+  cv_.wait(lk, [&]() { return ready_.load(); });
+}
+
+void bus::consume() { ready_.store(false); }
+
+void bus::produce() { ready_.store(true); }
 
 } // namespace kungfu::yijinjing::journal

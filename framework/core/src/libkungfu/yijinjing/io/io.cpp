@@ -150,7 +150,7 @@ io_device::io_device(data::location_ptr home, const bool low_latency, const bool
     : home_(std::move(home)),
       live_home_(location::make_shared(mode::LIVE, home_->category, home_->group, home_->name, home_->locator)),
       low_latency_(low_latency), lazy_(lazy), begin_time_(time::now_in_nano()),
-      bus_(std::make_shared<bus>(is_cleaner_required())) {
+      bus_(std::make_shared<bus>(is_resource_manager_required())) {
   if (spdlog::default_logger()->name().empty()) {
     yijinjing::log::setup_log(home_, home_->name);
   }
@@ -193,8 +193,8 @@ writer_ptr io_device::open_hookable_writer(uint32_t dest_id, const writer_hook_p
   }
 }
 
-writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
-                                              const writer_hook_ptr &hook, uint64_t page_size) {
+[[maybe_unused]] writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                                               const writer_hook_ptr &hook, uint64_t page_size) {
   if (home_->mode != mode::REPLAY) {
     return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size, hook);
   } else {

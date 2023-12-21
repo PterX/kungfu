@@ -52,6 +52,8 @@ class TraderSim(wc.Trader):
         for k, v in self.orders.items():
             self.ctx.orders[k] = v.data
 
+        self.logger.info(f"self.match_mode: {self.match_mode}")
+
         if self.match_mode == MatchMode.Custom:
             path = config.get("path")
             simulator_dir = os.path.dirname(path)

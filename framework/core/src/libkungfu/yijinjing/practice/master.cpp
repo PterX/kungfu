@@ -6,7 +6,6 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/journal/frame.h>
 #include <kungfu/yijinjing/practice/master.h>
 #include <kungfu/yijinjing/time.h>
@@ -22,9 +21,8 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::practice {
 
-master::master(location_ptr home, bool low_latency, bool bypass_cached)
-    : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0),
-      cached_(get_io_device(), bypass_cached) {
+master::master(const location_ptr &home, bool low_latency)
+    : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0), cached_(get_io_device()) {
 
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(begin_time_, location::make_shared(app_location, get_locator()));

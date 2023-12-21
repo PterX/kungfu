@@ -167,11 +167,16 @@ export const addMdTdStrategyOperator = async (
         type: 'str',
         primary: true,
         required: true,
-        tip: t('strategyConfig.strategy_id_tip'),
+        tip: t('strategyConfig.strategy_tip'),
+      },
+      {
+        key: 'remarks',
+        name: t('remarks'),
+        type: 'str',
       },
       {
         key: 'file_path',
-        name: t('strategyConfig.file_path'),
+        name: t('strategyConfig.strategy_path_tip'),
         type: 'file',
         required: true,
       },
@@ -224,6 +229,11 @@ export const addMdTdStrategyOperator = async (
           primary: true,
           required: true,
           tip: t('operatorConfig.operator_id_tip'),
+        },
+        {
+          key: 'remarks',
+          name: t('remarks'),
+          type: 'str',
         },
         {
           key: 'file_path',

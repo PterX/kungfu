@@ -423,24 +423,6 @@ export const initFormTimePicker = (initValue?: string | string[]) => {
   return null;
 };
 
-export const concatPrimaryKey = (arr: string[]) => {
-  if (arr.length === 0) return '';
-
-  let result = arr[0];
-
-  if (arr.length > 1) {
-    result += '_' + arr[1];
-  }
-
-  if (arr.length > 2) {
-    for (let i = 2; i < arr.length; i++) {
-      result += '-' + arr[i];
-    }
-  }
-
-  return result;
-};
-
 export const getPrimaryKeyFromKfConfigItem = (
   settings: KungfuApi.KfConfigItem[],
 ): KungfuApi.KfConfigItem[] => {
@@ -776,4 +758,22 @@ export const buildTableColumnSorterWithStrike = <T>(
       return `${a[dataIndex] ?? ''}`.localeCompare(`${b[dataIndex] ?? ''}`);
     }
   };
+};
+
+export const getNaturalNumber = <T extends number | bigint>(num: T): T => {
+  if (typeof num === 'bigint') {
+    return num > 0n ? num : (0n as T);
+  }
+
+  return num > 0 ? num : (0 as T);
+};
+
+export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
+  const strKeys = keys.map((key) => key.toString());
+  return Object.keys(obj)
+    .filter((key) => !strKeys.includes(key))
+    .reduce((result, key) => {
+      result[key] = obj[key];
+      return result;
+    }, {});
 };

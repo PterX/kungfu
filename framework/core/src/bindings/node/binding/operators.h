@@ -380,6 +380,8 @@ private:
   Napi::ObjectReference &state_;
 };
 
+void initObjectReference(const Napi::CallbackInfo &info, Napi::ObjectReference &data);
+
 void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, const std::string &name);
 
 void InitTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name);

@@ -182,7 +182,28 @@ struct Book {
   [[nodiscard]] bool has_short_position(const std::string &source, const std::string &account, const char *exchange_id,
                                         const char *instrument_id) const;
 
-  [[nodiscard]] bool has_position(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
+  [[nodiscard]] bool has_position_for(uint32_t source_id, const char *exchange_id, const char *instrument_id) const;
+
+  [[nodiscard]] bool has_position_for(const longfist::types::Position &position) const;
+
+  template <typename TradingData> [[nodiscard]] bool has_long_position_for(const TradingData &data) const {
+    auto result = false;
+    for (const auto &source_id : source_ids) {
+      result |= has_position(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id);
+    }
+    return result;
+  }
+
+  template <typename TradingData> [[nodiscard]] bool has_short_position_for(const TradingData &data) const {
+    auto result = false;
+    for (const auto &source_id : source_ids) {
+      result |= has_position(source_id, longfist::enums::Direction::Short, data.exchange_id, data.instrument_id);
+    }
+    return result;
+  }
+
+  [[nodiscard]] bool has_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
+                                  const char *instrument_id) const;
 
   [[nodiscard]] longfist::types::Position &get_long_position(uint32_t source_id, const char *exchange_id,
                                                              const char *instrument_id);
@@ -199,29 +220,12 @@ struct Book {
   [[nodiscard]] longfist::types::Position &get_position(uint32_t source_id, longfist::enums::Direction direction,
                                                         const char *exchange_id, const char *instrument_id);
 
-  [[nodiscard]] bool has_position(uint32_t source_id, longfist::enums::Direction direction, const char *exchange_id,
-                                  const char *instrument_id);
+  [[nodiscard]] longfist::types::Position &get_position_for(const longfist::types::Position &position);
 
   template <typename TradingData>
   [[nodiscard]] longfist::types::Position &get_position_for(uint32_t source_id, const TradingData &data) {
     auto direction = get_direction(data.instrument_type, data.side, data.offset);
     return get_position(source_id, direction, data.exchange_id, data.instrument_id);
-  }
-
-  template <typename TradingData> [[nodiscard]] bool has_long_position_for(const TradingData &data) {
-    auto result = false;
-    for (const auto &source_id : source_ids) {
-      result |= has_position(source_id, longfist::enums::Direction::Long, data.exchange_id, data.instrument_id);
-    }
-    return result;
-  }
-
-  template <typename TradingData> [[nodiscard]] bool has_short_position_for(const TradingData &data) {
-    auto result = false;
-    for (const auto &source_id : source_ids) {
-      result |= has_position(source_id, longfist::enums::Direction::Short, data.exchange_id, data.instrument_id);
-    }
-    return result;
   }
 
   template <typename TradingData>

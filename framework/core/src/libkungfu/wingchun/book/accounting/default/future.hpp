@@ -88,19 +88,12 @@ public:
         book->asset.avail -= frozen_margin;
         book->asset.frozen_cash += frozen_margin;
         book->asset.frozen_margin += frozen_margin;
+      } else {
+        position.frozen_total += input.volume;
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        position.frozen_total += input.volume;
-        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-          position.frozen_yesterday += input.volume;
-        } else {
-          position.frozen_yesterday = position.yesterday_volume;
-        }
-      }
-
-      if (offset == Offset::CloseToday) {
-        position.frozen_total += input.volume;
+        position.frozen_yesterday += input.volume;
       }
 
       update_position(book, position);
@@ -132,7 +125,6 @@ public:
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
       }
 
@@ -192,7 +184,6 @@ public:
     auto price_diff = position.last_price - position.avg_open_price;
     // 浮动盈亏
     position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
-    position.update_time = yijinjing::time::now_in_nano();
   }
 
 private:
@@ -240,8 +231,9 @@ private:
 
     if (is_local) {
       position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
-      if (trade.offset != Offset::CloseToday)
+      if (trade.offset != Offset::CloseToday) {
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
+      }
     }
 
     auto close_today_volume = 0.0;

@@ -47,7 +47,6 @@ declare namespace KungfuApi {
     KfExhibitConfigTypes,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
-    BasketOrderStatusEnum,
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
@@ -226,6 +225,7 @@ declare namespace KungfuApi {
     src: string;
     dest?: string;
     filter?: string;
+    level?: number;
   }
 
   export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
@@ -953,7 +953,7 @@ declare namespace KungfuApi {
     price_offset: number; // 价格偏移
     volume: bigint;
     volume_left: bigint;
-    status: BasketOrderStatusEnum;
+    status: OrderStatusEnum;
 
     source_id: number; // 下单方
     dest_id: number;

@@ -30,6 +30,7 @@ import {
   useProcessStatusDetailData,
   useSwitchAllConfig,
   useReplay,
+  useExtConfigsRelated,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -86,6 +87,21 @@ const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
   strategy as Ref<KungfuApi.KfConfig[]>,
   ['name'],
 );
+
+const { uiExtConfigs } = useExtConfigsRelated();
+
+const StrategyHeaderRightComponentConfigs = computed(() => {
+  return Object.keys(uiExtConfigs.value)
+    .filter(
+      (key) => uiExtConfigs.value[key].position === 'strategy_header_right',
+    )
+    .map((key) => {
+      return {
+        ...uiExtConfigs.value[key],
+        key,
+      };
+    });
+});
 
 const tableDataResolved = computed(() => {
   return [...tableData.value].sort((a, b) => {
@@ -180,6 +196,12 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
             @click="handleSwitchAllProcessStatus"
           ></a-switch>
         </KfDashboardItem>
+        <KfDashboardItem
+          v-for="config in StrategyHeaderRightComponentConfigs"
+          :key="config.key"
+        >
+          <component :is="config.key"></component>
+        </KfDashboardItem>
         <KfDashboardItem>
           <a-button
             size="small"
@@ -218,6 +240,11 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
               :component="getPrefixByLocation(record).prefix"
               style="font-size: 12px; margin-left: 7px"
             />
+          </template>
+          <template v-else-if="column.dataIndex === 'remarks'">
+            {{
+              JSON.parse((record as KungfuApi.KfConfig).value).remarks || '--'
+            }}
           </template>
           <template v-else-if="column.dataIndex === 'strategyFile'">
             {{ getStrategyPathShowName(record) }}

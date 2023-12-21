@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.0-alpha.26",
+  "version": "2.7.1-alpha.9",
   "description": "KungFu Strategy 101 - Python Demo",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -37,13 +37,13 @@
     "key": "KungfuStrategy101Python",
     "assets": [
       {
-        "name": "strategyDemo",
+        "name": "功夫示例策略",
         "src": "./src/python/KungfuStrategy101Python/__init__.py",
         "dest": "strategyDemo.py"
       }
     ]
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.0-alpha.26"
+    "@kungfu-trader/kungfu-sdk": "^2.7.1-alpha.9"
   }
 }

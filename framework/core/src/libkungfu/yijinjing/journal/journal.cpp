@@ -14,10 +14,10 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
       page_size_(page_size), priority_(priority), replica_(false) {
   keep_page_ = std::getenv("KF_KEEP_PAGE") != nullptr;
   preload_ = std::getenv("KF_PRELOAD") != nullptr;
-  char *preload_size = std::getenv("KF_MAX_PRE_CREATE_SIZE");
+  char *pre_create_size = std::getenv("KF_MAX_PRE_CREATE_SIZE");
   try {
-    if (preload_size != nullptr) {
-      max_pre_create_size_ = std::stoul(preload_size);
+    if (pre_create_size != nullptr) {
+      max_pre_create_size_ = std::stoul(pre_create_size);
     }
   } catch (std::exception &e) {
     SPDLOG_ERROR("failed to parse KF_MAX_PRE_CREATE_SIZE: {}", e.what());
@@ -68,7 +68,6 @@ void journal::seek_to_time(int64_t nanotime) {
 }
 
 void journal::load_page(uint32_t page_id) {
-  int64_t t1 = time::now_in_nano();
   auto fn_load = [&]() {
     if (not page_ or page_->get_page_id() != page_id) {
       if (page_) {
@@ -98,14 +97,11 @@ void journal::load_page(uint32_t page_id) {
   } else {
     fn_load();
   }
-  int64_t t2 = time::now_in_nano();
-  SPDLOG_DEBUG("load_page use time {} ns", t2 - t1);
 }
 
 void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
 void journal::preload_next_page() {
-  int64_t t1 = time::now_in_nano();
   std::lock_guard<std::recursive_mutex> lk(load_page_mtx_);
   if ((not preload_ or not page_) or                                                                           //
       (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or                          //
@@ -115,8 +111,6 @@ void journal::preload_next_page() {
     return;
   }
   preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
-  int64_t t2 = time::now_in_nano();
-  SPDLOG_DEBUG("preload_next_page use time {} ns", t2 - t1);
 }
 
 // saving time for other process switch page, except the master

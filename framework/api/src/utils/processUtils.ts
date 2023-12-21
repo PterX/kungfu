@@ -560,25 +560,11 @@ export const startProcess = async (
       options,
     );
 
-  const globalSetting = getKfGlobalSettingsValue();
-  const tempArg = buildKfcEnv({
-    bypassCached: globalSetting.system.bypassCached,
-    bypassAccounting: globalSetting.system.bypassAccounting,
-    bypassRefreshBook: globalSetting.system.bypassRefreshBook,
-    bypassSyncAsset: globalSetting.system.bypassSyncAsset,
-    bypassSyncPosition: globalSetting.system.bypassSyncPosition,
-    keepPage: globalSetting.system.keepPage,
-    preload: globalSetting.system.preload,
-    maxPreCreateSize: globalSetting.system.maxPreCreateSize,
-  });
-  kfLogger.info('args', options.args);
-  kfLogger.info('tempArg', tempArg);
-
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
-    args: `${options.args} ${tempArg}`, //有问题吗？
+    args: options.args, //有问题吗？
     cwd: options.cwd || path.join(KFC_DIR),
     script: options.script || kfcName,
     interpreter: options.interpreter || 'none',

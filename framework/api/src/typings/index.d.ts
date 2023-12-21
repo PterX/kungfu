@@ -225,6 +225,7 @@ declare namespace KungfuApi {
     src: string;
     dest?: string;
     filter?: string;
+    level?: number;
   }
 
   export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {

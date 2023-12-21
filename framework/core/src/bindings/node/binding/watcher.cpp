@@ -641,20 +641,20 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
 }
 
 void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_location) {
-//  events_ | is(Quote::tag) | from(md_location->uid) | first() |
-//      $(
-//          [&, trigger_time, md_location](const event_ptr &event) {
-//            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
-//            events_ | from(md_location->uid) | is(Quote::tag) |
-//                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
-//                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
-//                  if (is_location_live(md_location->uid)) {
-//                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
-//                    MonitorMarketData(trigger_time, md_location);
-//                  }
-//                });
-//          },
-//          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
+  //  events_ | is(Quote::tag) | from(md_location->uid) | first() |
+  //      $(
+  //          [&, trigger_time, md_location](const event_ptr &event) {
+  //            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
+  //            events_ | from(md_location->uid) | is(Quote::tag) |
+  //                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
+  //                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
+  //                  if (is_location_live(md_location->uid)) {
+  //                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
+  //                    MonitorMarketData(trigger_time, md_location);
+  //                  }
+  //                });
+  //          },
+  //          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
 }
 
 void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {

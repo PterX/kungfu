@@ -794,9 +794,15 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 }
 
 bool Watcher::is_reactable(const event_ptr &event) {
-  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Trade::tag) {
     return false;
   }
+
+  auto iter = broker::map_is_own_event.find(event->msg_type());
+  if (iter != broker::map_is_own_event.end()) {
+    return iter->second(broker_client_, event);
+  }
+
   return not is_custom_event(event);
 }
 

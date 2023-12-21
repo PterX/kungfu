@@ -146,7 +146,6 @@ globalBus.subscribe((data) => {
 
 const tryArchive = async (bypassArchive = false) => {
   if (bypassArchive) {
-    kfLogger.info('Completely passed the archive');
     globalBus.next({
       tag: 'processStatus',
       name: 'archive',

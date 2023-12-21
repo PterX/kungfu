@@ -124,14 +124,16 @@ void reader::build_buffer() {
   buffer_built_ = true;
 }
 
-bool reader::release_page() {
-  bool result = false;
+void reader::release_page() {
   for (auto &iter : journals_) {
-    result |= iter.second.release_page();
+    iter.second.release_page();
   }
-  std::lock_guard<std::recursive_mutex> lk(mtx_);
-  replica_journals_.clear();
-  return result;
+}
+
+void reader::preload_next_page() {
+  for (auto &iter : journals_) {
+    iter.second.preload_next_page();
+  }
 }
 
 reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_) {
@@ -143,7 +145,7 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
   }
 }
 
-journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
+[[maybe_unused]] journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
   auto key = journal_key(location, dest_id);
   auto iter = journals_.find(key);
   if (iter != journals_.end()) {

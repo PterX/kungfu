@@ -33,6 +33,12 @@ void page::set_last_frame_position(uint64_t position) {
   const_cast<page_header *>(header_)->last_frame_position = position;
 }
 
+void page::enable_page() {
+  if (is_writing_) {
+    const_cast<page_header *>(header_)->status = longfist::enums::PageStatus::Normal;
+  }
+}
+
 page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size, uint32_t page_id,
                     bool is_writing, bool lazy, bool pre_open) {
   std::string path = get_page_path(location, dest_id, page_id);
@@ -57,7 +63,7 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint64
 
   if (pre_open && is_virgin_page) {
     header->status = longfist::enums::PageStatus::PreOpen;
-  } else if (is_writing) {
+  } else if (is_writing and not pre_open) {
     header->status = longfist::enums::PageStatus::Normal;
   }
 
@@ -155,7 +161,7 @@ uint64_t page::find_page_size(const data::location_ptr &location, uint32_t dest_
   if ((location->category == longfist::enums::category::STRATEGY ||
        location->category == longfist::enums::category::OPERATOR ||
        location->category == longfist::enums::category::SYSTEM) &&
-      dest_id != 0) {
+      (dest_id != data::location::PUBLIC and dest_id != data::location::SYNC)) {
     return 16 * MB;
   }
   return 2 * MB;
@@ -166,7 +172,11 @@ bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_
   if (page_ids.empty()) {
     return false;
   }
-
   return true;
+}
+
+bool page::check_page_existed(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id) {
+  std::vector<uint32_t> page_ids = location->locator->list_page_id(location, dest_id);
+  return std::any_of(page_ids.begin(), page_ids.end(), [&](uint32_t id) { return id == page_id; });
 }
 } // namespace kungfu::yijinjing::journal

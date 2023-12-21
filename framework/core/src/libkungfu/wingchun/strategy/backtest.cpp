@@ -67,6 +67,11 @@ void BacktestContext::on_start() {
 
 bool BacktestContext::is_started() const { return true; }
 
+const std::string BacktestContext::get_config() const {
+  // todo figure out how to deal with configure from sqlite.
+  return "{}";
+}
+
 void BacktestContext::prepare(const event_ptr &event) {}
 
 int64_t BacktestContext::now() const { return app_.now(); }
@@ -419,5 +424,4 @@ uint64_t BacktestContext::get_order_id(const writer_ptr &writer, uint32_t dest) 
 
 uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }
 
-const std::string BacktestContext::get_config() const { return "{}"; }
 } // namespace kungfu::wingchun::strategy

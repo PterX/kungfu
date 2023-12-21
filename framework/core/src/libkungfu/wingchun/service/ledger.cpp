@@ -28,8 +28,8 @@ Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string 
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
       broker_client_(*this), bookkeeper_(*this, broker_client_, true) {
-  sync_asset_ = std::getenv("KF_SKIP_SYNC_ASSET") == nullptr;
-  sync_position_ = std::getenv("KF_SKIP_SYNC_POSITION") == nullptr;
+  sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
+  sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 
@@ -73,13 +73,9 @@ void Ledger::on_start() {
   refresh_books();
 }
 
-bool Ledger::bypass_refresh_book() const {
-  if (get_arguments().empty()) {
-    return false;
-  }
-
-  auto config = nlohmann::json::parse(get_arguments());
-  return config.value<bool>("bypass_refresh_book", false);
+bool Ledger::bypass_refresh_book() {
+  static bool bypass_refresh_book = std::getenv("KF_BYPASS_REFRESH_BOOK") != nullptr;
+  return bypass_refresh_book;
 }
 
 void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {

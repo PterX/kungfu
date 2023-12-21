@@ -17,7 +17,7 @@ typedef yijinjing::cache::typed_bank<ProfileDataTypesType, ProfileStateMapType> 
 
 class cached {
 public:
-  explicit cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached = false);
+  explicit cached(const yijinjing::io_device_ptr &io_device);
 
   ~cached();
 
@@ -107,7 +107,7 @@ private:
   ProfileStateBank profile_restore_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   std::unordered_map<uint32_t, yijinjing::cache::shift> app_states_shift_ = {};
   yijinjing::cache::bank states_feed_bank_;
-  const bool bypass_cached_;
+  bool bypass_cached_;
   std::thread store_states_worker_;
   std::thread store_profile_worker_;
   std::mutex feed_mutex_;

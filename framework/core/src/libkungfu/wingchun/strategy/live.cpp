@@ -28,14 +28,6 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
 }
 
 void LiveContext::on_start() {
-  SPDLOG_DEBUG("arguments_: {}", get_arguments());
-  if (not get_arguments().empty()) {
-    auto config = nlohmann::json::parse(get_arguments());
-    if (config.value<bool>("bypass_accounting", false)) {
-      bypass_accounting();
-    }
-  }
-
   broker_client_.on_start(events_);
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);
@@ -120,6 +112,15 @@ void LiveContext::prepare(const event_ptr &event) {
 
   get_bookkeeper().guard_positions();
   started_ = true;
+}
+
+const std::string LiveContext::get_config() const {
+  auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
+  if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
+    return "{}";
+  }
+  auto &config_obj = config_map.at(app_.get_live_home_uid());
+  return config_obj.data.value;
 }
 
 int64_t LiveContext::now() const { return app_.now(); }
@@ -644,12 +645,4 @@ uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 
 uint32_t LiveContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
 
-const std::string LiveContext::get_config() const {
-  auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
-  if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
-    return "{}";
-  }
-  auto &config_obj = config_map.at(app_.get_live_home_uid());
-  return config_obj.data.value;
-}
 } // namespace kungfu::wingchun::strategy

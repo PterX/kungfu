@@ -15,30 +15,29 @@
 namespace kungfu::yijinjing::practice {
 class apprentice;
 
-class cleaner {
+class resource_manager {
 public:
-  explicit cleaner(apprentice &app);
+  explicit resource_manager(apprentice &app);
 
-  virtual ~cleaner();
+  virtual ~resource_manager();
 
   void on_react();
 
-  std::thread &get_cleaning_worker();
+  std::thread &get_resource_management_worker();
 
 private:
   practice::apprentice &app_;
-  std::thread cleaning_worker_;
-  std::mutex cv_mutex_;
+  std::thread resource_management_worker;
   std::atomic<bool> m_quit_ = false;
 
-  void do_clean();
+  void do_management();
 
-  [[nodiscard]] bool is_cleaner_worker_required() const;
+  [[nodiscard]] bool is_resource_management_worker_required() const;
 };
 
 class apprentice : public hero {
 public:
-  explicit apprentice(data::location_ptr home, bool low_latency = false, std::string arguments = "{}");
+  explicit apprentice(const data::location_ptr &home, bool low_latency = false, std::string arguments = "{}");
 
   bool is_started() const;
 
@@ -115,7 +114,7 @@ public:
     }
   }
 
-  bool release_page();
+  void release_page();
 
   template <class DataType> std::string make_nano_msg(uint32_t source, uint32_t dest, const DataType &data) const {
     auto now = this->now();
@@ -133,7 +132,9 @@ public:
 
   const std::string &get_arguments() const { return arguments_; }
 
-  std::thread &get_cleaning_worker();
+  std::thread &get_resource_management_worker();
+
+  void preload_next_page();
 
   journal::writer_ptr &get_thread_writer();
 
@@ -193,7 +194,6 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
-    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                return (event->msg_type() == longfist::types::Time::tag &&
@@ -224,7 +224,6 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
-    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                         bool enabled = is_timer_enabled(timer_id);
@@ -247,7 +246,6 @@ protected:
                  r.location_uid = get_live_home_uid();
                  writer->close_data();
                  timer_checkpoints_[timer_id] = now();
-                 timer_requests_.insert_or_assign(timer_id, r);
                  return true;
                } else {
                  return false;
@@ -269,7 +267,6 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
-    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return (src | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                      return not is_timer_enabled(timer_id);
@@ -285,7 +282,6 @@ protected:
                   r.location_uid = get_live_home_uid();
                   writer->close_data();
                   timer_checkpoints_[timer_id] = now();
-                  timer_requests_.insert_or_assign(timer_id, r);
                   return true;
                 } else {
                   return false;
@@ -295,23 +291,21 @@ protected:
                    if (event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
                      throw rx::timeout_error("timeout");
                    }
-                   timer_requests_.erase(timer_id);
                    return false;
                  }));
     };
   }
 
 private:
+  resource_manager manager_;
   bool started_ = false;
   int64_t last_active_time_ = INT64_MIN;
   int64_t checkin_time_ = INT64_MIN;
-  int32_t timer_usage_count_ = 0;
-  const std::string arguments_{};
-  cleaner cleaner_;
+  int32_t timer_usage_count_{0};
+  const std::string arguments_ = {};
   std::unordered_map<int, int64_t> timer_checkpoints_ = {};
-  std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
-  std::unordered_set<uint32_t> try_write_dest_ids_{};
-  std::unordered_map<int32_t, bool> timers_{};
+  std::unordered_set<uint32_t> try_write_dest_ids_ = {};
+  std::unordered_map<int32_t, bool> timers_ = {};
 
   void checkin();
 

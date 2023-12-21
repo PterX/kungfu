@@ -22,8 +22,8 @@ namespace fs = std::filesystem;
 
 namespace kungfu::yijinjing::practice {
 
-apprentice::apprentice(location_ptr home, bool low_latency, std::string arguments)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), cleaner_(*this), arguments_(std::move(arguments)) {}
+apprentice::apprentice(const location_ptr &home, bool low_latency, std::string arguments)
+    : hero(std::make_shared<io_device_client>(home, low_latency)), manager_(*this), arguments_(std::move(arguments)) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -83,13 +83,18 @@ int32_t apprentice::add_time_interval(int64_t duration, const std::function<void
   return timer_id;
 }
 
-bool apprentice::release_page() {
-  bool result = false;
-  result |= reader_->release_page();
+void apprentice::release_page() {
+  reader_->release_page();
   for (auto &iter : writers_) {
-    result |= iter.second->release_page();
+    iter.second->release_page();
   }
-  return result;
+}
+
+void apprentice::preload_next_page() {
+  reader_->preload_next_page();
+  for (auto &iter : writers_) {
+    iter.second->preload_next_page();
+  }
 }
 
 void apprentice::react() {
@@ -109,7 +114,7 @@ void apprentice::react() {
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
-  cleaner_.on_react();
+  manager_.on_react();
 
   if (get_io_device()->get_home()->mode != mode::BACKTEST) {
     events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
@@ -316,7 +321,7 @@ void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
 
-std::thread &apprentice::get_cleaning_worker() { return cleaner_.get_cleaning_worker(); }
+std::thread &apprentice::get_resource_management_worker() { return manager_.get_resource_management_worker(); }
 
 void apprentice::clear_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, false); }
 

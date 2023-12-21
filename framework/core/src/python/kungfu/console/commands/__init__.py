@@ -67,6 +67,24 @@ class PrioritizedCommandGroup(click.Group):
         def copy_from_parent(f: CLI) -> CLI:
             def new_func(*args, **kwargs):
                 ctx = get_current_context()
+                ENV_dict = {
+                    ("KF_" + key[4:]).upper(): value
+                    for key, value in kwargs.items()
+                    if key.upper().startswith("ENV_")
+                }
+                for k, v in ENV_dict.items():
+                    if v:
+                        os.environ[k] = k
+
+                ARG_dict = {
+                    ("KF_" + key[4:]).upper(): value
+                    for key, value in kwargs.items()
+                    if key.upper().startswith("ARG_")
+                }
+                for k, v in ARG_dict.items():
+                    if v:
+                        os.environ[k] = v
+
                 for key in [
                     "name",
                     "home",

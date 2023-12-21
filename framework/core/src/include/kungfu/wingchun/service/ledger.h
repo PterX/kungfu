@@ -43,7 +43,7 @@ private:
   bool sync_asset_ = false;
   bool sync_position_ = false;
 
-  bool bypass_refresh_book() const;
+  static bool bypass_refresh_book();
 
   void on_deregister(const longfist::types::Deregister &deregister);
 

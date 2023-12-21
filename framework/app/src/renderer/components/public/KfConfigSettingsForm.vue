@@ -316,7 +316,23 @@ if ('instrument' in formState.value) {
               ...Object.keys(Side).slice(0, 2),
               SideEnum.Exec + '',
             ];
-          } else if (instrumentType === InstrumentTypeEnum.future) {
+          } else {
+            if (configSettingFormInject?.sideFilter) {
+              sideRadiosList.value =
+                configSettingFormInject.sideFilter?.(instrumentType);
+            } else {
+              sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            }
+          }
+
+          if (
+            'side' in formState.value &&
+            !sideRadiosList.value.includes(`${formState.value.side}`)
+          ) {
+            formState.value.side = +sideRadiosList.value[0];
+          }
+
+          if (instrumentType === InstrumentTypeEnum.future) {
             if (exchangeId === 'SHFE' || exchangeId === 'INE') {
               numberEnumRadioTypeResolved.value['offset'] =
                 numberEnumRadioType['offset'];
@@ -325,13 +341,6 @@ if ('instrument' in formState.value) {
                 numberEnumRadioType['offset'],
                 [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
               );
-            }
-          } else {
-            if (configSettingFormInject?.sideFilter) {
-              sideRadiosList.value =
-                configSettingFormInject.sideFilter?.(instrumentType);
-            } else {
-              sideRadiosList.value = Object.keys(Side).slice(0, 2);
             }
           }
         }

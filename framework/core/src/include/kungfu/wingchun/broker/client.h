@@ -357,71 +357,76 @@ private:
 };
 
 template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      if (broker_client.is_custom_subscribed(event->source())) {
-        if ((std::is_same_v<DataType, longfist::types::Quote> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Snapshot,
-                                                    data.exchange_id, data.instrument_type)) ||
-            (std::is_same_v<DataType, longfist::types::Tree> &&
-             broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
-                                                    data.exchange_id, data.instrument_type)) ||
-            (std::is_same_v<DataType, longfist::types::Transaction> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Transaction,
-                                                    data.exchange_id, data.instrument_type)) ||
-            (std::is_same_v<DataType, longfist::types::Entrust> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Entrust,
-                                                    data.exchange_id, data.instrument_type))) {
-          return true;
-        }
-      }
-      if (broker_client.is_subscribed(data.exchange_id, data.instrument_id)) {
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    if (broker_client.is_custom_subscribed(event->source())) {
+      if ((std::is_same_v<DataType, longfist::types::Quote> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Snapshot,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Tree> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Transaction> &&
+           broker_client.is_custom_subscribed_all(event->source(),
+                                                  kungfu::longfist::enums::SubscribeDataType::Transaction,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Entrust> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Entrust,
+                                                  data.exchange_id, data.instrument_type))) {
         return true;
       }
     }
-    return false;
-  });
+    if (broker_client.is_subscribed(data.exchange_id, data.instrument_id)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::Register> or
                                               std::is_same_v<DataType, longfist::types::Deregister>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid) or
-             broker_client.should_connect_operator(data.location_uid);
-    }
-    return false;
-  });
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid) or
+           broker_client.should_connect_operator(data.location_uid);
+  }
+  return false;
 }
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::BrokerStateUpdate>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      return (broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid));
-    }
-    return false;
-  });
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    return (broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid));
+  }
+  return false;
 };
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::OperatorStateUpdate>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_operator(data.location_uid);
-    }
-    return false;
-  });
+static constexpr auto is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    return broker_client.should_connect_operator(data.location_uid);
+  }
+  return false;
 }
+
+template <typename DataType> static constexpr auto is_own(const Client &broker_client) {
+  return rx::filter([&](const event_ptr &event) { return is_own_event<DataType>(broker_client, event); });
+}
+
+static const std::unordered_map<int32_t, std::function<bool(const Client &broker_client, const event_ptr &)>>
+    map_is_own_event = {
+        {longfist::types::Quote::tag, is_own_event<longfist::types::Quote>},
+        {longfist::types::Tree::tag, is_own_event<longfist::types::Tree>},
+        {longfist::types::Entrust::tag, is_own_event<longfist::types::Entrust>},
+        {longfist::types::Transaction::tag, is_own_event<longfist::types::Transaction>},
+        {longfist::types::BrokerStateUpdate::tag, is_own_event<longfist::types::BrokerStateUpdate>},
+        {longfist::types::OperatorStateUpdate::tag, is_own_event<longfist::types::OperatorStateUpdate>},
+        {longfist::types::Deregister::tag, is_own_event<longfist::types::Deregister>},
+};
 
 } // namespace kungfu::wingchun::broker
 

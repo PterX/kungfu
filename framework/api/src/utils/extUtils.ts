@@ -97,7 +97,7 @@ export const dealKfExtType = (jsonConfig: {
   const { name, kungfuConfig } = jsonConfig;
   const allExtTypes = Object.values(KfExtTypeEnum);
   if (kungfuConfig.type && allExtTypes.includes(kungfuConfig.type)) {
-    return kungfuConfig.type;
+    return kungfuConfig.type as KfExtTypeEnum;
   }
 
   if (name) {

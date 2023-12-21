@@ -560,25 +560,11 @@ export const startProcess = async (
       options,
     );
 
-  const globalSetting = getKfGlobalSettingsValue();
-  const tempArg = buildKfcEnv({
-    bypassCached: globalSetting.system.bypassCached,
-    bypassAccounting: globalSetting.system.bypassAccounting,
-    bypassRefreshBook: globalSetting.system.bypassRefreshBook,
-    bypassSyncAsset: globalSetting.system.bypassSyncAsset,
-    bypassSyncPosition: globalSetting.system.bypassSyncPosition,
-    keepPage: globalSetting.system.keepPage,
-    preload: globalSetting.system.preload,
-    maxPreCreateSize: globalSetting.system.maxPreCreateSize,
-  });
-  kfLogger.info('args', options.args);
-  kfLogger.info('tempArg', tempArg);
-
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
-    args: `${options.args} ${tempArg}`, //有问题吗？
+    args: options.args, //有问题吗？
     cwd: options.cwd || path.join(KFC_DIR),
     script: options.script || kfcName,
     interpreter: options.interpreter || 'none',
@@ -1731,10 +1717,25 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
   }
 };
 
+function promiseWithTimeout<T>(
+  promise: Promise<T | T[]>,
+  ms = 15000,
+): Promise<T | T[]> {
+  return Promise.race([
+    promise,
+    new Promise<T | T[]>((_, reject) => {
+      setTimeout(() => {
+        reject(`${promise} Timed out in ${ms}ms.`);
+      }, ms);
+    }),
+  ]);
+}
+
 export function quitClean(): Promise<void> {
   //不需要加kill daemon
   return new Promise((resolve) => {
-    pm2Kill()
+    //防止pm2 kill失败, 导致kungfu无法退出
+    promiseWithTimeout(pm2Kill())
       .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
       .finally(() => {
         killExtra(false)

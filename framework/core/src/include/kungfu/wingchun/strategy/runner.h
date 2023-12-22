@@ -19,7 +19,7 @@ public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
          longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
 
-  ~Runner() = default;
+  ~Runner() override = default;
 
   [[nodiscard]] Context_ptr get_context() const;
 
@@ -40,6 +40,8 @@ public:
   void set_backtest_config(const std::string &backtest_config);
 
   void on_exit() override;
+
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   void react() override;

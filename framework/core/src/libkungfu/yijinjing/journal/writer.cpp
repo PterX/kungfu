@@ -82,6 +82,8 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   frame->set_gen_time(gen_time);
   last_gen_time_ = gen_time;
   frame->set_data_length(data_length);
+  frame->set_frame_uid(current_frame_uid());
+  frame->set_trigger_frame_uid(journal_.bus_->get_trigger_frame_uid());
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
   journal_.next();

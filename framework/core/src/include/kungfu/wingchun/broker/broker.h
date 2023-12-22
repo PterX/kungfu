@@ -24,9 +24,11 @@ public:
   typedef yijinjing::data::location_ptr location_ptr;
   typedef longfist::enums::BrokerState BrokerState;
 
-  BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments);
+  BrokerVendor(const location_ptr &location, bool low_latency, const std::string &arguments);
 
   void on_exit() override;
+
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   virtual BrokerService_ptr get_service() = 0;
@@ -81,7 +83,7 @@ public:
 
   [[nodiscard]] bool has_band_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer(uint32_t page_size = 0);
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_public_writer();
 
@@ -130,6 +132,8 @@ public:
   }
 
   virtual void on_arguments(const std::string &argument) {}
+
+  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
 protected:
   volatile BrokerState state_;

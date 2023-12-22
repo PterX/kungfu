@@ -117,7 +117,6 @@ void journal::preload_next_page() {
 // only for master reading, and low_latency mode
 void journal::try_load_next_extra_page() {
   if (lazy_ || is_writing_ || !low_latency_ ||                                        //
-      page_size_ != page::find_page_size(location_, dest_id_) ||                      //
       page_->is_pre_open() ||                                                         //
       max_pre_create_size_ > 0 and page_->get_page_size() > max_pre_create_size_ * MB //
   ) {

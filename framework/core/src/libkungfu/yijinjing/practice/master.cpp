@@ -320,8 +320,8 @@ void master::on_request_write_to(const event_ptr &event) {
   // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
   // slowly
   cached_.try_ensure_cached_storage(get_location(app_uid), request.dest_id);
-  reader_->join(get_location(app_uid), request.dest_id, trigger_time);
-  require_write_to(trigger_time, app_uid, request.dest_id);
+  reader_->join(get_location(app_uid), request.dest_id, trigger_time, request.page_size);
+  require_write_to(trigger_time, app_uid, request.dest_id, request.page_size);
 
   if (is_location_live(request.dest_id) and has_writer(request.dest_id)) {
     require_read_from(0, request.dest_id, app_uid, trigger_time);
@@ -345,9 +345,9 @@ void master::on_request_read_from(const event_ptr &event) {
   // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
   // slowly
   cached_.try_ensure_cached_storage(get_location(request.source_id), app_uid);
-  reader_->join(get_location(request.source_id), app_uid, trigger_time);
-  require_write_to(trigger_time, request.source_id, app_uid);
-  require_read_from(trigger_time, app_uid, request.source_id, request.from_time);
+  reader_->join(get_location(request.source_id), app_uid, trigger_time, request.page_size);
+  require_write_to(trigger_time, request.source_id, app_uid, request.page_size);
+  require_read_from(trigger_time, app_uid, request.source_id, request.from_time, request.page_size);
 
   Channel channel = {};
   channel.source_id = request.source_id;
@@ -358,17 +358,16 @@ void master::on_request_read_from(const event_ptr &event) {
 
 void master::on_request_read_from_public(const event_ptr &event) {
   const RequestReadFromPublic &request = event->data<RequestReadFromPublic>();
-  require_read_from_public(event->gen_time(), event->source(), request.source_id, request.from_time);
+  require_read_from_public(event->gen_time(), event->source(), request.source_id, request.from_time, request.page_size);
 }
 
 void master::on_request_read_from_sync(const event_ptr &event) {
   const RequestReadFromSync &request = event->data<RequestReadFromSync>();
-  require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time);
+  require_read_from_sync(event->gen_time(), event->source(), request.source_id, request.from_time, request.page_size);
 }
 
 void master::on_request_read_from_others(const event_ptr &event) {
-  RequestReadFromOthers request{};
-  request = event->data<RequestReadFromOthers>();
+  const RequestReadFromOthers request = event->data<RequestReadFromOthers>();
   auto source = event->source();
   if (has_writer(source)) {
     get_writer(source)->write(now(), request);
@@ -437,5 +436,7 @@ void master::write_bands(int64_t trigger_time, const writer_ptr &writer) {
     writer->write(trigger_time, item.second);
   }
 }
+
+bool master::is_reactable(const event_ptr &event) { return not is_custom_event(event); }
 
 } // namespace kungfu::yijinjing::practice

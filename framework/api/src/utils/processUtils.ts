@@ -1012,8 +1012,18 @@ export function startArchiveMakeTask(
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
   const globalSetting = getKfGlobalSettingsValue();
-  const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
   const ProcessId = buildArchiveProcessId();
+  const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
+  const bypassArchiveDev = globalSetting?.system?.bypassArchiveDev ?? false;
+
+  if (bypassArchiveDev) {
+    cb?.('online');
+    return delayMilliSeconds(2000).then(() => {
+      cb?.('stopped');
+      kfLogger.info('Completely pass the archive for dev');
+    });
+  }
+
   return startProcessGetStatusUntilStop(
     {
       name: ProcessId,

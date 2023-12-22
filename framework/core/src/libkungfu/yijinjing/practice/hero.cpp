@@ -434,7 +434,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       if (frame_time > now_) {
         now_ = frame_time;
       }
-      if (is_rx(frame)) {
+      if (is_reactable(frame)) {
         sb.on_next(frame);
       }
       on_frame();
@@ -462,6 +462,6 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 #endif
 }
 
-bool hero::is_rx(const event_ptr &event) { return true; }
+bool hero::is_reactable(const event_ptr &event) { return true; }
 
 } // namespace kungfu::yijinjing::practice

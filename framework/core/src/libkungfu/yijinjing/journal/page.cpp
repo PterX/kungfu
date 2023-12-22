@@ -109,7 +109,7 @@ page_ptr page::load_header_and_1st_frame_header(const data::location_ptr &locati
 
   auto header = reinterpret_cast<page_header *>(address);
   if (header->last_frame_position == 0) {
-    throw journal_error("Ops, open a page never loaded " + path);
+    SPDLOG_WARN("open a page never loaded : {}", path);
   }
 
   if (header->version != __JOURNAL_VERSION__) {
@@ -140,7 +140,8 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
   for (int i = static_cast<int>(page_ids.size()) - 1; i >= 0; i--) {
     auto loaded_page = page::load_header_and_1st_frame_header(location, dest_id, page_ids[i], false, true);
     const auto &loaded_page_header = loaded_page->header_;
-    if (loaded_page_header->status != longfist::enums::PageStatus::PreOpen && loaded_page->begin_time() < time) {
+    if (loaded_page_header->last_frame_position != 0 &&
+        loaded_page_header->status != longfist::enums::PageStatus::PreOpen && loaded_page->begin_time() < time) {
       return page_ids[i];
     }
   }

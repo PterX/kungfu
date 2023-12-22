@@ -405,7 +405,7 @@ static constexpr bool is_own_event(const Client &broker_client, const event_ptr 
 };
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::OperatorStateUpdate>>...>
-static constexpr auto is_own_event(const Client &broker_client, const event_ptr &event) {
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
   if (event->msg_type() == DataType::tag) {
     const DataType &data = event->data<DataType>();
     return broker_client.should_connect_operator(data.location_uid);
@@ -416,6 +416,16 @@ static constexpr auto is_own_event(const Client &broker_client, const event_ptr 
 template <typename DataType> static constexpr auto is_own(const Client &broker_client) {
   return rx::filter([&](const event_ptr &event) { return is_own_event<DataType>(broker_client, event); });
 }
+
+static const std::map<int32_t, std::function<bool(const Client &broker_client, const event_ptr &)>> map_is_own_event = {
+    {longfist::types::Quote::tag, is_own_event<longfist::types::Quote>},
+    {longfist::types::Tree::tag, is_own_event<longfist::types::Tree>},
+    {longfist::types::Entrust::tag, is_own_event<longfist::types::Entrust>},
+    {longfist::types::Transaction::tag, is_own_event<longfist::types::Transaction>},
+    {longfist::types::BrokerStateUpdate::tag, is_own_event<longfist::types::BrokerStateUpdate>},
+    {longfist::types::OperatorStateUpdate::tag, is_own_event<longfist::types::OperatorStateUpdate>},
+    {longfist::types::Deregister::tag, is_own_event<longfist::types::Deregister>},
+};
 
 } // namespace kungfu::wingchun::broker
 

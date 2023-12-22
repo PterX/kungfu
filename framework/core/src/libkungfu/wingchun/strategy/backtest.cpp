@@ -10,6 +10,8 @@
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/time.h>
 
+#include <utility>
+
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -28,7 +30,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
                                  Report_ptr report, int64_t time_interval, std::string backtest_config)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
-      from_indexer_(from_indexer),
+      from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
       report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
@@ -39,14 +41,12 @@ void BacktestContext::on_start() {
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);
   }
-  events_ | is_own<Quote>(get_broker_client()) |
-      $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
-  events_ | is_own<Entrust>(get_broker_client()) |
+  events_ | is(Quote::tag) | $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
+  events_ | is(Entrust::tag) |
       $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>()););
-  events_ | is_own<Transaction>(get_broker_client()) |
+  events_ | is(Transaction::tag) |
       $$(matcher_->on_transaction(event->data<Transaction>()); report_->on_transaction(event->data<Transaction>()););
-  events_ | is_own<Tree>(get_broker_client()) |
-      $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
+  events_ | is(Tree::tag) | $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | is(OrderInput::tag) |
       $$(const auto &order_input = event->data<OrderInput>();

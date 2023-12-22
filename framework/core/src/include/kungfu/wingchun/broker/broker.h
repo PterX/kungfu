@@ -28,7 +28,7 @@ public:
 
   void on_exit() override;
 
-  bool is_rx(const event_ptr &event) override;
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   virtual BrokerService_ptr get_service() = 0;

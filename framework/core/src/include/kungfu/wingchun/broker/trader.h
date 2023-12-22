@@ -306,8 +306,6 @@ public:
 
   virtual bool req_history_trade(const event_ptr &event) { return true; }
 
-  virtual bool on_custom_event(const event_ptr &event) { return true; }
-
   virtual void on_band(const event_ptr &event) {}
 
   virtual void on_time_key_value(const event_ptr &event) {}

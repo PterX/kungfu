@@ -440,4 +440,6 @@ void master::write_bands(int64_t trigger_time, const writer_ptr &writer) {
   }
 }
 
+bool master::is_reactable(const event_ptr &event) { return not is_custom_event(event); }
+
 } // namespace kungfu::yijinjing::practice

@@ -16,6 +16,7 @@
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useBoards } from '../../pages/index/store/board';
 
 export default defineComponent({
   name: 'KfDragCol',
@@ -50,8 +51,11 @@ export default defineComponent({
       preY: 0,
     });
 
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    const { setBoardsMapAttrById } = useGlobalStore();
+    const { boardsId } = storeToRefs(useGlobalStore());
+    const { getBoardsStoreById } = useBoards();
+    const useBoardsStore = getBoardsStoreById(boardsId.value);
+    const { boardsMap } = storeToRefs(useBoardsStore());
+    const { setBoardsMapAttrById } = useBoardsStore();
 
     return {
       ...toRefs(colData),

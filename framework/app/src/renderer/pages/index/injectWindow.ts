@@ -29,3 +29,5 @@ window.testCase.crashTheWatcher = () => {
   const id = getRendererProcessId();
   return kf.watcher(KF_RUNTIME_DIR, kf.formatStringToHashHex(id), false, false);
 };
+
+window.allBoardsStore = {};

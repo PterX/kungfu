@@ -151,7 +151,7 @@ const baseBoardsMap: KfLayout.BoardsMap = {
 export const defaultBoardsMap = dealBoardMap(baseBoardsMap);
 
 export const getIndexBoardsMap = (): KfLayout.BoardsMap | null => {
-  const data = localStorage.getItem('indexBoardsMap');
+  const data = localStorage.getItem('main_boardsMap');
   if (!data) {
     return null;
   }
@@ -163,9 +163,10 @@ export const getIndexBoardsMap = (): KfLayout.BoardsMap | null => {
   return storedBoardsMap;
 };
 
-export const saveIndexBoardsMap = (
+export const saveBoardsMap = (
+  key: string,
   boardsMap: KfLayout.BoardsMap,
 ): Promise<void> => {
-  localStorage.setItem('indexBoardsMap', JSON.stringify(boardsMap || '{}'));
+  localStorage.setItem(key, JSON.stringify(boardsMap || '{}'));
   return Promise.resolve();
 };

@@ -1,5 +1,5 @@
 <template>
-  <KfDragRow :id="boardId" v-if="direction === h">
+  <KfDragRow v-if="direction === h" :id="boardId">
     <template
       v-for="childBoardId in boardInfo.children || []"
       :key="childBoardId"
@@ -7,6 +7,7 @@
       <KfRowColIter
         :board-id="childBoardId"
         :closable="closable"
+        :init-boards-name="initBoardsName"
       ></KfRowColIter>
     </template>
     <template v-if="contents.length">
@@ -55,7 +56,7 @@
       </a-tabs>
     </template>
   </KfDragRow>
-  <KfDragCol :id="boardId" v-else-if="direction === v">
+  <KfDragCol v-else-if="direction === v" :id="boardId">
     <template
       v-for="childBoardId in boardInfo.children || []"
       :key="childBoardId"
@@ -63,6 +64,7 @@
       <KfRowColIter
         :board-id="childBoardId"
         :closable="closable"
+        :init-boards-name="initBoardsName"
       ></KfRowColIter>
     </template>
     <template v-if="contents.length">
@@ -125,8 +127,8 @@ import KfDragRow from '@kungfu-trader/kungfu-app/src/renderer/components/layout/
 import KfDragCol from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfDragCol.vue';
 import KfNoData from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfNoData.vue';
 
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { useBoards } from '../../pages/index/store/board';
 
 const { t } = VueI18n.global;
 
@@ -159,24 +161,45 @@ export default defineComponent({
       type: Boolean as PropType<boolean>,
       default: false,
     },
+
+    initBoardsMap: {
+      type: Object as PropType<KfLayout.BoardsMap>,
+      default: null,
+    },
+    initBoardsName: {
+      type: String as PropType<string>,
+      default: 'main',
+    },
   },
 
-  setup() {
-    const { boardsMap, dragedContentData, isBoardDragging } = storeToRefs(
-      useGlobalStore(),
-    );
+  setup(props) {
     const { isLanguageKeyAvailable } = useLanguage();
 
-    const getBoardNameByLanguage = (contentId: string) =>
-      isLanguageKeyAvailable(contentId) ? t(contentId) : contentId;
+    const { getBoardsStoreById, createBoardsStore } = useBoards();
 
+    let useBoardsStore;
+    if (props.boardId === 0) {
+      useBoardsStore = createBoardsStore(
+        props.initBoardsName,
+        props.initBoardsMap,
+      );
+    } else {
+      useBoardsStore = getBoardsStoreById(props.initBoardsName);
+    }
+
+    const { boardsMap, dragedContentData, isBoardDragging } = storeToRefs(
+      useBoardsStore(),
+    );
     const {
       setBoardsMapAttrById,
       removeBoardByContentId,
       setDragedContentData,
       afterDragMoveBoard,
       markIsBoardDragging,
-    } = useGlobalStore();
+    } = useBoardsStore();
+
+    const getBoardNameByLanguage = (contentId: string) =>
+      isLanguageKeyAvailable(contentId) ? t(contentId) : contentId;
 
     const rowColIterData = reactive<KfRowColIterData>({
       h: KfLayoutDirection.h,

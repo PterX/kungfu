@@ -12,11 +12,14 @@ import {
   getLogoPath,
   isDefaultLogo,
 } from '@kungfu-trader/kungfu-js-api/config/brand';
+import { useGlobalStore } from '../../pages/index/store/global';
+import { storeToRefs } from 'pinia';
 
 const logoPath = isDefaultLogo()
   ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg')
   : getLogoPath();
 
+const { boardsId } = storeToRefs(useGlobalStore());
 const app = getCurrentInstance();
 const globalSettingModalVisible = ref<boolean>(false);
 const menuSelectedKeys = ref<string[]>(['main']);
@@ -71,7 +74,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     isExtSidebarShow.value[data.key || ''] = data.target;
     if (data.target === false) {
       menuSelectedKeys.value = ['main'];
-      handleToPage('/');
+      handleToPage('/', 'main');
     }
   }
 });
@@ -80,8 +83,9 @@ onBeforeUnmount(() => {
   busSubscription.unsubscribe();
 });
 
-function handleToPage(pathname: string) {
+function handleToPage(pathname: string, id: string) {
   if (app?.proxy) {
+    boardsId.value = id;
     app.proxy.$router.push(pathname);
   }
 }
@@ -98,23 +102,17 @@ function handleToPage(pathname: string) {
           mode="vertical"
           style="width: 64px"
         >
-          <a-menu-item key="main" @click="handleToPage('/index')">
+          <a-menu-item key="main" @click="handleToPage('/', 'main')">
             <template #icon>
               <sliders-outlined style="font-size: 24px" />
             </template>
             <span>{{ $t('baseConfig.main_panel') }}</span>
           </a-menu-item>
-          <a-menu-item key="test" @click="handleToPage('/test')">
-            <template #icon>
-              <sliders-outlined style="font-size: 24px" />
-            </template>
-            <span>测试</span>
-          </a-menu-item>
           <template v-for="config in sidebarComponentConfigs">
             <a-menu-item
               v-if="isExtSidebarShow[config.key] !== false"
               :key="config.key"
-              @click="handleToPage(`/${config.key}`)"
+              @click="handleToPage(`/${config.key}`, config.key)"
             >
               <template #icon>
                 <component :is="config.key"></component>

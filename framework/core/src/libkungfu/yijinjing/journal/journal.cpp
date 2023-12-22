@@ -58,7 +58,7 @@ void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 // saving time for other process switch page, except the master
 // only for master reading, and low_latency mode
 void journal::try_load_next_extra_page() {
-  if (lazy_ || is_writing_ || !low_latency_ || page_size_ != page::find_page_size(location_, dest_id_)) {
+  if (lazy_ || is_writing_ || !low_latency_) {
     return;
   }
   pre_page_ = page::load(location_, dest_id_, page_->get_page_size(), page_->get_page_id() + 1, false, lazy_, true);

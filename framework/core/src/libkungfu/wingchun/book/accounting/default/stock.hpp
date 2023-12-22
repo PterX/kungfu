@@ -316,7 +316,8 @@ protected:
     update_position(book, position);
   }
 
-  virtual void apply_repaystock(Book_ptr &book, longfist::types::Position &position, const Trade &trade, bool is_local) {
+  virtual void apply_repaystock(Book_ptr &book, longfist::types::Position &position, const Trade &trade,
+                                bool is_local) {
     auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                        position.exchange_id, position.instrument_id);
     double commission = calculate_commission(trade);

@@ -794,7 +794,7 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 }
 
 bool Watcher::is_reactable(const event_ptr &event) {
-  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Trade::tag) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Tree::tag) {
     return false;
   }
 

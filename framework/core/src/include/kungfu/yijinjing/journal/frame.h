@@ -51,6 +51,10 @@ struct frame : event {
 
   [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
 
+  [[nodiscard]] uint64_t frame_uid() const override { return header_->frame_uid; }
+
+  [[nodiscard]] uint64_t trigger_frame_uid() const override { return header_->trigger_frame_uid; }
+
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
     memcpy(const_cast<void *>(data_address()), &data, length);
@@ -83,6 +87,10 @@ private:
   void set_initial_source(uint32_t initial_source) { header_->initial_source = initial_source; }
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
+
+  void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
+
+  void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 

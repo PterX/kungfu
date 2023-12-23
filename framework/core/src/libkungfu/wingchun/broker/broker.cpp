@@ -19,8 +19,8 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
-BrokerVendor::BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments)
-    : apprentice(std::move(location), low_latency, arguments) {}
+BrokerVendor::BrokerVendor(const location_ptr &location, bool low_latency, const std::string &arguments)
+    : apprentice(location, low_latency, arguments) {}
 
 void BrokerVendor::on_start() {
   events_ | is(RequestWriteTo::tag, RequestReadFrom::tag, RequestReadFromPublic::tag, RequestReadFromSync::tag) |
@@ -35,6 +35,14 @@ void BrokerVendor::on_exit() {
 void BrokerVendor::notify_broker_state() {
   auto service = get_service();
   service->update_broker_state(service->get_state());
+}
+
+bool BrokerVendor::is_reactable(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    get_service()->on_custom_event(event);
+    return false;
+  }
+  return true;
 }
 
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
@@ -194,7 +202,7 @@ void BrokerService::update_broker_state(BrokerState state) {
 
 io_device_ptr BrokerService::get_io_device() const { return get_vendor().get_io_device(); }
 
-writer_ptr &BrokerService::get_thread_writer() { return vendor_.get_thread_writer(); }
+writer_ptr &BrokerService::get_thread_writer(uint32_t page_size) { return vendor_.get_thread_writer(page_size); }
 
 writer_ptr &BrokerService::get_public_writer() { return vendor_.get_public_writer(); }
 

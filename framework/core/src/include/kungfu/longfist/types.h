@@ -68,7 +68,11 @@ KF_DEFINE_PACK_TYPE(                                           //
     /** json or raw struct */                                  //
     (enums::FrameDataType, data_type),                         //
     /** the real writer of this frame */                       //
-    (uint32_t, initial_source)                                 //
+    (uint32_t, initial_source),                                //
+    /** key of frame */                                        //
+    (uint64_t, frame_uid),                                     //
+    /** current_frame of reader when generate this frame */    //
+    (uint64_t, trigger_frame_uid)                              //
 );
 
 KF_DEFINE_PACK_TYPE(                          //
@@ -928,24 +932,28 @@ KF_DEFINE_PACK_TYPE(                                    //
 KF_DEFINE_PACK_TYPE(                                    //
     RequestReadFrom, 10301, PK(source_id), PERPETUAL(), //
     (uint32_t, source_id),                              //
-    (int64_t, from_time)                                //
+    (int64_t, from_time),                               //
+    (uint64_t, page_size)                               //
 );
 
 KF_DEFINE_PACK_TYPE(                                          //
     RequestReadFromPublic, 10302, PK(source_id), PERPETUAL(), //
     (uint32_t, source_id),                                    //
-    (int64_t, from_time)                                      //
+    (int64_t, from_time),                                     //
+    (uint64_t, page_size)                                     //
 );
 
 KF_DEFINE_PACK_TYPE(                                        //
     RequestReadFromSync, 10303, PK(source_id), PERPETUAL(), //
     (uint32_t, source_id),                                  //
-    (int64_t, from_time)                                    //
+    (int64_t, from_time),                                   //
+    (uint64_t, page_size)                                   //
 );
 
 KF_DEFINE_PACK_TYPE(                                 //
     RequestWriteTo, 10304, PK(dest_id), PERPETUAL(), //
-    (uint32_t, dest_id)                              //
+    (uint32_t, dest_id),                             //
+    (uint64_t, page_size)                            //
 );
 
 KF_DEFINE_PACK_TYPE(                                     //
@@ -980,7 +988,8 @@ KF_DEFINE_PACK_TYPE(                                                   //
     RequestReadFromOthers, 10309, PK(source_id, dest_id), PERPETUAL(), //
     (uint32_t, source_id),                                             //
     (uint32_t, dest_id),                                               //
-    (int64_t, from_time)                                               //
+    (int64_t, from_time),                                              //
+    (uint64_t, page_size)                                              //
 );
 
 KF_DEFINE_PACK_TYPE(                         //

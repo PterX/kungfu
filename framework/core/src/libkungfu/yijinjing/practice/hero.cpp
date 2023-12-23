@@ -350,25 +350,31 @@ void hero::deregister_band(uint32_t source_id) {
   }
 }
 
-void hero::require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
-  do_require_read_from<RequestReadFrom>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
+void hero::require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                             uint64_t page_size) {
+  do_require_read_from<RequestReadFrom>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time, page_size);
 }
 
-void hero::require_read_from_public(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
-  do_require_read_from<RequestReadFromPublic>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
+void hero::require_read_from_public(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                                    uint64_t page_size) {
+  do_require_read_from<RequestReadFromPublic>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time,
+                                              page_size);
 }
 
-void hero::require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
-  do_require_read_from<RequestReadFromSync>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
+void hero::require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                                  uint64_t page_size) {
+  do_require_read_from<RequestReadFromSync>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time,
+                                            page_size);
 }
 
-void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id) {
+void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id, uint64_t page_size) {
   if (not check_location_exists(source_id, dest_id)) {
     return;
   }
   auto writer = get_writer(source_id);
   RequestWriteTo &msg = writer->open_data<RequestWriteTo>(trigger_time);
   msg.dest_id = dest_id;
+  msg.page_size = page_size;
   writer->close_data();
 }
 
@@ -408,27 +414,33 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   const std::string &notice = io_device_->get_observer()->get_notice();
   now_ = time::now_in_nano();
   if (notice.length() > 2) {
-    sb.on_next(std::make_shared<nanomsg_json>(notice));
+    const auto frame = std::make_shared<nanomsg_json>(notice);
+    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    sb.on_next(frame);
   } else if (notify) {
     on_notify();
   }
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_notice(false, true, sb);
-  bool bypass = io_device_->is_lazy();
+  bool bypass = io_device_->is_lazy() and is_low_latency();
+  deal_notice(bypass, true, sb);
   while (live_ and reader_->data_available()) {
-    deal_notice(bypass, false, sb);
-    if (reader_->current_frame()->gen_time() <= end_time_) {
-      int64_t frame_time = reader_->current_frame()->gen_time();
+    deal_notice(io_device_->is_lazy(), false, sb);
+    const frame_ptr frame = reader_->current_frame();
+    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    if (frame->gen_time() <= end_time_) {
+      int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {
         now_ = frame_time;
       }
-      sb.on_next(reader_->current_frame());
+      if (is_reactable(frame)) {
+        sb.on_next(frame);
+      }
       on_frame();
       reader_->next();
     } else {
-      SPDLOG_INFO("reached journal end {}", time::strftime(reader_->current_frame()->gen_time()));
+      SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
     }
   }
@@ -449,5 +461,7 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
   instance->produce(subscriber);
 #endif
 }
+
+bool hero::is_reactable(const event_ptr &event) { return true; }
 
 } // namespace kungfu::yijinjing::practice

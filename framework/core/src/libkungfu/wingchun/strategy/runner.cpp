@@ -110,24 +110,24 @@ void Runner::on_start() {
       events_ | skip_until(events_ | filter([&](auto e) {
                              return resume_policy_is_now ? context_->is_started() and has_post_started_ : true;
                            }));
-  start_events | is_own<Quote>(context_->get_broker_client()) |
+  start_events | is(Quote::tag) |
       $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Tree>(context_->get_broker_client()) |
+  start_events | is(Tree::tag) |
       $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Entrust>(context_->get_broker_client()) |
+  start_events | is(Entrust::tag) |
       $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Transaction>(context_->get_broker_client()) |
+  start_events | is(Transaction::tag) |
       $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
   start_events | is(SyntheticData::tag) |
       $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
                 event->dest()));
 
-  events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
+  events_ | is(BrokerStateUpdate::tag) |
       $$(invoke(&Strategy::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
-  events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
+  events_ | is(OperatorStateUpdate::tag) |
       $$(invoke(&Strategy::on_operator_state_change, event->data<OperatorStateUpdate>(),
                 get_location(event->source())));
-  events_ | is_own<Deregister>(context_->get_broker_client()) |
+  events_ | is(Deregister::tag) |
       $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
@@ -186,15 +186,26 @@ void Runner::post_start() {
   events_ | is(AlgoOrderActionError::tag) |
       $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
                 get_location(event->source()), event->dest()));
-  events_ | is_custom() |
-      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
-                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
-                get_location(event->source()), event->dest()));
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
 void Runner::post_stop() { invoke(&Strategy::post_stop); }
+
+bool Runner::is_reactable(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    invoke(&Strategy::on_custom_data, event->msg_type(),
+           {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+           get_location(event->source()), event->dest());
+    return false;
+  }
+
+  auto iter = map_is_own_event.find(event->msg_type());
+  if (iter != map_is_own_event.end()) {
+    return iter->second(context_->get_broker_client(), event);
+  }
+  return true;
+}
 
 Runner::BookListener::BookListener(Runner &runner) : runner_(runner) {}
 

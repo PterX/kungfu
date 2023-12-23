@@ -29,10 +29,10 @@ void BacktestContext::on_start() {
   broker_client_.on_start(events_);
   bookkeeper_.on_start(events_);
 
-  events_ | is_own<Quote>(get_broker_client()) | $$(report_->on_quote(event->data<Quote>()););
-  events_ | is_own<Entrust>(get_broker_client()) | $$(report_->on_entrust(event->data<Entrust>()););
-  events_ | is_own<Transaction>(get_broker_client()) | $$(report_->on_transaction(event->data<Transaction>()););
-  events_ | is_own<Tree>(get_broker_client()) | $$(report_->on_tree(event->data<Tree>()););
+  events_ | is(Quote::tag) | $$(report_->on_quote(event->data<Quote>()););
+  events_ | is(Entrust::tag) | $$(report_->on_entrust(event->data<Entrust>()););
+  events_ | is(Transaction::tag) | $$(report_->on_transaction(event->data<Transaction>()););
+  events_ | is(Tree::tag) | $$(report_->on_tree(event->data<Tree>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | $$(on_timer_check(); lease_expired_check(););
   init_time_events();

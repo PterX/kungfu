@@ -182,6 +182,10 @@ struct nanomsg_json : event {
 
   [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
 
+  [[nodiscard]] uint64_t frame_uid() const override { return get_meta<uint64_t>("frame_uid", 0); }
+
+  [[nodiscard]] uint64_t trigger_frame_uid() const override { return get_meta<uint64_t>("trigger_frame_uid", 0); }
+
 private:
   const nlohmann::json binding_;
   const std::string msg_;

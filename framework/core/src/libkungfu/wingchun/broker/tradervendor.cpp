@@ -97,7 +97,6 @@ void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(servic
 void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) |
       $$(order_service_.on_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
 
   // have to be in this position, only in react, the ResetBookRequest can be listened
@@ -140,9 +139,10 @@ void TraderVendor::on_start() {
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteTo>().dest_id;
+  const auto &request = event->data<RequestWriteTo>();
+  uint32_t dest_id = request.dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_));
+    writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_, request.page_size));
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
     }

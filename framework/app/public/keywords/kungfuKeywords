@@ -60,6 +60,8 @@ wingchun
 length
 header_length
 data_type
+initial_source
+frame_uid
 version
 page_header_length
 page_size
@@ -234,6 +236,7 @@ etf_type
 rate
 replace_flag
 cash_premium_ratio
+from_time
 dest_id
 base_time
 duration

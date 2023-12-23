@@ -51,16 +51,16 @@ public:
 
   const cache::bank &get_state_bank() const;
 
-  void request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time);
+  void request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time, uint64_t page_size = 0);
 
-  void request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time);
+  void request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time, uint64_t page_size = 0);
 
-  void request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time);
+  void request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time, uint64_t page_size = 0);
 
   void request_read_from_source_to_dest(int64_t trigger_time, const data::location_ptr &source_location,
-                                        uint32_t dest_id);
+                                        uint32_t dest_id, uint64_t page_size = 0);
 
-  void request_write_to(int64_t trigger_time, uint32_t dest_id);
+  void request_write_to(int64_t trigger_time, uint32_t dest_id, uint64_t page_size = 0);
 
   void request_write_to_band(int64_t trigger_time, const data::location_ptr &location, uint64_t page_size = 0);
 
@@ -136,7 +136,7 @@ public:
 
   void preload_next_page();
 
-  journal::writer_ptr &get_thread_writer();
+  journal::writer_ptr &get_thread_writer(uint64_t page_size = 0);
 
   journal::writer_ptr &get_public_writer();
 
@@ -180,7 +180,7 @@ protected:
 
   int32_t get_timer_usage_count() { return timer_usage_count_++; }
 
-  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time);
+  void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0);
 
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime, int32_t timer_id) {
     enable_timer(timer_id);

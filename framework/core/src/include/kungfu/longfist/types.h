@@ -279,7 +279,7 @@ KF_DEFINE_PACK_TYPE(                                 //
     (enums::Offset, offset),        // 开平方向
     (enums::HedgeFlag, hedge_flag), // 投机套保标识
 
-    (double, price),   // 成交价格
+    (double, price),  // 成交价格
     (double, volume), // 成交量
 
     (double, tax),       // 税
@@ -336,7 +336,7 @@ KF_DEFINE_PACK_TYPE(                                                //
 
     (double, limit_price),  // 价格
     (double, frozen_price), // 冻结价格
-    (double, volume),      // 数量
+    (double, volume),       // 数量
     (double, stop_price),   // 条件触发价格
 
     (bool, is_swap),                            // 互换单
@@ -368,7 +368,7 @@ KF_DEFINE_PACK_TYPE(                                             //
 
     (double, limit_price),  // 价格
     (double, frozen_price), // 冻结价格, 市价单冻结价格为0
-    (double, volume),      // 数量
+    (double, volume),       // 数量
     (double, stop_price),   // 条件触发价格
 
     (enums::OrderStatus, status), //  触发器状态
@@ -558,7 +558,7 @@ KF_DEFINE_PACK_TYPE(                                        //
     (enums::Offset, offset),        // 开平方向
     (enums::HedgeFlag, hedge_flag), // 投机套保标识
 
-    (double, price),               // 成交价格
+    (double, price),              // 成交价格
     (double, volume),             // 成交量
     (double, close_today_volume), // 平今日仓量(期货)
 

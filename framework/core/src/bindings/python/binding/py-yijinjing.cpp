@@ -190,7 +190,9 @@ void bind(pybind11::module &&m) {
       .def("has_data", &frame::has_data);
 
   auto location_class = py::class_<location, location_ptr>(m, "location");
-  location_class.def(py::init<mode, category, const std::string &, const std::string &, locator_ptr>())
+  location_class
+      .def(py::init<mode, category, const std::string &, const std::string &, locator_ptr, uint32_t>(), py::arg("m"),
+           py::arg("c"), py::arg("g"), py::arg("n"), py::arg("l"), py::arg("default_seed") = KUNGFU_HASH_SEED)
       .def_readonly("mode", &location::mode)
       .def_readonly("category", &location::category)
       .def_readonly("group", &location::group)

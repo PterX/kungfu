@@ -32,17 +32,17 @@ constexpr auto make_storage_ptr = [](const std::string &db_file, const auto &typ
     return [&](auto key) {
       using DataType = typename decltype(+types[key])::type;
       auto data_accessors = boost::hana::accessors<DataType>();
-      [[maybe_unused]] DataType *image = {}; // workaround for visual studio 17.4 sake
       auto columns = boost::hana::transform(data_accessors, [&](auto it) {
         auto name = boost::hana::first(it);
         [[maybe_unused]] auto accessor = boost::hana::second(it);
         auto member_pointer = member_pointer_trait<decltype(accessor)>().pointer();
-        using MemberType = std::decay_t<decltype(accessor(*image))>;
+        using MemberType = std::decay_t<decltype(accessor(DataType{}))>;
         return sqlite_orm::make_column(name.c_str(), member_pointer,
                                        sqlite_orm::default_value(make_default<MemberType>()));
       });
       auto pk_members = boost::hana::transform(DataType::primary_keys, [&](auto pk) {
-        auto pk_member = boost::hana::find_if(data_accessors, hana::on(boost::hana::equal.to(pk), boost::hana::first));
+        auto pk_member =
+            boost::hana::find_if(data_accessors, hana::on(boost::hana::equal_t::to(pk), boost::hana::first));
         [[maybe_unused]] auto accessor = boost::hana::second(*pk_member);
         return member_pointer_trait<decltype(accessor)>().pointer();
       });

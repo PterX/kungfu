@@ -753,7 +753,8 @@ KF_DEFINE_DATA_TYPE(                                          //
     (enums::category, category),                              //
     (enums::mode, mode),                                      //
     (std::string, group),                                     //
-    (std::string, name)                                       //
+    (std::string, name),                                      //
+    (uint32_t, seed)                                          //
 );
 
 KF_DEFINE_DATA_TYPE(                                //
@@ -763,6 +764,7 @@ KF_DEFINE_DATA_TYPE(                                //
     (enums::mode, mode),                            //
     (std::string, group),                           //
     (std::string, name),                            //
+    (uint32_t, seed),                               //
     (int32_t, pid),                                 //
     (int64_t, last_active_time),                    //
     (int64_t, checkin_time)                         //
@@ -774,7 +776,8 @@ KF_DEFINE_DATA_TYPE(                                  //
     (enums::category, category),                      //
     (enums::mode, mode),                              //
     (std::string, group),                             //
-    (std::string, name)                               //
+    (std::string, name),                              //
+    (uint32_t, seed)                                  //
 );
 
 KF_DEFINE_DATA_TYPE(                                                     //
@@ -784,6 +787,7 @@ KF_DEFINE_DATA_TYPE(                                                     //
     (enums::mode, mode),                                                 //
     (std::string, group),                                                //
     (std::string, name),                                                 //
+    (uint32_t, seed),                                                    //
     (int64_t, begin_time),                                               //
     (int64_t, update_time),                                              //
     (int64_t, end_time),                                                 //
@@ -823,6 +827,7 @@ KF_DEFINE_DATA_TYPE(                              //
     (enums::category, category),                  //
     (std::string, group),                         //
     (std::string, name),                          //
+    (uint32_t, seed),                             //
     (enums::mode, mode),                          //
     (std::string, value)                          //
 );
@@ -833,6 +838,7 @@ KF_DEFINE_DATA_TYPE(                                   //
     (enums::category, category),                       //
     (std::string, group),                              //
     (std::string, name),                               //
+    (uint32_t, seed),                                  //
     (enums::mode, mode),                               //
     (bool, risk_check),                                //
     (enums::SelfDealCheckType, self_deal_check_type),  //
@@ -882,7 +888,8 @@ KF_DEFINE_DATA_TYPE(                                //
     (enums::category, category),                    //
     (enums::mode, mode),                            //
     (std::string, group),                           //
-    (std::string, name)                             //
+    (std::string, name),                            //
+    (uint32_t, seed)                                //
 );
 
 KF_DEFINE_DATA_TYPE(                                         //
@@ -975,6 +982,7 @@ KF_DEFINE_DATA_TYPE(                                          //
     (enums::mode, mode),                                      //
     (std::string, group),                                     //
     (std::string, name),                                      //
+    (uint32_t, seed),                                         //
     (uint64_t, page_size)                                     //
 );
 

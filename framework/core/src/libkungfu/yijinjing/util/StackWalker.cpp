@@ -311,7 +311,7 @@ public:
           _tcscat_s(szTemp, _T("\\Debugging Tools for Windows (x64)\\dbghelp.dll"));
           // now check if the file exists:
           if (GetFileAttributes(szTemp) != INVALID_FILE_ATTRIBUTES) {
-            m_hDbhHelp = LoadLibrary(szTemp);
+            m_hDbhHelp = LoadLibraryA(szTemp);
           }
         }
 #elif _M_IA64
@@ -330,7 +330,7 @@ public:
           _tcscat_s(szTemp, _T("\\Debugging Tools for Windows\\dbghelp.dll"));
           // now check if the file exists:
           if (GetFileAttributes(szTemp) != INVALID_FILE_ATTRIBUTES) {
-            m_hDbhHelp = LoadLibrary(szTemp); // 根据模块名称加载路径
+            m_hDbhHelp = LoadLibraryA(szTemp); // 根据模块名称加载路径
           }
         }
 #if defined _M_X64 || defined _M_IA64
@@ -338,14 +338,14 @@ public:
         if ((m_hDbhHelp == NULL) && (GetEnvironmentVariable(_T("ProgramFiles"), szTemp, 4096) > 0)) {
           _tcscat_s(szTemp, _T("\\Debugging Tools for Windows 64-Bit\\dbghelp.dll"));
           if (GetFileAttributes(szTemp) != INVALID_FILE_ATTRIBUTES) {
-            m_hDbhHelp = LoadLibrary(szTemp);
+            m_hDbhHelp = LoadLibraryA(szTemp);
           }
         }
 #endif
       }
     }
     if (m_hDbhHelp == NULL) // if not already loaded, try to load a default-one
-      m_hDbhHelp = LoadLibrary(_T("dbghelp.dll"));
+      m_hDbhHelp = LoadLibraryA(_T("dbghelp.dll"));
     if (m_hDbhHelp == NULL)
       return FALSE;
     pSI = (tSI)GetProcAddress(m_hDbhHelp, "SymInitialize");
@@ -549,7 +549,7 @@ private:
     size_t i;
 
     for (i = 0; i < (sizeof(dllname) / sizeof(dllname[0])); i++) {
-      hToolhelp = LoadLibrary(dllname[i]);
+      hToolhelp = LoadLibraryA(dllname[i]);
       if (hToolhelp == NULL)
         continue;
       pCT32S = reinterpret_cast<tCT32S>(GetProcAddress(hToolhelp, "CreateToolhelp32Snapshot"));
@@ -617,7 +617,7 @@ private:
     const SIZE_T TTBUFLEN = 8096;
     int cnt = 0;
 
-    hPsapi = LoadLibrary(_T("psapi.dll"));
+    hPsapi = LoadLibraryA(_T("psapi.dll"));
     if (hPsapi == NULL)
       return FALSE;
 

@@ -75,17 +75,23 @@ bool locator::has_env(const std::string &name) const { return std::getenv(name.c
 
 std::string locator::get_env(const std::string &name) const { return std::getenv(name.c_str()); }
 
-std::string locator::layout_dir(const location_ptr &location, es::layout layout, bool create_not_exist) const {
-  auto dir = root_ /                                     //
-             es::get_layout_name(layout) /               //
-             es::get_category_name(location->category) / //
-             location->group /                           //
-             location->name /                            //
-             es::get_mode_name(location->mode);
+std::string locator::layout_directory(longfist::enums::layout layout, longfist::enums::category c, const std::string &g,
+                                      const std::string &n, longfist::enums::mode m, bool create_not_exist) const {
+  auto dir = root_ /                       //
+             es::get_layout_name(layout) / //
+             es::get_category_name(c) /    //
+             g /                           //
+             n /                           //
+             es::get_mode_name(m);
   if (create_not_exist && not fs::exists(dir)) {
     fs::create_directories(dir);
   }
   return dir.string();
+}
+
+std::string locator::layout_dir(const location_ptr &location, es::layout layout, bool create_not_exist) const {
+  return layout_directory(layout, location->category, location->group, location->name, location->mode,
+                          create_not_exist);
 }
 
 std::string locator::layout_file(const location_ptr &location, es::layout layout, const std::string &name) const {
@@ -127,13 +133,13 @@ std::vector<uint32_t> locator::list_page_id(const location_ptr &location, uint32
   return result;
 }
 
-static constexpr auto w = [](const std::string &pattern) { return pattern == "*" ? ".*" : pattern; };
+static constexpr auto lambda_w = [](const std::string &pattern) { return pattern == "*" ? ".*" : pattern; };
 
-static constexpr auto g = [](const std::string &pattern) { return fmt::format("({})", w(pattern)); };
+static constexpr auto lambda_g = [](const std::string &pattern) { return fmt::format("({})", lambda_w(pattern)); };
 
 std::vector<location_ptr> locator::list_locations(const std::string &category, const std::string &group,
                                                   const std::string &name, const std::string &mode) const {
-  fs::path search_path = root_ / ".*" / g(category) / g(group) / g(name) / g(mode);
+  fs::path search_path = root_ / ".*" / lambda_g(category) / lambda_g(group) / lambda_g(name) / lambda_g(mode);
   std::string pattern = std::regex_replace(search_path.string(), std::regex("\\\\"), "\\\\");
   std::regex search_regex(pattern);
   std::unordered_map<uint32_t, location_ptr> avoid_repeat_locations = {};
@@ -144,17 +150,17 @@ std::vector<location_ptr> locator::list_locations(const std::string &category, c
     if (it.is_directory() and std::regex_match(path, match, search_regex)) {
       // sometimes bad locations existed, like self log writtern by broker in cwd folder, we need to avoid them
       std::string mode_name = match[4].str();
-      auto mode = es::get_mode_by_name(mode_name);
-      if (mode == es::mode::LIVE and mode_name != "live") {
+      auto mode_local = es::get_mode_by_name(mode_name);
+      if (mode_local == es::mode::LIVE and mode_name != "live") {
         continue;
       }
       std::string category_name = match[1].str();
-      auto category = es::get_category_by_name(category_name);
-      if (category == es::category::SYSTEM and category_name != "system") {
+      auto category_local = es::get_category_by_name(category_name);
+      if (category_local == es::category::SYSTEM and category_name != "system") {
         continue;
       }
-      auto l = location::make_shared(mode,           //
-                                     category,       //
+      auto l = location::make_shared(mode_local,     //
+                                     category_local, //
                                      match[2].str(), //
                                      match[3].str(), //
                                      std::make_shared<locator>(root_.string()));
@@ -207,5 +213,62 @@ std::vector<uint32_t> locator::list_location_dest_by_db(const location_ptr &loca
 
 bool locator::operator==(const locator &another) const {
   return dir_mode_ == another.dir_mode_ and root_.string() == another.root_.string();
+}
+
+location::location(es::mode m, es::category c, std::string g, std::string n, locator_ptr l, uint32_t default_seed)
+    : locator(std::move(l)),
+      uname(fmt::format("{}/{}/{}/{}", longfist::enums::get_category_name(c), g, n, longfist::enums::get_mode_name(m))),
+      uname_uid(util::hash_str_64(uname)) {
+  category = c;
+  group = std::move(g);
+  name = std::move(n);
+  mode = m;
+  seed = get_seed(default_seed);
+  uid = util::hash_str_32(uname, seed);
+  location_uid = uid;
+  verify_location_uid();
+  store_location();
+}
+
+std::shared_ptr<rocksdb::DB> &location::get_rocksdb() {
+  static std::shared_ptr<rocksdb::DB> db;
+  if (not db) {
+    static rocksdb::Options options;
+    options.create_if_missing = true;
+    static rocksdb::DB *raw_db;
+    static const std::string rocksdb_dir = locator->layout_directory(es::layout::ROCKSDB, es::category::STRATEGY, "etc",
+                                                                     "kungfu", locator->get_dir_mode());
+    static rocksdb::Status status = rocksdb::DB::Open(options, rocksdb_dir, &raw_db);
+    if (!status.ok()) {
+      SPDLOG_ERROR("Unable to open database in dir {}, status: {} ", rocksdb_dir, status.ToString());
+    }
+    db = std::shared_ptr<rocksdb::DB>(raw_db, [](rocksdb::DB *p) { delete p; });
+  }
+  return db;
+}
+
+bool location::check_location_uid(uint32_t location_uid, std::string &location_uname) {
+  return get_rocksdb()->Get(rocksdb::ReadOptions(), std::to_string(location_uid), &location_uname).ok();
+}
+
+void location::verify_location_uid() {
+  std::string location_uname{};
+  while (check_location_uid(uid, location_uname)) {
+    seed = uid;
+    uid = util::hash_str_32(uname, seed);
+    location_uid = uid;
+  }
+}
+
+uint32_t location::get_seed(uint32_t default_seed) {
+  std::string location_json{};
+  if (get_rocksdb()->Get(rocksdb::ReadOptions(), std::to_string(uname_uid), &location_json).ok()) {
+    return longfist::types::Location(location_json).seed;
+  }
+  return default_seed;
+}
+
+void location::store_location() {
+  get_rocksdb()->Put(rocksdb::WriteOptions(), std::to_string(uname_uid), this->to_string());
 }
 } // namespace kungfu::yijinjing::data

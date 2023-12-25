@@ -36,6 +36,7 @@ class KungfuCoreConan(ConanFile):
         # "sqlite_orm/1.7.1",
         "spdlog/1.10.0",
         "tabulate/1.4",
+        "rocksdb/6.29.5",
     ]
     settings = "os", "compiler", "build_type", "arch"
     options = {

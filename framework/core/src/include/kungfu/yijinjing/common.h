@@ -14,6 +14,7 @@
 #include <kungfu/yijinjing/util/stacktrace.h>
 #include <kungfu/yijinjing/util/util.h>
 #include <nng/compat/nanomsg/nn.h>
+#include <rocksdb/db.h>
 
 namespace kungfu {
 namespace yijinjing {
@@ -62,6 +63,7 @@ DECLARE_PTR(observer)
 
 namespace data {
 FORWARD_DECLARE_STRUCT_PTR(location)
+
 FORWARD_DECLARE_CLASS_PTR(locator)
 typedef std::unordered_map<uint32_t, location_ptr> location_map;
 
@@ -82,11 +84,15 @@ public:
   [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout,
                                                bool create_not_exist = true) const;
 
+  [[nodiscard]] std::string layout_directory(longfist::enums::layout layout, longfist::enums::category c,
+                                             const std::string &g, const std::string &n, longfist::enums::mode m,
+                                             bool create_not_exist = true) const;
+
   [[nodiscard]] virtual std::string layout_file(const location_ptr &location, longfist::enums::layout layout,
                                                 const std::string &name) const;
 
-  [[maybe_unused]] [[maybe_unused]] [[nodiscard]] virtual std::string
-  default_to_system_db(const location_ptr &location, const std::string &name) const;
+  [[maybe_unused]] [[nodiscard]] virtual std::string default_to_system_db(const location_ptr &location,
+                                                                          const std::string &name) const;
 
   [[nodiscard]] virtual std::vector<uint32_t> list_page_id(const location_ptr &location, uint32_t dest_id) const;
 
@@ -115,18 +121,21 @@ struct location : public std::enable_shared_from_this<location>, public longfist
 
   const locator_ptr locator;
   const std::string uname;
-  const uint32_t uid;
+  uint32_t uid;
+  const uint64_t uname_uid{};
 
-  location(longfist::enums::mode m, longfist::enums::category c, std::string g, std::string n, locator_ptr l)
-      : locator(std::move(l)), uname(fmt::format("{}/{}/{}/{}", longfist::enums::get_category_name(c), g, n,
-                                                 longfist::enums::get_mode_name(m))),
-        uid(util::hash_str_32(uname)) {
-    category = c;
-    group = std::move(g);
-    name = std::move(n);
-    mode = m;
-    location_uid = uid;
-  }
+  location(longfist::enums::mode m, longfist::enums::category c, std::string g, std::string n, locator_ptr l,
+           uint32_t default_seed = KUNGFU_HASH_SEED);
+
+  std::shared_ptr<rocksdb::DB> &get_rocksdb();
+
+  uint32_t get_seed(uint32_t default_seed = KUNGFU_HASH_SEED);
+
+  bool check_location_uid(uint32_t location_uid, std::string &uname);
+
+  void verify_location_uid();
+
+  void store_location();
 
   template <typename T> inline T to() const {
     T t{};
@@ -135,6 +144,7 @@ struct location : public std::enable_shared_from_this<location>, public longfist
     t.category = category;
     t.group = group;
     t.name = name;
+    t.seed = seed;
     return t;
   }
 
@@ -144,16 +154,18 @@ struct location : public std::enable_shared_from_this<location>, public longfist
     t.category = category;
     t.group = group;
     t.name = name;
+    t.seed = seed;
     return t;
   }
 
   template <typename T> static inline location_ptr make_shared(T msg, locator_ptr l) {
-    return std::make_shared<location>(msg.mode, msg.category, msg.group, msg.name, l);
+    return std::make_shared<location>(msg.mode, msg.category, msg.group, msg.name, l, msg.seed);
   }
 
-  static inline location_ptr make_shared(longfist::enums::mode m, longfist::enums::category c, std::string g,
-                                         std::string n, locator_ptr l) {
-    return std::make_shared<location>(m, c, g, n, l);
+  static inline location_ptr make_shared(longfist::enums::mode m, longfist::enums::category c, const std::string &g,
+                                         const std::string &n, const locator_ptr &l,
+                                         uint32_t default_seed = KUNGFU_HASH_SEED) {
+    return std::make_shared<location>(m, c, g, n, l, default_seed);
   }
 };
 } // namespace data
@@ -174,9 +186,9 @@ using namespace rxcpp;
 using namespace rxcpp::operators;
 using namespace rxcpp::util;
 
-static constexpr auto noop_event_handler = []() { return [](const event_ptr &event) {}; };
+[[maybe_unused]] static constexpr auto noop_event_handler = []() { return [](const event_ptr &event) {}; };
 
-static constexpr auto error_handler_log = [](const std::string &subscriber_name) {
+[[maybe_unused]] static constexpr auto error_handler_log = [](const std::string &subscriber_name) {
   return [=](const std::exception_ptr &e) {
     try {
       std::rethrow_exception(e);
@@ -198,7 +210,7 @@ static constexpr auto is_custom_event = [](const event_ptr &event) -> bool {
   return event->msg_type() > 0 and longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
 };
 
-static constexpr auto is_custom = []() {
+[[maybe_unused]] static constexpr auto is_custom = []() {
   return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
@@ -240,7 +252,7 @@ template <typename... Ts> constexpr decltype(auto) from(Ts... arg) {
   return event_filter_any<Ts...>(&event::source)(arg...);
 }
 
-template <typename... Ts> constexpr decltype(auto) while_from(Ts... arg) {
+template <typename... Ts> [[maybe_unused]] constexpr decltype(auto) while_from(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::source)(arg...);
 }
 
@@ -248,7 +260,7 @@ template <typename... Ts> constexpr decltype(auto) to(Ts... arg) {
   return event_filter_any<Ts...>(&event::dest)(arg...);
 }
 
-template <typename... Ts> constexpr decltype(auto) while_to(Ts... arg) {
+template <typename... Ts> [[maybe_unused]] constexpr decltype(auto) while_to(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::dest)(arg...);
 }
 
@@ -290,11 +302,11 @@ template <class T, class Observable, class Subject> struct steppable : public op
 
   steppable(source_type o, subject_type sub) : state(std::make_shared<steppable_state>(std::move(o), std::move(sub))) {}
 
-  template <class Subscriber> void on_subscribe(Subscriber &&o) const {
+  template <class Subscriber> [[maybe_unused]] void on_subscribe(Subscriber &&o) const {
     state->subject_value.get_observable().subscribe(std::forward<Subscriber>(o));
   }
 
-  void on_connect(composite_subscription cs) const {
+  [[maybe_unused]] void on_connect(composite_subscription cs) const {
     auto destination = state->subject_value.get_subscriber();
     if (state->connection.empty()) {
 

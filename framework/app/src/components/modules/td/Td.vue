@@ -68,6 +68,7 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { storeToRefs } from 'pinia';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -212,25 +213,19 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = computed(() => {
-  const sorter = (dataIndex) => {
-    return (
-      a: KungfuApi.KfConfig,
-      b: KungfuApi.KfConfig,
-      sorterOrder: '' | 'ascend' | 'descend',
-    ) => {
-      let aVal = getAssetsByKfConfig(a)[dataIndex] ?? '--',
-        bVal = getAssetsByKfConfig(b)[dataIndex] ?? '--';
-      if (sorterOrder === 'ascend') {
-        aVal = aVal === '--' ? Infinity : aVal;
-        bVal = bVal === '--' ? Infinity : bVal;
-      } else if (sorterOrder === 'descend') {
-        aVal = aVal === '--' ? -Infinity : aVal;
-        bVal = bVal === '--' ? -Infinity : bVal;
-      } else {
-        return 0;
-      }
-      return Number(aVal) - Number(bVal);
-    };
+  const sorter = (
+    dataIndex: keyof KungfuApi.KfConfig | keyof KungfuApi.Asset,
+  ) => {
+    return buildTableColumnSorterWithStrike<
+      KungfuApi.KfConfig,
+      KungfuApi.Asset
+    >('num', dataIndex, (kfConfig: KungfuApi.KfConfig) => {
+      const { assets } = storeToRefs(useGlobalStore());
+      const processId = getProcessIdByKfLocation(kfConfig);
+      return assets.value[processId]
+        ? assets.value[processId][dataIndex]
+        : '--';
+    });
   };
 
   const marginSorter = (dataIndex) => {

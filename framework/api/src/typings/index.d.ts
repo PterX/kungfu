@@ -187,6 +187,8 @@ declare namespace KungfuApi {
     columns?: KfConfigItem[];
     errMsg?: string;
     tip?: string;
+    showTipWithIcon?: boolean;
+    toolTipPlacement?: 'top' | 'bottom' | 'left' | 'right';
     default?: KfConfigValue;
     required?: boolean;
     max?: number;

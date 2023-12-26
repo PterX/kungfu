@@ -13,6 +13,7 @@
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
+#include <rocksdb/db.h>
 
 #ifndef KUNGFU_SETUP_LOG
 #define KUNGFU_SETUP_LOG() kungfu::yijinjing::log::copy_log_settings(get_home(), get_home()->name)
@@ -126,6 +127,18 @@ public:
 
   virtual bool is_reactable(const event_ptr &event);
 
+  rocksdb::DB *get_master_rocksdb() const;
+
+  rocksdb::DB *get_app_rocksdb() const;
+
+  std::string get_master_kv(const std::string &key) const;
+
+  void put_master_kv(const std::string &key, const std::string &value) const;
+
+  std::string get_app_kv(const std::string &key) const;
+
+  void put_app_kv(const std::string &key, const std::string &value) const;
+
   void request_deregister() {
     continual_ = false;
     live_ = false;
@@ -174,6 +187,9 @@ protected:
   WriterMap band_writers_ = {};
   mutable std::mutex band_mtx_{};
   const size_t main_thread_id_{};
+  rocksdb::ReadOptions read_options_ = {};
+  rocksdb::WriteOptions write_options_ = {};
+  rocksdb::Options options_ = {};
 
   rx::connectable_observable<event_ptr> events_ = {};
 
@@ -219,6 +235,8 @@ protected:
   void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
                              uint64_t page_size = 0) const;
 
+  void update_seed(uint32_t s);
+
   virtual void pre_setup();
 
   virtual void react() = 0;
@@ -231,6 +249,8 @@ private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;
+  mutable rocksdb::DB *master_db_ = {};
+  mutable rocksdb::DB *app_db_ = {};
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
@@ -262,4 +282,4 @@ private:
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
 };
 } // namespace kungfu::yijinjing::practice
-#endif // KUNGFU_HERO_H
+#endif // KUNGFU_HE

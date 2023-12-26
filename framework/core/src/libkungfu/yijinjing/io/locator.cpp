@@ -9,6 +9,7 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/common.h>
 #include <regex>
+#include <rocksdb/db.h>
 
 namespace kungfu::yijinjing::data {
 
@@ -215,60 +216,4 @@ bool locator::operator==(const locator &another) const {
   return dir_mode_ == another.dir_mode_ and root_.string() == another.root_.string();
 }
 
-location::location(es::mode m, es::category c, std::string g, std::string n, locator_ptr l, uint32_t default_seed)
-    : locator(std::move(l)),
-      uname(fmt::format("{}/{}/{}/{}", longfist::enums::get_category_name(c), g, n, longfist::enums::get_mode_name(m))),
-      uname_uid(util::hash_str_64(uname)) {
-  category = c;
-  group = std::move(g);
-  name = std::move(n);
-  mode = m;
-  seed = get_seed(default_seed);
-  uid = util::hash_str_32(uname, seed);
-  location_uid = uid;
-  verify_location_uid();
-  store_location();
-}
-
-std::shared_ptr<rocksdb::DB> &location::get_rocksdb() {
-  static std::shared_ptr<rocksdb::DB> db;
-  if (not db) {
-    static rocksdb::Options options;
-    options.create_if_missing = true;
-    static rocksdb::DB *raw_db;
-    static const std::string rocksdb_dir = locator->layout_directory(es::layout::ROCKSDB, es::category::STRATEGY, "etc",
-                                                                     "kungfu", locator->get_dir_mode());
-    static rocksdb::Status status = rocksdb::DB::Open(options, rocksdb_dir, &raw_db);
-    if (!status.ok()) {
-      SPDLOG_ERROR("Unable to open database in dir {}, status: {} ", rocksdb_dir, status.ToString());
-    }
-    db = std::shared_ptr<rocksdb::DB>(raw_db, [](rocksdb::DB *p) { delete p; });
-  }
-  return db;
-}
-
-bool location::check_location_uid(uint32_t location_uid, std::string &location_uname) {
-  return get_rocksdb()->Get(rocksdb::ReadOptions(), std::to_string(location_uid), &location_uname).ok();
-}
-
-void location::verify_location_uid() {
-  std::string location_uname{};
-  while (check_location_uid(uid, location_uname)) {
-    seed = uid;
-    uid = util::hash_str_32(uname, seed);
-    location_uid = uid;
-  }
-}
-
-uint32_t location::get_seed(uint32_t default_seed) {
-  std::string location_json{};
-  if (get_rocksdb()->Get(rocksdb::ReadOptions(), std::to_string(uname_uid), &location_json).ok()) {
-    return longfist::types::Location(location_json).seed;
-  }
-  return default_seed;
-}
-
-void location::store_location() {
-  get_rocksdb()->Put(rocksdb::WriteOptions(), std::to_string(uname_uid), this->to_string());
-}
 } // namespace kungfu::yijinjing::data

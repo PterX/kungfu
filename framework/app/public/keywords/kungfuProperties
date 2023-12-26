@@ -202,6 +202,7 @@ tag_a
 tag_b
 tag_c
 location_uid
+seed
 pid
 last_active_time
 frame_count
@@ -316,6 +317,7 @@ JOURNAL
 SQLITE
 NANOMSG
 LOG
+MAP
 layout
 All
 BSE

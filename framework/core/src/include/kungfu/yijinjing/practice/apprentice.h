@@ -130,6 +130,10 @@ public:
     return request.dump();
   }
 
+  bool is_uid_clash();
+
+  void verify_location_uid();
+
   const std::string &get_arguments() const { return arguments_; }
 
   std::thread &get_resource_management_worker();

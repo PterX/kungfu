@@ -281,12 +281,14 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();
+  verify_location_uid();
   auto home = get_live_home();
   Register register_data{};
   register_data.mode = home->mode;
   register_data.category = home->category;
   register_data.group = home->group;
   register_data.name = home->name;
+  register_data.seed = home->seed;
   register_data.location_uid = home->uid;
   register_data.pid = GETPID();
   register_data.checkin_time = now;
@@ -355,5 +357,21 @@ journal::writer_ptr &apprentice::get_thread_writer(uint64_t page_size) {
 }
 
 journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
+
+bool apprentice::is_uid_clash() {
+  std::string uid64;
+  rocksdb::Status status = get_master_rocksdb()->Get(read_options_, std::to_string(get_home_uid()), &uid64);
+  if (status.IsNotFound()) {
+    return false;
+  } else {
+    return std::to_string(get_home()->uid64) != uid64;
+  }
+}
+
+void apprentice::verify_location_uid() {
+  while (is_uid_clash()) {
+    update_seed(get_home_uid());
+  }
+}
 
 } // namespace kungfu::yijinjing::practice

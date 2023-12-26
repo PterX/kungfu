@@ -47,6 +47,9 @@ hero::hero(io_device_ptr io_device)
     add_location(0, l);
   }
   reader_ = io_device_->open_reader_to_subscribe();
+
+  read_options_.fill_cache = false;
+  options_.create_if_missing = true;
 }
 
 hero::~hero() {
@@ -55,6 +58,8 @@ hero::~hero() {
   io_device_.reset();
   ensure_sqlite_shutdown();
   os::reset_hero_instance();
+  delete master_db_;
+  delete app_db_;
 }
 
 bool hero::is_usable() { return io_device_->is_usable(); }
@@ -463,5 +468,78 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 }
 
 bool hero::is_reactable(const event_ptr &event) { return true; }
+
+rocksdb::DB *hero::get_master_rocksdb() const {
+  static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
+  if (io_device_->is_lazy()) {
+    rocksdb::Status status = rocksdb::DB::OpenForReadOnly(options_, master_db_dir, &master_db_);
+    if (not status.ok()) {
+      const std::string msg = fmt::format("OpenForReadOnly for {} failed, {}", master_db_dir, status.ToString());
+      SPDLOG_ERROR(msg);
+      throw yijinjing_error(msg);
+    }
+  } else {
+    if (nullptr == master_db_) {
+      rocksdb::Status status =
+          rocksdb::DB::Open(options_, get_locator()->layout_dir(get_master_home_location(), layout::MAP), &master_db_);
+      if (not status.ok()) {
+        const std::string msg = fmt::format("Open for {} failed, {}", master_db_dir, status.ToString());
+        SPDLOG_ERROR(msg);
+        throw yijinjing_error(msg);
+      }
+    }
+  }
+  return master_db_;
+}
+
+rocksdb::DB *hero::get_app_rocksdb() const {
+  if (io_device_->is_lazy()) {
+    rocksdb::Status status =
+        rocksdb::DB::Open(options_, get_locator()->layout_dir(get_home(), layout::MAP), &master_db_);
+    if (not status.ok()) {
+      const std::string msg =
+          fmt::format("Open for {} failed, {}", get_locator()->layout_dir(get_home(), layout::MAP), status.ToString());
+      SPDLOG_ERROR(msg);
+      throw yijinjing_error(msg);
+    }
+    return app_db_;
+  } else {
+    return get_master_rocksdb();
+  }
+}
+
+std::string hero::get_master_kv(const std::string &key) const {
+  std::string value{};
+  rocksdb::Status status = get_master_rocksdb()->Get(read_options_, key, &value);
+  if (not status.ok()) {
+    SPDLOG_ERROR("get key:{} failed, {}", key, status.ToString());
+  }
+  return value;
+}
+
+void hero::put_master_kv(const std::string &key, const std::string &value) const {
+  rocksdb::Status status = get_master_rocksdb()->Put(write_options_, key, value);
+  if (not status.ok()) {
+    SPDLOG_ERROR("put key:{} value: {}, failed, {}", key, value, status.ToString());
+  }
+}
+
+std::string hero::get_app_kv(const std::string &key) const {
+  std::string value{};
+  rocksdb::Status status = get_app_rocksdb()->Get(read_options_, key, &value);
+  if (not status.ok()) {
+    SPDLOG_ERROR("get key:{} failed, {}", key, status.ToString());
+  }
+  return value;
+}
+
+void hero::put_app_kv(const std::string &key, const std::string &value) const {
+  rocksdb::Status status = get_app_rocksdb()->Put(write_options_, key, value);
+  if (not status.ok()) {
+    SPDLOG_ERROR("put key:{} value: {}, failed, {}", key, value, status.ToString());
+  }
+}
+
+void hero::update_seed(uint32_t s) { io_device_->update_seed(s); }
 
 } // namespace kungfu::yijinjing::practice

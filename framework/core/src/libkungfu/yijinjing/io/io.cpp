@@ -202,6 +202,10 @@ writer_ptr io_device::open_hookable_writer(uint32_t dest_id, const writer_hook_p
                                            std::make_shared<bus>(false), page_size, begin_time_);
   }
 }
+void io_device::update_seed(uint32_t seed) {
+  home_->update_seed(seed);
+  live_home_->update_seed(seed);
+}
 
 io_device_master::io_device_master(data::location_ptr home, bool low_latency)
     : io_device(std::move(home), low_latency, false) {

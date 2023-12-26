@@ -19,7 +19,7 @@ const logoPath = isDefaultLogo()
   ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg')
   : getLogoPath();
 
-const { boardsId } = storeToRefs(useGlobalStore());
+const { boardsStoreId } = storeToRefs(useGlobalStore());
 const app = getCurrentInstance();
 const globalSettingModalVisible = ref<boolean>(false);
 const menuSelectedKeys = ref<string[]>(['main']);
@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
 
 function handleToPage(pathname: string, id: string) {
   if (app?.proxy) {
-    boardsId.value = id;
+    boardsStoreId.value = id;
     app.proxy.$router.push(pathname);
   }
 }

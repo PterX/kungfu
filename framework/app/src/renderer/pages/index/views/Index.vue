@@ -6,6 +6,7 @@
       :closable="true"
       :init-boards-map="curBoardsMap"
       :init-boards-name="'main'"
+      :default-boards-map="curDefaultBoardsMap"
     ></KfRowColIter>
     <a-empty v-else class="kf-index__empty" :image="simpleImage">
       <template #description>
@@ -31,14 +32,12 @@ import { defineComponent, ref, onActivated, onDeactivated } from 'vue';
 import KfRowColIter from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfRowColIter.vue';
 
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import {
-  defaultBoardsMap,
-  getIndexBoardsMap,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs';
+import { defaultBoardsMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs';
 import KfAddBoardModalVue from '../../../components/public/KfAddBoardModal.vue';
 import { Empty } from 'ant-design-vue';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { Subscription } from 'rxjs';
+import { useBoards } from '../store/board';
 
 export default defineComponent({
   name: 'Index',
@@ -65,8 +64,13 @@ export default defineComponent({
       addBoardModalVisible.value = true;
       addBoardTargetBoardId.value = 0;
     };
+
+    const { getLocalBoardsMap } = useBoards();
+    const curDefaultBoardsMap = dealDefaultBoardsHook.trigger(
+      defaultBoardsMap,
+    ) as KfLayout.BoardsMap;
     const curBoardsMap: KfLayout.BoardsMap =
-      getIndexBoardsMap() || dealDefaultBoardsHook.trigger(defaultBoardsMap);
+      getLocalBoardsMap('main') || curDefaultBoardsMap;
 
     onActivated(() => {
       subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
@@ -92,6 +96,7 @@ export default defineComponent({
 
     return {
       curBoardsMap,
+      curDefaultBoardsMap,
       simpleImage,
       addBoardModalVisible,
       addBoardTargetBoardId,

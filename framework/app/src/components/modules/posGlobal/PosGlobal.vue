@@ -8,7 +8,8 @@ import {
   computed,
   getCurrentInstance,
   onBeforeUnmount,
-  onMounted,
+  onActivated,
+  onDeactivated,
   ref,
   toRaw,
 } from 'vue';
@@ -110,7 +111,7 @@ const columns = computed(() => {
   });
 });
 
-onMounted(() => {
+onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
@@ -145,6 +146,10 @@ onMounted(() => {
     );
 
     onBeforeUnmount(() => {
+      subscription.unsubscribe();
+    });
+
+    onDeactivated(() => {
       subscription.unsubscribe();
     });
   }

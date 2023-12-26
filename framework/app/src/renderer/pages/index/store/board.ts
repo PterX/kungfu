@@ -13,7 +13,6 @@ import {
 } from 'vue';
 import { Subscription } from 'rxjs';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
-import { saveBoardsMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs';
 
 export type UseBoardsStore = ReturnType<
   ReturnType<typeof useBoards>['createBoardsStore']
@@ -31,11 +30,14 @@ export const useBoards = () => {
   const createBoardsStore = (
     initBoardId: string,
     initBoardMap: KfLayout.BoardsMap,
+    defaultBoardsMap: KfLayout.BoardsMap,
   ) => {
     const useBoardsStore = defineStore(`${initBoardId}_boardsStore`, () => {
       const boardsMap = ref<KfLayout.BoardsMap>(initBoardMap);
       const dragedContentData = ref<KfLayout.ContentData | null>(null);
       const isBoardDragging = ref<boolean>(false);
+
+      const localBoardsMapKey = `${initBoardId}_boardsMap`;
 
       let subscription: Subscription | undefined;
       onActivated(() => {
@@ -43,12 +45,12 @@ export const useBoards = () => {
           (data: KfEvent.KfBusEvent) => {
             if (data.tag === 'main') {
               if (data.name === 'reset-main-dashboard') {
-                initBoardsMap(initBoardMap);
+                initBoardsMap(defaultBoardsMap);
                 success();
               }
 
               if (data.name == 'record-before-quit') {
-                saveBoardsMap(`${initBoardId}_boardsMap`, boardsMap.value);
+                saveBoardsMap_();
               }
             }
           },
@@ -57,12 +59,11 @@ export const useBoards = () => {
 
       onDeactivated(() => {
         subscription && subscription.unsubscribe();
-        saveBoardsMap(`${initBoardId}_boardsMap`, boardsMap.value);
       });
 
       onUnmounted(() => {
         subscription && subscription.unsubscribe();
-        saveBoardsMap(`${initBoardId}_boardsMap`, boardsMap.value);
+        saveBoardsMap_();
       });
 
       function markIsBoardDragging(status: boolean) {
@@ -294,6 +295,14 @@ export const useBoards = () => {
         return boardIds[0] + 1;
       }
 
+      function saveBoardsMap_(): Promise<void> {
+        localStorage.setItem(
+          localBoardsMapKey,
+          JSON.stringify(boardsMap.value || '{}'),
+        );
+        return Promise.resolve();
+      }
+
       return {
         boardsMap,
         dragedContentData,
@@ -319,8 +328,25 @@ export const useBoards = () => {
     return window.allBoardsStore[initBoardId];
   };
 
+  const getLocalBoardsMap = (
+    initBoardId: string,
+  ): KfLayout.BoardsMap | null => {
+    const data = localStorage.getItem(`${initBoardId}_boardsMap`);
+    if (!data) {
+      return null;
+    }
+
+    const storedBoardsMap = JSON.parse(data) as KfLayout.BoardsMap;
+    if (!Object.keys(storedBoardsMap).length) {
+      return null;
+    }
+
+    return storedBoardsMap;
+  };
+
   return {
     getBoardsStoreById,
     createBoardsStore,
+    getLocalBoardsMap,
   };
 };

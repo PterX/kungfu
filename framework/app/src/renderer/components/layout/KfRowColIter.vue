@@ -40,17 +40,19 @@
             </div>
           </template>
           <a-card style="width: 100%; height: 100%">
-            <component
-              v-if="hasComponent(content) && content === boardInfo.current"
-              :is="content"
-              :id="content"
-            ></component>
-            <KfNoData
-              v-else
-              :txt="`${getBoardNameByLanguage(content)} ${$t(
-                'component_error',
-              )}`"
-            ></KfNoData>
+            <keep-alive>
+              <component
+                v-if="hasComponent(content) && content === boardInfo.current"
+                :is="content"
+                :id="content"
+              ></component>
+              <KfNoData
+                v-else
+                :txt="`${getBoardNameByLanguage(content)} ${$t(
+                  'component_error',
+                )}`"
+              ></KfNoData>
+            </keep-alive>
           </a-card>
         </a-tab-pane>
       </a-tabs>
@@ -97,17 +99,19 @@
             </div>
           </template>
           <a-card style="width: 100%; height: 100%">
-            <component
-              v-if="hasComponent(content) && content === boardInfo.current"
-              :is="content"
-              :id="content"
-            ></component>
-            <KfNoData
-              v-else
-              :txt="`${getBoardNameByLanguage(content)} ${$t(
-                'component_error',
-              )}`"
-            ></KfNoData>
+            <keep-alive>
+              <component
+                v-if="hasComponent(content) && content === boardInfo.current"
+                :is="content"
+                :id="content"
+              ></component>
+              <KfNoData
+                v-else
+                :txt="`${getBoardNameByLanguage(content)} ${$t(
+                  'component_error',
+                )}`"
+              ></KfNoData>
+            </keep-alive>
           </a-card>
         </a-tab-pane>
       </a-tabs>
@@ -166,6 +170,12 @@ export default defineComponent({
       type: Object as PropType<KfLayout.BoardsMap>,
       default: null,
     },
+
+    defaultBoardsMap: {
+      type: Object as PropType<KfLayout.BoardsMap>,
+      default: null,
+    },
+
     initBoardsName: {
       type: String as PropType<string>,
       default: 'main',
@@ -182,6 +192,7 @@ export default defineComponent({
       useBoardsStore = createBoardsStore(
         props.initBoardsName,
         props.initBoardsMap,
+        props.defaultBoardsMap,
       );
     } else {
       useBoardsStore = getBoardsStoreById(props.initBoardsName);

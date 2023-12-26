@@ -75,6 +75,8 @@ import {
   nextTick,
   onBeforeUnmount,
   onMounted,
+  onActivated,
+  onDeactivated,
   reactive,
   ref,
   Ref,
@@ -1364,7 +1366,7 @@ export const useQuote = (): {
   const quotes = ref<Record<string, KungfuApi.Quote>>({});
   const app = getCurrentInstance();
 
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
@@ -1374,6 +1376,10 @@ export const useQuote = (): {
 
       onBeforeUnmount(() => {
         subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
+        subscription?.unsubscribe();
       });
     }
   });
@@ -2072,7 +2078,7 @@ export const useAssetMargins = () => {
     }, {} as KungfuApi.AssetMargin);
   };
 
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
@@ -2084,6 +2090,10 @@ export const useAssetMargins = () => {
       );
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }
@@ -2118,7 +2128,7 @@ export const useCurrentPositionList = () => {
   >(['uid_key', 'update_time']);
   const currentPositionList = ref<KungfuApi.PositionResolved[]>([]);
 
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
@@ -2144,6 +2154,10 @@ export const useCurrentPositionList = () => {
       );
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }
@@ -2630,7 +2644,7 @@ export const useMakeOrderSubscribe = (
       Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev,
     );
   }
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
@@ -2704,6 +2718,10 @@ export const useMakeOrderSubscribe = (
       );
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }

@@ -51,9 +51,9 @@ export default defineComponent({
       preY: 0,
     });
 
-    const { boardsId } = storeToRefs(useGlobalStore());
+    const { boardsStoreId } = storeToRefs(useGlobalStore());
     const { getBoardsStoreById } = useBoards();
-    const useBoardsStore = getBoardsStoreById(boardsId.value);
+    const useBoardsStore = getBoardsStoreById(boardsStoreId.value);
     const { boardsMap } = storeToRefs(useBoardsStore());
     const { setBoardsMapAttrById } = useBoardsStore();
 

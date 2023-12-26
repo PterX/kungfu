@@ -33,7 +33,7 @@ import {
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 interface GlobalState {
-  boardsId: string;
+  boardsStoreId: string;
   boardsMap: KfLayout.BoardsMap;
   dragedContentData: KfLayout.ContentData | null;
   isBoardDragging: boolean;
@@ -84,7 +84,7 @@ interface GlobalState {
 export const useGlobalStore = defineStore('global', {
   state: (): GlobalState => {
     return {
-      boardsId: 'main',
+      boardsStoreId: 'main',
       boardsMap: {},
       dragedContentData: null,
       isBoardDragging: false,

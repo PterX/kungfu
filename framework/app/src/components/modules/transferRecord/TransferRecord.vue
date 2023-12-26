@@ -7,7 +7,13 @@ import {
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { getColumns } from './config';
-import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+  getCurrentInstance,
+  onBeforeUnmount,
+  onActivated,
+  onDeactivated,
+  ref,
+} from 'vue';
 
 import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -37,7 +43,7 @@ const { searchKeyword, tableData } =
     'message',
   ]);
 
-onMounted(() => {
+onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
@@ -82,6 +88,10 @@ onMounted(() => {
     );
 
     onBeforeUnmount(() => {
+      subscription.unsubscribe();
+    });
+
+    onDeactivated(() => {
       subscription.unsubscribe();
     });
   }

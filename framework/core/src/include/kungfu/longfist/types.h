@@ -922,7 +922,7 @@ KF_DEFINE_DATA_TYPE(                                //
 );
 
 KF_DEFINE_DATA_TYPE(                                         //
-    Basket, 100040, PK(id), PERPETUAL(),                     //
+    Basket, 10206, PK(id), PERPETUAL(),                     //
     (uint32_t, id),                                          // basket id
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
@@ -942,7 +942,7 @@ KF_DEFINE_DATA_TYPE(                                         //
 );
 
 KF_DEFINE_PACK_TYPE(                                                                   //
-    BasketInstrument, 100041, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
+    BasketInstrument, 10207, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
     (uint32_t, basket_uid),                                                            //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                           // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                               // 交易所ID

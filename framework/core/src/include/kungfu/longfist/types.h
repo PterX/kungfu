@@ -644,10 +644,15 @@ KF_DEFINE_PACK_TYPE(                                                    //
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
-    (float, price),                // 委托价格
-    (float, volume),               // 委托量
-    (enums::Side, side),           // 委托方向
-    (enums::PriceType, price_type) // 订单价格类型（市价、限价、本方最优）
+    (float, price),                 // 委托价格
+    (float, volume),                // 委托量
+    (enums::Side, side),            // 委托方向
+    (enums::PriceType, price_type), // 订单价格类型（市价、限价、本方最优）
+
+    (int64_t, main_seq),      // 主序号,
+    (int64_t, seq),           // 子序号,
+    (int64_t, orig_order_no), // 原始订单号 上海为原始订单号, 深圳为索引号
+    (int64_t, biz_index)      // 业务序号
 );
 
 KF_DEFINE_PACK_TYPE(                                                        //

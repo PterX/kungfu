@@ -277,7 +277,12 @@ const frameHeaderForShow = computed(() => {
 });
 const frameDataForShow = computed(() => {
   if (!currentRowData.value) return [];
-  const data = JSON.parse(currentRowData.value.dataAsString);
+  const data = JSON.parse(
+    currentRowData.value.dataAsString.replace(
+      /(?<=:\s?)(\d*)(?=\s?,|})/g,
+      '"$1"',
+    ), // Avoid losing accuracy by converting large numbers to numbers
+  );
   return Object.entries(data).map(([key, value]) => {
     return {
       key,

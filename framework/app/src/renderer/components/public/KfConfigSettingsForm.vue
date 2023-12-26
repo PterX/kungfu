@@ -7,6 +7,7 @@ import {
   DashOutlined,
   CloseOutlined,
   PlusOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons-vue';
 import {
   getCurrentInstance,
@@ -218,6 +219,32 @@ const configSettingFormInject = inject(
   {},
 );
 
+const formItemNeedIcon = [
+  'str',
+  'password',
+  'int',
+  'float',
+  'percent',
+  'side',
+  'priceType',
+  'priceLevel',
+  'radio',
+  'checkbox',
+  'checkboxGroup',
+  'select',
+  'multiSelect',
+  'instrument',
+  'instruments',
+  'td',
+  'tds',
+  'md',
+  'md&operator',
+  'operator',
+  'strategy',
+  'basket',
+  'bool',
+];
+
 watch(
   () => props.configSettings,
   (newVal) => {
@@ -337,7 +364,23 @@ if ('instrument' in formState.value) {
               ...Object.keys(Side).slice(0, 2),
               SideEnum.Exec + '',
             ];
-          } else if (instrumentType === InstrumentTypeEnum.future) {
+          } else {
+            if (configSettingFormInject?.sideFilter) {
+              sideRadiosList.value =
+                configSettingFormInject.sideFilter?.(instrumentType);
+            } else {
+              sideRadiosList.value = Object.keys(Side).slice(0, 2);
+            }
+          }
+
+          if (
+            'side' in formState.value &&
+            !sideRadiosList.value.includes(`${formState.value.side}`)
+          ) {
+            formState.value.side = +sideRadiosList.value[0];
+          }
+
+          if (instrumentType === InstrumentTypeEnum.future) {
             if (exchangeId === 'SHFE' || exchangeId === 'INE') {
               numberEnumRadioTypeResolved.value['offset'] =
                 numberEnumRadioType['offset'];
@@ -346,13 +389,6 @@ if ('instrument' in formState.value) {
                 numberEnumRadioType['offset'],
                 [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
               );
-            }
-          } else {
-            if (configSettingFormInject?.sideFilter) {
-              sideRadiosList.value =
-                configSettingFormInject.sideFilter?.(instrumentType);
-            } else {
-              sideRadiosList.value = Object.keys(Side).slice(0, 2);
             }
           }
         }
@@ -1273,7 +1309,11 @@ defineExpose({
       :label="isLanguageKeyAvailable(item.name) ? $t(item.name) : item.name"
       :name="item.key"
       :extra="
-        item.tip && isLanguageKeyAvailable(item.tip) ? $t(item.tip) : item.tip
+        item.showTipWithIcon
+          ? ''
+          : item.tip && isLanguageKeyAvailable(item.tip)
+          ? $t(item.tip)
+          : item.tip
       "
       :rules="
         (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
@@ -1350,6 +1390,15 @@ defineExpose({
             ]
       "
     >
+    <div
+        v-if="
+          formItemNeedIcon.includes(item.type) ||
+          numberEnumRadioType[item.type] ||
+          numberEnumSelectType[item.type] ||
+          stringEnumSelectType[item.type]
+        "
+        class="kf-form-item_icon__warp"
+      >
       <a-input
         v-if="item.type === 'str'"
         v-model:value.trim="formState[item.key]"
@@ -1861,6 +1910,19 @@ defineExpose({
           item.disabled
         "
       ></a-switch>
+      <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
+          <a-tooltip
+            :placement="item.toolTipPlacement ?? 'top'"
+            :title="
+              item.tip && isLanguageKeyAvailable(item.tip)
+                ? $t(item.tip)
+                : item.tip
+            "
+          >
+            <InfoCircleOutlined class="color-primary" />
+          </a-tooltip>
+        </div>
+      </div>
       <div v-else-if="item.type === 'file'" class="kf-form-item__warp file">
         <a-button
           size="small"
@@ -1872,6 +1934,18 @@ defineExpose({
         >
           <template #icon><DashOutlined /></template>
         </a-button>
+        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
+          <a-tooltip
+            :placement="item.toolTipPlacement ?? 'top'"
+            :title="
+              item.tip && isLanguageKeyAvailable(item.tip)
+                ? $t(item.tip)
+                : item.tip
+            "
+          >
+            <InfoCircleOutlined class="color-primary" />
+          </a-tooltip>
+        </div>
         <div
           v-if="formState[item.key]"
           class="file-path"
@@ -1897,11 +1971,23 @@ defineExpose({
         <a-button
           v-if="item.default"
           size="small"
-          style="margin-left: 4px; vertical-align: middle"
+          style="margin-left: 8px; vertical-align: middle"
           @click="handleSelectDirectory(item, 'default')"
         >
           {{ $t('globalSettingConfig.reset_order') }}
         </a-button>
+        <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
+          <a-tooltip
+            :placement="item.toolTipPlacement ?? 'top'"
+            :title="
+              item.tip && isLanguageKeyAvailable(item.tip)
+                ? $t(item.tip)
+                : item.tip
+            "
+          >
+            <InfoCircleOutlined class="color-primary" />
+          </a-tooltip>
+        </div>
         <div
           v-if="formState[item.key]"
           class="file-path"
@@ -2358,6 +2444,15 @@ export default defineComponent({
 </script>
 <style lang="less">
 .kf-config-form {
+  .tooltip__wrap {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .kf-form-item_icon__warp {
+    display: flex;
+    align-items: center;
+  }
   .kf-form-item__warp {
     &.file {
       padding-bottom: 4px;
@@ -2511,5 +2606,9 @@ export default defineComponent({
 
 .kf-config-setting-form-spin {
   z-index: 9999;
+}
+
+.ant-tooltip .ant-tooltip-content .ant-tooltip-inner {
+  color: rgba(255, 255, 255, 0.85);
 }
 </style>

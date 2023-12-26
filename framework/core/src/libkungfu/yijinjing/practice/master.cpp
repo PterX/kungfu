@@ -298,9 +298,11 @@ void master::on_request_write_to_band(const event_ptr &event) {
     return;
   }
 
+  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
+  // slowly
+  cached_.try_ensure_cached_storage(get_location(app_uid), request.location_uid);
   reader_->join(get_location(app_uid), request.location_uid, trigger_time, page_size);
   require_write_to_band(trigger_time, app_uid, target_location, page_size);
-  cached_.try_ensure_cached_storage(get_location(app_uid), request.location_uid);
   Band band = {};
   band.source_id = app_uid;
   band.dest_id = target_location->location_uid;
@@ -316,9 +318,12 @@ void master::on_request_write_to(const event_ptr &event) {
   if (not is_location_live(app_uid)) {
     return;
   }
+
+  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
+  // slowly
+  cached_.try_ensure_cached_storage(get_location(app_uid), request.dest_id);
   reader_->join(get_location(app_uid), request.dest_id, trigger_time);
   require_write_to(trigger_time, app_uid, request.dest_id);
-  cached_.try_ensure_cached_storage(get_location(app_uid), request.dest_id);
 
   if (is_location_live(request.dest_id) and has_writer(request.dest_id)) {
     require_read_from(0, request.dest_id, app_uid, trigger_time);
@@ -338,10 +343,13 @@ void master::on_request_read_from(const event_ptr &event) {
   if (not check_location_live(request.source_id, app_uid)) {
     return;
   }
+
+  // cached_.try_ensure_cached_storage have to be in this position, for case it taking too long to send channel/band
+  // slowly
+  cached_.try_ensure_cached_storage(get_location(request.source_id), app_uid);
   reader_->join(get_location(request.source_id), app_uid, trigger_time);
   require_write_to(trigger_time, request.source_id, app_uid);
   require_read_from(trigger_time, app_uid, request.source_id, request.from_time);
-  cached_.try_ensure_cached_storage(get_location(request.source_id), app_uid);
 
   Channel channel = {};
   channel.source_id = request.source_id;
@@ -431,5 +439,7 @@ void master::write_bands(int64_t trigger_time, const writer_ptr &writer) {
     writer->write(trigger_time, item.second);
   }
 }
+
+bool master::is_reactable(const event_ptr &event) { return not is_custom_event(event); }
 
 } // namespace kungfu::yijinjing::practice

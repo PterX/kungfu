@@ -38,6 +38,7 @@ import {
   Dropdown,
   Progress,
   Popover,
+  Tooltip,
 } from 'ant-design-vue';
 
 import {
@@ -118,6 +119,7 @@ app
   .use(Tree)
   .use(List)
   .use(Badge)
+  .use(Tooltip)
 
   .use(Statistic)
   .use(Divider)
@@ -136,7 +138,6 @@ app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 app.use(VueI18n);
 
 const globalStore = useGlobalStore();
-const __BYPASS_ARCHIVE__ = false;
 let appMounted = false;
 
 globalBus.subscribe((data) => {
@@ -215,7 +216,7 @@ const initStartAll = (bypassArchive = false) => {
           });
         });
       })
-      .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
+      .then(() => tryArchive(bypassArchive))
       .then(() => startMaster(false))
       .catch((err) => kfLogger.error(err.message))
       .finally(() => syncProcessStatusToPinia());

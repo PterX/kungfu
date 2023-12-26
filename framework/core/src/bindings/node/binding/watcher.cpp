@@ -641,20 +641,20 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
 }
 
 void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_location) {
-  events_ | is(Quote::tag) | from(md_location->uid) | first() |
-      $(
-          [&, trigger_time, md_location](const event_ptr &event) {
-            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
-            events_ | from(md_location->uid) | is(Quote::tag) |
-                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
-                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
-                  if (is_location_live(md_location->uid)) {
-                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
-                    MonitorMarketData(trigger_time, md_location);
-                  }
-                });
-          },
-          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
+  //  events_ | is(Quote::tag) | from(md_location->uid) | first() |
+  //      $(
+  //          [&, trigger_time, md_location](const event_ptr &event) {
+  //            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
+  //            events_ | from(md_location->uid) | is(Quote::tag) |
+  //                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
+  //                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
+  //                  if (is_location_live(md_location->uid)) {
+  //                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
+  //                    MonitorMarketData(trigger_time, md_location);
+  //                  }
+  //                });
+  //          },
+  //          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
 }
 
 void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
@@ -757,8 +757,9 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   reader_->disjoin(get_master_command_uid());
   writers_.clear();
-  strategy_states_ref_.Reset();
-  app_states_ref_.Reset();
+  serialize::initObjectReference(info, app_states_ref_);
+  serialize::initObjectReference(info, strategy_states_ref_);
+  serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }
 
@@ -790,6 +791,19 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
     state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
     feed_state_data_bank(cache_state_asset, data_bank_);
   }
+}
+
+bool Watcher::is_reactable(const event_ptr &event) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Tree::tag) {
+    return false;
+  }
+
+  auto iter = broker::map_is_own_event.find(event->msg_type());
+  if (iter != broker::map_is_own_event.end()) {
+    return iter->second(broker_client_, event);
+  }
+
+  return not is_custom_event(event);
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {

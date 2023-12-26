@@ -37,6 +37,14 @@ void BrokerVendor::notify_broker_state() {
   service->update_broker_state(service->get_state());
 }
 
+bool BrokerVendor::is_reactable(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    get_service()->on_custom_event(event);
+    return false;
+  }
+  return true;
+}
+
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
 
 void BrokerService::pre_start() {}
@@ -65,7 +73,11 @@ nlohmann::json BrokerService::get_kungfu_config() const {
     std::string item;
     SPDLOG_INFO(" EXTENSION_DIRS = {} ", ext_dirs);
     std::stringstream ext_dirs_stringstream(ext_dirs_string);
+#if (defined(_WIN32) || defined(_WIN64))
     while (std::getline(ext_dirs_stringstream, item, ';')) {
+#else
+    while (std::getline(ext_dirs_stringstream, item, ':')) {
+#endif
       const std::string path = fmt::format("{}/{}/package.json", item, get_home()->group);
       if (std::filesystem::exists(path)) {
         std::ifstream f(path);

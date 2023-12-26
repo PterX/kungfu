@@ -821,7 +821,7 @@ export const dealLedgerTradingData = <T>(
   let dataTableResolved = tradingData;
 
   if (tradingDataTypeName === 'Position') {
-    dataTableResolved = dataTableResolved.nofilter('volume', BigInt(0));
+    dataTableResolved = dataTableResolved.nofilter('volume', 0);
   }
 
   dataTableResolved = dataTableResolved

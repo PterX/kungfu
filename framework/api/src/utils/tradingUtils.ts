@@ -549,7 +549,7 @@ export const kfMakeOrder = (
     block_id: BigInt(0),
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
-    volume: BigInt(makeOrderInput.volume),
+    volume: makeOrderInput.volume,
     insert_time: now,
   };
 
@@ -586,7 +586,7 @@ export const kfOrderTrigger = (
     ...longfist.types.OrderTriggerInput(),
     ...makeOrderTriggerInput,
     limit_price: makeOrderTriggerInput.limit_price || 0,
-    volume: BigInt(makeOrderTriggerInput.volume),
+    volume: makeOrderTriggerInput.volume,
     insert_time: now,
     trigger_type: OrderTriggerTypeEnum.ParkedOrder,
   };
@@ -652,7 +652,7 @@ export const kfMakeBlockOrder = async (
     block_id,
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
-    volume: BigInt(makeOrderInput.volume),
+    volume: makeOrderInput.volume,
     insert_time: now,
   };
 
@@ -1055,13 +1055,11 @@ export const dealTrade = (
   };
 };
 
-export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
+export const getPosClosableVolume = (position: KungfuApi.Position): number => {
   return isShotable(position.instrument_type) ||
     isT0(position.instrument_type, position.exchange_id)
-    ? BigInt(Math.max(+Number(position.volume - position.frozen_total), 0))
-    : BigInt(
-        Math.max(+Number(position.yesterday_volume - position.frozen_total), 0),
-      );
+    ? Math.max(+Number(position.volume - position.frozen_total), 0)
+    : Math.max(+Number(position.yesterday_volume - position.frozen_total), 0);
 };
 
 export const dealPosition = (

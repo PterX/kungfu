@@ -644,10 +644,10 @@ KF_DEFINE_PACK_TYPE(                                                    //
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
-    (float, price),                 // 委托价格
-    (float, volume),                // 委托量
-    (enums::Side, side),            // 委托方向
-    (enums::PriceType, price_type), // 订单价格类型（市价、限价、本方最优）
+    (float, price),                // 委托价格
+    (float, volume),               // 委托量
+    (enums::Side, side),           // 委托方向
+    (enums::PriceType, price_type) // 订单价格类型（市价、限价、本方最优）
 );
 
 KF_DEFINE_PACK_TYPE(                                                        //

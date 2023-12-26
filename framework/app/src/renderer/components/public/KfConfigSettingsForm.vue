@@ -1280,7 +1280,7 @@ defineExpose({
       <div
         v-if="
           formItemNeedIcon.includes(item.type) ||
-          numberEnumRadioType[item.type] ||
+          numberEnumRadioTypeResolved[item.type] ||
           numberEnumSelectType[item.type] ||
           stringEnumSelectType[item.type]
         "

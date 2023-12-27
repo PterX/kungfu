@@ -524,7 +524,7 @@ export default {
     source: 'Outline the node',
     target: 'Into the node',
     amount: 'Amount incurred',
-    trading_day: 'Transfer time',
+    update_time: 'Transfer time',
     tip_error: 'Transfer failed, please contact the administrator!',
     capitalaccountor: 'Fund account',
     trade_password: 'Transaction password',

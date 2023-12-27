@@ -68,7 +68,6 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { storeToRefs } from 'pinia';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();

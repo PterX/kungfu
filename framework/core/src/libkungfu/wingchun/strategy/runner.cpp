@@ -15,31 +15,72 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::strategy {
+
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
                const std::string &arguments)
-    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency, arguments),
-      positions_set_(m == mode::BACKTEST), started_(m == mode::BACKTEST) {}
+    : apprentice(location::make_shared(m, category::STRATEGY, group, name, std::move(locator)), low_latency,
+                 arguments) {}
 
-Runner::~Runner() { context_.reset(); }
+Context_ptr Runner::get_context() const { return context_; }
 
-RuntimeContext_ptr Runner::get_context() const { return context_; }
+Context_ptr Runner::make_context() {
+  if (get_home()->mode == mode::BACKTEST) {
+    if (not from_indexer_) {
+      from_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified from_indexer, Default NameHashingIndexer used.");
+    }
+    if (not to_indexer_) {
+      to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
+    }
+    if (not matcher_) {
+      matcher_ = std::make_shared<BasicMatcher>();
+      SPDLOG_WARN("Runner in backtest mode not specified Matcher, Default Quote-based Matcher used.");
+    }
+    if (not report_) {
+      report_ = std::make_shared<tool::Report>();
+      SPDLOG_WARN("Runner in backtest mode not specified Report.");
+    }
+    set_runner(*matcher_, this);
+    auto backtest_context =
+        std::make_shared<BacktestContext>(*this, events_, matcher_, std::move(from_indexer_), std::move(to_indexer_),
+                                          report_, time_interval_, std::move(backtest_config_));
+    set_bookkeeper(*matcher_, std::addressof(backtest_context->get_bookkeeper()));
+    set_runner(*report_, this, std::addressof(backtest_context->get_bookkeeper()));
+    return backtest_context;
+  }
 
-RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
+  return std::make_shared<LiveContext>(*this, events_);
+}
 
 void Runner::add_strategy(const Strategy_ptr &strategy) { strategies_.push_back(strategy); }
 
-void Runner::on_exit() { post_stop(); }
+void Runner::set_matcher(const Matcher_ptr &matcher) { matcher_ = matcher; }
 
-void Runner::on_trading_day(const event_ptr &event, int64_t daytime) {
-  if (context_) {
-    context_->get_bookkeeper().on_trading_day(daytime);
+void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_indexer_ = indexer; }
+
+void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
+
+void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+void Runner::set_time_interval(int64_t time_interval) {
+  if (time_interval <= 0) {
+    throw wingchun_error(fmt::format("time_interval should be positive other than {}", time_interval_));
   }
-  invoke(&Strategy::on_trading_day, daytime);
+  if (time_interval <= 100 * time_unit::NANOSECONDS_PER_MILLISECOND) {
+    SPDLOG_WARN("No need to make time_interval smaller than 100ms which will cause to much resource.");
+  }
+  time_interval_ = time_interval;
 }
+
+void Runner::set_backtest_config(const std::string &backtest_config) { backtest_config_ = backtest_config; }
+
+tool::Report_ptr Runner::get_report() const { return report_; }
+
+void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
-  context_->set_arguments(get_arguments());
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
   apprentice::react();
 }
@@ -61,16 +102,39 @@ void Runner::on_start() {
   pre_start();
   enable(*context_);
 
-  // TODO add skip_until for broker_states_requested_ == true later
-  events_ | is_own<Deregister>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
-  events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
+  auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
+  auto start_events =
+      events_ | skip_until(events_ | filter([&](auto e) {
+                             return resume_policy_is_now ? context_->is_started() and has_post_started_ : true;
+                           }));
+  start_events | is(Quote::tag) |
+      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
+  start_events | is(Tree::tag) |
+      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
+  start_events | is(Entrust::tag) |
+      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
+  start_events | is(Transaction::tag) |
+      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  start_events | is(SyntheticData::tag) |
+      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
+                event->dest()));
+
+  events_ | is(BrokerStateUpdate::tag) |
       $$(invoke(&Strategy::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
-  events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
+  events_ | is(OperatorStateUpdate::tag) |
       $$(invoke(&Strategy::on_operator_state_change, event->data<OperatorStateUpdate>(),
                 get_location(event->source())));
-  events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));
-  post_start();
+  events_ | is(Deregister::tag) |
+      $$(invoke(&Strategy::on_deregister, event->data<Deregister>(), get_location(event->source())));
+
+  events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
+      $$(prepare(event, *context_));
+
+  if (context_->is_started()) {
+    post_start();
+  } else {
+    events_ | filter([&](auto e) { return context_->is_started(); }) | first() | $$(post_start());
+  }
 }
 
 void Runner::on_active() {
@@ -82,36 +146,22 @@ void Runner::on_active() {
 void Runner::pre_start() { invoke(&Strategy::pre_start); }
 
 void Runner::post_start() {
-  if (not started_) {
+  if (not context_->is_started()) {
     return; // safe guard for live mode, in that case we will run truly when prepare process is done.
   }
 
   invoke(&Strategy::post_start);
-  SPDLOG_INFO("strategy {} started", get_io_device()->get_home()->name);
+  has_post_started_ = true;
 
-  events_ | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Tree>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Strategy::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
   events_ | is(Order::tag) |
       $$(invoke(&Strategy::on_order, event->data<Order>(), get_location(event->source()), event->dest()));
   events_ | is(OrderTrigger::tag) |
       $$(invoke(&Strategy::on_order_trigger, event->data<OrderTrigger>(), get_location(event->source()),
                 event->dest()));
+  events_ | is(AlgoOrder::tag) |
+      $$(invoke(&Strategy::on_algo_order, event->data<AlgoOrder>(), get_location(event->source()), event->dest()));
   events_ | is(Trade::tag) |
       $$(invoke(&Strategy::on_trade, event->data<Trade>(), get_location(event->source()), event->dest()));
-  events_ | is(SyntheticData::tag) |
-      $$(invoke(&Strategy::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
-                event->dest()));
-  events_ | is_custom() |
-      $$(invoke(&Strategy::on_custom_data, event->msg_type(),
-                {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
-                get_location(event->source()), event->dest()));
-
   events_ | is(HistoryOrder::tag) |
       $$(invoke(&Strategy::on_history_order, event->data<HistoryOrder>(), get_location(event->source()),
                 event->dest()));
@@ -130,95 +180,28 @@ void Runner::post_start() {
   events_ | is(OrderTriggerActionError::tag) |
       $$(invoke(&Strategy::on_order_trigger_action_error, event->data<OrderTriggerActionError>(),
                 get_location(event->source()), event->dest()));
+  events_ | is(AlgoOrderActionError::tag) |
+      $$(invoke(&Strategy::on_algo_order_action_error, event->data<AlgoOrderActionError>(),
+                get_location(event->source()), event->dest()));
 }
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
 void Runner::post_stop() { invoke(&Strategy::post_stop); }
 
-void Runner::prepare(const event_ptr &event) {
-  if (event->msg_type() == Position::tag) {
-    const Position &position = event->data<Position>();
-    if (position.holder_uid == get_home_uid()) {
-      context_->get_broker_client().subscribe(position.exchange_id, position.instrument_id);
-    }
+bool Runner::is_reactable(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    invoke(&Strategy::on_custom_data, event->msg_type(),
+           {event->data_as_bytes(), event->data_as_bytes() + event->data_length()}, event->data_length(),
+           get_location(event->source()), event->dest());
+    return false;
   }
 
-  auto ledger_uid = ledger_home_location_->uid;
-  if (not has_writer(ledger_uid)) {
-    return;
+  auto iter = map_is_own_event.find(event->msg_type());
+  if (iter != map_is_own_event.end()) {
+    return iter->second(context_->get_broker_client(), event);
   }
-  auto writer = get_writer(ledger_uid);
-
-  auto connected_test = [&](const auto &locations) {
-    return std::all_of(locations.begin(), locations.end(),
-                       [&](const auto &it) { return context_->get_broker_client().is_connected(it.second->uid); });
-  };
-  if (not broker_states_requested_ and connected_test(context_->list_accounts()) and
-      connected_test(context_->list_md()) and connected_test(context_->list_op())) {
-    writer->mark(now(), BrokerStateRequest::tag);
-    writer->mark(now(), OperatorStateRequest::tag);
-    broker_states_requested_ = true;
-  }
-
-  auto ready_test = [&](const auto &locations) {
-    return std::all_of(locations.begin(), locations.end(),
-                       [&](const auto &it) { return context_->get_broker_client().is_ready(it.second->uid); });
-  };
-  if (not ready_test(context_->list_accounts()) or not ready_test(context_->list_md()) or
-      not ready_test(context_->list_op())) {
-    return;
-  }
-
-  auto has_td_channel = [&](const auto &locations) {
-    return std::all_of(locations.begin(), locations.end(), [&](const auto &it) {
-      return has_channel(get_home_uid(), it.second->uid) and has_channel(it.second->uid, get_home_uid());
-    });
-  };
-  if (not has_td_channel(context_->list_accounts())) {
-    return;
-  }
-
-  if (not positions_requested_) {
-    if (context_->is_positions_held()) {
-      // Start - Let ledger prepare book for strategy
-      writer->mark(now(), KeepPositionsRequest::tag);
-    }
-
-    if (not context_->is_book_held()) {
-      writer->mark(now(), ResetBookRequest::tag);
-    }
-
-    for (const auto &pair : context_->get_broker_client().get_instrument_keys()) {
-      writer->write(now(), pair.second);
-    }
-
-    // in hold position situation, mirror position help to keep avg_open_price and position volume is reset by
-    // RebuildPositionsRequest
-    writer->mark(now(), MirrorPositionsRequest::tag);
-
-    // End - Let ledger prepare book for strategy
-    if (context_->is_positions_held()) {
-      writer->mark(now(), RebuildPositionsRequest::tag);
-    }
-    // Request ledger to recover book for strategy
-    writer->mark(now(), AssetRequest::tag);
-    writer->mark(now(), PositionRequest::tag);
-    positions_requested_ = true;
-    return;
-  }
-  if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
-    if (event->data<PositionEnd>().holder_uid == get_home_uid()) {
-      positions_set_ = true;
-    }
-  }
-  if (not positions_set_) {
-    return;
-  }
-  context_->get_bookkeeper().guard_positions();
-  started_ = true;
-  context_->set_started(true);
-  post_start();
+  return true;
 }
 
 Runner::BookListener::BookListener(Runner &runner) : runner_(runner) {}
@@ -235,14 +218,6 @@ void Runner::BookListener::on_asset_sync_reset(const longfist::types::Asset &old
   auto context = std::dynamic_pointer_cast<Context>(runner_.context_);
   for (const auto &strategy : runner_.strategies_) {
     strategy->on_asset_sync_reset(context, old_asset, new_asset);
-  }
-}
-
-void Runner::BookListener::on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                                      const longfist::types::AssetMargin &new_asset_margin) {
-  auto context = std::dynamic_pointer_cast<Context>(runner_.context_);
-  for (const auto &strategy : runner_.strategies_) {
-    strategy->on_asset_margin_sync_reset(context, old_asset_margin, new_asset_margin);
   }
 }
 

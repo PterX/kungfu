@@ -8,6 +8,7 @@
 #include "commission_store.h"
 #include "config_store.h"
 #include "history.h"
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <sstream>
 
@@ -67,7 +68,7 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
     return;
   }
   auto app_location = app_.get_location(app_uid);
-  auto resume_time_point = get_resume_policy().get_connect_time(app_, register_data);
+  auto resume_time_point = get_resume_policy()->get_connect_time(app_, register_data);
 
   if (app_location->category == category::SYSTEM and should_connect_system(app_location)) {
     app_.request_read_from_public(app_.now(), app_uid, 0);
@@ -106,7 +107,7 @@ void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::R
 void WatcherAutoClient::connect(const event_ptr &event, const longfist::types::Band &band) { return; }
 
 bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_ptr &system_location) const {
-  if (system_location->group == "service" && system_location->uid != app_.get_cached_home_location()->uid) {
+  if (system_location->group == "service") {
     return true;
   }
   return false;
@@ -122,7 +123,6 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
       bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
-      basketorder_engine_(*this),                                                                 //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
@@ -235,10 +235,6 @@ Napi::Value Watcher::GetAppStates(const Napi::CallbackInfo &info) { return app_s
 
 Napi::Value Watcher::GetStrategyStates(const Napi::CallbackInfo &info) { return strategy_states_ref_.Value(); }
 
-Napi::Value Watcher::GetTradingDay(const Napi::CallbackInfo &info) {
-  return Napi::String::New(ledger_ref_.Env(), time::strftime(get_trading_day(), KUNGFU_TRADING_DAY_FORMAT));
-}
-
 Napi::Value Watcher::Now(const Napi::CallbackInfo &info) {
   return Napi::BigInt::New(ledger_ref_.Env(), time::now_in_nano());
 }
@@ -310,26 +306,11 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderInput>(info, info[0].ToObject(), &OrderInput::order_id);
 }
 
-Napi::Value Watcher::IssueBasketOrder(const Napi::CallbackInfo &info) {
-  SPDLOG_INFO("issue basket order manually");
+Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
 
-  auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-  auto basket_order_info = info[0].ToObject();
-  basket_order_info.Set("dest_id", Napi::Number::New(info.Env(), account_location->uid));
-  if (info.Length() == 2) {
-    basket_order_info.Set("source_id", Napi::Number::New(info.Env(), get_home_uid()));
-  } else {
-    auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
-    basket_order_info.Set("source_id", Napi::Number::New(info.Env(), strategy_location->uid));
-  }
+  SPDLOG_INFO("issue algo order manually");
 
-  if (GetBigInt(basket_order_info.Get("volume")) == VOLUME_ZERO) {
-    basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(), int(BasketOrderCalculationMode::Dynamic)));
-  } else {
-    basket_order_info.Set("calculation_mode", Napi::Number::New(info.Env(), int(BasketOrderCalculationMode::Static)));
-  }
-
-  return InteractWithTD<BasketOrder>(info, info[0].ToObject(), &BasketOrder::order_id);
+  return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 
 Napi::Value Watcher::IssueMark(const Napi::CallbackInfo &info) {
@@ -348,9 +329,19 @@ Napi::Value Watcher::CancelOrder(const Napi::CallbackInfo &info) {
   return InteractWithTD<OrderAction>(info, info[0].ToObject(), &OrderAction::order_action_id);
 }
 
+Napi::Value Watcher::CancelAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("cancel algo order manually");
+  return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
+}
+
 Napi::Value Watcher::CancelOrderTrigger(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("cancel order trigger manually");
   return InteractWithTD<OrderTriggerAction>(info, info[0].ToObject(), &OrderTriggerAction::order_trigger_action_id);
+}
+
+Napi::Value Watcher::ToggleAlgoOrder(const Napi::CallbackInfo &info) {
+  SPDLOG_INFO("toggle algo order manually");
+  return InteractWithTD<AlgoOrderAction>(info, info[0].ToObject(), &AlgoOrderAction::order_action_id);
 }
 
 Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
@@ -412,10 +403,12 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
                       InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
                       InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
-                      InstanceMethod("issueBasketOrder", &Watcher::IssueBasketOrder),                   //
+                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
                       InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
                       InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
+                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),                     //
                       InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
+                      InstanceMethod("toggleAlgoOrder", &Watcher::ToggleAlgoOrder),                     //
                       InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
                       InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
                       InstanceMethod("start", &Watcher::Start),                                         //
@@ -425,7 +418,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
                       InstanceAccessor("strategyStates", &Watcher::GetStrategyStates, &Watcher::NoSet), //
-                      InstanceAccessor("tradingDay", &Watcher::GetTradingDay, &Watcher::NoSet),         //
                   });
 
   constructor = Napi::Persistent(func);
@@ -442,14 +434,21 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
-  before_start_events | is_trading_data() | $$(feed_state_data(event, data_bank_));
-  before_start_events | is_static_data() | $$(feed_state_data(event, data_bank_));
+  before_start_events | is_trading_data() | $$(cached::feed_state_data(event, data_bank_));
+  before_start_events | is_static_data() | $$(cached::feed_state_data(event, data_bank_));
+}
+
+bool Watcher::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+
+journal::writer_ptr Watcher::get_writer(uint32_t dest_id) const {
+  if (writers_.find(dest_id) == writers_.end()) {
+    SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
+  }
+  return writers_.at(dest_id);
 }
 
 void Watcher::on_start() {
   broker_client_.on_start(events_);
-  basketorder_engine_.on_start(events_);
-  UpdateBasketOrders(); // refresh basketorders
 
   if (not bypass_trading_data_) {
     bookkeeper_.on_start(events_);
@@ -457,21 +456,22 @@ void Watcher::on_start() {
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
     // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(feed_state_data(event, data_bank_));
+    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | skip_while(while_is(Quote::tag, Position::tag)) | $$(feed_state_data(event, data_bank_));
+    events_ | skip_while(while_is(Quote::tag, Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
-    events_ | is(Order::tag) | $$(UpdateBasketOrder(event->trigger_time(), event->data<Order>()));
     events_ | is(Asset::tag) | $$(UpdateAsset(event, event->data<Asset>().holder_uid));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
 
-    refresh_books();
+    if (not bypass_refresh_book_) {
+      refresh_books();
+    }
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));
@@ -613,7 +613,7 @@ void Watcher::UpdateEventCache(const event_ptr &event) {
 
 location_ptr Watcher::FindLocation(const Napi::CallbackInfo &info) {
   if (info.Length() == 0) {
-    return get_io_device()->get_home();
+    return get_io_device()->get_live_home();
   }
   uint32_t uid = 0;
   if (info[0].IsNumber()) {
@@ -635,35 +635,31 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
     return;
   }
 
-  if (channel.source_id == cached_home_location_->uid or channel.dest_id == cached_home_location_->uid) {
-    return;
-  }
-
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
     reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
 }
 
 void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_location) {
-  events_ | is(Quote::tag) | from(md_location->uid) | first() |
-      $(
-          [&, trigger_time, md_location](const event_ptr &event) {
-            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
-            events_ | from(md_location->uid) | is(Quote::tag) |
-                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
-                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
-                  if (is_location_live(md_location->uid)) {
-                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
-                    MonitorMarketData(trigger_time, md_location);
-                  }
-                });
-          },
-          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
+  //  events_ | is(Quote::tag) | from(md_location->uid) | first() |
+  //      $(
+  //          [&, trigger_time, md_location](const event_ptr &event) {
+  //            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
+  //            events_ | from(md_location->uid) | is(Quote::tag) |
+  //                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
+  //                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
+  //                  if (is_location_live(md_location->uid)) {
+  //                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
+  //                    MonitorMarketData(trigger_time, md_location);
+  //                  }
+  //                });
+  //          },
+  //          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
 }
 
 void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   auto app_uid = register_data.location_uid;
-  if (app_uid == get_home_uid()) {
+  if (app_uid == get_live_home_uid()) {
     return;
   }
 
@@ -776,9 +772,6 @@ void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
   auto book = bookkeeper_.get_book(book_uid);
   state<Asset> cache_state_asset(ledger_home_location_->uid, book_uid, event->gen_time(), book->asset);
   feed_state_data_bank(cache_state_asset, data_bank_);
-  state<AssetMargin> cache_state_asset_margin(ledger_home_location_->uid, book_uid, event->gen_time(),
-                                              book->asset_margin);
-  feed_state_data_bank(cache_state_asset_margin, data_bank_);
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
@@ -791,36 +784,39 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
       continue;
     }
 
-    bool has_long_position_for_quote = book->has_long_position_for(quote);
-    bool has_short_position_for_quote = book->has_short_position_for(quote);
+    auto apply = [&](auto &position) { UpdateBook(event, position); };
+    book->apply_long_position_for(quote, apply);
+    book->apply_short_position_for(quote, apply);
 
-    if (has_long_position_for_quote) {
-      UpdateBook(event, book->get_position_for(Direction::Long, quote));
-    }
-    if (has_short_position_for_quote) {
-      UpdateBook(event, book->get_position_for(Direction::Short, quote));
-    }
-
-    if (has_short_position_for_quote or has_long_position_for_quote) {
-      state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
-      feed_state_data_bank(cache_state_asset, data_bank_);
-      state<AssetMargin> cache_state_asset_margin(ledger_uid, holder_uid, event->gen_time(), book->asset_margin);
-      feed_state_data_bank(cache_state_asset_margin, data_bank_);
-    }
+    state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
+    feed_state_data_bank(cache_state_asset, data_bank_);
   }
+}
+
+bool Watcher::is_reactable(const event_ptr &event) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Tree::tag) {
+    return false;
+  }
+
+  auto iter = broker::map_is_own_event.find(event->msg_type());
+  if (iter != broker::map_is_own_event.end()) {
+    return iter->second(broker_client_, event);
+  }
+
+  return not is_custom_event(event);
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {
   auto book = bookkeeper_.get_book(position.holder_uid);
-  auto &book_position = book->get_position_for(position.direction, position);
-  auto &book_oppsite_position = book->get_oppsite_position_for(position.direction, position);
-  // TODO fix this source, dest, should not be holder_uid to dest
-  state<Position> cache_state_position(position.holder_uid, event->dest(), event->gen_time(), book_position);
-  feed_state_data_bank(cache_state_position, data_bank_);
-  // TODO fix this source, dest, should not be holder_uid to dest
-  state<Position> cache_state_oppsite_position(book_oppsite_position.holder_uid, event->dest(), event->gen_time(),
-                                               book_oppsite_position);
-  feed_state_data_bank(cache_state_oppsite_position, data_bank_);
+
+  auto apply = [&](auto &position) {
+    state<Position> cache_state_position(position.holder_uid, event->dest(), event->gen_time(), position);
+    feed_state_data_bank(cache_state_position, data_bank_);
+  };
+
+  book->apply_position(position.source_id, position.direction, position.exchange_id, position.instrument_id, apply);
+  book->apply_opposite_position(position.source_id, position.direction, position.exchange_id, position.instrument_id,
+                                apply);
 }
 
 Watcher::BookListener::BookListener(Watcher &watcher) : watcher_(watcher) {}
@@ -830,25 +826,15 @@ void Watcher::BookListener::on_asset_sync_reset(const Asset &old_asset, const As
   watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
 }
 
-void Watcher::BookListener::on_asset_margin_sync_reset(const AssetMargin &old_asset_margin,
-                                                       const AssetMargin &new_asset_margin) {
-  state<AssetMargin> cache_state(watcher_.ledger_home_location_->uid, new_asset_margin.holder_uid,
-                                 new_asset_margin.update_time, new_asset_margin);
-  watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
-}
-
 void Watcher::BookListener::on_position_sync_reset(const book::Book &old_book, const book::Book &new_book) {
-  auto update_position = [&](const auto &position_map) {
-    for (auto &pair : position_map) {
-      const auto &position = pair.second;
-      state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
-                                  position);
-      watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
-    }
+  auto update_position = [&](const auto &position) {
+    state<Position> cache_state(watcher_.ledger_home_location_->uid, position.holder_uid, position.update_time,
+                                position);
+    watcher_.feed_state_data_bank(cache_state, watcher_.data_bank_);
   };
 
-  update_position(new_book.long_positions);
-  update_position(new_book.short_positions);
+  const_cast<book::Book &>(new_book).apply_long_positions(update_position);
+  const_cast<book::Book &>(new_book).apply_short_positions(update_position);
 }
 
 } // namespace kungfu::node

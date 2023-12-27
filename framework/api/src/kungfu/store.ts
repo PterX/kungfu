@@ -1,11 +1,12 @@
 import path from 'path';
 import fse from 'fs-extra';
-import { configStore, promiseWithCachedPause } from '../kungfu';
+import { configStore } from '../kungfu';
 import {
-  kfLogger,
-  hidePasswordByLogger,
   getResultUntilValuable,
-} from '../utils/busiUtils';
+  hidePasswordByLogger,
+} from '../utils/commonUtils';
+import { promiseWithCachedPause } from '../utils/tradingUtils';
+import { kfLogger } from '../utils/logUtils';
 import { BASE_DB_DIR } from '../config/pathConfig';
 
 const buildConfigOperationPromise = <T>(
@@ -39,7 +40,7 @@ export const setKfConfig = (
 ): Promise<boolean> => {
   const configForLog = hidePasswordByLogger(configValue);
   kfLogger.info(
-    `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${configForLog}`,
+    `Set Kungfu Config ${kfLocation.category} ${kfLocation.group} ${kfLocation.name} ${kfLocation.mode} ${configForLog}`,
   );
   const promise = buildConfigOperationPromise(
     () =>

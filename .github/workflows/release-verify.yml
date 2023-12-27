@@ -16,18 +16,21 @@ jobs:
       build-runner-linux: kungfu-builder-linux
       build-runner-windows: kungfu-builder-windows
       build-runner-macos: macos-12-xl
+      builder-container: docker.io/kungfutrader/kungfu-builder-centos:v1.2.2
       use-pipenv: true
       build-timeout-minutes: 150
       max-build-attempts: 3
       enable-linux: true
       enable-macos: true
       enable-windows: true
+      code-signing-windows: true
       max-preview-links: 64
     secrets:
       AWS_CI_ACCESS_KEY_ID: ${{ secrets.AWS_CI_ACCESS_KEY_ID }}
       AWS_CI_SECRET_ACCESS_KEY: ${{ secrets.AWS_CI_SECRET_ACCESS_KEY }}
       AWS_USER_ACCESS_KEY_ID: ${{ secrets.AWS_USER_ACCESS_KEY_ID }}
       AWS_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_USER_SECRET_ACCESS_KEY }}
+      WINDOWS_CSC_KEY: ${{ secrets.WINDOWS_CSC_KEY }}
 
   verify:
     needs: try

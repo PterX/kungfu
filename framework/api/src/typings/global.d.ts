@@ -77,6 +77,8 @@ declare module 'tail' {
   }
 }
 
+declare module 'dayjs-business-days' {}
+
 declare module globalThis {
   const __publicResources: string;
   const __kfResourcesPath: string;

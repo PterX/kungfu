@@ -4,16 +4,23 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
-#include <kungfu/wingchun/basketorder/basketorderengine.h>
+#include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
 class Context : public std::enable_shared_from_this<Context> {
 public:
-  Context() = default;
+  Context(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events);
 
   virtual ~Context() = default;
+
+  /**
+   * checked_ is strated started.
+   * @return current time in nano seconds
+   */
+  virtual bool is_started() const = 0;
 
   /**
    * Get current time in nano seconds.
@@ -22,10 +29,23 @@ public:
   virtual int64_t now() const = 0;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  virtual uint32_t get_home_uid() const = 0;
+
+  /**
    * Get config from database.
    * @return  config of current location_uid
    */
   virtual const std::string get_config() const = 0;
+
+  /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
 
   /**
    * Add one shot timer callback.
@@ -51,10 +71,19 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   virtual void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                         const std::string &exchange_ids) = 0;
+                         const std::string &exchange_id) = 0;
+
+  /**
+   * Unubscribe market data.
+   * @param source MD group
+   * @param instrument_ids instrument IDs
+   * @param exchange_id exchange ID
+   */
+  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                           const std::string &exchange_id){};
 
   /**
    * Subscribe all from given MD
@@ -78,12 +107,6 @@ public:
   virtual void publish_synthetic_data(const std::string &key, const std::string &value) = 0;
 
   /**
-   * Get current trading day.
-   * @return current trading day
-   */
-  virtual int64_t get_trading_day() const = 0;
-
-  /**
    * request deregister.
    * @return void
    */
@@ -96,11 +119,51 @@ public:
    */
   virtual void update_operator_state(longfist::types::OperatorStateUpdate &state_update) {}
 
+  /**
+   * Get broker client.
+   * @return broker client reference
+   */
+  virtual broker::Client &get_broker_client() = 0;
+
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
+
+  /**
+   *
+   * @param location_uid
+   * @return location_ptr of location_uid
+   */
+  virtual yijinjing::data::location_ptr get_location(uint32_t location_uid) = 0;
+
+  /**
+   *
+   * @param resume_policy
+   * @return void
+   */
+  virtual void set_resume_policy(longfist::enums::ResumePolicy resume_policy){};
+
+  /**
+   *
+   * @return longfist::enums::ResumePolicy
+   */
+  virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
+
 protected:
+  yijinjing::practice::apprentice &app_;
+  const rx::connectable_observable<event_ptr> &events_;
+  bool started_ = false;
+
   virtual void on_start(){};
+
+  virtual void prepare(const event_ptr &event) = 0;
 
 private:
   friend void enable(Context &context) { context.on_start(); }
+
+  friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
 } // namespace kungfu::wingchun::op
 

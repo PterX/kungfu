@@ -79,7 +79,8 @@ public:
 
   [[nodiscard]] virtual std::string get_env(const std::string &name) const;
 
-  [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout) const;
+  [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout,
+                                               bool create_not_exist = true) const;
 
   [[nodiscard]] virtual std::string layout_file(const location_ptr &location, longfist::enums::layout layout,
                                                 const std::string &name) const;
@@ -193,10 +194,12 @@ template <typename EventType>
 static constexpr auto instanceof
     = []() { return filter([](const event_ptr &event) { return dynamic_cast<EventType *>(event.get()) != nullptr; }); };
 
+static constexpr auto is_custom_event = [](const event_ptr &event) -> bool {
+  return event->msg_type() > 0 and longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
+};
+
 static constexpr auto is_custom = []() {
-  return filter([](const event_ptr &event) {
-    return longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
-  });
+  return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
 template <typename... Ts>

@@ -21,10 +21,8 @@ import {
   reqCancelAllOrders,
   tradesObservable,
 } from '../assets/actions/tradingData';
-import {
-  dealKfPrice,
-  setTimerPromiseTask,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { initBusEvent } from '../assets/actions/busEvent';
 
 // 定义全局变量

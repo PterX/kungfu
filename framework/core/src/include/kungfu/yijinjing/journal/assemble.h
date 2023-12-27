@@ -7,16 +7,22 @@
 #ifndef YIJINJING_ASSEMBLE_H
 #define YIJINJING_ASSEMBLE_H
 
-#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
 namespace kungfu::yijinjing::journal {
+
+struct assemble_exception : std::runtime_error {
+  explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
+};
+
 class sink {
 public:
   sink();
   virtual ~sink() = default;
   virtual void put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) = 0;
   virtual void close(){};
+  uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
+
   [[nodiscard]] publisher_ptr get_publisher();
   [[nodiscard]] bus_ptr get_bus();
 
@@ -47,8 +53,8 @@ public:
   explicit assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode = "*",
                     const std::string &category = "*", const std::string &group = "*", const std::string &name = "*");
 
-  explicit assemble(const std::string &mode = "*", const std::string &category = "*", const std::string &group = "*",
-                    const std::string &name = "*");
+  explicit assemble(const data::locator_ptr &locator, const std::string &mode = "*", const std::string &category = "*",
+                    const std::string &group = "*", const std::string &name = "*");
 
   explicit assemble(const data::location_ptr &source_location, uint32_t dest_id,
                     uint32_t assemble_mode = longfist::enums::AssembleMode::Channel, int64_t from_time = 0);
@@ -127,6 +133,8 @@ public:
 
   [[maybe_unused]] void seek_to_time(int64_t nano_time);
 
+  [[maybe_unused]] void move_to_time(int64_t nano_time);
+
   [[maybe_unused]] [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 
   void disjoin(uint32_t location_uid);
@@ -138,10 +146,10 @@ protected:
   reader_ptr current_reader_ = {};
 
 private:
-  const std::string &mode_;
-  const std::string &category_;
-  const std::string &group_;
-  const std::string &name_;
+  const std::string mode_;
+  const std::string category_;
+  const std::string group_;
+  const std::string name_;
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
   int64_t from_time_ = 0;

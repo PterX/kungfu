@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { sum } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { sum } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { createReusableTemplate } from '@vueuse/core';
 import { Empty } from 'ant-design-vue';
 import {

@@ -12,6 +12,12 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace kungfu::yijinjing::log {
+bool signal_log = true;
+
+void disable_signal_log() { signal_log = false; }
+
+bool is_signal_log() { return signal_log; }
+
 class pattern_formatter : public spdlog::formatter {
 public:
   pattern_formatter() : spdlog_formatter(LOG_PATTERN) {}
@@ -37,7 +43,7 @@ public:
   emitable_logger(std::string name, spdlog::sink_ptr single_sink)
       : spdlog::logger(std::move(name), std::move(single_sink)) {}
 
-  emitable_logger(std::string name, spdlog::sinks_init_list sinks) : spdlog::logger(std::move(name), sinks) {}
+  explicit emitable_logger(std::string name, spdlog::sinks_init_list sinks) : spdlog::logger(std::move(name), sinks) {}
 
   explicit emitable_logger(const logger &other) : spdlog::logger(other) {}
 

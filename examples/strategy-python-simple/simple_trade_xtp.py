@@ -32,7 +32,7 @@ def post_stop(context):
     context.log.info('strategy down')
 
 
-def on_quote(context, quote, location,dest):
+def on_quote(context, quote, location, dest):
     # context.logger.info(f"quote: {quote}")
     side = Side.Buy
     price = quote.ask_price[0]
@@ -40,18 +40,18 @@ def on_quote(context, quote, location,dest):
     context.insert_order(quote.instrument_id, Exchange.SSE, "xtp", "15040900", price, 100, price_type, side)
 
 
-def on_transaction(context, transaction, location,dest):
+def on_transaction(context, transaction, location, dest):
     pass
 
 
-def on_entrust(context, entrust, location,dest):
+def on_entrust(context, entrust, location, dest):
     pass
 
 
-def on_order(context, order, location,dest):
+def on_order(context, order, location, dest):
     if order.error_id != 0:
         context.log.info(f'order error {order.error_msg}')
 
 
-def on_trade(context, trade, location,dest):
+def on_trade(context, trade, location, dest):
     pass

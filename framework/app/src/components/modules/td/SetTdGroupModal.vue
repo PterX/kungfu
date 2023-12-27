@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { setTdGroup } from '@kungfu-trader/kungfu-js-api/actions';
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getInstrumentTypeColor,
   isInTdGroup,
@@ -74,6 +74,7 @@ function transformKfConfigToDataNode(
     title: target.name,
     category: target.category,
     group: target.group,
+    mode: target.mode,
     key: `${target.category}_${target.group}_${target.name}`,
   };
 }

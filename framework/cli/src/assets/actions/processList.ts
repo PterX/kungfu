@@ -4,17 +4,28 @@ import {
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  delayMilliSeconds,
   deleteNNFiles,
-  getAvailCliExtServiceList,
-  getKfExtensionConfig,
-  getProcessIdByKfLocation,
   getTaskListFromProcessStatusData,
-  isExtService,
-  kfLogger,
   removeArchiveBeforeToday,
   switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionConfig,
+  getAvailCliExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isExtService,
+  getProcessIdByKfLocation,
+  getIdByKfLocation,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildLedgerLocation,
+  buildDzxyProcessId,
+  buildArchiveProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   killExtra,
   pm2Kill,
@@ -24,7 +35,6 @@ import {
   startMaster,
   startLedger,
   startDzxy,
-  startCacheD,
   processStatusDataObservable,
   Pm2ProcessStatusDetail,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -119,6 +129,7 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
       const { extService } = mdTdStrategyExtService;
       const { processStatus, processStatusWithDetail } = ps;
       const processId = getProcessIdByKfLocation(kfLocation);
+      const processName = getIdByKfLocation(kfLocation);
 
       const extServiceList: ProcessListItem[] = extService.map((item) => {
         const processId = getProcessIdByKfLocation(item);
@@ -151,102 +162,56 @@ export const specificProcessListObserver = (kfLocation: KungfuApi.KfConfig) =>
           cwd: item.cwd,
         };
       });
+      const masterLocation: KungfuApi.KfLocation = buildMasterLocation();
+      const ledgerLocation: KungfuApi.KfLocation = buildLedgerLocation();
 
+      const masterProcessId = getProcessIdByKfLocation(masterLocation);
+      const ledgerProcessId = getProcessIdByKfLocation(ledgerLocation);
+      const dzxyProcessId = buildDzxyProcessId();
       return [
         {
-          processId: 'master',
+          processId: masterProcessId,
           processName: colors.bold('MASTER'),
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'master',
-          name: 'master',
+          category: masterLocation.category,
+          group: masterLocation.group,
+          name: masterLocation.name,
           value: {},
-          status: processStatus['master'] || '--',
+          status: processStatus[masterProcessId] || '--',
           statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'master',
-                name: 'master',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['master']?.monit,
+            getProcessStatus(masterLocation, processStatus, appStates) || '--',
+          monit: processStatusWithDetail[masterProcessId]?.monit,
         },
         {
-          processId: 'cached',
-          processName: 'CACHED',
-          typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'cached',
-          value: {},
-          status: processStatus['cached'] || '--',
-          statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'service',
-                name: 'cached',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-
-          monit: processStatusWithDetail['cached']?.monit,
-        },
-        {
-          processId: 'ledger',
+          processId: ledgerProcessId,
           processName: 'LEDGER',
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
+          category: ledgerLocation.category,
+          group: ledgerLocation.group,
+          name: ledgerLocation.name,
           value: {},
-          status: processStatus['ledger'] || '--',
+          status: processStatus[ledgerProcessId] || '--',
           statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'service',
-                name: 'ledger',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['ledger']?.monit,
+            getProcessStatus(ledgerLocation, processStatus, appStates) || '--',
+          monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
-          processId: 'dzxy',
+          processId: dzxyProcessId,
           processName: 'DZXY',
           typeName: colors.bgMagenta('Sys'),
           category: 'system',
           group: 'service',
           name: 'dzxy',
           value: {},
-          status: processStatus['dzxy'] || '--',
-          statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'service',
-                name: 'dzxy',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
+          status: processStatus[dzxyProcessId] || '--',
+          statusName: dealStatus(processStatus[dzxyProcessId] || '--'),
 
-          monit: processStatusWithDetail['dzxy']?.monit,
+          monit: processStatusWithDetail[dzxyProcessId]?.monit,
         },
         ...extServiceList,
         {
           processId,
-          processName: processId,
+          processName: processName,
           typeName: getCategoryName(kfLocation.category),
           category: kfLocation.category,
           group: kfLocation.group,
@@ -283,13 +248,14 @@ export const processListObservable = () =>
 
       const mdList: ProcessListItem[] = md.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -303,6 +269,7 @@ export const processListObservable = () =>
 
       const operatorList: ProcessListItem[] = operator.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
@@ -310,7 +277,7 @@ export const processListObservable = () =>
 
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -324,13 +291,14 @@ export const processListObservable = () =>
 
       const tdList: ProcessListItem[] = td.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -344,13 +312,14 @@ export const processListObservable = () =>
 
       const strategyList: ProcessListItem[] = strategy.map((item) => {
         const processId = getProcessIdByKfLocation(item);
+        const processName = getIdByKfLocation(item);
         const prefixProps =
           globalThis.HookKeeper.getHooks().prefix.trigger(item);
         const prefix =
           prefixProps.prefixType === 'text' ? prefixProps.prefix : '';
         return {
           processId,
-          processName: prefix + processId,
+          processName: prefix + processName,
           typeName: getCategoryName(item.category),
           category: item.category,
           group: item.group,
@@ -420,126 +389,67 @@ export const processListObservable = () =>
       });
 
       const masterPrefixProps = globalThis.HookKeeper.getHooks().prefix.trigger(
-        {
-          category: 'system',
-          group: 'master',
-          name: 'master',
-          mode: 'live',
-        },
+        buildMasterLocation(),
       );
       const masterPrefix =
         masterPrefixProps.prefixType === 'text' ? masterPrefixProps.prefix : '';
+      const masterLocation: KungfuApi.KfLocation = buildMasterLocation();
+      const ledgerLocation: KungfuApi.KfLocation = buildLedgerLocation();
+      const masterProcessId = getProcessIdByKfLocation(masterLocation);
+      const ledgerProcessId = getProcessIdByKfLocation(ledgerLocation);
+      const archiveProcessId = buildArchiveProcessId();
+      const dzxyProcessId = buildDzxyProcessId();
 
       return [
         {
-          processId: 'archive',
+          processId: archiveProcessId,
           processName: '_archive_',
           typeName: colors.bgMagenta('Sys'),
           category: 'system',
           group: '',
           name: '',
           value: {},
-          status: processStatus['archive'] || '--',
-          statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: '',
-                name: 'archive',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['archive']?.monit,
+          status: processStatus[archiveProcessId] || '--',
+          statusName: dealStatus(processStatus[archiveProcessId] || '--'),
+          monit: processStatusWithDetail[archiveProcessId]?.monit,
         },
         {
-          processId: 'master',
+          processId: masterProcessId,
           processName: colors.bold(masterPrefix + 'MASTER'),
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'master',
-          name: 'master',
+          category: masterLocation.category,
+          group: masterLocation.group,
+          name: masterLocation.name,
           value: {},
-          status: processStatus['master'] || '--',
+          status: processStatus[masterProcessId] || '--',
           statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'master',
-                name: 'master',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['master']?.monit,
+            getProcessStatus(masterLocation, processStatus, appStates) || '--',
+          monit: processStatusWithDetail[masterProcessId]?.monit,
         },
         {
-          processId: 'cached',
-          processName: 'CACHED',
-          typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'cached',
-          value: {},
-          status: processStatus['cached'] || '--',
-          statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'service',
-                name: 'cached',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['cached']?.monit,
-        },
-        {
-          processId: 'ledger',
+          processId: ledgerProcessId,
           processName: 'LEDGER',
           typeName: colors.bgMagenta('Sys'),
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
+          category: ledgerLocation.category,
+          group: ledgerLocation.group,
+          name: ledgerLocation.name,
           value: {},
-          status: processStatus['ledger'] || '--',
+          status: processStatus[ledgerProcessId] || '--',
           statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'service',
-                name: 'ledger',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['ledger']?.monit,
+            getProcessStatus(ledgerLocation, processStatus, appStates) || '--',
+          monit: processStatusWithDetail[ledgerProcessId]?.monit,
         },
         {
-          processId: 'dzxy',
+          processId: dzxyProcessId,
           processName: 'DZXY',
           typeName: colors.bgMagenta('Sys'),
           category: 'system',
           group: 'service',
           name: 'dzxy',
           value: {},
-          status: processStatus['dzxy'] || '--',
-          statusName:
-            getProcessStatus(
-              {
-                category: 'system',
-                group: 'service',
-                name: 'dzxy',
-                mode: 'live',
-              },
-              processStatus,
-              appStates,
-            ) || '--',
-          monit: processStatusWithDetail['dzxy']?.monit,
+          status: processStatus[dzxyProcessId] || '--',
+          statusName: dealStatus(processStatus[dzxyProcessId] || '--'),
+          monit: processStatusWithDetail[dzxyProcessId]?.monit,
         },
         ...extServiceList,
         ...mdList,
@@ -562,6 +472,7 @@ export const switchProcess = async (
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
   const { category, group, name, value, cwd, script } = proc;
+  const masterLocation = buildMasterLocation();
   const isTargetExtService = isExtService({
     category,
     group,
@@ -623,8 +534,8 @@ export const switchProcess = async (
 
   switch (category) {
     case 'system':
-      if (proc.processId === 'master') {
-        //开启，要归档, cli 需要clearjournal
+      if (proc.processId === getProcessIdByKfLocation(masterLocation)) {
+        //开启，要归档, cli 需要clear journal
         preSwitchMain(status, messageBoard, loading)
           .then(() => {
             loading.load(`${startOrStop} Master process`);
@@ -746,8 +657,6 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await removeArchiveBeforeToday(ARCHIVE_DIR);
     await startMaster(false);
     await delayMilliSeconds(1000);
-    await startCacheD(false);
-    await delayMilliSeconds(2000);
     await startLedger(false);
     await delayMilliSeconds(1000);
     await startDzxy();

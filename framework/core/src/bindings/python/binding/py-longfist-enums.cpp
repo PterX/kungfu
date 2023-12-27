@@ -176,16 +176,6 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const Direction &a, int b) { return static_cast<int>(a) == b; });
 
-  py::enum_<BasketOrderStatus>(m_enums, "BasketOrderStatus", py::arithmetic())
-      .value("Unknown", BasketOrderStatus::Unknown)
-      .value("Pending", BasketOrderStatus::Pending)
-      .value("PartialFilledNotActive", BasketOrderStatus::PartialFilledNotActive)
-      .value("PartialFilledActive", BasketOrderStatus::PartialFilledActive)
-      .value("Filled", BasketOrderStatus::Filled)
-      .value("Cancelled", BasketOrderStatus::Cancelled)
-      .export_values()
-      .def("__eq__", [](const BasketOrderStatus &a, int b) { return static_cast<int>(a) == b; });
-
   py::enum_<BasketVolumeType>(m_enums, "BasketVolumeType", py::arithmetic())
       .value("Unknown", BasketVolumeType::Unknown)
       .value("Quantity", BasketVolumeType::Quantity)
@@ -267,12 +257,11 @@ void bind_enums(py::module &m) {
       .value("BSE", MarketType::BSE)
       .value("SHFE", MarketType::SHFE)
       .value("CFFEX", MarketType::CFFEX)
-      .value("kDCE", MarketType::DCE)
+      .value("DCE", MarketType::DCE)
       .value("CZCE", MarketType::CZCE)
       .value("INE", MarketType::INE)
       .value("SSE", MarketType::SSE)
-      .value("SZSE", MarketType::SZSE)
-      .value("HKEx", MarketType::HKEx)
+      .value("SZE", MarketType::SZE)
       .export_values()
       .def("__eq__", [](const MarketType &a, int b) { return static_cast<int>(a) == b; });
 
@@ -356,6 +345,21 @@ void bind_enums(py::module &m) {
       .export_values()
       .def("__eq__", [](const OrderTriggerFlag &a, int b) { return static_cast<int>(a) == b; });
 
+  py::enum_<AlgoOrderActionFlag>(m_enums, "AlgoOrderActionFlag", py::arithmetic())
+      .value("Cancel", AlgoOrderActionFlag::Cancel)
+      .value("Start", AlgoOrderActionFlag::Start)
+      .value("Stop", AlgoOrderActionFlag::Stop)
+      .export_values()
+      .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
+
+  py::enum_<ResumePolicy>(m_enums, "ResumePolicy", py::arithmetic())
+      .value("Now", ResumePolicy::Now)
+      .value("Intraday", ResumePolicy::Intraday)
+      .value("Stateless", ResumePolicy::Stateless)
+      .value("Continuous", ResumePolicy::Continuous)
+      .export_values()
+      .def("__eq__", [](const AlgoOrderActionFlag &a, int b) { return static_cast<int>(a) == b; });
+
   py::enum_<CashReplaceFlag>(m_enums, "CashReplaceFlag", py::arithmetic())
       .value("UnReplace", CashReplaceFlag::UnReplace)
       .value("EnReplace", CashReplaceFlag::EnReplace)
@@ -405,12 +409,6 @@ void bind_enums(py::module &m) {
       .value("CEN", Currency::CEN)
       .export_values()
       .def("__eq__", [](const Currency &a, int b) { return static_cast<int>(a) == b; });
-
-  py::enum_<BasketOrderCalculationMode>(m_enums, "BasketOrderCalculationMode", py::arithmetic())
-      .value("Static", BasketOrderCalculationMode::Static)
-      .value("Dynamic", BasketOrderCalculationMode::Dynamic)
-      .export_values()
-      .def("__eq__", [](const BasketOrderCalculationMode &a, int b) { return static_cast<int>(a) == b; });
 
   py::enum_<Priority>(m_enums, "Priority", py::arithmetic())
       .value("Low", Priority::Low)

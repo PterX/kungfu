@@ -16,8 +16,6 @@
 
 namespace kungfu::wingchun::service {
 
-// key = hash_instrument(exchange_id, instrument_id)
-
 class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::BrokerStateUpdate> BrokerStateMap;
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
@@ -30,8 +28,6 @@ public:
 
   void on_exit() override;
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
-
   book::Bookkeeper &get_bookkeeper();
 
 protected:
@@ -40,12 +36,11 @@ protected:
 private:
   broker::AutoClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  std::unordered_map<uint32_t, book::Book> tmp_books_;
+  std::unordered_map<uint32_t, book::Book> tmp_books_ = {};
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
   bool sync_asset_ = false;
-  bool sync_asset_margin_ = false;
   bool sync_position_ = false;
 
   bool bypass_refresh_book() const;
@@ -122,9 +117,9 @@ private:
       return;
     }
     auto book = bookkeeper_.get_book(book_uid);
-    write_to(trigger_time, book->get_position_for(data), book_uid);
+    auto apply = [&](auto &position) { write_to(trigger_time, position, book_uid); };
+    book->apply_position_for(data, apply);
     write_to(trigger_time, book->asset, book_uid);
-    write_to(trigger_time, book->asset_margin, book_uid);
   }
 };
 } // namespace kungfu::wingchun::service

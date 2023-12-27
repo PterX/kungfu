@@ -9,12 +9,10 @@ import { getConfigSettings } from './config';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { categoryRegisterConfig } from '../posGlobal/config';
 import { FutureArbitrageCodeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/kungfu';
-import {
-  getProcessIdByKfLocation,
-  initFormStateByConfig,
-  transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { makeOrderByOrderInput } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useCurrentGlobalKfLocation,
   useFormCurrentState,

@@ -21,6 +21,13 @@
         std::make_shared<ServiceType>(locator, m, low_latency, arguments));                                            \
   })
 
+#define KUNGFU_DEFINE_CACHE_TOOL(ToolType)                                                                             \
+  m.def("tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,                   \
+                    int64_t begin_time, int64_t end_time, kungfu::yijinjing::data::locator_ptr locator) {              \
+    return std::static_pointer_cast<kungfu::wingchun::tool::CacheTool>(                                                \
+        std::make_shared<ToolType>(category, group, name, begin_time, end_time, locator, true));                       \
+  })
+
 #define KUNGFU_DEFINE_MD(MarketDataType)                                                                               \
   m.def("md", [&](kungfu::wingchun::broker::BrokerVendor &vendor) {                                                    \
     return std::static_pointer_cast<kungfu::wingchun::broker::MarketData>(std::make_shared<MarketDataType>(vendor));   \
@@ -63,12 +70,6 @@
   };                                                                                                                   \
   class StrategyType : public kungfu::wingchun::strategy::Strategy
 
-// no clear what this macro for.
-// #define KUNGFU_DEFINE_OPERATOR(OperatorType) \
-//   m.def("operator", [&]() { \
-//     return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());           \
-//   })
-
 #define KUNGFU_MAIN_OPERATOR(OperatorType)                                                                             \
   class OperatorType;                                                                                                  \
   PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
@@ -95,4 +96,44 @@
     });                                                                                                                \
   };                                                                                                                   \
   class OperatorType : public kungfu::wingchun::op::Operator
+
+#define KUNGFU_MAIN_MATCHER(MatcherType)                                                                               \
+  class MatcherType;                                                                                                   \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("matcher", [&]() {                                                                                           \
+      return std::static_pointer_cast<kungfu::wingchun::strategy::Matcher>(std::make_shared<MatcherType>());           \
+    });                                                                                                                \
+  };                                                                                                                   \
+  class MatcherType : public kungfu::wingchun::strategy::Matcher
+
+#define KUNGFU_MAIN_TOOL(ToolType)                                                                                     \
+  class ToolType;                                                                                                      \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,                 \
+                      int64_t begin_time, int64_t end_time, kungfu::yijinjing::data::locator_ptr locator) {            \
+      return std::static_pointer_cast<kungfu::wingchun::tool::CacheTool>(                                              \
+          std::make_shared<ToolType>(category, group, name, begin_time, end_time, locator, true));                     \
+    });                                                                                                                \
+  };                                                                                                                   \
+  class ToolType : public kungfu::wingchun::tool::CacheTool
+
+#define KUNGFU_MAIN_SLICE_TOOL(SliceToolType)                                                                          \
+  class SliceToolType;                                                                                                 \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("slice_tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,           \
+                            SliceIndexer_ptr indexer, bool overwrite, std::string argument) {                          \
+      return std::static_pointer_cast<kungfu::wingchun::tool::SliceTool>(std::make_shared<SliceToolType>(              \
+          category, std::move(group), std::move(name), indexer, overwrite, std::move(argument)));                      \
+    });                                                                                                                \
+  };                                                                                                                   \
+  class SliceToolType : public kungfu::wingchun::tool::SliceTool
+
+#define KUNGFU_MAIN_REPORT(ReportType)                                                                                 \
+  class ReportType;                                                                                                    \
+  PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
+    m.def("report",                                                                                                    \
+          [&]() { return std::static_pointer_cast<kungfu::wingchun::tool::Report>(std::make_shared<ReportType>()); }); \
+  };                                                                                                                   \
+  class ReportType : public kungfu::wingchun::tool::Report
+
 #endif // KUNGFU_EXTENSION_H

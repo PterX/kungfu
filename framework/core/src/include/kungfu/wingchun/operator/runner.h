@@ -2,8 +2,9 @@
 #ifndef WINGCHUN_OPERATOR_RUNNER_H
 #define WINGCHUN_OPERATOR_RUNNER_H
 
+#include <kungfu/wingchun/operator/backtest.h>
+#include <kungfu/wingchun/operator/live.h>
 #include <kungfu/wingchun/operator/operator.h>
-#include <kungfu/wingchun/operator/runtime.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -14,13 +15,25 @@ public:
 
   ~Runner() override = default;
 
-  [[nodiscard]] RuntimeContext_ptr get_context() const;
+  [[nodiscard]] Context_ptr get_context() const;
 
   void add_operator(const Operator_ptr &op);
 
+  void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_report(const tool::Report_ptr &report);
+
+  tool::Report_ptr get_report() const;
+
+  void set_time_interval(int64_t time_interval);
+
+  void set_backtest_config(const std::string &backtest_config);
+
   void on_exit() override;
 
-  void on_trading_day(const event_ptr &event, int64_t daytime) override;
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   void on_react() override;
@@ -29,7 +42,7 @@ protected:
 
   void on_active() override;
 
-  virtual RuntimeContext_ptr make_context();
+  virtual Context_ptr make_context();
 
   virtual void pre_start();
 
@@ -40,14 +53,14 @@ protected:
   virtual void post_stop();
 
 private:
-  //   bool positions_requested_ = false;
-  bool broker_states_requested_ = false;
-  //   bool positions_set_;
-  bool started_;
   std::vector<Operator_ptr> operators_ = {};
-  RuntimeContext_ptr context_;
-
-  void prepare(const event_ptr &event);
+  Context_ptr context_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceIndexer_ptr to_indexer_;
+  tool::Report_ptr report_;
+  int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
+  std::string backtest_config_;
+  bool has_post_started_ = false;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

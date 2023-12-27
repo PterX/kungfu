@@ -19,7 +19,10 @@ MarketDataVendor::MarketDataVendor(locator_ptr locator, const std::string &group
     : BrokerVendor(location::make_shared(mode::LIVE, category::MD, group, name, std::move(locator)), low_latency,
                    arguments) {}
 
-void MarketDataVendor::set_service(MarketData_ptr service) { service_ = std::move(service); }
+void MarketDataVendor::set_service(MarketData_ptr service) {
+  service_ = std::move(service);
+  service_->on_arguments(get_arguments());
+}
 
 void MarketDataVendor::on_react() {
   BrokerVendor::on_react();
@@ -32,17 +35,12 @@ void MarketDataVendor::on_start() {
   events_ | is(CustomSubscribe::tag) | $$(service_->subscribe_custom(event->data<CustomSubscribe>()));
   events_ | is(InstrumentKey::tag) | $$(service_->add_instrument_key(event->data<InstrumentKey>()));
   events_ | is(Band::tag) | $$(service_->on_band(event));
-  events_ | is_custom() | $$(service_->on_custom_event(event));
   service_->on_start();
 
   add_time_interval(time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_subscribe(); });
 }
 
 BrokerService_ptr MarketDataVendor::get_service() { return service_; }
-
-void MarketDataVendor::on_trading_day(const event_ptr &event, int64_t daytime) {
-  service_->on_trading_day(event, daytime);
-}
 
 [[maybe_unused]] bool MarketData::has_instrument(const std::string &instrument_id) const {
   return instruments_.find(instrument_id) != instruments_.end();

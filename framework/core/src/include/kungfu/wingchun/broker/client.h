@@ -19,18 +19,20 @@ namespace kungfu::wingchun::broker {
  */
 struct ResumePolicy {
   [[nodiscard]] virtual int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                                 const longfist::types::Register &broker) const;
+                                                 const longfist::types::Register &target) const;
 
   [[nodiscard]] virtual int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                                const longfist::types::Register &broker) const = 0;
+                                                const longfist::types::Register &target) const = 0;
 };
+
+DECLARE_PTR(ResumePolicy);
 
 /**
  * Always resume from the last unread frame, is intended to be used by system services that needs continuity.
  */
 struct StatelessResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -38,7 +40,7 @@ struct StatelessResumePolicy : public ResumePolicy {
  */
 struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -47,15 +49,15 @@ struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
  */
 struct [[maybe_unused]] IntradayResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 struct FromNowResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_connect_time(const yijinjing::practice::apprentice &app,
-                                         const longfist::types::Register &broker) const override;
+                                         const longfist::types::Register &target) const override;
 
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
-                                        const longfist::types::Register &broker) const override;
+                                        const longfist::types::Register &target) const override;
 };
 
 /**
@@ -73,7 +75,7 @@ public:
 
   virtual ~Client() = default;
 
-  [[nodiscard]] virtual const ResumePolicy &get_resume_policy() const = 0;
+  [[nodiscard]] virtual ResumePolicy_ptr get_resume_policy() const = 0;
 
   [[nodiscard]] const InstrumentKeyMap &get_instrument_keys() const;
 
@@ -94,7 +96,11 @@ public:
 
   virtual void subscribe(const longfist::types::InstrumentKey &instrument_key);
 
+  virtual void unsubscribe(const longfist::types::InstrumentKey &instrument_key);
+
   virtual void subscribe(const std::string &exchange_id, const std::string &instrument_id);
+
+  virtual void unsubscribe(const std::string &exchange_id, const std::string &instrument_id);
 
   virtual void subscribe(const yijinjing::data::location_ptr &md_location, const std::string &exchange_id,
                          const std::string &instrument_id);
@@ -133,6 +139,8 @@ public:
     return app_.get_location(uid);
   }
 
+  [[nodiscard]] bool has_channel(uint32_t source, uint32_t dest) const { return app_.has_channel(source, dest); }
+
 protected:
   yijinjing::practice::apprentice &app_;
 
@@ -145,10 +153,6 @@ private:
   yijinjing::data::location_map ready_md_locations_ = {};
   yijinjing::data::location_map ready_td_locations_ = {};
   yijinjing::data::location_map ready_op_locations_ = {};
-
-  // void update_broker_state(const event_ptr &event, const longfist::types::BrokerStateUpdate &state);
-
-  // void update_operator_state(const event_ptr &event, const longfist::types::OperatorStateUpdate &state);
 
   template <typename AppStateUpdate,
             std::enable_if_t<std::is_same_v<AppStateUpdate, longfist::types::BrokerStateUpdate> or
@@ -176,7 +180,8 @@ private:
     };
     if constexpr (std::is_same<AppState, longfist::enums::BrokerState>::value) {
       if (app_location->category == longfist::enums::category::MD) {
-        switch_broker_state(category::MD, ready_md_locations_, [&]() { renew(event->gen_time(), app_location); });
+        switch_broker_state(longfist::enums::category::MD, ready_md_locations_,
+                            [&]() { renew(event->gen_time(), app_location); });
         broker_states_.emplace(app_location->uid, state_value);
       }
       if (app_location->category == longfist::enums::category::TD) {
@@ -205,7 +210,7 @@ class AutoClient : public Client {
 public:
   explicit AutoClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] const ResumePolicy &get_resume_policy() const override;
+  [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
 
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
@@ -258,12 +263,15 @@ public:
  */
 class PassiveClient : public Client {
   typedef std::unordered_map<uint32_t, bool> EnrollmentMap;
+  typedef std::unordered_map<uint32_t, yijinjing::data::location_ptr> EnrolledLocationMap;
   typedef std::unordered_map<uint32_t, std::vector<longfist::types::CustomSubscribe>> CustomSubscribeMap;
 
 public:
   explicit PassiveClient(yijinjing::practice::apprentice &app);
 
-  [[nodiscard]] const ResumePolicy &get_resume_policy() const override;
+  [[nodiscard]] ResumePolicy_ptr get_resume_policy() const override;
+
+  longfist::enums::ResumePolicy get_resume_policy_value() const;
 
   [[nodiscard]] bool is_custom_subscribed(uint32_t md_location_uid) const override;
 
@@ -284,13 +292,40 @@ public:
 
   void sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location) override;
 
-  void enroll_account(const yijinjing::data::location_ptr &td_location);
+  void enroll_td(const yijinjing::data::location_ptr &td_location);
+
+  void enroll_md(const yijinjing::data::location_ptr &md_location, bool is_custom_subscribe);
 
   void enroll_operator(const yijinjing::data::location_ptr &op_location);
 
   bool enrolled_operator_ready() const;
 
   bool enrolled_md_ready() const;
+
+  bool enrolled_td_ready() const;
+
+  bool enrolled_operator_connected() const;
+
+  bool enrolled_md_connected() const;
+
+  bool enrolled_td_connected() const;
+
+  bool has_enrolled_td_channel(uint32_t home_uid) const;
+
+  const EnrolledLocationMap &get_enrolled_md_locations() const;
+
+  const EnrolledLocationMap &get_enrolled_td_locations() const;
+
+  const EnrolledLocationMap &get_enrolled_op_locations() const;
+
+  uint32_t get_td_location_uid(const std::string &source, const std::string &account) const;
+
+  const yijinjing::data::location_ptr &find_md_location(const std::string &source,
+                                                        const yijinjing::data::location_ptr &home);
+
+  void set_resume_policy(longfist::enums::ResumePolicy resume_policy);
+
+  longfist::enums::ResumePolicy get_resume_policy();
 
 protected:
   [[nodiscard]] bool should_connect_md(const yijinjing::data::location_ptr &md_location) const override;
@@ -310,84 +345,87 @@ protected:
   [[nodiscard]] bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
 
 private:
-  FromNowResumePolicy resume_policy_ = {};
+  longfist::enums::ResumePolicy resume_policy_ = longfist::enums::ResumePolicy::Now;
   CustomSubscribeMap custom_subs_ = {};
-  EnrollmentMap enrolled_md_locations_ = {};
-  EnrollmentMap enrolled_td_locations_ = {};
-  EnrollmentMap enrolled_op_locations_ = {};
+  EnrollmentMap enrolled_md_custom_info_ = {};
+  EnrolledLocationMap enrolled_md_locations_ = {};
+  EnrolledLocationMap enrolled_td_locations_ = {};
+  EnrolledLocationMap enrolled_hash_td_locations_ = {};
+  EnrolledLocationMap enrolled_op_locations_ = {};
+
+  std::unordered_map<std::string, yijinjing::data::location_ptr> str_key_md_locations_ = {};
 };
 
-template <typename DataType>
-static constexpr auto is_md_datatype_v =
-    std::is_same_v<DataType, longfist::types::Quote> or std::is_same_v<DataType, longfist::types::Entrust> or
-    std::is_same_v<DataType, longfist::types::Transaction> or std::is_same_v<DataType, longfist::types::Tree>;
-
-template <typename DataType, std::enable_if_t<is_md_datatype_v<DataType>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      if (broker_client.is_custom_subscribed(event->source())) {
-        if ((std::is_same_v<DataType, longfist::types::Quote> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Snapshot,
-                                                    data.exchange_id, data.instrument_type)) ||
-            (std::is_same_v<DataType, longfist::types::Tree> &&
-             broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
-                                                    data.exchange_id, data.instrument_type)) ||
-            (std::is_same_v<DataType, longfist::types::Transaction> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Transaction,
-                                                    data.exchange_id, data.instrument_type)) ||
-            (std::is_same_v<DataType, longfist::types::Entrust> &&
-             broker_client.is_custom_subscribed_all(event->source(),
-                                                    kungfu::longfist::enums::SubscribeDataType::Entrust,
-                                                    data.exchange_id, data.instrument_type))) {
-          return true;
-        }
-      }
-      if (broker_client.is_subscribed(data.exchange_id, data.instrument_id)) {
+template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    if (broker_client.is_custom_subscribed(event->source())) {
+      if ((std::is_same_v<DataType, longfist::types::Quote> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Snapshot,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Tree> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Transaction> &&
+           broker_client.is_custom_subscribed_all(event->source(),
+                                                  kungfu::longfist::enums::SubscribeDataType::Transaction,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Entrust> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Entrust,
+                                                  data.exchange_id, data.instrument_type))) {
         return true;
       }
     }
-    return false;
-  });
+    if (broker_client.is_subscribed(data.exchange_id, data.instrument_id)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::Register> or
                                               std::is_same_v<DataType, longfist::types::Deregister>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid) or
-             broker_client.should_connect_operator(data.location_uid);
-    }
-    return false;
-  });
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    return broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid) or
+           broker_client.should_connect_operator(data.location_uid);
+  }
+  return false;
 }
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::BrokerStateUpdate>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      return (broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid));
-    }
-    return false;
-  });
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    return (broker_client.should_connect_md(data.location_uid) or broker_client.should_connect_td(data.location_uid));
+  }
+  return false;
 };
 
 template <typename DataType, std::enable_if_t<std::is_same_v<DataType, longfist::types::OperatorStateUpdate>>...>
-static constexpr auto is_own(const Client &broker_client) {
-  return rx::filter([&](const event_ptr &event) {
-    if (event->msg_type() == DataType::tag) {
-      const DataType &data = event->data<DataType>();
-      return broker_client.should_connect_operator(data.location_uid);
-    }
-    return false;
-  });
+static constexpr bool is_own_event(const Client &broker_client, const event_ptr &event) {
+  if (event->msg_type() == DataType::tag) {
+    const DataType &data = event->data<DataType>();
+    return broker_client.should_connect_operator(data.location_uid);
+  }
+  return false;
 }
+
+template <typename DataType> static constexpr auto is_own(const Client &broker_client) {
+  return rx::filter([&](const event_ptr &event) { return is_own_event<DataType>(broker_client, event); });
+}
+
+static const std::map<int32_t, std::function<bool(const Client &broker_client, const event_ptr &)>> map_is_own_event = {
+    {longfist::types::Quote::tag, is_own_event<longfist::types::Quote>},
+    {longfist::types::Tree::tag, is_own_event<longfist::types::Tree>},
+    {longfist::types::Entrust::tag, is_own_event<longfist::types::Entrust>},
+    {longfist::types::Transaction::tag, is_own_event<longfist::types::Transaction>},
+    {longfist::types::BrokerStateUpdate::tag, is_own_event<longfist::types::BrokerStateUpdate>},
+    {longfist::types::OperatorStateUpdate::tag, is_own_event<longfist::types::OperatorStateUpdate>},
+    {longfist::types::Deregister::tag, is_own_event<longfist::types::Deregister>},
+};
 
 } // namespace kungfu::wingchun::broker
 

@@ -1,10 +1,10 @@
-import { kfLogger, getResultUntilValuable } from '../utils/busiUtils';
-import { commissionStore, longfist, promiseWithCachedPause } from './index';
+import { getResultUntilValuable } from '../utils/commonUtils';
+import { promiseWithCachedPause } from '../utils/tradingUtils';
+import { commissionStore, longfist } from './index';
 
 export const getKfCommission = (
   watcher: KungfuApi.Watcher,
 ): Promise<KungfuApi.Commission[]> => {
-  kfLogger.info('Get kungfu Commission');
   return promiseWithCachedPause(watcher, () =>
     getResultUntilValuable(() => commissionStore.getAllCommission()).then(
       (allCommissions) =>
@@ -19,7 +19,6 @@ export const setKfCommission = (
   watcher: KungfuApi.Watcher,
   commissions: KungfuApi.Commission[],
 ): Promise<boolean> => {
-  kfLogger.info('Set kungfu Commission');
   const kfCommissionData = longfist.types.Commission();
   const comissionsResolved = commissions
     .filter((item) => {

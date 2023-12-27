@@ -89,8 +89,12 @@ int64_t time::strptime(const std::string &time_string, const std::string &format
   }
 
   std::tm result = {};
+#ifdef __linux__
+  ::strptime(normal_timestr.c_str(), normal_format.c_str(), &result);
+#else
   std::istringstream iss(normal_timestr);
   iss >> std::get_time(&result, normal_format.c_str());
+#endif
   std::time_t parsed_time = std::mktime(&result);
   auto tp_system = system_clock::from_time_t(parsed_time);
   return duration_cast<nanoseconds>(tp_system.time_since_epoch()).count() + nano;

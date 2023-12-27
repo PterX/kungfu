@@ -24,6 +24,7 @@ profile::profile(std::string profile_db_file) : profile_db_file_(std::move(profi
 void profile::setup() {
   auto storage = get_storage();
   storage->pragma.journal_mode(sqlite_orm::journal_mode::WAL);
+  storage->pragma.synchronous(0);
   storage->sync_schema();
 }
 

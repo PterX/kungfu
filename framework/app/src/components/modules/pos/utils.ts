@@ -1,9 +1,9 @@
 import { OffsetEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { getOffsetByOffsetFilter } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  getOffsetByOffsetFilter,
   isShotable,
   isT0,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 export const resolveTriggerOffset = (position: KungfuApi.PositionResolved) => {
   const { instrument_type, exchange_id } = position;

@@ -27,10 +27,6 @@ public:
 
   virtual void post_stop(Context_ptr &context){};
 
-  // 交易日切换回调
-  //@param daytime 交易日
-  virtual void on_trading_day(Context_ptr &context, int64_t daytime){};
-
   // 行情数据更新回调
   // @param quote             行情数据
   // @param location          数据来源
@@ -72,6 +68,12 @@ public:
   virtual void on_order_trigger(Context_ptr &context, const longfist::types::OrderTrigger &order_trigger,
                                 const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
+  // 算法单回调
+  // @param algo_order    算法单信息
+  // @param location          数据来源
+  virtual void on_algo_order(Context_ptr &context, const longfist::types::AlgoOrder &algo_order,
+                             const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
   // 订单操作错误回调
   // @param order             订单信息数据
   // @param location          数据来源
@@ -84,6 +86,9 @@ public:
   virtual void on_order_trigger_action_error(Context_ptr &context,
                                              const longfist::types::OrderTriggerActionError &error,
                                              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
+  virtual void on_algo_order_action_error(Context_ptr &context, const longfist::types::AlgoOrderActionError &error,
+                                          const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
   // 订单成交回报回调
   // @param trade             订单成交数据
@@ -126,13 +131,6 @@ public:
   // @param new_asset         更新后重新从柜台获取的新数据
   virtual void on_asset_sync_reset(Context_ptr &context, const kungfu::longfist::types::Asset &old_asset,
                                    const kungfu::longfist::types::Asset &new_asset){};
-
-  // 同步柜台资金信息回调
-  // @param old_asset_margin         更新前本地维护的旧数据
-  // @param new_asset_margin         更新后重新从柜台获取的新数据
-  virtual void on_asset_margin_sync_reset(Context_ptr &context,
-                                          const kungfu::longfist::types::AssetMargin &old_asset_margin,
-                                          const kungfu::longfist::types::AssetMargin &new_asset_margin){};
 
   // 断开回调
   // @param deregister     断开数据

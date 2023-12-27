@@ -15,8 +15,8 @@ def on_quote(context, quote, location, dest):
     pass
 
 
-def on_synthetic_data(context, synthetic_dataa, location, dest):
-    context.log.info("on_synthetic_data: {}".format(synthetic_dataa))
+def on_synthetic_data(context, synthetic_data, location, dest):
+    context.log.info("on_synthetic_data: {}".format(synthetic_data))
 
 
 def on_operator_state_change(context, operator_state_update, location):

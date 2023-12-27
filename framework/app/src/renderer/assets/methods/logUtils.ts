@@ -4,7 +4,7 @@ import { reactive, Ref, ref } from 'vue';
 import {
   isCriticalLog,
   KfFixedList,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { Tail } from 'tail';
 import { messagePrompt, parseURIParams } from './uiUtils';
 import { ensureFileSync } from 'fs-extra';
@@ -13,6 +13,19 @@ const { error } = messagePrompt();
 
 export const getLogPath = (): string => {
   return path.resolve(decodeURI(parseURIParams().logPath) || '');
+};
+
+export const getUrlParams = (): Record<string, string> => {
+  const urlParams = parseURIParams();
+  const params: Record<string, string> = {};
+  Object.keys(urlParams).forEach((key) => {
+    if (key === 'logPath') {
+      params[key] = decodeURI(urlParams[key]);
+    } else {
+      params[key] = urlParams[key];
+    }
+  });
+  return params;
 };
 
 export function preDealLogMessage(line: string): string {
@@ -58,7 +71,6 @@ export function dealLogMessage(line: string): string {
 }
 
 export const useLogInit = (
-  logPath: string,
   nLines = 10000,
 ): {
   logList: KungfuApi.KfFixedList<KungfuApi.KfLogData>;
@@ -66,9 +78,10 @@ export const useLogInit = (
   scrollerTableRef: Ref;
   isLoading: Ref<boolean>;
   scrollToBottom: () => void;
-  startTailLog: () => void;
+  startTailLog: (logPath: string) => void;
   clearLogState: () => void;
 } => {
+  // const LOADING_TIMEOUT = 2000;
   let LogTail: Tail | null = null;
   const logList = reactive<KungfuApi.KfFixedList<KungfuApi.KfLogData>>(
     new KfFixedList(nLines),
@@ -79,8 +92,6 @@ export const useLogInit = (
   let loadingTimeoutId: NodeJS.Timeout | null = null;
   let insertTimerId: NodeJS.Timeout | null = null;
   const INSERT_LINES = 1000;
-
-  ensureFileSync(logPath);
 
   const scrollToBottom = () => {
     if (scrollToBottomChecked.value) {
@@ -96,7 +107,9 @@ export const useLogInit = (
     }, 1000);
   };
 
-  const startTailLog = () => {
+  const startTailLog = (logPath: string) => {
+    ensureFileSync(logPath);
+
     LogTail && LogTail.unwatch();
     LogTail = new Tail(logPath, {
       follow: true,

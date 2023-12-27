@@ -70,6 +70,7 @@ export default {
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
   open_journal_dashboard: 'Opening journal dashboard',
+  open_log_view: 'Opening log view',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
   add_board_error: 'Add board target error',
@@ -216,6 +217,7 @@ export default {
     partial_filled_not_active: 'PartialFilledNotActive',
     partial_filled_active: 'PartialFilledActive',
     lost: 'Lost',
+    pause: 'Pause',
 
     long: 'Long',
     short: 'Short',
@@ -341,7 +343,6 @@ export default {
 
     master: 'master',
     ledger: 'ledger',
-    cached: 'cached',
     archive: 'archive',
 
     place_order: 'Place Order',
@@ -503,6 +504,8 @@ export default {
     total_asset: 'total_asset',
     actions: 'actions',
 
+    asset_details: 'Asset',
+
     add_td: 'Add',
     add_group_placeholder: 'Add group',
     set_td_group: 'Account Group Settings',
@@ -525,6 +528,8 @@ export default {
     target: 'Into the node',
     amount: 'Amount incurred',
     update_time: 'Transfer time',
+    source_target_cannot_be_same:
+      'Transfer source and target cannot be the same, please reselect!',
     tip_error: 'Transfer failed, please contact the administrator!',
     capitalaccountor: 'Fund account',
     trade_password: 'Transaction password',
@@ -564,6 +569,12 @@ export default {
     strategy_tip: 'Ensure that the strategy_id is unique',
 
     add_strategy: 'Add',
+    replay: 'Replay',
+    start_time: 'Start time',
+    end_time: 'End time',
+    log_level: 'Log level',
+    no_sessions_for_replay_warn:
+      'The process has not run temporarily and cannot be replayed',
   },
 
   operatorConfig: {
@@ -703,6 +714,8 @@ export default {
     selete_msg_type: 'Filter MsgType',
     empty_export_data: 'No information to export',
 
+    replay: 'Replay',
+    please_select_strategy_or_operator: 'Please select strategy or operator',
     entry_visualization: 'Entry visualization',
     quit_visualization: 'Entry visualization',
     strategy_id: 'Strategy ID',
@@ -850,7 +863,6 @@ export default {
     order_input_key: 'Property',
     single_price: 'Single Price',
     limit_value: 'Maximum',
-    asset_margin: 'AssetMargin',
     pos_table_columns: 'Position Table Item Configuration',
     show_asset_margin: 'AssetMargin Mode',
     skip_confirm_make_order: 'Skip Confirm Make Order',
@@ -951,6 +963,45 @@ export default {
     loading_data: 'Loading...',
   },
 
+  replay: {
+    session: 'Session',
+    replay: 'Replay',
+    backtest: 'Backtest',
+    log_level: 'Log Level',
+    begin_time: 'Begin Time',
+    end_time: 'End Time',
+    try_again: 'Try Again',
+    stop_replay: 'Stop Replay',
+    stop_backtest: 'Stop Backtest',
+    enable_matcher: 'Enable Matcher',
+    please_select_session: 'Please select session',
+    please_select_log_level: 'Please select log level',
+    stop_replay_warn_content:
+      'Closing the window will stop the playback. Do you still want to close the window?',
+    process_has_not_been_started: 'The process has not been started',
+    please_start_replay: 'Please start replay',
+    please_select_strategy_or_operator: 'Please select strategy or operator',
+    process_can_not_replay: 'the process can not replay',
+    tips_title: '* Tips:',
+    replay_tips1_part1: 'Replay functionality relies on data time, ',
+    replay_tips1_part2:
+      'please refrain from using physical time-related code within the strategy to express "now"',
+    replay_tips1_part3: `(such as Python's time or yjj.now_in_nano). It is recommended to use the context.now method provided by the strategy. Otherwise, the replay may not execute as expected.`,
+    replay_tips2_part1: 'When using the matcher',
+    replay_tips2_part2: 'for replay, the replay only adds log, ',
+    replay_tips2_part3: 'do not modify the strategy logic',
+    replay_tips2_part4:
+      ', otherwise an error will be reported due to inconsistent output data with the actual.',
+    replay_tips2_part5: 'When not using the matcher',
+    replay_tips2_part6: 'for replay, ',
+    replay_tips2_part7: 'you can modify the strategy logic',
+    replay_tips2_part8:
+      ', the matcher will use the data recorded in the actual trading for replay.',
+    process_not_found: 'Process not found',
+    enable_matcher_tip:
+      'Use the matcher to run in backtest mode, the strategy logic can be modified.',
+  },
+
   master_interrupt: 'master interrupted',
   master_desc:
     'The master process is responsible for inter-policy process communication and resource configuration, please restart the application',
@@ -958,10 +1009,6 @@ export default {
   ledger_interrupt: 'ledger interrupted',
   ledger_desc:
     'Accounting services are responsible for position and capital calculations, please restart the application',
-
-  cached_interrupt: 'cached interrupted',
-  cached_desc:
-    'The storage service is responsible for data landing. The storage service disconnection does not affect transactions, please restart the application after the transaction',
 
   state_interrupt_msg: '{state} has been disconnected',
   state_interrupt_desc:
@@ -977,7 +1024,7 @@ export default {
   environment_done: 'Kungfu environment done ✓',
   environment_loading: 'Kungfu environment loading...',
   extra_resources_done: 'Extra resources done ✓',
-  extra_resouces_loading: 'Extra resources loading...',
+  extra_resources_loading: 'Extra resources loading...',
   saving_data_done: 'Saving data done ✓',
   saving_data_loading: 'Saving data loading ...',
   end_all_transactions: 'End all transactions ✓',

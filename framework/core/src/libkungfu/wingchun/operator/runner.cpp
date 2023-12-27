@@ -11,18 +11,55 @@ using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::op {
 Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency),
-      started_(m == mode::BACKTEST) {}
+    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency) {}
 
-RuntimeContext_ptr Runner::get_context() const { return context_; }
+Context_ptr Runner::get_context() const { return context_; }
 
-RuntimeContext_ptr Runner::make_context() { return std::make_shared<RuntimeContext>(*this, events_); }
+Context_ptr Runner::make_context() {
+  if (get_home()->mode == mode::BACKTEST) {
+    if (not from_indexer_) {
+      from_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified from_indexer, Default NameHashingIndexer used.");
+    }
+    if (not to_indexer_) {
+      to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
+      SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
+    }
+    if (not report_) {
+      report_ = std::make_shared<tool::Report>();
+      SPDLOG_WARN("Runner in backtest mode not specified.");
+    }
+    set_runner(*report_, this, nullptr);
+    return std::make_shared<BacktestContext>(*this, events_, std::move(from_indexer_), std::move(to_indexer_), report_,
+                                             time_interval_, std::move(backtest_config_));
+  }
+
+  return std::make_shared<LiveContext>(*this, events_);
+}
 
 void Runner::add_operator(const Operator_ptr &op) { operators_.push_back(op); }
 
-void Runner::on_exit() { post_stop(); }
+void Runner::set_from_indexer(const tool::SliceIndexer_ptr &indexer) { from_indexer_ = indexer; }
 
-void Runner::on_trading_day(const event_ptr &event, int64_t daytime) { invoke(&Operator::on_trading_day, daytime); }
+void Runner::set_to_indexer(const tool::SliceIndexer_ptr &indexer) { to_indexer_ = indexer; }
+
+void Runner::set_report(const tool::Report_ptr &report) { report_ = report; }
+
+void Runner::set_time_interval(int64_t time_interval) {
+  if (time_interval <= 0) {
+    throw wingchun_error(fmt::format("time_interval should be positive other than {}", time_interval_));
+  }
+  if (time_interval <= 100 * time_unit::NANOSECONDS_PER_MILLISECOND) {
+    SPDLOG_WARN("No need to make time_interval smaller than 100ms which will cause to much resource.");
+  }
+  time_interval_ = time_interval;
+}
+
+void Runner::set_backtest_config(const std::string &backtest_config) { backtest_config_ = backtest_config; }
+
+tool::Report_ptr Runner::get_report() const { return report_; }
+
+void Runner::on_exit() { post_stop(); }
 
 void Runner::on_react() { context_ = make_context(); }
 
@@ -30,24 +67,39 @@ void Runner::on_start() {
   pre_start();
   enable(*context_);
 
-  // TODO add skip_until for broker_states_requested_ == true later
-  events_ | is_own<Deregister>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
-  events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
+  auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
+  auto start_events =
+      events_ | skip_until(events_ | filter([&](auto e) {
+                             return resume_policy_is_now ? context_->is_started() and has_post_started_ : true;
+                           }));
+  start_events | is(Quote::tag) |
+      $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
+  start_events | is(Tree::tag) |
+      $$(invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
+  start_events | is(Entrust::tag) |
+      $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
+  start_events | is(Transaction::tag) |
+      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  start_events | is(SyntheticData::tag) |
+      $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
+                event->dest()));
+
+  events_ | is(BrokerStateUpdate::tag) |
       $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
-  events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
+  events_ | is(OperatorStateUpdate::tag) |
       $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(),
                 get_location(event->source())));
+  events_ | is(Deregister::tag) |
+      $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
 
-  if (get_home()->mode == mode::LIVE) {
-    auto start_events = events_ | skip_until(events_ | filter([&](auto e) { return started_; }));
-    start_events | is(Deregister::tag) | $$(context_->check_dependency_state(event));
-    start_events | is(OperatorStateUpdate::tag) | $$(context_->check_dependency_state(event));
-    start_events | is(BrokerStateUpdate::tag) | $$(context_->check_dependency_state(event));
+  events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
+      $$(prepare(event, *context_));
+
+  if (context_->is_started()) {
+    post_start();
+  } else {
+    events_ | filter([&](auto e) { return context_->is_started(); }) | first() | $$(post_start());
   }
-
-  events_ | take_until(events_ | filter([&](auto e) { return started_; })) | $$(prepare(event));
-  post_start();
 }
 
 void Runner::on_active() {
@@ -59,61 +111,23 @@ void Runner::on_active() {
 void Runner::pre_start() { invoke(&Operator::pre_start); }
 
 void Runner::post_start() {
-  if (not started_) {
+  if (not context_->is_started()) {
     return;
   }
 
   invoke(&Operator::post_start);
-  SPDLOG_INFO("operator {} started", get_io_device()->get_home()->name);
-
-  events_ | is_own<Quote>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Entrust>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  events_ | is_own<Transaction>(context_->get_broker_client()) |
-      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
-
-  events_ | is(SyntheticData::tag) |
-      $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
-                event->dest()));
+  has_post_started_ = true;
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
 void Runner::post_stop() { invoke(&Operator::post_stop); }
 
-void Runner::prepare(const event_ptr &event) {
-  auto ledger_uid = ledger_home_location_->uid;
-  if (not has_writer(ledger_uid)) {
-    SPDLOG_INFO("not hast ledger writer");
-    return;
+bool Runner::is_reactable(const event_ptr &event) {
+  auto iter = map_is_own_event.find(event->msg_type());
+  if (iter != map_is_own_event.end()) {
+    return iter->second(context_->get_broker_client(), event);
   }
-  auto writer = get_writer(ledger_uid);
-
-  auto connected_test = [&](const auto &locations) {
-    for (const auto &pair : locations) {
-      if (not context_->get_broker_client().is_connected(pair.second->uid)) {
-        return false;
-      }
-    }
-    return true;
-  };
-  if (not broker_states_requested_ and connected_test(context_->list_md()) and connected_test(context_->list_op())) {
-
-    writer->mark(now(), BrokerStateRequest::tag);
-    writer->mark(now(), OperatorStateRequest::tag);
-    broker_states_requested_ = true;
-  }
-
-  if (not context_->get_broker_client().enrolled_md_ready() or
-      not context_->get_broker_client().enrolled_operator_ready()) {
-    return;
-  }
-  started_ = true;
-
-  OperatorStateUpdate state_update;
-  state_update.state = OperatorState::Ready;
-  context_->update_operator_state(state_update);
-  post_start();
+  return not is_custom_event(event);
 }
 } // namespace kungfu::wingchun::op

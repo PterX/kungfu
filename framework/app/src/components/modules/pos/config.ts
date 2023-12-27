@@ -1,8 +1,6 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import {
-  buildTableColumnSorterWithStrike,
-  isTdStrategyCategory,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { buildTableColumnSorterWithStrike } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -30,7 +28,7 @@ export const getColumns = (
         sorter: buildStrSorter('instrument_id_resolved'),
         width: 140,
       },
-      ...(isTdStrategyCategory(kfLocation.category)
+      ...(isTd(kfLocation.category)
         ? []
         : [
             {

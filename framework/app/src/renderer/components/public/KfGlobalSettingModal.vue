@@ -21,11 +21,9 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { DeleteOutlined } from '@ant-design/icons-vue';
 import { longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
-import {
-  dealCommissionMode,
-  initFormStateByConfig,
-  kfLogger,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealCommissionMode } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { useGlobalStore } from '../../pages/index/store/global';

@@ -166,7 +166,7 @@ import { useJournalStore } from '../store/journalStore';
 import {
   delayMilliSeconds,
   debounce,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -200,7 +200,6 @@ const DEFAULT_LIST_SIZE = 5000;
 const CHECK_LOAD_MORE_TIME = 3000;
 const SHOW_DETAIL_MSG_TYPES = {
   [MsgType.Asset]: true,
-  [MsgType.AssetMargin]: true,
   [MsgType.Position]: true,
   [MsgType.Order]: true,
   [MsgType.OrderInput]: true,

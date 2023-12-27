@@ -6,7 +6,7 @@ import { addFileSync, readRootPackageJsonSync } from '../utils/fileUtils';
 import { KF_DEFAULT_HOME_ROOT_DIR } from '../config/homePathConfig';
 import { ifKfDev } from '../utils/commonUtils';
 
-//================== config & resouces start =================================
+//================== config & resources start =================================
 
 export const KUNGFU_RESOURCES_DIR = globalThis.__publicResources;
 
@@ -53,7 +53,7 @@ addFileSync('', KF_SCHEDULE_TASKS_JSON_PATH, 'file');
 
 export const PY_WHL_DIR = path.join(KUNGFU_RESOURCES_DIR, 'python');
 
-//================== config & resouces end ===================================
+//================== config & resources end ===================================
 
 //================= home start ==============================
 
@@ -84,12 +84,26 @@ addFileSync('', KF_HOME, 'folder');
 export const KF_RUNTIME_DIR = path.join(KF_HOME, 'runtime');
 addFileSync('', KF_RUNTIME_DIR, 'folder');
 
-//system
-export const SYSTEM_DIR = path.join(KF_RUNTIME_DIR, 'system');
-addFileSync('', SYSTEM_DIR, 'folder');
+export const RuntimeChildDirTypes: Array<
+  'log' | 'db' | 'journal' | 'resources'
+> = ['log', 'db', 'journal', 'resources'];
+export const buildRuntimeChildDirByType = (
+  type: 'log' | 'db' | 'journal' | 'resources',
+) => {
+  const targetDir = path.join(KF_RUNTIME_DIR, type);
+  addFileSync('', targetDir, 'folder');
+  return targetDir;
+};
 
-export const NODE_DIR = path.join(SYSTEM_DIR, 'node');
-addFileSync('', NODE_DIR, 'folder');
+//system
+export const LOG_SYSTEM_DIR = path.join(
+  buildRuntimeChildDirByType('log'),
+  'system',
+);
+addFileSync('', LOG_SYSTEM_DIR, 'folder');
+
+export const LOG_NODE_DIR = path.join(LOG_SYSTEM_DIR, 'node');
+addFileSync('', LOG_NODE_DIR, 'folder');
 
 //log
 export const LOG_DIR = path.join(KF_HOME, 'logview');
@@ -104,16 +118,23 @@ addFileSync('', ARCHIVE_DIR, 'folder');
 //================= special item start ==============================
 
 //BASE_DB_DIR strategys, accounts, tasks
-export const BASE_DB_DIR = path.join(SYSTEM_DIR, 'etc', 'kungfu', 'db', 'live');
+export const BASE_DB_DIR = path.join(
+  buildRuntimeChildDirByType('db'),
+  'system',
+  'etc',
+  'kungfu',
+  'live',
+);
 
 //RENDERER_LOG_DIR
 export const RENDERER_LOG_DIR = path.join(
-  SYSTEM_DIR,
+  LOG_SYSTEM_DIR,
   'node',
   'renderer-app',
-  'log',
   'live',
 );
+
+//================= special item end ==============================
 
 //================== others start =================================
 
@@ -123,6 +144,39 @@ const production = process.env.NODE_ENV === 'production';
 export const buildProcessLogPath = (processId: string) => {
   const tmk = dayjs().format('YYYYMMDD');
   return path.join(LOG_DIR, tmk, `${processId}.log`);
+};
+
+//获取进程回放日志地址
+export const buildProcessReplayPath = (
+  location: KungfuApi.KfLocation,
+  processId: string,
+) => {
+  return path.join(
+    KF_RUNTIME_DIR,
+    'log',
+    `${location.category}`,
+    `${location.group}`,
+    `${location.name}`,
+    'replay',
+    `${processId}.log`,
+  );
+};
+
+//获取进程回测日志地址
+export const buildProcessBacktestPath = (
+  location: KungfuApi.KfLocation,
+  processId: string,
+) => {
+  return path.join(
+    KF_HOME,
+    'backtest',
+    'log',
+    `${location.category}`,
+    `${location.group}`,
+    `${location.name}`,
+    'backtest',
+    `${processId}.log`,
+  );
 };
 
 //================== others end ===================================

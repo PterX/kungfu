@@ -1,8 +1,8 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import {
-  buildTableColumnSorterWithStrike,
   isTdStrategyCategory,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  buildTableColumnSorterWithStrike,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 

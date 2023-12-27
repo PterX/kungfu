@@ -10,8 +10,6 @@
 #include <kungfu/longfist/enums.h>
 #include <kungfu/wingchun/book/book.h>
 
-using namespace kungfu::longfist::enums;
-
 namespace kungfu::wingchun::book {
 static const longfist::enums::AccountingMethodType get_accounting_method_type() {
   char *is_otc = std::getenv("IS_OTC_ACCOUNTING_TYPE");
@@ -34,16 +32,14 @@ public:
 
   virtual ~AccountingMethod() = default;
 
-  virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) = 0;
-
   virtual void apply_quote(Book_ptr &book, const longfist::types::Quote &quote) = 0;
 
-  virtual void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book,
+  virtual void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book,
                                  const longfist::types::OrderInput &input) = 0;
 
-  virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const longfist::types::Order &order) = 0;
+  virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const longfist::types::Order &order) = 0;
 
-  virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const longfist::types::Trade &trade) = 0;
+  virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const longfist::types::Trade &trade) = 0;
 
   virtual void update_position(Book_ptr &book, longfist::types::Position &position) = 0;
 

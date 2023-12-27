@@ -1,10 +1,8 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
-import {
-  buildTableColumnSorterWithStrike,
-  getTradingDataSortKey,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { buildTableColumnSorterWithStrike } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 const { t } = VueI18n.global;
 
 const buildSorter =

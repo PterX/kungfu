@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+
 import {
-  dealDirection,
   dealCurrency,
-  isTdStrategyCategory,
-  getIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealDirection,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
   useDownloadHistoryTradingData,
@@ -29,8 +29,8 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { dealPosition } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -86,7 +86,7 @@ const columns = computed(() => {
     category: 'td',
     group: '*',
     name: '*',
-    mode: 'live',
+    mode: '*',
   };
 
   const kfGlobalSettings = getKfGlobalSettings();
@@ -187,11 +187,8 @@ function handleClickRow(data: {
     side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
     offset,
     volume: getPosClosableVolumeByOffset(row, offset),
-
     price: getPositionLastPrice(row) || row.avg_open_price || 0,
-    accountId: isTdStrategyCategory(currentGlobalKfLocation.value?.category)
-      ? undefined
-      : dealLocationUIDResolved(row.holder_uid),
+    accountId: dealLocationUIDResolved(row.source_id),
   };
   triggerMakeOrder(ensuredInstrument, extraOrderInput);
 }

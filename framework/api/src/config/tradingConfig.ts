@@ -23,25 +23,16 @@ import {
   AddOperatorTypeEnum,
   PriceLevelEnum,
   BasketVolumeTypeEnum,
-  BasketOrderStatusEnum,
   CurrencyEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
 
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
-
-export const KfDefaultSystemProcess = [
-  'archive',
-  'master',
-  'cached',
-  'ledger',
-  'dzxy',
-];
 
 export const Pm2ProcessStatus: Record<
   Pm2ProcessStatusTypes,
@@ -336,31 +327,9 @@ export const OrderStatus: Record<
     name: t('tradingConfig.lost'),
     color: 'default',
   },
-};
-
-export const BasketOrderStatus: Record<
-  BasketOrderStatusEnum,
-  KungfuApi.KfTradeValueCommonData
-> = {
-  [BasketOrderStatusEnum.Unknown]: {
-    name: t('tradingConfig.unknown'),
+  [OrderStatusEnum.Pause]: {
+    name: t('tradingConfig.pause'),
     color: 'default',
-  },
-  [BasketOrderStatusEnum.Pending]: {
-    name: t('tradingConfig.pending'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.PartialFilledNotActive]: {
-    name: t('tradingConfig.partial_filled_not_active'),
-    color: 'green',
-  },
-  [BasketOrderStatusEnum.PartialFilledActive]: {
-    name: t('tradingConfig.partial_filled_active'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.Filled]: {
-    name: t('tradingConfig.filled'),
-    color: 'green',
   },
 };
 
@@ -1002,7 +971,6 @@ export const SystemProcessName: Record<
 > = {
   master: { name: t('tradingConfig.master') },
   ledger: { name: t('tradingConfig.ledger') },
-  cached: { name: t('tradingConfig.cached') },
   archive: { name: t('tradingConfig.archive') },
 };
 
@@ -1048,10 +1016,11 @@ export const ExportTradingDataColumnsToFilter: Record<
 > = {
   Position: ['dest', 'source'],
   Trade: [],
+  AlgoOrder: [],
   Order: [],
   Instrument: ['product_id', 'dest', 'source'],
-  AssetMargin: ['dest', 'source'],
   Asset: ['dest', 'source'],
+  AlgoOrderInput: [],
   OrderInput: [],
   OrderStat: ['dest', 'source'],
   Quote: [],

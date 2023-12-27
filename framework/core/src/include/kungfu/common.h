@@ -95,6 +95,7 @@ using namespace boost::hana::literals;
 #define MAKE_KEY_IMPL_2(k1, k2) HANA_STR(#k1), HANA_STR(#k2)
 #define MAKE_KEY_IMPL_3(k1, k2, k3) HANA_STR(#k1), HANA_STR(#k2), HANA_STR(#k3)
 #define MAKE_KEY_IMPL_4(k1, k2, k3, k4) HANA_STR(#k1), HANA_STR(#k2), HANA_STR(#k3), HANA_STR(#k4)
+#define MAKE_KEY_IMPL_5(k1, k2, k3, k4, k5) HANA_STR(#k1), HANA_STR(#k2), HANA_STR(#k3), HANA_STR(#k4), HANA_STR(#k5)
 
 #define PK(...) boost::hana::make_tuple(MAKE_KEY(BOOST_HANA_PP_NARG(__VA_ARGS__), __VA_ARGS__))
 
@@ -334,6 +335,8 @@ template <typename DataType> struct data {
     boost::hana::for_each(boost::hana::accessors<DataType>(), [&, this](auto it) {
       auto name = boost::hana::first(it);
       auto accessor = boost::hana::second(it);
+      if (not jobj.contains(name.c_str()))
+        return;
       auto &j = jobj[name.c_str()];
       auto &v = accessor(*const_cast<DataType *>(reinterpret_cast<const DataType *>(this)));
       restore_from_json(j, v);
@@ -402,6 +405,8 @@ struct event {
 
   [[nodiscard]] virtual uint32_t source() const = 0;
 
+  [[nodiscard]] virtual uint32_t initial_source() const = 0;
+
   [[nodiscard]] virtual uint32_t dest() const = 0;
 
   [[nodiscard]] virtual uint32_t data_length() const = 0;
@@ -415,6 +420,8 @@ struct event {
   [[nodiscard]] virtual std::string to_string() const = 0;
 
   [[nodiscard]] virtual int8_t data_type() const = 0;
+
+  [[nodiscard]] virtual bool is_json() const = 0;
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.
@@ -476,6 +483,7 @@ template <typename DataType> struct state {
     return *this;
   }
 };
+
 } // namespace kungfu
 
 #endif // KUNGFU_COMMON_H

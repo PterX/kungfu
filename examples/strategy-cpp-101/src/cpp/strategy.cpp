@@ -1,6 +1,5 @@
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
-#include <kungfu/wingchun/strategy/runtime.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
@@ -17,7 +16,10 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
-    context->subscribe("sim", {"000001"}, "SZE");
+
+    context->add_account("sim", "fill");
+    context->subscribe("sim", {"600000"}, {"SSE"});
+    context->subscribe("xtp", {"600009"}, {"SSE"});
   }
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("strategy started"); }
@@ -44,4 +46,11 @@ public:
                                 const location_ptr &location) override {
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
+
+  void on_custom_data(Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+                      const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
+    SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
+    SPDLOG_WARN("on_custom_data length: {}", length);
+  }
 };

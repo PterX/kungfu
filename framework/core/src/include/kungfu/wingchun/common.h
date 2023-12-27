@@ -91,6 +91,7 @@
 
 namespace kungfu::wingchun {
 constexpr int64_t VOLUME_ZERO = 0;
+constexpr uint64_t UINT64_ZERO = 0;
 
 class wingchun_error : public std::runtime_error {
 public:
@@ -152,16 +153,7 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::PartialFilledActive:
   case longfist::enums::OrderStatus::Unknown:
   case longfist::enums::OrderStatus::Cancelling:
-    return false;
-  default:
-    return true;
-  }
-}
-
-[[maybe_unused]] inline bool is_final_basket_order_status(const longfist::enums::BasketOrderStatus &status) {
-  switch (status) {
-  case longfist::enums::BasketOrderStatus::Unknown:
-  case longfist::enums::BasketOrderStatus::Pending:
+  case longfist::enums::OrderStatus::Pause:
     return false;
   default:
     return true;
@@ -290,7 +282,6 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {89000, 89999, longfist::enums::InstrumentType::StockOption}, // 衍生權證
       {90000, 99999, longfist::enums::InstrumentType::Stock},       // 供日後使用
   };
-
   int nId = 0;
   try {
     nId = std::stoi(instrument_id);
@@ -311,6 +302,31 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
   }
 
   return longfist::enums::InstrumentType::Stock;
+}
+
+inline const std::string exchange_id_from_market_type(longfist::enums::MarketType market_type) {
+  switch (market_type) {
+  case longfist::enums::MarketType::BSE:
+    return EXCHANGE_BSE;
+  case longfist::enums::MarketType::SHFE:
+    return EXCHANGE_SHFE;
+  case longfist::enums::MarketType::CFFEX:
+    return EXCHANGE_CFFEX;
+  case longfist::enums::MarketType::DCE:
+    return EXCHANGE_DCE;
+  case longfist::enums::MarketType::CZCE:
+    return EXCHANGE_CZCE;
+  case longfist::enums::MarketType::INE:
+    return EXCHANGE_INE;
+  case longfist::enums::MarketType::SSE:
+    return EXCHANGE_SSE;
+  case longfist::enums::MarketType::SZE:
+    return EXCHANGE_SZE;
+  case longfist::enums::MarketType::All:
+    return "";
+  default:
+    return "Unknown";
+  }
 }
 
 inline longfist::enums::InstrumentType get_instrument_type(const std::string &exchange_id,
@@ -559,15 +575,30 @@ inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType 
                                    (int)side, (int)offset));
 }
 
+inline longfist::enums::Direction get_opposite_direction(longfist::enums::InstrumentType instrument_type,
+                                                         longfist::enums::Side side, longfist::enums::Offset offset) {
+  auto direction = get_direction(instrument_type, side, offset);
+  return direction == longfist::enums::Direction::Long ? longfist::enums::Direction::Short
+                                                       : longfist::enums::Direction::Long;
+}
+
+inline uint32_t hash_product(const char *exchange_id, const char *product_id) {
+  return yijinjing::util::hash_str_32(product_id) ^ yijinjing::util::hash_str_32(exchange_id);
+}
+
 inline uint32_t hash_instrument(const char *exchange_id, const char *instrument_id) {
   return yijinjing::util::hash_str_32(instrument_id) ^ yijinjing::util::hash_str_32(exchange_id);
 }
 
-inline int32_t hash_instrument(const longfist::types::Order &order) {
+inline uint32_t hash_instrument(const longfist::types::Order &order) {
   int32_t flag =
       get_direction(order.instrument_type, order.side, order.offset) == longfist::enums::Direction::Short ? -1 : 1;
   int32_t instrument_key = hash_instrument(order.exchange_id, order.instrument_id) * flag;
   return instrument_key;
+}
+
+inline uint32_t hash_instrument(uint32_t source_id, const char *exchange_id, const char *instrument_id) {
+  return source_id ^ yijinjing::util::hash_str_32(exchange_id) ^ yijinjing::util::hash_str_32(instrument_id);
 }
 
 inline uint32_t hash_basket_instrument(uint32_t basket_uid, const char *exchange_id, const char *instrument_id) {
@@ -580,6 +611,16 @@ inline uint32_t hash_account(const std::string &source_name, const std::string &
 
 inline uint32_t hash_operator(const std::string &operator_group, const std::string &operator_name) {
   return yijinjing::util::hash_str_32(operator_group) ^ yijinjing::util::hash_str_32(operator_name);
+}
+
+inline uint32_t hash_backtest_cache(std::string source_name, int64_t start, int64_t end) {
+  return yijinjing::util::hash_str_32(source_name) ^
+         yijinjing::util::hash_32(reinterpret_cast<unsigned char *>(&start), sizeof(start)) ^
+         yijinjing::util::hash_32(reinterpret_cast<unsigned char *>(&end), sizeof(end));
+}
+
+inline uint64_t get_source_op_id(uint32_t holder_uid, uint32_t source_id) {
+  return static_cast<uint64_t>(holder_uid) << 32u | static_cast<uint64_t>(source_id);
 }
 
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {
@@ -685,6 +726,34 @@ inline void order_input_from_trigger_order(const longfist::types::OrderTriggerIn
   order_input.volume_condition = trigger_input.volume_condition;
 }
 
+inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_order_input,
+                                  longfist::types::AlgoOrder &algo_order) {
+  algo_order.order_id = algo_order_input.order_id;
+  algo_order.begin_time = algo_order_input.begin_time;
+  algo_order.end_time = algo_order_input.end_time;
+  algo_order.insert_time = algo_order_input.insert_time;
+
+  strcpy(algo_order.instrument_id, algo_order_input.instrument_id);
+  strcpy(algo_order.exchange_id, algo_order_input.exchange_id);
+  algo_order.instrument_type = algo_order_input.instrument_type;
+
+  algo_order.side = algo_order_input.side;
+  algo_order.offset = algo_order_input.offset;
+  algo_order.price_type = algo_order_input.price_type;
+  algo_order.price_level = algo_order_input.price_level;
+  algo_order.price_offset = algo_order_input.price_offset;
+
+  algo_order.volume = algo_order_input.volume;
+  algo_order.volume_left = algo_order_input.volume;
+
+  algo_order.basket_uid = algo_order_input.basket_uid;
+
+  strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
+  strcpy(algo_order.algo_id, algo_order_input.algo_id);
+
+  algo_order.status = longfist::enums::OrderStatus::Pending;
+}
+
 } // namespace kungfu::wingchun
 
 namespace kungfu::wingchun::map {
@@ -698,7 +767,7 @@ typedef std::unordered_map<uint32_t, longfist::types::Instrument> InstrumentMap;
 // key = hash_instrument(source_id, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::InstrumentFactor> InstrumentFactorMap;
 
-// key = hash_instrument(exchange_id, instrument_id)
+// key = hash_instrument(source_id, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 // key = order_id

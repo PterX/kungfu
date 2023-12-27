@@ -7,9 +7,8 @@
 #ifndef KUNGFU_LONGFIST_H
 #define KUNGFU_LONGFIST_H
 
-#include "kungfu/yijinjing/cache/ringqueue.h"
 #include <kungfu/longfist/types.h>
-#include <unordered_set>
+#include <set>
 
 #define TYPE_PAIR(DataType) boost::hana::make_pair(HANA_STR(#DataType), boost::hana::type_c<types::DataType>)
 
@@ -18,7 +17,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(frame_header),                     // 0
     TYPE_PAIR(page_header),                      // 1
     TYPE_PAIR(Asset),                            // 101
-    TYPE_PAIR(AssetMargin),                      // 102
     TYPE_PAIR(Position),                         // 103
     TYPE_PAIR(PositionEnd),                      // 104
     TYPE_PAIR(InstrumentFactor),                 // 105
@@ -29,11 +27,14 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                 // 205
     TYPE_PAIR(BlockMessage),                     // 206
     TYPE_PAIR(OrderStat),                        // 207
-    TYPE_PAIR(BasketOrder),                      // 208
     TYPE_PAIR(OrderTriggerInput),                // 209
     TYPE_PAIR(OrderTrigger),                     // 210
     TYPE_PAIR(OrderTriggerAction),               // 211
     TYPE_PAIR(OrderTriggerActionError),          // 212
+    TYPE_PAIR(AlgoOrderInput),                   // 213
+    TYPE_PAIR(AlgoOrder),                        // 214
+    TYPE_PAIR(AlgoOrderAction),                  // 215
+    TYPE_PAIR(AlgoOrderActionError),             // 216
     TYPE_PAIR(BatchOrderBegin),                  // 251
     TYPE_PAIR(BatchOrderEnd),                    // 252
     TYPE_PAIR(RequestHistoryOrder),              // 301
@@ -54,6 +55,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(InstrumentKey),                    // 501
     TYPE_PAIR(CustomSubscribe),                  // 502
     TYPE_PAIR(SyntheticData),                    // 601
+    TYPE_PAIR(OutputKey),                        // 701
     TYPE_PAIR(PageEnd),                          // 10051
     TYPE_PAIR(Time),                             // 10052
     TYPE_PAIR(Ping),                             // 10053
@@ -108,7 +110,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(frame_header),                                          // 0
     TYPE_PAIR(page_header),                                           // 1
     TYPE_PAIR(Asset),                                                 // 101
-    TYPE_PAIR(AssetMargin),                                           // 102
     TYPE_PAIR(Position),                                              // 103
     TYPE_PAIR(PositionEnd),                                           // 104
     TYPE_PAIR(InstrumentFactor),                                      // 105
@@ -119,11 +120,14 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                                      // 205
     TYPE_PAIR(BlockMessage),                                          // 206
     TYPE_PAIR(OrderStat),                                             // 207
-    TYPE_PAIR(BasketOrder),                                           // 208
     TYPE_PAIR(OrderTriggerInput),                                     // 209
     TYPE_PAIR(OrderTrigger),                                          // 210
     TYPE_PAIR(OrderTriggerAction),                                    // 211
     TYPE_PAIR(OrderTriggerActionError),                               // 212
+    TYPE_PAIR(AlgoOrderInput),                                        // 213
+    TYPE_PAIR(AlgoOrder),                                             // 214
+    TYPE_PAIR(AlgoOrderAction),                                       // 215
+    TYPE_PAIR(AlgoOrderActionError),                                  // 216
     TYPE_PAIR(RequestHistoryOrder),                                   // 301
     TYPE_PAIR(RequestHistoryTrade),                                   // 302
     TYPE_PAIR(HistoryOrder),                                          // 303
@@ -137,6 +141,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(InstrumentKey),                                         // 501
     TYPE_PAIR(CustomSubscribe),                                       // 502
     TYPE_PAIR(SyntheticData),                                         // 601
+    TYPE_PAIR(OutputKey),                                             // 701
     TYPE_PAIR(Register),                                              // 10101
     TYPE_PAIR(Deregister),                                            // 10102
     TYPE_PAIR(StrategyStateUpdate),                                   // 10104
@@ -184,7 +189,6 @@ constexpr auto SessionDataTypes = boost::hana::make_map( //
 
 constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Asset),                                  // 101
-    TYPE_PAIR(AssetMargin),                            // 102
     TYPE_PAIR(Position),                               // 103
     TYPE_PAIR(InstrumentFactor),                       // 105
     TYPE_PAIR(OrderInput),                             // 201
@@ -194,11 +198,14 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderActionError),                       // 205
     TYPE_PAIR(BlockMessage),                           // 206
     TYPE_PAIR(OrderStat),                              // 2072
-    TYPE_PAIR(BasketOrder),                            // 208
     TYPE_PAIR(OrderTriggerInput),                      // 209
     TYPE_PAIR(OrderTrigger),                           // 210
     TYPE_PAIR(OrderTriggerAction),                     // 211
     TYPE_PAIR(OrderTriggerActionError),                // 212
+    TYPE_PAIR(AlgoOrderInput),                         // 213
+    TYPE_PAIR(AlgoOrder),                              // 214
+    TYPE_PAIR(AlgoOrderAction),                        // 215
+    TYPE_PAIR(AlgoOrderActionError),                   // 216
     TYPE_PAIR(Quote),                                  // 401
     TYPE_PAIR(Tree),                                   // 404
     TYPE_PAIR(SyntheticData),                          // 601
@@ -220,9 +227,17 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Trade),                                    // 203
     TYPE_PAIR(BlockMessage),                             // 206
     TYPE_PAIR(OrderStat),                                // 207
-    TYPE_PAIR(BasketOrder),                              // 208
     TYPE_PAIR(OrderTriggerInput),                        // 209
-    TYPE_PAIR(OrderTrigger)                              // 210
+    TYPE_PAIR(OrderTrigger),                             // 210
+    TYPE_PAIR(AlgoOrderInput),                           // 213
+    TYPE_PAIR(AlgoOrder)                                 // 214
+);
+
+constexpr auto MarketDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(Quote),                                   //
+    TYPE_PAIR(Tree),                                    //
+    TYPE_PAIR(Entrust),                                 //
+    TYPE_PAIR(Transaction)                              //
 );
 
 constexpr auto StaticDataTypes = boost::hana::make_map( //
@@ -233,8 +248,14 @@ constexpr auto StaticDataTypes = boost::hana::make_map( //
     TYPE_PAIR(BasketInstrument)                         // 10207
 );
 
+template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }
+
+template <typename DataType> constexpr bool is_profile_data() { return is_in_types<DataType>(ProfileDataTypes); };
+
+template <typename DataType> constexpr bool is_market_data() { return is_in_types<DataType>(MarketDataTypes); };
+
 const auto build_data_set = [](auto types) {
-  std::unordered_set<int32_t> s;
+  std::set<int32_t> s;
   boost::hana::for_each(types, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     s.emplace(DataType::tag);
@@ -263,24 +284,11 @@ constexpr auto build_state_map = [](auto types) {
   return boost::hana::unpack(maps, boost::hana::make_map);
 };
 
-constexpr auto build_ring_state_map = [](auto types, size_t ring_size) {
-  auto maps = boost::hana::transform(boost::hana::values(types), [ring_size](auto value) {
-    using DataType = typename decltype(+value)::type;
-    auto *p = new kungfu::yijinjing::cache::ringqueue<state<DataType>>(ring_size);
-    return boost::hana::make_pair(value, p);
-  });
-  return boost::hana::unpack(maps, boost::hana::make_map);
-};
-
 using ProfileMapType = decltype(build_data_map(longfist::ProfileDataTypes));
 DECLARE_PTR(ProfileMapType)
 
 using StateMapType = decltype(build_state_map(longfist::StateDataTypes));
 DECLARE_PTR(StateMapType)
-
-static size_t TRADING_MAP_RING_SIZE = 1024;
-using TradingMapType = decltype(build_ring_state_map(longfist::TradingDataTypes, TRADING_MAP_RING_SIZE));
-DECLARE_PTR(TradingMapType)
 
 template <typename DataType> std::enable_if_t<size_fixed_v<DataType>> copy(DataType &to, const DataType &from) {
   memcpy(&to, &from, sizeof(DataType));

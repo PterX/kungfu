@@ -5,10 +5,10 @@ import {
   KfLayoutTargetDirectionClassName,
 } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
   getKfUIExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  getKfExtensionConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getAllKfConfigOriginData,
   getAllRiskSettingList,
@@ -60,6 +60,10 @@ interface GlobalState {
   riskSettings: KungfuApi.RiskSetting[];
 
   globalSetting: Record<string, Record<string, KungfuApi.KfConfigValue>>;
+
+  testCase: {
+    replayEnabled: Partial<Record<KfCategoryTypes | 'ledger', boolean>>;
+  };
 
   currentGlobalKfLocation:
     | KungfuApi.KfLocation
@@ -117,6 +121,15 @@ export const useGlobalStore = defineStore('global', {
 
       globalSetting: {},
 
+      testCase: {
+        replayEnabled: {
+          td: false,
+          ledger: true,
+          strategy: true,
+          operator: true,
+        },
+      },
+
       currentGlobalKfLocation: null,
       orderBookCurrentInstrument: undefined,
 
@@ -153,6 +166,10 @@ export const useGlobalStore = defineStore('global', {
       instrumentsMap: Record<string, KungfuApi.InstrumentResolved>,
     ) {
       this.instrumentsMap = toRaw(instrumentsMap);
+    },
+
+    setTestCase(key: KfCategoryTypes | 'ledger', value: boolean) {
+      this.testCase.replayEnabled[key] = value;
     },
 
     setCurrentGlobalKfLocation(

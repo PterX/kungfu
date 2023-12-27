@@ -29,6 +29,6 @@ setup(
     },
     include_package_data=True,
     install_requires=dependencies,
-    entry_points={"console_scripts": ["kfc = kungfu.__main__:main"]},
+    # entry_points={"console_scripts": ["kfc = kungfu.__main__:main"]},
     has_ext_modules=lambda: True,
 )

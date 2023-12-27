@@ -51,26 +51,26 @@ import {
   clearLocalStorageWithNewVersion,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { buildIfWatcherLiveObservable } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+
 import {
+  booleanProcessEnv,
   delayMilliSeconds,
-  buildIfWatcherLiveObservable,
-  kfLogger,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks/index';
-import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
-  Pm2ProcessStatusTypes,
   startArchiveMakeTask,
   startGetProcessStatus,
   startLedger,
-  startCacheD,
   startMaster,
   isAllMainProcessRunning,
   initClean,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { Pm2ProcessStatusTypes } from '@kungfu-trader/kungfu-js-api/typings/common';
 
 import {
   tradingDataSubject,
@@ -176,8 +176,6 @@ const afterWatchIsLive = () => {
   watcherIsLiveObervable.pipe(first()).subscribe(() => {
     kfLogger.info('watcher is live');
     delayMilliSeconds(2000)
-      .then(() => startCacheD(false))
-      .then(() => delayMilliSeconds(2000))
       .then(() => startLedger(false))
       .then(() => postStartAll())
       .then(() => delayMilliSeconds(1000))

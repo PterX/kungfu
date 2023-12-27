@@ -10,11 +10,13 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::strategy {
+Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {}
 
 bool Context::is_book_held() const { return book_held_; }
 

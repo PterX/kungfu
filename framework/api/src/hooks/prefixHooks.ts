@@ -1,6 +1,7 @@
 import { FunctionalComponent } from '@vue/runtime-core/dist/runtime-core';
 import { AntdIconProps } from '@ant-design/icons-vue/lib/components/AntdIcon';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export interface PrefixProps {
   key: string;
@@ -23,23 +24,28 @@ export class PrefixHooks {
     this.hooks = new Proxy(basePrefixs, {
       get(target: Record<string, PrefixProps>, prop: string) {
         const locationPairs = prop.split('_');
-        if (locationPairs.length != 3) {
+        if (locationPairs.length != 4) {
           kfLogger.warn(`Invalid hook key: ${prop}`);
           return Reflect.get(target, 'default');
         }
+        const [category, group, name, mode] = prop.split('_');
+        const originalKeys = [category, group, name, mode] as [
+          string,
+          string,
+          string,
+          string,
+        ];
 
-        const [category, group, name] = prop.split('_');
-        if (target[`${category}_${group}_${name}`]) {
-          return target[`${category}_${group}_${name}`];
-        } else if (target[`${category}_*_${name}`]) {
-          return target[`${category}_*_${name}`];
-        } else if (target[`${category}_${group}_*`]) {
-          return target[`${category}_${group}_*`];
-        } else if (target[`${category}_*_*`]) {
-          return target[`${category}_*_*`];
-        }
+        const findMatchingKey = () => {
+          for (const key of generateLocationCombinations(originalKeys)) {
+            if (target[key]) {
+              return target[key];
+            }
+          }
+          return Reflect.get(target, 'default');
+        };
 
-        return Reflect.get(target, 'default');
+        return findMatchingKey();
       },
       set(
         target: Record<string, PrefixProps>,
@@ -57,8 +63,8 @@ export class PrefixHooks {
   }
 
   register(kfLocation: KungfuApi.DerivedKfLocation, props: PrefixProps) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     Reflect.set(this.hooks, key, props);
   }
 
@@ -67,8 +73,8 @@ export class PrefixHooks {
   }
 
   trigger(kfLocation: KungfuApi.DerivedKfLocation) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     return this.hooks[key];
   }
 }

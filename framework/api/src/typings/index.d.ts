@@ -35,17 +35,18 @@ declare namespace KungfuApi {
     CommissionModeEnum,
     DirectionEnum,
     OrderStatusEnum,
+    KfExtTypeEnum,
     KfCategoryEnum,
     KfCategoryTypes,
     KfUIExtLocatorTypes,
     KfModeEnum,
     KfModeTypes,
     OrderActionFlagEnum,
+    AlgoOrderActionFlagEnum,
     OrderInputKeyEnum,
     KfExhibitConfigTypes,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
-    BasketOrderStatusEnum,
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
@@ -204,6 +205,8 @@ declare namespace KungfuApi {
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
+    abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+
     maxlength?: number;
     showArg?: boolean; // 交易任务是否显示参数
 
@@ -219,10 +222,83 @@ declare namespace KungfuApi {
     type: KfConfigItemSupportedTypes;
   }
 
-  export interface KfExtOriginConfig {
+  export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
     key: string;
     name: string;
+    type: T;
     extPath: string;
+    language?: {
+      'zh-CN': Record<string, string>;
+      'en-US': Record<string, string>;
+      [langName: string]: Record<string, string>;
+    };
+  }
+
+  export interface KfExtOriginBrokerConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Broker> {
+    config?: {
+      td?: {
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        order_trigger?: Record<string, Record<string, boolean>>;
+        settings: KfConfigItem[];
+        fund_trans?: KfExtFundTransConfig | null;
+        show_asset_margin?: boolean;
+      };
+      md?: {
+        type?: TdMdExtTypes[] | TdMdExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginTaskConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Task> {
+    config?: {
+      strategy?: {
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginOperatorConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Operator> {
+    config?: {
+      operator?: {
+        type?: StrategyExtTypes[] | StrategyExtTypes;
+        settings: KfConfigItem[];
+      };
+    };
+  }
+
+  export interface KfExtOriginServiceConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Service> {
+    config?: {
+      system?: Record<
+        string,
+        {
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
+  }
+
+  export interface KfExtOriginUIConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.UI> {
+    config?: {
+      system?: Record<
+        string,
+        {
+          type?: SystemExtTypes[] | SystemExtTypes;
+          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
+          script: string;
+          settings?: KfConfigItem[];
+        }
+      >;
+    };
     ui_config?: {
       position: KfUIExtLocatorTypes;
       exhibit?: KfExhibitConfig;
@@ -247,41 +323,45 @@ declare namespace KungfuApi {
       >;
       script?: string;
     };
-    config?: {
-      td?: {
-        type?: TdMdExtTypes[] | TdMdExtTypes;
-        order_trigger?: Record<string, Record<string, boolean>>;
-        settings: KfConfigItem[];
-        fund_trans?: KfExtFundTransConfig | null;
-        show_asset_margin?: boolean;
-      };
-      md?: {
-        type?: TdMdExtTypes[] | TdMdExtTypes;
-        settings: KfConfigItem[];
-      };
-      strategy?: {
-        type?: StrategyExtTypes[] | StrategyExtTypes;
-        settings: KfConfigItem[];
-      };
-      operator?: {
-        type?: StrategyExtTypes[] | StrategyExtTypes;
-        settings: KfConfigItem[];
-      };
-      system?: Record<
-        string,
-        {
-          type?: SystemExtTypes[] | SystemExtTypes;
-          for: ExtRunForEnvTypesEnum[] | ExtRunForEnvTypesEnum;
-          script: string;
-          settings?: KfConfigItem[];
-        }
-      >;
-    };
-    language: {
-      'zh-CN': Record<string, string>;
-      'en-US': Record<string, string>;
-      [langName: string]: Record<string, string>;
-    };
+  }
+
+  export interface KfExtOriginMatcherConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Matcher> {
+    config?: any;
+  }
+
+  export interface KfExtOriginIndexerConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Indexer> {
+    useFor?: KfModeTypes[];
+    config?: any;
+  }
+
+  export type KfExtOriginConfig =
+    | KfExtOriginBrokerConfig
+    | KfExtOriginTaskConfig
+    | KfExtOriginOperatorConfig
+    | KfExtOriginServiceConfig
+    | KfExtOriginMatcherConfig
+    | KfExtOriginIndexerConfig
+    | KfExtOriginUIConfig;
+
+  export interface KfExtOriginConfigs {
+    broker: Record<string, KfExtOriginBrokerConfig>;
+    task: Record<string, KfExtOriginTaskConfig>;
+    operator: Record<string, KfExtOriginOperatorConfig>;
+    service: Record<string, KfExtOriginServiceConfig>;
+    matcher: Record<string, KfExtOriginMatcherConfig>;
+    indexer: Record<string, KfExtOriginIndexerConfig>;
+    ui: Record<string, KfExtOriginUIConfig>;
+  }
+
+  export interface KfExtOriginConfigsMapByCategory
+    extends Record<KfCategoryTypes, KfExtOriginConfig> {
+    td: KfExtOriginBrokerConfig;
+    md: KfExtOriginBrokerConfig;
+    strategy: KfExtOriginTaskConfig;
+    operator: KfExtOriginOperatorConfig;
+    system: KfExtOriginServiceConfig;
   }
 
   interface KfExhibitConfig {
@@ -400,9 +480,9 @@ declare namespace KungfuApi {
   >;
 
   export type KfExtLanguages = {
-    'zh-CN': Record<string, Record<string, string>>;
-    'en-US': Record<string, Record<string, string>>;
-    [langName: string]: Record<string, Record<string, string>>;
+    'zh-CN': Record<string, string | Record<string, string>>;
+    'en-US': Record<string, string | Record<string, string>>;
+    [langName: string]: Record<string, string | Record<string, string>>;
   };
 
   export interface SetKfConfigPayload {
@@ -503,8 +583,6 @@ declare namespace KungfuApi {
 
   export interface Asset {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     holder_uid: number;
     ledger_category: LedgerCategoryEnum;
 
@@ -514,6 +592,8 @@ declare namespace KungfuApi {
     realized_pnl: number; //累计收益
     unrealized_pnl: number;
     avail: number; //可用资金
+    long_avail: number; // otc业务可用资金(多)
+    short_avail: number; // otc业务可用资金(空）
     market_value: number; //市值(股票)
     margin: number; //保证金(期货)
     accumulated_fee: number; //累计手续费
@@ -523,18 +603,14 @@ declare namespace KungfuApi {
     frozen_fee: number; //冻结手续费(期货)
     position_pnl: number; //持仓盈亏(期货)
     close_pnl: number; //平仓盈亏(期货)
-  }
 
-  export interface AssetMargin {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     holder_uid: number;
     ledger_category: LedgerCategoryEnum;
 
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
-    cash_margin: number; //融资占用保证金
+    long_margin: number; //融资占用保证金
     short_margin: number; //融券占用保证金
     margin: number; //总占用保证金
 
@@ -542,7 +618,7 @@ declare namespace KungfuApi {
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
-    margin_market_value: number; //融资买入证券市值
+    long_market_value: number; //融资买入证券市值
     margin_interest: number; //融资融券利息
     settlement: number; //融资融券清算资金
 
@@ -598,7 +674,6 @@ declare namespace KungfuApi {
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
 
-    trading_day: string; //交易日
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
@@ -680,6 +755,13 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
+  export interface OrderAction {
+    order_id: bigint;
+    order_action_id: bigint;
+    action_flag: OrderActionFlagEnum;
+    insert_time: bigint;
+  }
+
   export interface OrderTrigger {
     trigger_id: bigint; // 触发器id
     order_id: bigint; // 预埋撤单, 被撤单的order_id
@@ -689,8 +771,6 @@ declare namespace KungfuApi {
 
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
-
-    trading_day: string; //交易日
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -736,6 +816,12 @@ declare namespace KungfuApi {
     time_condition_resolved: string;
   }
 
+  export interface OrderTriggerAction {
+    trigger_id: bigint;
+    order_trigger_action_id: bigint;
+    action_flag: OrderActionFlagEnum;
+    insert_time: number;
+  }
   export interface OrderTriggerInput {
     trigger_id: bigint; // 触发器id
 
@@ -824,7 +910,7 @@ declare namespace KungfuApi {
     price_offset: number; // 价格偏移
     volume: bigint;
     volume_left: bigint;
-    status: BasketOrderStatusEnum;
+    status: OrderStatusEnum;
 
     source_id: number; // 下单方
     dest_id: number;
@@ -840,6 +926,73 @@ declare namespace KungfuApi {
     status_uname: string;
     status_color: AntInKungfuColorTypes;
     progress: number;
+  }
+
+  export interface AlgoOrderInput {
+    order_id: bigint;
+    origin_order_id: bigint;
+    insert_time: bigint;
+    begin_time: bigint;
+    end_time: bigint;
+
+    instrument_id: string;
+    exchange_id: string;
+    instrument_type: InstrumentTypeEnum;
+
+    basket_uid: number; // basket订单的id
+
+    side: SideEnum;
+    offset: OffsetEnum;
+    price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
+    volume: bigint;
+
+    algo_type_id: string; // 算法类型
+    algo_id: string; // 算法id
+
+    args: string; // 自定义参数json的形式
+    is_local: boolean; // 是否为一个本地算法单
+  }
+
+  export interface AlgoOrder {
+    order_id: bigint; // 算法单ID
+    external_order_id: string; // 柜台算法单id
+    insert_time: bigint; // 下单时间
+    update_time: bigint; // 更新时间
+    begin_time: bigint; // 开始时间
+    end_time: bigint; // 结束时间
+
+    instrument_id: string; // 合约代码
+    exchange_id: string; // 交易所代码
+    instrument_type: InstrumentTypeEnum;
+
+    basket_uid: number; // basket订单的id
+
+    side: SideEnum;
+    offset: OffsetEnum;
+    price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
+
+    volume: bigint; // 目标量
+    volume_left: bigint; // 剩余数量
+
+    algo_type_id: string; // 算法类型
+    algo_id: string; // 算法id
+
+    status: OrderStatusEnum; // 订单状态
+    error_msg: string; // 错误信息
+
+    source: number; // 下单方
+    dest: number;
+  }
+
+  export interface AlgoOrderAction {
+    order_id: bigint;
+    order_action_id: bigint;
+    action_flag: AlgoOrderActionFlagEnum;
+    insert_time: bigint;
   }
 
   export interface OrderStat {
@@ -858,30 +1011,15 @@ declare namespace KungfuApi {
     uid_key: string;
   }
 
-  export interface OrderAction {
-    order_id: bigint;
-    order_action_id: bigint;
-    action_flag: OrderActionFlagEnum;
-    insert_time: bigint;
-  }
-
-  export interface OrderTriggerAction {
-    trigger_id: bigint;
-    order_trigger_action_id: bigint;
-    action_flag: OrderActionFlagEnum;
-    insert_time: number;
-  }
-
   export interface Position {
     update_time: bigint; //更新时间
-    trading_day: string; //交易日
-
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
     instrument_type: InstrumentTypeEnum; //合约类型
 
     holder_uid: number;
+    source_id: number;
     ledger_category: LedgerCategoryEnum;
 
     direction: DirectionEnum; //持仓方向
@@ -922,8 +1060,6 @@ declare namespace KungfuApi {
   }
 
   export interface Quote {
-    trading_day: string; //交易日
-
     data_time: bigint; //数据生成时间
 
     instrument_id: string; //合约ID
@@ -961,8 +1097,6 @@ declare namespace KungfuApi {
     external_trade_id: string; //外部委托ID
     trade_time: bigint; //成交时间
 
-    trading_day: string; //交易日
-
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
 
@@ -998,11 +1132,12 @@ declare namespace KungfuApi {
 
   export interface TradingData {
     Asset: DataTable<Asset>;
-    AssetMargin: DataTable<AssetMargin>;
     Instrument: DataTable<Instrument>;
     InstrumentFactor: DataTable<InstrumentFactor>;
     Order: DataTable<Order>;
+    AlgoOrder: DataTable<AlgoOrder>;
     OrderInput: DataTable<OrderInput>;
+    AlgoOrderInput: DataTable<AlgoOrderInput>;
     OrderStat: DataTable<OrderStat>;
     Position: DataTable<Position>;
     Quote: DataTable<Quote>;
@@ -1036,14 +1171,10 @@ declare namespace KungfuApi {
     | KungfuApi.OrderInput
     | KungfuApi.Trade;
 
-  export type LedgerTradingData =
-    | KungfuApi.Asset
-    | KungfuApi.AssetMargin
-    | KungfuApi.Position;
+  export type LedgerTradingData = KungfuApi.Asset | KungfuApi.Position;
 
   export type TradingDataTypes =
     | Asset
-    | AssetMargin
     | Instrument
     | Order
     | OrderInput
@@ -1157,6 +1288,21 @@ declare namespace KungfuApi {
     state: StrategyStateStatusTypes;
   }
 
+  export interface ReplayConfig extends ReplayConfigOrigin {
+    session_info: string;
+  }
+
+  export interface ReplayConfigOrigin {
+    group: string;
+    category: string;
+    begin_time: string;
+    end_time: string;
+    log_level: string;
+    session_name: string;
+    file_path: string;
+    enable_matcher: boolean;
+  }
+
   export interface Watcher {
     appStates: Record<string, BrokerStateStatusEnum>;
     strategyStates: Record<string, StrategyStateDataOrigin>;
@@ -1193,8 +1339,23 @@ declare namespace KungfuApi {
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
+    cancelAlgoOrder(
+      algoOrderAction: AlgoOrderAction,
+      tdLocation: KfLocation,
+      strategyLocation?: KfLocation,
+    ): bigint;
+    toggleAlgoOrder(
+      algoOrderAction: AlgoOrderAction,
+      tdLocation: KfLocation,
+      strategyLocation?: KfLocation,
+    ): bigint;
     issueOrder(
       orderInput: OrderInput,
+      tdLocation: KfLocation,
+      strategyLocation?: KfLocation,
+    ): bigint;
+    issueAlgoOrder(
+      algoOrderInput: AlgoOrderInput,
       tdLocation: KfLocation,
       strategyLocation?: KfLocation,
     ): bigint;
@@ -1282,14 +1443,16 @@ declare namespace KungfuApi {
   export interface Longfist {
     types: {
       Asset(): Asset;
-      AssetMargin(): AssetMargin;
       Instrument(): Instrument;
       Order(): Order;
+      AlgoOrder(): AlgoOrder;
       OrderInput(): OrderInput;
+      AlgoOrderInput(): AlgoOrderInput;
       OrderAction(): OrderAction;
       OrderTrigger(): OrderTrigger;
       OrderTriggerInput(): OrderTriggerInput;
       OrderTriggerAction(): OrderTriggerAction;
+      AlgoOrderAction(): AlgoOrderAction;
       OrderStat(): OrderStat;
       Position(): Position;
       Quote(): Quote;
@@ -1450,6 +1613,9 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
+  import { session } from 'electron';
+  import path from 'path';
+  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
 
   export interface CodeInfo {
     code_id: string;

@@ -18,7 +18,7 @@ export const getColumns = (
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
-  isShowAssetMargin: boolean,
+  isShowMarginTrading: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'td')
@@ -89,7 +89,7 @@ export const getColumns = (
         width: 110,
       },
 
-      ...(isShowAssetMargin
+      ...(isShowMarginTrading
         ? [
             {
               title: t('tdConfig.avail_margin'),
@@ -129,6 +129,19 @@ export const getColumns = (
         fixed: 'right',
       },
     ]);
+
+export const assetDetailShowList = [
+  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+  { key: 'market_value', label: t('tdConfig.marked_value') },
+  { key: 'margin', label: t('tdConfig.margin') },
+  { key: 'avail', label: t('tdConfig.avail_money') },
+] as const;
+
+export const assetMarginDetailShowList = [
+  { key: 'avail_margin', label: t('tdConfig.avail_margin') },
+  { key: 'cash_debt', label: t('tdConfig.cash_debt') },
+  { key: 'total_asset', label: t('tdConfig.total_asset') },
+] as const;
 
 const orderSortKey = getTradingDataSortKey('Order');
 const tradeSortKey = getTradingDataSortKey('Trade');

@@ -2,15 +2,20 @@ import os from 'os';
 import { dialog, shell } from '@electron/remote';
 import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
-  dealPosition,
-  dealTradingDataItem,
-  getKungfuHistoryData,
   hashInstrumentUKey,
-  kfRequestMarketData,
+  sessionStore,
   longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  dealPosition,
+  dealTradingDataItem,
+  kfRequestMarketData,
+  getKungfuHistoryData,
+  getNanoDateString,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   BrokerStateStatusTypes,
   DirectionEnum,
@@ -28,42 +33,54 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   getKfCategoryData,
-  getIdByKfLocation,
-  getMdTdKfLocationByProcessId,
-  getProcessIdByKfLocation,
   switchKfLocation,
-  findTargetFromArray,
   getAppStateStatusName,
-  buildExtTypeMap,
   dealCategory,
-  dealAssetsByHolderUID,
-  getAvailExtServiceList,
   getStrategyStateStatusName,
   isBrokerStateReady,
-  dealKfNumber,
-  dealKfPrice,
-  transformSearchInstrumentResultToInstrument,
-  isShotable,
-  isT0,
   getTradingDataSortKey,
   isUpdateVersionLogicEnable,
   isCheckVersionLogicEnable,
-  kfLogger,
-  countDecimalPlaces,
-  buildTradingDataHeaders,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  booleanProcessEnv,
+  flattenExtensionModuleDirs,
+  getAvailExtServiceList,
+  buildExtTypeMap,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  isT0,
+  transformSearchInstrumentResultToInstrument,
+  isShotable,
+  buildTradingDataHeaders,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+  dealKfNumber,
+  dealKfPrice,
+  getYearMonthDay,
+  countDecimalPlaces,
+  findTargetFromArray,
+  getMdTdKfLocationByProcessId,
   getNaturalNumber,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildArchiveLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import { BasketVolumeType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
   isAllMainProcessRunning,
   Pm2ProcessStatusData,
   Pm2ProcessStatusDetailData,
+  stopProcess,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Modal } from 'ant-design-vue';
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+
 import path from 'path';
 import { Proc } from 'pm2';
 import {
@@ -81,6 +98,7 @@ import {
   toRaw,
   toRefs,
   watch,
+  createVNode,
 } from 'vue';
 import dayjs from 'dayjs';
 import { Row } from '@fast-csv/format';
@@ -94,6 +112,8 @@ import {
   confirmModal,
   extraConfirmModal,
   makeSearchOptionFormInstruments,
+  handleOpenReplayView,
+  getJournalReplayConfigs,
 } from './uiUtils';
 import { storeToRefs } from 'pinia';
 import { ipcRenderer } from 'electron';
@@ -103,10 +123,15 @@ import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStora
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import sound from 'sound-play';
-import { KUNGFU_RESOURCES_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import {
+  KUNGFU_RESOURCES_DIR,
+  EXTENSION_DIRS,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { RuleObject } from 'ant-design-vue/lib/form';
 import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import fse from 'fs-extra';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import {
   LifeCycleHook,
   LifeCycleKeys,
@@ -490,6 +515,35 @@ export const useAddUpdateRemoveKfConfig = (): {
   };
 };
 
+export const useRemoveReplayProcess = (): {
+  handleRemoveReplayProcess: (processId: string) => Promise<void>;
+} => {
+  const handleRemoveReplayProcess = (processId: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      Modal.confirm({
+        title: `${t('replay.stop_replay')}`,
+        content: t('replay.stop_replay_warn_content'),
+        okText: t('confirm'),
+        cancelText: t('cancel'),
+        icon: createVNode(ExclamationCircleOutlined),
+        onOk() {
+          return stopProcess(processId)
+            .then(() => {
+              resolve();
+            })
+            .catch((err) => {
+              reject(err);
+            });
+        },
+      });
+    });
+  };
+
+  return {
+    handleRemoveReplayProcess,
+  };
+};
+
 export const useDealExportHistoryTradingData = (): {
   exportDateModalVisible: Ref<boolean>;
   exportDataLoading: Ref<boolean>;
@@ -810,38 +864,49 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
     });
 };
 
-export const showTradingDataDetail = <T extends KungfuApi.TradingDataTypes>(
-  item: T,
+export const showTradingDataDetail = <
+  T extends Record<string, KungfuApi.KfConfigValue>,
+>(
+  item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
 ): Promise<boolean> => {
-  const dataResolved = dealTradingDataItem(item, window.watcher);
-  const vnode = Object.keys(dataResolved || {})
-    .filter((key) => {
-      if (filterKeys && (filterKeys as string[]).includes(key)) {
-        return false;
-      }
-      if (dataResolved[key].toString() === '[object Object]') {
-        return false;
-      }
-      return dataResolved[key] !== '';
-    })
-    .map((key) =>
-      h('div', { class: 'trading-data-detail-row' }, [
-        h('span', { class: 'label' }, `${key}`),
-        h('span', { class: 'value' }, `${dataResolved[key]}`),
-      ]),
+  const generateVnode = () => {
+    const itemResolved = typeof item === 'function' ? item() : item;
+    const dataResolved = dealTradingDataItem(
+      itemResolved as unknown as KungfuApi.TradingDataTypes,
+      window.watcher,
     );
 
-  return confirmModal(
-    `${typename} ${t('detail')}`,
-    h(
+    const vnode = Object.keys(dataResolved || {})
+      .filter((key) => {
+        if (filterKeys && (filterKeys as string[]).includes(key)) {
+          return false;
+        }
+        if (dataResolved[key].toString() === '[object Object]') {
+          return false;
+        }
+        return dataResolved[key] !== '';
+      })
+      .map((key) =>
+        h('div', { class: 'trading-data-detail-row' }, [
+          h('span', { class: 'label' }, `${key}`),
+          h('span', { class: 'value' }, `${dataResolved[key]}`),
+        ]),
+      );
+
+    return h(
       'div',
       {
         class: 'trading-data-detail__warp',
       },
       vnode,
-    ),
+    );
+  };
+
+  return confirmModal(
+    `${typename} ${t('detail')}`,
+    generateVnode,
     t('confirm'),
   );
 };
@@ -1588,10 +1653,9 @@ export const useDealInstruments = (): void => {
     const { instruments } = event.data || {};
 
     const instrumentsValue = Object.values(instruments);
-    console.log('DealInstruments onmessage', instrumentsValue.length);
     dealInstrumentController.value = false;
     if (instrumentsValue.length) {
-      existedInstrumentsLength.value = instrumentsValue.length || 0; //refresh old instruments
+      existedInstrumentsLength.value = instrumentsValue.length || 0;
       const globalStore = useGlobalStore();
       globalStore.setInstruments(instrumentsValue);
       globalStore.setInstrumentsMap(instruments);
@@ -1935,37 +1999,20 @@ export const useAllKfConfigData = (): Record<
         ...(process.env.NODE_ENV === 'development'
           ? [
               {
+                ...buildArchiveLocation(),
                 location_uid: 0,
-                category: 'system',
-                group: 'service',
-                name: 'archive',
-                mode: 'live',
                 value: '',
               },
             ]
           : []),
         {
+          ...buildMasterLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'master',
-          name: 'master',
-          mode: 'live',
           value: '',
         },
         {
+          ...buildLedgerLocation(),
           location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'cached',
-          mode: 'live',
-          value: '',
-        },
-        {
-          location_uid: 0,
-          category: 'system',
-          group: 'service',
-          name: 'ledger',
-          mode: 'live',
           value: '',
         },
       ]),
@@ -2030,6 +2077,7 @@ export const useAssets = (): {
         market_value: (allAssets.market_value || 0) + asset.market_value,
         margin: (allAssets.margin || 0) + asset.margin,
         avail: (allAssets.avail || 0) + asset.avail,
+        avail_margin: (allAssets.avail_margin || 0) + asset.avail_margin,
       };
     }, {} as KungfuApi.Asset);
   };
@@ -2041,58 +2089,303 @@ export const useAssets = (): {
   };
 };
 
-export const useAssetMargins = () => {
-  const app = getCurrentInstance();
-  const assetMagins = ref<Record<string, KungfuApi.AssetMargin>>({});
+export async function getOperatorPath(
+  record: KungfuApi.KfConfig,
+): Promise<string> {
+  const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+  let filePath = '';
 
-  const getAssetMarginsByKfConfig = (
-    kfConfig: KungfuApi.KfLocation | KungfuApi.KfConfig,
-  ): KungfuApi.AssetMargin => {
-    const processId = getProcessIdByKfLocation(kfConfig);
-    return assetMagins.value[processId] || ({} as KungfuApi.AssetMargin);
-  };
+  for (let i = 0; i < extDirs.length; i++) {
+    if (extDirs[i].split('/').pop() === record.group) {
+      const dir = extDirs[i];
 
-  const getAssetMarginsByTdGroup = (
-    tdGroup: KungfuApi.KfExtraLocation,
-  ): KungfuApi.AssetMargin => {
-    const children = (tdGroup.children || []) as KungfuApi.KfConfig[];
-    const assetMarginsList = children
-      .map((item) => getAssetMarginsByKfConfig(item))
-      .filter((item) => Object.keys(item).length);
-
-    return assetMarginsList.reduce((allAssetMargins, assetMagin) => {
-      return {
-        ...allAssetMargins,
-        margin: (allAssetMargins.margin || 0) + assetMagin.margin,
-        avail_margin:
-          (allAssetMargins.avail_margin || 0) + assetMagin.avail_margin,
-        market_value: (allAssetMargins.cash_debt || 0) + assetMagin.cash_debt,
-        avail: (allAssetMargins.total_asset || 0) + assetMagin.total_asset,
-      };
-    }, {} as KungfuApi.AssetMargin);
-  };
-
-  onMounted(() => {
-    if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          assetMagins.value = dealAssetsByHolderUID<KungfuApi.AssetMargin>(
-            watcher,
-            watcher.ledger.AssetMargin,
-          );
-        },
-      );
-
-      onBeforeUnmount(() => {
-        subscription.unsubscribe();
+      const files = await new Promise<string[]>((resolve, reject) => {
+        fse.readdir(dir, (err, files) => {
+          if (err) {
+            reject('Unable to scan directory: ' + err);
+          } else {
+            resolve(files);
+          }
+        });
       });
+
+      const soFiles = files.filter((file) => path.extname(file) === '.so');
+
+      if (soFiles.length > 0) {
+        filePath = path.join(dir, soFiles[0]);
+        return filePath;
+      }
     }
+  }
+
+  return filePath;
+}
+
+export const useReplay = (): {
+  currentLocation: Ref<KungfuApi.KfConfig | null>;
+  replayConfig: Ref<KungfuApi.ReplayConfig>;
+  setReplayModalVisible: Ref<boolean>;
+  journalReplayflag: Ref<number>;
+  replayProcessParams: Ref<
+    | {
+        category: string;
+        group: string;
+        name: string;
+        mode: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined
+  >;
+  handleOpenReplayConfirmView(
+    record: KungfuApi.KfConfig | KungfuApi.KfLocation,
+    session?: KungfuApi.Session,
+  ): Promise<void>;
+  handleReplayModal(
+    data: {
+      sessionInfo: string;
+      beginTime: string;
+      endTime: string;
+      logLevel: string;
+      enableMatcher: boolean;
+    },
+    isJournal?: boolean,
+  ): void;
+  sessionOptions: Ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >;
+  replayPreLoading: Ref<boolean>;
+  startLoadingInterval: () => void;
+  stopLoadingInterval: () => void;
+} => {
+  let loadingTimer: NodeJS.Timeout | null = null;
+  const DEFAULT_PRE_LOADING_TIME = 10000;
+  const replayPreLoading = ref(false);
+  const setReplayModalVisible = ref(false);
+  const journalReplayflag = ref(0);
+  const replayProcessParams = ref<
+    | {
+        category: string;
+        group: string;
+        name: string;
+        mode: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined
+  >(undefined);
+
+  const currentLocation = ref<KungfuApi.KfConfig | null>(null);
+  const replaySetting = JSON.parse(
+    localStorage.getItem('replaySetting') || '{}',
+  );
+  const replayConfig = ref<KungfuApi.ReplayConfig>({
+    session_info: '',
+    group: 'default',
+    category: '',
+    begin_time: '',
+    end_time: '',
+    log_level: replaySetting.log_level || '-l info',
+    session_name: '',
+    file_path: '',
+    enable_matcher: false,
   });
+  const sessionOptions = ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
+
+  const handleOpenReplayConfirmView = async (
+    record: KungfuApi.KfConfig,
+    curSession?: KungfuApi.Session,
+  ) => {
+    let isOperator = false;
+    let filePath = '';
+    if (record.category === 'operator' && record.group !== 'default') {
+      isOperator = true;
+      filePath = await getOperatorPath(record);
+    }
+    sessionOptions.value = [];
+    const sessions = sessionStore.getAllSessions();
+    if (!sessions || sessions.length === 0) {
+      error(t('replay.process_has_not_been_started'));
+      return;
+    }
+
+    let currentSession: KungfuApi.Session | null = curSession || null;
+    let sessionInfo = '';
+    if (currentSession) {
+      const beginTimeStr = getNanoDateString(currentSession.begin_time);
+      const endTimeStr = currentSession.end_time
+        ? getNanoDateString(currentSession.end_time)
+        : 'now';
+      sessionInfo = `${beginTimeStr}--${endTimeStr}`;
+      sessionOptions.value.push({
+        label: `${beginTimeStr}--${endTimeStr}`,
+        value: `${beginTimeStr}--${endTimeStr}`,
+      });
+    } else {
+      for (let i = sessions.length - 1; i >= 0; i--) {
+        const item = sessions[i];
+        if (
+          KfCategoryNameMap[item.category] === record.category &&
+          item.group === record.group &&
+          item.name === record.name
+        ) {
+          currentSession ||= item;
+
+          const beginTimeStr = getNanoDateString(item.begin_time);
+          const endTimeStr = item.end_time
+            ? getNanoDateString(item.end_time)
+            : 'now';
+          sessionInfo ||= `${beginTimeStr}--${endTimeStr}`;
+          sessionOptions.value.push({
+            label: `${beginTimeStr}--${endTimeStr}`,
+            value: `${beginTimeStr}--${endTimeStr}`,
+          });
+        }
+      }
+    }
+
+    if (!currentSession) {
+      error(t('replay.process_has_not_been_started'));
+      return;
+    }
+    const replaySetting = JSON.parse(
+      localStorage.getItem('replaySetting') || '{}',
+    );
+    const startTime = getNanoDateString(currentSession.begin_time);
+    const endTime =
+      replaySetting.end_time && replaySetting.end_time > startTime
+        ? replaySetting.end_time
+        : currentSession.end_time
+        ? getNanoDateString(currentSession.end_time)
+        : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+    const logLevel = replaySetting.log_level || '-l info';
+    const params = record.value ? JSON.parse(record.value) : {};
+    const date = getYearMonthDay();
+    const beginTime = `${date} ${startTime}`;
+    const endTimeStr = `${date} ${endTime}`;
+
+    replayConfig.value = {
+      session_info: sessionInfo,
+      group: record.group,
+      category: record.category,
+      begin_time: beginTime,
+      end_time: endTimeStr,
+      log_level: logLevel,
+      session_name: currentSession.name,
+      file_path: isOperator ? filePath : params.file_path,
+      enable_matcher: false,
+    };
+    currentLocation.value = record;
+    setReplayModalVisible.value = true;
+    return Promise.resolve();
+  };
+
+  const handleReplayModal = async (
+    data: {
+      sessionInfo: string;
+      beginTime: string;
+      endTime: string;
+      logLevel: string;
+      enableMatcher: boolean;
+    },
+    isJournal = false,
+  ) => {
+    if (!currentLocation.value) {
+      error();
+      return;
+    }
+    const mode = data.enableMatcher ? 'backtest' : 'replay';
+    const startTime = data.beginTime;
+    const endTime =
+      data.endTime ||
+      getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+    const replaySetting = {
+      begin_time: startTime,
+      end_time: endTime,
+      log_level: data.logLevel,
+    };
+    localStorage.setItem('replaySetting', JSON.stringify(replaySetting));
+    setReplayModalVisible.value = false;
+    const date = getYearMonthDay();
+    const beginTime = `${date} ${startTime}`;
+    const endTimeStr = `${date} ${endTime}`;
+    const processId = getProcessIdByKfLocation({
+      category: currentLocation.value.category,
+      group: currentLocation.value.group,
+      name: currentLocation.value.name,
+      mode: mode,
+    });
+    replayConfig.value.begin_time = beginTime;
+    replayConfig.value.end_time = endTimeStr;
+    replayConfig.value.log_level = data.logLevel;
+    replayConfig.value.enable_matcher = data.enableMatcher;
+    const params = {
+      category: currentLocation.value.category,
+      group: currentLocation.value.group,
+      name: currentLocation.value.name,
+      mode: mode,
+      replayConfig: replayConfig.value,
+    };
+
+    const replayArgsStr = localStorage.getItem('replayConfigs');
+    const replayArgsObj = replayArgsStr ? JSON.parse(replayArgsStr) : {};
+    replayArgsObj[processId] = {
+      args: params,
+      filePath: replayConfig.value.file_path,
+    };
+    localStorage.setItem('replayConfigs', JSON.stringify(replayArgsObj));
+
+    if (isJournal) {
+      const { startProcess, ProcessConfigs } = await getJournalReplayConfigs(
+        currentLocation.value,
+        replayConfig.value,
+        journalReplayflag.value,
+      );
+      journalReplayflag.value = startProcess;
+      replayProcessParams.value = ProcessConfigs;
+    } else {
+      await handleOpenReplayView(
+        currentLocation.value,
+        startTime,
+        endTime,
+        data.logLevel,
+        processId,
+        replayConfig.value,
+      );
+    }
+  };
+
+  const startLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = true;
+    loadingTimer = setInterval(() => {
+      replayPreLoading.value = false;
+    }, DEFAULT_PRE_LOADING_TIME);
+  };
+
+  const stopLoadingInterval = () => {
+    if (loadingTimer) clearInterval(loadingTimer);
+    replayPreLoading.value = false;
+  };
 
   return {
-    assetMagins,
-    getAssetMarginsByKfConfig,
-    getAssetMarginsByTdGroup,
+    currentLocation,
+    replayConfig,
+    setReplayModalVisible,
+    journalReplayflag,
+    sessionOptions,
+    replayProcessParams,
+    handleOpenReplayConfirmView,
+    handleReplayModal,
+    startLoadingInterval,
+    stopLoadingInterval,
+    replayPreLoading,
   };
 };
 

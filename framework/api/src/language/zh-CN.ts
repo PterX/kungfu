@@ -69,6 +69,7 @@ export default {
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
   open_journal_dashboard: '正在打开 journal 面板',
+  open_replay_dashboard: '正在打开回放面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
   select_board: '请选择要添加的面板',
@@ -211,6 +212,7 @@ export default {
     partial_filled_not_active: '部分撤单',
     partial_filled_active: '正在交易',
     lost: '丢失',
+    pause: '暂停',
 
     long: '多',
     short: '空',
@@ -340,7 +342,6 @@ export default {
 
     master: '主控进程',
     ledger: '计算服务',
-    cached: '存储服务',
     archive: '归档服务',
 
     place_order: '下单',
@@ -498,6 +499,8 @@ export default {
     total_asset: '总资产',
     actions: '操作',
 
+    asset_details: '资金',
+
     add_td: '添加',
     add_group_placeholder: '添加分组',
     set_td_group: '账户分组设置',
@@ -518,6 +521,7 @@ export default {
     target: '划入节点',
     amount: '发生金额',
     update_time: '划转时间',
+    source_target_cannot_be_same: '划入节点和划出节点不能一致，请重新选择!',
     tip_error: '划转失败,请联系管理员!',
     capitalaccountor: '资金账号',
     trade_password: '交易密码',
@@ -556,6 +560,11 @@ export default {
     strategy_tip: '需保证该策略 ID 唯一',
 
     add_strategy: '添加',
+    replay: '回放',
+    start_time: '开始时间',
+    end_time: '结束时间',
+    log_level: '日志级别',
+    no_sessions_for_replay_warn: '该进程暂时未运行过, 无法回放',
   },
 
   operatorConfig: {
@@ -708,6 +717,9 @@ export default {
     selete_msg_type: '过滤消息类型',
     empty_export_data: '没有可导出的信息',
 
+    replay: '回放',
+    please_select_strategy_or_operator: '请选择策略或算子',
+
     entry_visualization: '进入可视化',
     quit_visualization: '退出可视化',
     strategy_id: '策略id',
@@ -850,7 +862,6 @@ export default {
     order_input_key: '限制属性',
     single_price: '单笔成交价',
     limit_value: '最大值',
-    asset_margin: '两融',
     pos_table_columns: '持仓表格项配置',
     show_asset_margin: '展示两融',
     skip_confirm_make_order: '跳过下单确认弹窗',
@@ -944,15 +955,45 @@ export default {
     loading_data: '正在加载中...',
   },
 
+  replay: {
+    session: 'Session',
+    replay: '回放',
+    backtest: '回测',
+    log_level: '日志级别',
+    begin_time: '开始时间',
+    end_time: '结束时间',
+    try_again: '重试',
+    stop_replay: '停止回放',
+    stop_backtest: '停止回测',
+    enable_matcher: '使用撮合器',
+    please_select_session: '请选择 Session',
+    please_select_log_level: '请选择日志级别',
+    stop_replay_warn_content: '关闭窗口将会停止回放, 是否仍然关闭窗口?',
+    process_has_not_been_started: '该进程暂时未运行过, 无法回放',
+    please_start_replay: '请先启动回放',
+    process_can_not_replay: '该进程无法回放',
+    tips_title: '* 注:',
+    replay_tips1_part1: '回放依赖数据时间, ',
+    replay_tips1_part2: '请勿在策略内使用物理时间相关代码来表达"now"',
+    replay_tips1_part3:
+      '(如 python 的 time 或者 yjj.now_in_nano), 建议使用策略提供的context.now 方法, 否则回放无法按照预期执行.',
+    replay_tips2_part1: '不使用撮合器',
+    replay_tips2_part2: '进行回放时, 回放仅可增加log, ',
+    replay_tips2_part3: '请勿修改策略逻辑',
+    replay_tips2_part4: ', 否则会由于输出数据与实际不符而报错.',
+    replay_tips2_part5: '使用撮合器',
+    replay_tips2_part6: '进行回放时, ',
+    replay_tips2_part7: '可以修改策略逻辑',
+    replay_tips2_part8: '，撮合器将使用实盘中记录的数据撮合并进行回放.',
+    process_not_found: '进程不存在',
+    enable_matcher_tip: '使用撮合器以回测模式运行,  策略逻辑可修改',
+  },
+
   master_interrupt: '主控进程 master 中断',
   master_desc: '主控进程负责策略进程间通信与资源配置, 请重启功夫交易系统',
 
   ledger_interrupt: '计算服务 ledger 中断',
   ledger_desc: '计算服务负责持仓跟资金计算, 请重启功夫交易系统',
-
-  cached_interrupt: '存储服务 cached 中断',
-  cached_desc:
-    '存储服务负责数据落地, 存储服务断开不影响交易, 可等交易完成后重启功夫系统',
 
   state_interrupt_msg: '{state} 已断开',
   state_interrupt_desc: '{state} 已断开, 可能会导致交易中断, 请检查',
@@ -967,7 +1008,7 @@ export default {
   environment_done: '功夫环境准备完成 ✓',
   environment_loading: '功夫环境准备中...',
   extra_resources_done: '插件资源加载就绪 ✓',
-  extra_resouces_loading: '插件资源加载中...',
+  extra_resources_loading: '插件资源加载中...',
   saving_data_done: '保存数据完成 ✓',
   saving_data_loading: '保存数据中...',
   end_all_transactions: '结束所有交易进程 ✓',

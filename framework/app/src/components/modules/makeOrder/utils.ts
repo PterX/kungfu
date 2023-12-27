@@ -5,7 +5,7 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { storeToRefs } from 'pinia';
-import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 

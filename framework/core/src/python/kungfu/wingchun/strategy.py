@@ -8,7 +8,9 @@ import kungfu
 import os
 import sys
 
+from kungfu.console.utils import import_force
 from kungfu.yijinjing import time as kft
+from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
@@ -19,12 +21,12 @@ yjj = kungfu.__binding__.yijinjing
 
 
 class Runner(wc.Runner):
-    def __init__(self, ctx, mode):
+    def __init__(self, ctx, locator, mode):
         if ctx.arguments is None:
             ctx.arguments = "{}"
         wc.Runner.__init__(
             self,
-            ctx.runtime_locator,
+            locator,
             ctx.group,
             ctx.name,
             mode,
@@ -50,14 +52,12 @@ class Strategy(wc.Strategy):
         strategy_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, strategy_dir)
-        self._module = importlib.import_module(os.path.splitext(name_no_ext[1])[0])
+        self._module = import_force(os.path.splitext(name_no_ext[1])[0])
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
-        self._on_trading_day = getattr(
-            self._module, "on_trading_day", lambda ctx, trading_day: None
-        )
+
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location, dest: None
         )
@@ -85,6 +85,9 @@ class Strategy(wc.Strategy):
             "on_order_trigger",
             lambda ctx, order_trigger, location, dest: None,
         )
+        self._on_algo_order = getattr(
+            self._module, "on_algo_order", lambda ctx, algo_order, location, dest: None
+        )
         self._on_order_action_error = getattr(
             self._module,
             "on_order_action_error",
@@ -93,6 +96,11 @@ class Strategy(wc.Strategy):
         self._on_order_trigger_action_error = getattr(
             self._module,
             "on_order_trigger_action_error",
+            lambda ctx, error, location, dest: None,
+        )
+        self._on_algo_order_action_error = getattr(
+            self._module,
+            "on_algo_order_action_error",
             lambda ctx, error, location, dest: None,
         )
         self._on_trade = getattr(
@@ -137,11 +145,6 @@ class Strategy(wc.Strategy):
         self._on_asset_sync_reset = getattr(
             self._module, "on_asset_sync_reset", lambda ctx, old_asset, new_asset: None
         )
-        self._on_asset_margin_sync_reset = getattr(
-            self._module,
-            "on_asset_margin_sync_reset",
-            lambda ctx, old_asset_margin, new_asset_margin: None,
-        )
         self._on_custom_data = getattr(
             self._module,
             "on_custom_data",
@@ -160,15 +163,10 @@ class Strategy(wc.Strategy):
             func(*args)
 
     def __init_book(self):
-        location = yjj.location(
-            lf.enums.mode.LIVE,
-            lf.enums.category.STRATEGY,
-            self.ctx.group,
-            self.ctx.name,
-            self.ctx.runtime_locator,
+        location = self._find_location(
+            lf.enums.category.STRATEGY, self.ctx.group, self.ctx.name
         )
         self.ctx.book = self.ctx.wc_context.bookkeeper.get_book(location.uid)
-        self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
 
     def __add_timer(self, nanotime, callback):
         def wrap_callback(event):
@@ -186,14 +184,32 @@ class Strategy(wc.Strategy):
         self.ctx.wc_context.add_account(source, account)
 
     def __get_account_book(self, source, account):
-        location = yjj.location(
-            lf.enums.mode.LIVE,
-            lf.enums.category.TD,
-            source,
-            account,
-            self.ctx.runtime_locator,
-        )
+        location = self._find_location(lf.enums.category.TD, source, account)
         return self.ctx.wc_context.bookkeeper.get_book(location.uid)
+
+    def __get_account_uid(self, source, account):
+        location = self._find_location(lf.enums.category.TD, source, account)
+        return location.uid
+
+    def _find_location(self, category, group, name):
+        mode = (
+            lf.enums.mode.LIVE
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else lf.enums.mode.BACKTEST
+        )
+        locator = (
+            self.ctx.runtime_locator
+            if kfj.MODES[self.ctx.mode] != lf.enums.mode.BACKTEST
+            else self.ctx.backtest_locator
+        )
+        location = yjj.location(
+            mode,
+            category,
+            group,
+            name,
+            locator,
+        )
+        return location
 
     async def __async_insert_order(
         self,
@@ -234,6 +250,7 @@ class Strategy(wc.Strategy):
         self.ctx.add_time_interval = self.__add_time_interval
         self.ctx.clear_timer = wc_context.clear_timer
         self.ctx.subscribe = wc_context.subscribe
+        self.ctx.unsubscribe = wc_context.unsubscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.add_account = self.__add_account
@@ -241,11 +258,14 @@ class Strategy(wc.Strategy):
         self.ctx.insert_order_trigger = wc_context.insert_order_trigger
         self.ctx.insert_order = wc_context.insert_order
         self.ctx.insert_order_input = wc_context.insert_order_input
-        self.ctx.insert_basket_order = wc_context.insert_basket_order
         self.ctx.insert_batch_orders = wc_context.insert_batch_orders
         self.ctx.insert_array_orders = wc_context.insert_array_orders
+        self.ctx.insert_algo_order = wc_context.insert_algo_order
+        self.ctx.update_algo_order_volume = wc_context.update_algo_order_volume
         self.ctx.cancel_order = wc_context.cancel_order
         self.ctx.cancel_order_trigger = wc_context.cancel_order_trigger
+        self.ctx.cancel_algo_order = wc_context.cancel_algo_order
+        self.ctx.toggle_algo_order = wc_context.toggle_algo_order
         self.ctx.req_history_order = wc_context.req_history_order
         self.ctx.req_history_trade = wc_context.req_history_trade
         self.ctx.update_strategy_state = wc_context.update_strategy_state
@@ -255,11 +275,14 @@ class Strategy(wc.Strategy):
         self.ctx.bypass_accounting = wc_context.bypass_accounting
         self.ctx.hold_book = wc_context.hold_book
         self.ctx.hold_positions = wc_context.hold_positions
+        self.ctx.set_resume_policy = wc_context.set_resume_policy
         self.ctx.get_account_book = self.__get_account_book
+        self.ctx.get_account_uid = self.__get_account_uid
         self.ctx.req_deregister = wc_context.req_deregister
-        self.ctx.get_writer = wc_context.get_writer
+        self.ctx.is_started = wc_context.is_started
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
+        self.ctx.static_data = wc_context.bookkeeper.static_data
         self.__init_book()
         self.__call_proxy(self._pre_start, self.ctx)
 
@@ -297,12 +320,20 @@ class Strategy(wc.Strategy):
             self._on_order_trigger, self.ctx, order_trigger, location, dest
         )
 
+    def on_algo_order(self, wc_context, algo_order, location, dest):
+        self.__call_proxy(self._on_algo_order, self.ctx, algo_order, location, dest)
+
     def on_order_action_error(self, wc_context, error, location, dest):
         self.__call_proxy(self._on_order_action_error, self.ctx, error, location, dest)
 
     def on_order_trigger_action_error(self, wc_context, error, location, dest):
         self.__call_proxy(
             self._on_order_trigger_action_error, self.ctx, error, location, dest
+        )
+
+    def on_algo_order_action_error(self, wc_context, error, location, dest):
+        self.__call_proxy(
+            self._on_algo_order_action_error, self.ctx, error, location, dest
         )
 
     def on_trade(self, wc_context, trade, location, dest):
@@ -344,25 +375,11 @@ class Strategy(wc.Strategy):
             self._on_req_history_trade_error, self.ctx, error, location, dest
         )
 
-    def on_trading_day(self, wc_context, daytime):
-        self.ctx.trading_day = kft.to_datetime(daytime)
-        self.__call_proxy(self._on_trading_day, self.ctx, daytime)
-
     def on_position_sync_reset(self, wc_context, old_book, new_book):
         self.__call_proxy(self._on_position_sync_reset, self.ctx, old_book, new_book)
 
     def on_asset_sync_reset(self, wc_context, old_asset, new_asset):
         self.__call_proxy(self._on_asset_sync_reset, self.ctx, old_asset, new_asset)
-
-    def on_asset_margin_sync_reset(
-        self, wc_context, old_asset_margin, new_asset_margin
-    ):
-        self.__call_proxy(
-            self._on_asset_margin_sync_reset,
-            self.ctx,
-            old_asset_margin,
-            new_asset_margin,
-        )
 
     def on_custom_data(self, wc_context, msg_type, data, length, location, dest):
         self.__call_proxy(

@@ -37,7 +37,6 @@ class TraderSim(wc.Trader):
         self.match_mode = None
         self.logger = find_logger(self.home)
         self.map_block_msg = {}
-        self.enable_self_detect()
 
     def on_recover(self):
         pass
@@ -45,6 +44,7 @@ class TraderSim(wc.Trader):
     def on_start(self):
         config = json.loads(self.config)
         self.match_mode = config.get("match_mode", MatchMode.Custom)
+        self.logger.debug(f"match_mode: {self.match_mode}")
 
         self.ctx.orders = {}
         self.ctx.triggers = {}
@@ -136,19 +136,16 @@ class TraderSim(wc.Trader):
                 )
             return True
 
-    def insert_block_message(self, event):
-        block_msg = event.BlockMessage()
+    def insert_block_order(self, event, block_msg):
         self.logger.info(f"{block_msg}")
         self.map_block_msg[block_msg.block_id] = block_msg
+        self.insert_order(event)
 
-    def insert_batch_orders(self, event):
+    def insert_batch_orders(self, event, order_inputs):
         self.logger.info(f"insert_batch_orders")
-        self.logger.info(f"{self.order_inputs}")
-        for item in self.order_inputs[event.source]:
-            self.insert_order_(event.source, event.gen_time, item)
-
-        self.clear_order_inputs(event.source)
-        self.logger.info(f"{self.order_inputs}")
+        self.logger.info(f"{order_inputs}")
+        for item in order_inputs:
+            self.insert_order_(event, item)
 
     def insert_order(self, event):
         if self.match_mode == MatchMode.Custom:
@@ -164,7 +161,6 @@ class TraderSim(wc.Trader):
         order.external_order_id = str(order.order_id)
         order.insert_time = gen_time
         order.update_time = gen_time
-        order.trading_day = kft.strfnow("%Y%m%d")
         # 增加repo不可以买入的限制
         if (
             wc.utils.get_instrument_type(
@@ -244,7 +240,6 @@ class TraderSim(wc.Trader):
             trade.instrument_type = order.instrument_type
             trade.exchange_id = order.exchange_id
             trade.trade_time = yjj.now_in_nano()
-            trade.trading_day = kft.strfnow("%Y%m%d")
             writer.write(gen_time, trade)
         elif volume_traded > 0 and self.match_mode == MatchMode.Multiple:
             while volume_traded > 0:
@@ -261,7 +256,6 @@ class TraderSim(wc.Trader):
                 trade.instrument_type = order.instrument_type
                 trade.exchange_id = order.exchange_id
                 trade.trade_time = yjj.now_in_nano()
-                trade.trading_day = kft.strfnow("%Y%m%d")
                 writer.write(gen_time, trade)
                 volume_traded -= trade.volume
                 self.logger.debug(f"trade.trade_id: {trade.trade_id}")

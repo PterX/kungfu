@@ -38,50 +38,24 @@ public:
 
   CryptoAccountingMethod() = default;
 
-  virtual void apply_trading_day(Book_ptr &book, int64_t trading_day) override {}
-
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
-  virtual void apply_order_input(uint32_t source, uint32_t dest, Book_ptr &book, const OrderInput &input) override {}
+  virtual void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+  }
 
-  virtual void apply_order(uint32_t source, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(source, dest, book, order)) {
+  virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
+    if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
     }
   }
 
-  virtual void apply_trade(uint32_t source, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(source, dest, book, trade)) {
+  virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
+    if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
-
-    kungfu::array<char, INSTRUMENT_ID_LEN> instrument_a;
-    kungfu::array<char, INSTRUMENT_ID_LEN> instrument_b;
-    kungfu::array<char, INSTRUMENT_ID_LEN> instrument_commission;
-    int64_t volume_a = 0;
-    int64_t volume_b = 0;
-    int64_t volume_commission = 0;
-    get_instrument(book, trade, instrument_a, instrument_b, instrument_commission, volume_a, volume_b,
-                   volume_commission);
-    auto &position_a = book->get_long_position(trade.exchange_id, instrument_a);
-    auto &position_b = book->get_long_position(trade.exchange_id, instrument_b);
-    auto &position_commission = book->get_long_position(trade.exchange_id, instrument_commission);
-    if (trade.side == Side::Buy) {
-      position_a.volume += volume_a;
-      position_b.volume -= volume_b;
-    }
-    if (trade.side == Side::Sell) {
-      position_a.volume -= volume_a;
-      position_b.volume += volume_b;
-    }
-    position_commission.volume -= volume_commission;
   }
 
-  virtual void update_position(Book_ptr &book, Position &position) override {
-    auto position_in = book->get_long_position(position.instrument_id, position.exchange_id);
-    position_in.volume = position.volume;
-    position_in.frozen_total = position.frozen_total;
-  }
+  virtual void update_position(Book_ptr &book, Position &position) override {}
 
 protected:
   std::unordered_map<uint64_t, double> commission_map_ = {};

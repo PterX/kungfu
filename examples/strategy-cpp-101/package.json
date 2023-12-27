@@ -1,7 +1,7 @@
 {
   "name": "@kungfu-trader/examples-strategy-cpp",
   "author": "kungfu-trader",
-  "version": "2.5.22-alpha.1",
+  "version": "2.6.11-alpha.7",
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
   "private": true,
@@ -13,13 +13,13 @@
     "build": "kfs extension build",
     "package": "kfs extension package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
-    "dev:win": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cp39-win_amd64.pyd",
-    "dev:linux": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cpython-39-x86_64-linux-gnu.so",
+    "dev:win": "kfc -l trace run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cp39-win_amd64.pyd -x",
+    "dev:linux": "kfc -l debug run -c strategy -g KungfuStrategy101Cpp -n demo ./dist/KungfuStrategy101Cpp/KungfuStrategy101Cpp.cpython-39-x86_64-linux-gnu.so -x",
     "master": "kfc -l debug run -c system -g master -n master",
-    "cached": "kfc -l debug run -c system -g service -n cached"
+    "ledger": "kfc -l debug run -c system -g service -n ledger"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.5.22-alpha.1"
+    "@kungfu-trader/kungfu-sdk": "^2.6.11-alpha.7"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

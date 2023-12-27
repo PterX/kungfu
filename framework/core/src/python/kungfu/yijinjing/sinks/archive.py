@@ -37,7 +37,16 @@ class ArchiveSink(yjj.sink):
                 location.name,
                 self.locator,
             )
+
+            # have to find_page_size of 'location', instead of 'target_location'
+            page_size = int(self.find_page_size(location, dest_id) / (1024 * 1024))
             writers[dest_id] = yjj.writer(
-                target_location, dest_id, True, self.publisher, False, self.bus
+                target_location,
+                dest_id,
+                True,
+                self.publisher,
+                False,
+                self.bus,
+                page_size,
             )
         writers[dest_id].copy_frame(frame)

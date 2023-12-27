@@ -45,7 +45,7 @@ import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useNow, useResizeFlag } from '../utils';
 import { useJournalStore } from '../store/journalStore';
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{
@@ -189,7 +189,6 @@ const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
 
   .kf-time-slider-handler-focus-1 {
     .ant-slider-handle-1 {
-      // border-color: #faad14;
       border-color: aqua;
     }
   }

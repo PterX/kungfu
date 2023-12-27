@@ -67,7 +67,7 @@ import {
   openFolder,
   buildFileObj,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/codeUtils';
-import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 const store = useCodeStore();

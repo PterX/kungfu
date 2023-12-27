@@ -8,7 +8,6 @@ import functools
 import traceback
 
 from kungfu.wingchun import default_commissions
-from kungfu.wingchun.calendar import Calendar
 
 lf = kungfu.__binding__.longfist
 yjj = kungfu.__binding__.yijinjing
@@ -37,15 +36,11 @@ class Master(yjj.master):
             self,
             ctx.location,
             ctx.low_latency,
+            ctx.bypass_cached,
         )
         self.ctx = ctx
         self.ctx.master = self
         self.ctx.apprentices = {}
-
-        self.ctx.calendar = Calendar(ctx)
-        self.ctx.trading_day = ctx.calendar.trading_day
-
-        self.ctx.master = self
 
         self.profile = yjj.profile(ctx.runtime_locator)
         self.commissions = {}
@@ -73,10 +68,7 @@ class Master(yjj.master):
             commission.min_commission = default.min_commission
             self.profile.set(commission)
 
-    def acquire_trading_day(self):
-        return self.ctx.calendar.trading_day_ns
-
-    def on_register(self, event, register_data):
+    def on_register(self, gen_time, register_data):
         pid = register_data.pid
         category = lf.enums.get_category_name(register_data.category)
         mode = lf.enums.get_mode_name(register_data.mode)
@@ -94,7 +86,22 @@ class Master(yjj.master):
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 err_msg = traceback.format_exception(exc_type, exc_obj, exc_tb)
                 self.ctx.logger.error(f"app [{pid}] {uname} checkin failed: {err_msg}")
-                self.deregister_app(event.gen_time, register_data.location_uid)
+                self.deregister_app(gen_time, register_data.location_uid)
+
+    def check_register(self, gen_time, register_data):
+        pid = register_data.pid
+        category = lf.enums.get_category_name(register_data.category)
+        mode = lf.enums.get_mode_name(register_data.mode)
+        uname = f"{category}/{register_data.group}/{register_data.name}/{mode}"
+        self.ctx.logger.info(f"app {pid} {uname} checking")
+        try:
+            psutil.Process(pid)
+            return True
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            err_msg = traceback.format_exception(exc_type, exc_obj, exc_tb)
+            self.ctx.logger.warn(f"app [{pid}] {uname} checked failed: {err_msg}")
+            return False
 
     def on_interval_check(self, nanotime):
         try:
@@ -177,11 +184,3 @@ def health_check(ctx):
             ctx.logger.warn(f'cleaning up stale app {app["uname"]} with pid {pid}')
             ctx.master.deregister_app(yjj.now_in_nano(), app["register"].__uid__)
             del ctx.apprentices[pid]
-
-
-@task
-def switch_trading_day(ctx):
-    trading_day = ctx.calendar.trading_day
-    if ctx.trading_day < trading_day:
-        ctx.trading_day = trading_day
-        ctx.master.publish_trading_day()

@@ -38,6 +38,9 @@ module.exports = {
 
     return {
       devtool: 'eval-source-map',
+      experiments: {
+        topLevelAwait: true,
+      },
       mode: production ? 'production' : 'development',
       optimization: {
         minimize: true,

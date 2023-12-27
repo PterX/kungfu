@@ -334,14 +334,15 @@ exports.installBatch = async (
 };
 
 exports.clean = (keepLibs = true) => {
-  fse.removeSync(path.join(process.cwd().toString(), 'build'));
-  fse.removeSync(path.join(process.cwd().toString(), 'dist'));
   const rm = (p) => fse.existsSync(p) && fse.removeSync(p);
+  rm(path.join(process.cwd().toString(), 'build'));
+  rm(path.join(process.cwd().toString(), 'dist'));
+  rm(path.join(process.cwd().toString(), webpackBuildCaches));
+
   if (!keepLibs) {
     rm(pypackages);
     rm(kungfulibs);
   }
-  rm(webpackBuildCaches);
 };
 
 exports.configure = () => {
@@ -351,7 +352,7 @@ exports.configure = () => {
   }
 };
 
-exports.compile = () => {
+exports.compile = (buildType = 'Release') => {
   const packageJson = shell.getPackageJson();
   const extensionName = packageJson.kungfuConfig.key;
   const outputDir = path.join('dist', extensionName);
@@ -378,16 +379,20 @@ exports.compile = () => {
   }
 
   if (hasSourceFor(packageJson, 'cpp')) {
-    const cmakeCmdArgs = getCmakeCmdArgs();
+    const cmakeCmdArgs = getCmakeCmdArgs(buildType);
     if (cmakeCmdArgs) {
-      console.log(`$ ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `);
+      console.log(
+        `$ cmakeCmdArgs: ${cmakeCmdArgs.cmd} ${cmakeCmdArgs.args.join(' ')} `,
+      );
       const { cmd, args } = cmakeCmdArgs;
       spawnExec(cmd, [...args]);
     }
 
-    const nextCmdArgs = getCmakeNextCmdArgs();
+    const nextCmdArgs = getCmakeNextCmdArgs(buildType);
     if (nextCmdArgs) {
-      console.log(`$ ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`);
+      console.log(
+        `$ nextCmdArgs: ${nextCmdArgs.cmd} ${nextCmdArgs.args.join(' ')}`,
+      );
       const { cmd, args } = nextCmdArgs;
       spawnExec(cmd, [...args]);
     }

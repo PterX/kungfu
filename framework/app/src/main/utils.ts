@@ -6,7 +6,7 @@ import {
   clearProcessBeforeQuitEnd,
 } from './events';
 import { quitClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 import {

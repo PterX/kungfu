@@ -28,6 +28,8 @@ public:
 
   void on_exit() override;
 
+  bool is_reactable(const event_ptr &event) override;
+
 protected:
   virtual BrokerService_ptr get_service() = 0;
 
@@ -51,8 +53,6 @@ public:
 
   virtual void on_exit();
 
-  virtual void on_trading_day(const event_ptr &event, int64_t daytime);
-
   [[nodiscard]] int64_t now() const;
 
   [[nodiscard]] BrokerState get_state();
@@ -67,15 +67,25 @@ public:
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
+  [[nodiscard]] const yijinjing::data::location_ptr &get_live_home() const;
+
   [[nodiscard]] uint32_t get_home_uid() const;
+
+  [[nodiscard]] uint32_t get_live_home_uid() const;
 
   [[nodiscard]] yijinjing::io_device_ptr get_io_device() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
+  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
+
   [[nodiscard]] bool has_writer(uint32_t dest_id) const;
 
+  [[nodiscard]] bool has_band_writer(uint32_t dest_id) const;
+
   [[nodiscard]] yijinjing::journal::writer_ptr &get_thread_writer();
+
+  [[nodiscard]] yijinjing::journal::writer_ptr &get_public_writer();
 
   template <typename DataType>
   void write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
@@ -99,7 +109,7 @@ public:
 
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
 
-  [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day) const;
+  [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day);
 
   [[maybe_unused]] [[nodiscard]] bool check_if_stored_baskets(const std::string &trading_day) const;
 
@@ -115,9 +125,15 @@ public:
 
   [[maybe_unused]] void request_deregister() { vendor_.request_deregister(); }
 
-  [[maybe_unused]] [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
+  [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
-  [[maybe_unused]] uint32_t request_band(const std::string &band_name) { return vendor_.request_band(band_name); }
+  [[maybe_unused]] uint32_t request_band(const std::string &band_name, uint64_t page_size = 0) {
+    return vendor_.request_band(band_name, page_size);
+  }
+
+  virtual void on_arguments(const std::string &argument) {}
+
+  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
 protected:
   volatile BrokerState state_;

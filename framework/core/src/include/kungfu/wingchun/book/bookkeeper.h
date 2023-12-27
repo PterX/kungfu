@@ -8,6 +8,7 @@
 #define WINGCHUN_BOOKKEEPER_H
 
 #include <kungfu/wingchun/book/accounting.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -15,17 +16,14 @@ namespace kungfu::wingchun::book {
 // key = location_uid
 typedef std::unordered_map<uint32_t, Book_ptr> BookMap;
 
-typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteMap;
+typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteStateMap;
 
 typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
 
-FORWARD_DECLARE_CLASS_PTR(Context)
 class BookListener {
 public:
   virtual void on_position_sync_reset(const Book &old_book, const Book &new_book){};
   virtual void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset){};
-  virtual void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                          const longfist::types::AssetMargin &new_asset_margin){};
 };
 DECLARE_PTR(BookListener)
 
@@ -45,8 +43,6 @@ public:
 
   void set_accounting_method(longfist::enums::InstrumentType instrument_type,
                              const AccountingMethod_ptr &accounting_method);
-
-  void on_trading_day(int64_t daytime);
 
   void on_start(const rx::connectable_observable<event_ptr> &events);
 
@@ -72,7 +68,7 @@ public:
 
   longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
 
-  map::InstrumentMap get_instruments() { return instruments_; }
+  [[nodiscard]] const StaticData &get_static_data() const { return static_data_; }
 
   std::mutex &get_update_book_mutex();
 
@@ -82,10 +78,11 @@ public:
   }
 
   template <typename TradingData, typename ApplyMethod = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
-  void update_book(int64_t update_time, uint32_t source, uint32_t dest, const TradingData &data, ApplyMethod method) {
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data,
+                   ApplyMethod method) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
 
-    if ((is_td(source) and not is_ready_td(source)) or (is_td(dest) and not is_ready_td(dest))) {
+    if ((is_td(account_id) and not is_ready_td(account_id)) or (is_td(dest) and not is_ready_td(dest))) {
       return;
     }
 
@@ -94,16 +91,18 @@ public:
       return;
     }
     AccountingMethod &accounting_method = *accounting_methods_.at(data.instrument_type);
-    auto apply_and_update = [&](uint32_t book_uid) {
+    auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
-      auto &position = book->get_position_for(data);
-      (accounting_method.*method)(source, dest, book, data);
-      position.update_time = update_time;
+      book->add_source_id(account_id);
+      (accounting_method.*method)(account_id, dest, book, data);
+      auto apply = [&](auto &position) { position.update_time = update_time; };
+      auto direction = get_direction(data.instrument_type, data.side, data.offset);
+      book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
       book->update(update_time, account_method_type_);
     };
-    apply_and_update(source);
-    if (dest != yijinjing::data::location::PUBLIC) {
+    apply_and_update(account_id);
+    if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
       apply_and_update(dest);
     }
   }
@@ -129,15 +128,13 @@ public:
 private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
+  book::StaticData static_data_;
   const bool bypass_quote_;
-  QuoteMap quotes_;
+  QuoteStateMap quotes_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
-  map::CommissionMap commissions_ = {};
-  map::InstrumentMap instruments_ = {};
-  map::InstrumentFactorMap instrument_factors_ = {};
   BookMap books_ = {};
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
@@ -148,27 +145,19 @@ private:
 
   void batch_update_book_by_quote();
 
-  void update_instrument(const longfist::types::Instrument &instrument);
-
-  void update_commission(const event_ptr &event, const longfist::types::Commission &commission);
-
-  void update_instrument_factor(const longfist::types::InstrumentFactor &instrument_factor);
-
   void try_update_asset(const longfist::types::Asset &asset);
-
-  void try_update_asset_margin(const longfist::types::AssetMargin &asset_margin);
 
   void try_update_position(const longfist::types::Position &position);
 
   void try_sync_asset(const longfist::types::Asset &asset);
-
-  void try_sync_asset_margin(const longfist::types::AssetMargin &asset_margin);
 
   void try_sync_position(const longfist::types::Position &position);
 
   void try_sync_position_end(const longfist::types::PositionEnd &position_end);
 
   Book_ptr get_book_replica(uint32_t location_uid);
+
+  void on_output_key(const event_ptr &event);
 
   void on_broker_state(const longfist::types::BrokerStateUpdate &state_update);
 

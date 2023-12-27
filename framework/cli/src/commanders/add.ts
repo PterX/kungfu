@@ -7,14 +7,16 @@ import {
 } from '../assets/methods/utils';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
-import { PathPrompt } from 'inquirer-path-pro';
+import { getCombineValueByPrimaryKeys } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  getCombineValueByPrimaryKeys,
   getExtConfigList,
   getKfExtensionConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { PathPrompt } from 'inquirer-path-pro';
+import {
   getPrimaryKeyFromKfConfigItem,
   getIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { PromptAnswer } from '../typings';
@@ -64,6 +66,7 @@ export const addMdTdStrategyOperator = async (
           category: 'md',
           group: extKey,
           name: '*',
+          mode: '*',
         },
         extConfigs['md'][extKey],
       );
@@ -114,6 +117,7 @@ export const addMdTdStrategyOperator = async (
           category: 'td',
           group: extKey,
           name: '*',
+          mode: '*',
         },
         extConfigs['td'][extKey],
       );

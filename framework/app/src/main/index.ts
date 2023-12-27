@@ -21,11 +21,9 @@ import {
   openUrl,
   destoryAllWindows,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
+import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import packageJSON from '@kungfu-trader/kungfu-app/package.json';
-import {
-  kfLogger,
-  isUpdateVersionLogicEnable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { initClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,

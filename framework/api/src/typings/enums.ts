@@ -1,4 +1,4 @@
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 export enum BrokerStateStatusEnum {
   Pending = 0,
@@ -237,16 +237,20 @@ export enum OrderStatusEnum {
   PartialFilledActive,
   Lost,
   Cancelling,
+  Pause,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
 
-export enum BasketOrderStatusEnum {
-  Unknown,
-  Pending,
-  PartialFilledNotActive, // 部分成交已结束
-  PartialFilledActive, // 部分成交未结束
-  Filled,
+export enum KfExtTypeEnum {
+  Unknown = 'unknown',
+  Broker = 'broker',
+  Task = 'task',
+  Operator = 'operator',
+  Service = 'service',
+  UI = 'ui',
+  Matcher = 'matcher',
+  Indexer = 'indexer',
 }
 
 export enum KfCategoryEnum {
@@ -286,6 +290,12 @@ export enum HistoryDateEnum {
 export enum OrderActionFlagEnum {
   Cancel, // 普通撤单
   TriggerCancel, // 预埋撤单
+}
+
+export enum AlgoOrderActionFlagEnum {
+  Cancel,
+  Start,
+  Stop,
 }
 
 export enum OrderTriggerFlag {

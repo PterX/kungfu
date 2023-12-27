@@ -31,7 +31,9 @@ struct sqlite_initilize {
     int rc = sqlite3_config(SQLITE_CONFIG_LOG, sqlite3_log, nullptr);
     handle_sql_error(rc, "failed to config sqlite3 log");
     rc = sqlite3_config(SQLITE_CONFIG_MMAP_SIZE, 1048577);
-    handle_sql_error(rc, "failed to config sqlite3");
+    handle_sql_error(rc, "failed to config sqlite3 map size");
+    rc = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
+    handle_sql_error(rc, "failed to config sqlite3 multithread");
     sqlite3_initialize();
   }
 };

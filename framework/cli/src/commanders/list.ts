@@ -1,8 +1,6 @@
 import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
-import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import colors from 'colors';
 import { dealKfConfigValue, parseToString } from '../assets/methods/utils';
 

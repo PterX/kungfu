@@ -8,6 +8,7 @@ import kungfu
 import os
 import sys
 
+from kungfu.console.utils import import_force
 from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
@@ -48,9 +49,7 @@ class Operator(wc.Operator):
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
-        self._on_trading_day = getattr(
-            self._module, "on_trading_day", lambda ctx, trading_day: None
-        )
+
         self._on_quote = getattr(
             self._module, "on_quote", lambda ctx, quote, location, dest_id: None
         )
@@ -62,6 +61,11 @@ class Operator(wc.Operator):
             "on_transaction",
             lambda ctx, transaction, location, dest_id: None,
         )
+
+        self._on_tree = getattr(
+            self._module, "on_tree", lambda ctx, tree, location: None
+        )
+
         self._on_synthetic_data = getattr(
             self._module,
             "on_synthetic_data",
@@ -112,12 +116,13 @@ class Operator(wc.Operator):
         self.ctx.add_time_interval = self.__add_time_interval
         self.ctx.clear_timer = wc_context.clear_timer
         self.ctx.subscribe = wc_context.subscribe
+        self.ctx.unsubscribe = wc_context.unsubscribe
         self.ctx.subscribe_all = wc_context.subscribe_all
         self.ctx.subscribe_operator = wc_context.subscribe_operator
         self.ctx.update_operator_state = wc_context.update_operator_state
         self.ctx.publish_synthetic_data = wc_context.publish_synthetic_data
         self.ctx.req_deregister = wc_context.req_deregister
-        self.ctx.basketorder_engine = self.ctx.wc_context.basketorder_engine
+        self.ctx.static_data = wc_context.bookkeeper.static_data
         self.__call_proxy(self._pre_start, self.ctx)
 
     def post_start(self, wc_context):
@@ -140,6 +145,9 @@ class Operator(wc.Operator):
             self._on_transaction, self.ctx, transaction, location, dest_id
         )
 
+    def on_tree(self, wc_context, tree, location, dest_id):
+        self.__call_proxy(self._on_transaction, self.ctx, tree, location)
+
     def on_synthetic_data(self, wc_context, synthetic_data, location, dest_id):
         self.__call_proxy(
             self._on_synthetic_data, self.ctx, synthetic_data, location, dest_id
@@ -157,7 +165,3 @@ class Operator(wc.Operator):
         self.__call_proxy(
             self._on_operator_state_change, self.ctx, operator_state_update, location
         )
-
-    def on_trading_day(self, wc_context, daytime):
-        self.ctx.trading_day = kft.to_datetime(daytime)
-        self.__call_proxy(self._on_trading_day, self.ctx, daytime)

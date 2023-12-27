@@ -1,7 +1,6 @@
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/operator/context.h>
 #include <kungfu/wingchun/operator/operator.h>
-#include <kungfu/wingchun/operator/runtime.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
 using namespace kungfu::longfist::enums;

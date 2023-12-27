@@ -10,7 +10,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import * as monaco from 'monaco-editor';
 import { storeToRefs } from 'pinia';
 import { nextTick, ref, watch } from 'vue';

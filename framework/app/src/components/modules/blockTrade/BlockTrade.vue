@@ -7,13 +7,13 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import { getConfigSettings } from './config';
 import { RuleObject } from 'ant-design-vue/lib/form';
-import { makeOrderByBlockMessage } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
-  getProcessIdByKfLocation,
-  initFormStateByConfig,
+  makeOrderByBlockMessage,
   isShotable,
   transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   useCurrentGlobalKfLocation,
   useMakeOrderSubscribe,

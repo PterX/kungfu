@@ -7,7 +7,6 @@
 #ifndef KUNGFU_IO_H
 #define KUNGFU_IO_H
 
-#include <kungfu/yijinjing/bus.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 
@@ -49,15 +48,21 @@ public:
   [[nodiscard]] bool is_cleaner_required() const {
     return low_latency_ && lazy_ && home_->mode == kungfu::longfist::enums::mode::LIVE;
   }
-  const bus_ptr &get_bus() const { return bus_; }
+  const journal::bus_ptr &get_bus() const { return bus_; }
 
   journal::reader_ptr open_reader_to_subscribe();
 
   [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
 
-  journal::writer_ptr open_writer(uint32_t dest_id);
+  journal::writer_ptr open_writer(uint32_t dest_id, uint64_t page_size = 0);
 
-  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id);
+  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size = 0);
+
+  journal::writer_ptr open_hookable_writer(uint32_t dest_id, const journal::writer_hook_ptr &hook,
+                                           uint64_t page_size = 0);
+
+  journal::writer_ptr open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const journal::writer_hook_ptr &hook, uint64_t page_size = 0);
 
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 
@@ -65,15 +70,18 @@ public:
 
   [[nodiscard]] observer_ptr get_observer() { return observer_; }
 
+  void set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
+
 protected:
   data::location_ptr home_;
   data::location_ptr live_home_;
   const bool low_latency_;
   const bool lazy_;
+  int64_t begin_time_;
   nanomsg::url_factory_ptr url_factory_;
   publisher_ptr publisher_;
   observer_ptr observer_;
-  bus_ptr bus_;
+  journal::bus_ptr bus_;
 };
 
 DECLARE_PTR(io_device)

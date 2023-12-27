@@ -89,6 +89,7 @@ VolumeCondition = lf.enums.VolumeCondition
 TimeCondition = lf.enums.TimeCondition
 OrderActionFlag = lf.enums.OrderActionFlag
 OrderTriggerFlag = lf.enums.OrderTriggerFlag
+AlgoOrderActionFlag = lf.enums.AlgoOrderActionFlag
 LedgerCategory = lf.enums.LedgerCategory
 HedgeFlag = lf.enums.HedgeFlag
 CommissionRateMode = lf.enums.CommissionRateMode
@@ -99,13 +100,13 @@ StrategyState = lf.enums.StrategyState
 OperatorState = lf.enums.OperatorState
 HistoryDataType = lf.enums.HistoryDataType
 OrderTriggerType = lf.enums.OrderTriggerType
+ResumePolicy = lf.enums.ResumePolicy
+
 BasketVolumeType = lf.enums.BasketVolumeType
 BasketType = lf.enums.BasketType
-BasketOrderStatus = lf.enums.BasketOrderStatus
 CashReplaceFlag = lf.enums.CashReplaceFlag
 ETFType = lf.enums.ETFType
 ETFStatus = lf.enums.ETFStatus
-BasketOrderCalculationMode = lf.enums.BasketOrderCalculationMode
 AccountType = lf.enums.AccountType
 BrokerState = lf.enums.BrokerState
 AssembleMode = lf.enums.AssembleMode
@@ -150,11 +151,9 @@ ENUM_TYPES = [
     OrderTriggerType,
     BasketVolumeType,
     BasketType,
-    BasketOrderStatus,
     CashReplaceFlag,
     ETFType,
     ETFStatus,
-    BasketOrderCalculationMode,
     AccountType,
     BrokerState,
     AssembleMode,

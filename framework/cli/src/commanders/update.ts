@@ -4,10 +4,8 @@ import {
   getPromptQuestionsBySettings,
   selectTargetKfConfig,
 } from '../assets/methods/utils';
-import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getKfExtensionConfig } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -31,6 +29,7 @@ export const updateMdTdStrategy = async () => {
           category: 'md',
           group: kfLocation.group,
           name: '*',
+          mode: '*',
         },
         extConfigs['md'][kfLocation.group],
       );
@@ -55,6 +54,7 @@ export const updateMdTdStrategy = async () => {
           category: 'td',
           group: kfLocation.group,
           name: '*',
+          mode: '*',
         },
         extConfigs['td'][kfLocation.group],
       );

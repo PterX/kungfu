@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  dealSide,
-  dealOffset,
   getIdByKfLocation,
-  delayMilliSeconds,
   getProcessIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealOffset,
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useActiveInstruments,
   useExtConfigsRelated,
@@ -46,7 +48,7 @@ import {
   makeOrderByOrderInput,
   getOrderLatencyDataByOrderStat,
   kfCancelAllOrdersTrigger,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
 import {
   OrderCancelledStatus,
@@ -119,7 +121,7 @@ const columns = computed(() => {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );
@@ -496,10 +498,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(
-    row as KungfuApi.OrderResolved,
-    t('orderConfig.entrust'),
-  );
+  showTradingDataDetail(row, t('orderConfig.entrust'));
 }
 
 const adjustOrderConfig = reactive({

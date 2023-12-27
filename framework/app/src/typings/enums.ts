@@ -15,7 +15,6 @@ export enum KfLayoutTargetDirectionClassName {
 
 export enum MsgType {
   Asset = 101,
-  AssetMargin = 102,
   Position = 103,
   Order = 202,
   OrderInput = 201,
@@ -24,4 +23,13 @@ export enum MsgType {
   OrderActionError = 205,
   BlockMessage = 207,
   Quote = 401,
+}
+
+export enum LogLevelType {
+  '-l trace' = 'TRACE',
+  '-l debug' = 'DEBUG',
+  '-l info' = 'INFO',
+  '-l warning' = 'WARN',
+  '-l error' = 'ERROR',
+  '-l critical' = 'CRITICAL',
 }

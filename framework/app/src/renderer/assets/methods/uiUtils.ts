@@ -24,6 +24,7 @@ import {
   createApp,
   defineComponent,
 } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import { Button } from 'ant-design-vue';
@@ -37,23 +38,31 @@ import {
 import {
   ARCHIVE_DIR,
   buildProcessLogPath,
+  buildProcessReplayPath,
+  buildProcessBacktestPath,
   KF_HOME,
   KUNGFU_RESOURCES_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   getInstrumentTypeData,
-  getProcessIdByKfLocation,
-  kfLogger,
-  getAvailExtServiceList,
-  getKfExtensionLanguage,
-  loopToRunProcess,
-  resolveInstrumentValue,
-  transformSearchInstrumentResultToInstrument,
   removeArchiveBeforeToday,
-  isKfColor,
+  startReplay,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getKfExtensionLanguage,
+  getAvailExtServiceList,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getProcessIdByKfLocation,
+  getYearMonthDay,
+  resolveInstrumentValue,
   isHexOrRgbColor,
   debounce,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  loopToRunProcess,
+  isKfColor,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -65,6 +74,7 @@ import {
   nativeImage,
 } from '@electron/remote';
 import { ipcRenderer, clipboard } from 'electron';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import {
   message,
   MessageArgsProps,
@@ -77,7 +87,11 @@ import {
   KfUIExtLocatorTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import path from 'path';
-import { startExtService } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import {
+  startExtService,
+  stopProcess,
+  listProcessStatus,
+} from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { Proc } from 'pm2';
 import { VueNode } from 'ant-design-vue/lib/_util/type';
 import VueI18n, {
@@ -556,16 +570,21 @@ export const openNewBrowserWindow = (
   windowConfig?: Electron.BrowserWindowConstructorOptions,
 ): Promise<Electron.BrowserWindow> => {
   const currentWindow = getCurrentWindow();
+  const isParentFullScreen = currentWindow.isFullScreen();
   const modalPath =
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
       : `file://${folderName}/${name}.html${params}`;
+
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
       ...(getNewWindowLocation() || {}),
+      alwaysOnTop: false,
       width: 1080,
       height: 766,
+      show: false,
       parent: currentWindow,
+      fullscreen: false,
       webPreferences: {
         nodeIntegration: true,
         nodeIntegrationInWorker: true,
@@ -575,13 +594,67 @@ export const openNewBrowserWindow = (
       ...windowConfig,
     });
 
+    //判断是否是macOS系统
+    const isMacOS = process.platform === 'darwin';
+
     win.on('ready-to-show', function () {
-      win && win.focus();
+      if (isMacOS && isParentFullScreen) {
+        win.setFullScreen(false);
+        win.setSize(1080, 766);
+        win.show();
+        win.center();
+        win.focus();
+      } else {
+        win.show();
+        win.focus();
+      }
     });
 
     win.on('closed', () => {
       resolve(win);
     });
+
+    if (isMacOS) {
+      win.on('minimize', (event) => {
+        event.preventDefault();
+        const [parentX, parentY, parentWidth, parentHeight] = [
+          currentWindow.getPosition()[0],
+          currentWindow.getPosition()[1],
+          currentWindow.getSize()[0],
+          currentWindow.getSize()[1],
+        ];
+
+        const newX = parentX + parentWidth - 300;
+        const newY = parentY + parentHeight - 30;
+        win.setSize(300, 30);
+        win.setPosition(newX, newY);
+        currentWindow.setSize(parentWidth, parentHeight);
+        currentWindow.setPosition(parentX, parentY);
+      });
+
+      if (win && !win.isDestroyed()) {
+        currentWindow.on('resize', () => {
+          if (
+            win &&
+            !win.isDestroyed() &&
+            win.getSize()[0] === 300 &&
+            win.getSize()[1] === 30
+          ) {
+            const [parentX, parentY, parentWidth, parentHeight] = [
+              currentWindow.getPosition()[0],
+              currentWindow.getPosition()[1],
+              currentWindow.getSize()[0],
+              currentWindow.getSize()[1],
+            ];
+
+            const newX = parentX + parentWidth - 300;
+            const newY = parentY + parentHeight - 30;
+
+            win.setPosition(newX, newY);
+          }
+        });
+      }
+    }
 
     win.webContents.loadURL(modalPath);
     win.webContents.on('did-finish-load', () => {
@@ -610,6 +683,29 @@ function getNewWindowLocation(): { x: number; y: number } | null {
 
   return null;
 }
+
+export const openReplayView = (
+  type: 'strategy' | 'operator',
+  group: string,
+  logPath: string,
+  beginTime: string,
+  endTime: string,
+  log_level: string,
+  sessionName: string,
+  filePath: string,
+  enableMatcher: boolean,
+  processId: string,
+): Promise<Electron.BrowserWindow> => {
+  return openNewBrowserWindow(
+    process.env.KF_APP_RUNTIME_DIR,
+    'replay',
+    `?logPath=${logPath}&enableMatcher=${enableMatcher}&sessionName=${sessionName}&filePath=${filePath}&category=${type}&group=${group}&beginTime=${beginTime}&endTime=${endTime}&logLevel=${log_level}&processId=${processId}`,
+    {
+      width: 1280,
+      height: 960,
+    },
+  );
+};
 
 export const openLogView = (
   logPath: string,
@@ -678,7 +774,6 @@ export const parseURIParams = (): Record<string, string> => {
 
   return paramsData;
 };
-
 export const useIpcListener = (): void => {
   const app = getCurrentInstance();
   ipcRenderer.removeAllListeners('main-process-messages');
@@ -783,6 +878,95 @@ export const messagePrompt = (): {
     warn,
     loading,
   };
+};
+
+export const handleOpenReplayView = async (
+  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  beginTime: string,
+  endTime: string,
+  logLevel: string,
+  processId: string,
+  replayConfig: KungfuApi.ReplayConfig,
+): Promise<Electron.BrowserWindow> => {
+  const dateStr = getYearMonthDay();
+  const hideloading = messagePrompt().loading(t('open_replay_dashboard'));
+  const logPath = replayConfig.enable_matcher
+    ? buildProcessBacktestPath(config, `${config.name}_${dateStr}`)
+    : buildProcessReplayPath(config, `${config.name}_${dateStr}`);
+  if (replayConfig) {
+    try {
+      ensureFileSync(logPath);
+      await outputFile(logPath, '');
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+
+    try {
+      await ipcEmit('clear-process', {
+        processId,
+      });
+    } catch (error) {
+      console.error(error);
+      messagePrompt().error();
+    }
+  }
+
+  return openReplayView(
+    config.category,
+    config.group,
+    logPath,
+    beginTime,
+    endTime,
+    logLevel,
+    replayConfig.session_name,
+    replayConfig.file_path,
+    replayConfig.enable_matcher,
+    processId,
+  ).finally(async () => {
+    hideloading();
+    const { processStatus } = await listProcessStatus();
+    if (processStatus[processId] === 'online') {
+      await stopProcess(processId);
+    }
+    await startReplay(config, replayConfig);
+  });
+};
+
+export const getJournalReplayConfigs = async (
+  config: KungfuApi.KfConfig | KungfuApi.KfLocation,
+  replayConfig: KungfuApi.ReplayConfig,
+  count: number,
+): Promise<{
+  startProcess: number;
+  ProcessConfigs:
+    | {
+        category: string;
+        group: string;
+        name: string;
+        mode: string;
+        replayConfig: KungfuApi.ReplayConfig;
+      }
+    | undefined;
+}> => {
+  try {
+    return {
+      startProcess: ++count,
+      ProcessConfigs: {
+        category: config.category,
+        group: config.group,
+        name: config.name,
+        mode: replayConfig.enable_matcher ? 'backtest' : 'replay',
+        replayConfig,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      startProcess: 0,
+      ProcessConfigs: undefined,
+    };
+  }
 };
 
 export const handleOpenLogview = (

@@ -8,10 +8,10 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
+  dealSide,
   dealOffset,
   dealOrderStatus,
-  dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { WellFinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 export class OrderTable extends Table {

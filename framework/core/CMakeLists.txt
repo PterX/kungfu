@@ -24,6 +24,7 @@ add_compile_definitions(SPDLOG_NO_ATOMIC_LEVELS)
 option(NNG_TESTS "" OFF)
 option(NNG_TOOLS "" OFF)
 option(NNG_ENABLE_NNGCAT "" OFF)
+option(KUNGFU_WITH_DEBUG_EXAMPLE "" OFF)
 
 ##########################################################################
 
@@ -64,3 +65,9 @@ if (NOT DEFINED ENV{KUNGFU_BUILD_SKIP_PYKUNGFU} OR NOT $ENV{KUNGFU_BUILD_SKIP_PY
   add_subdirectory(.deps/pybind11-2.9.0)
   add_subdirectory(src/bindings/python)
 endif()
+
+if (KUNGFU_WITH_DEBUG_EXAMPLE)
+  message(STATUS "Enabled kungfu_debug_example")
+  add_subdirectory(debug-example)
+endif()
+

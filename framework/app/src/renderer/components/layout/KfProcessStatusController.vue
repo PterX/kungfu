@@ -3,10 +3,13 @@ import Icon, {
   ClusterOutlined,
   FileTextOutlined,
   BankOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
+import { storeToRefs } from 'pinia';
 import { notification } from 'ant-design-vue';
 
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 
 import {
   computed,
@@ -15,6 +18,7 @@ import {
   onMounted,
   onBeforeUnmount,
   getCurrentInstance,
+  nextTick,
 } from 'vue';
 import { SystemProcessName } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
@@ -25,21 +29,29 @@ import {
 import {
   getKfCategoryData,
   getIfProcessRunning,
-  getProcessIdByKfLocation,
   getPropertyFromProcessStatusDetailDataByKfLocation,
   getIfProcessStopping,
   isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
+  buildMasterLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
   handleSwitchProcessStatusGenerator,
   useAllKfConfigData,
   useExtConfigsRelated,
   useProcessStatusDetailData,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
+
+const { testCase } = storeToRefs(useGlobalStore());
 
 const app = getCurrentInstance();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
@@ -58,13 +70,22 @@ const {
   processStatusDetailData,
   getProcessStatusName,
 } = useProcessStatusDetailData();
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 const { tdExtTypeMap, mdExtTypeMap } = useExtConfigsRelated();
+
+let canBacktest = false;
 
 let isClosingWindow = false;
 let isRestartSystem = 0;
 let hasAlertMasterStop = false;
 let hasAlertLedgerStop = false;
-let hasAlertCacheDStop = false;
 
 const getNotificationType = (flag: number) => {
   return flag ? 'warning' : 'error';
@@ -79,19 +100,6 @@ watch(processStatusData, (newPSD, oldPSD) => {
       notification[getNotificationType(isRestartSystem)]({
         message: t('master_interrupt'),
         description: t('master_desc'),
-        duration: 8,
-        placement: 'bottomRight',
-      });
-      isRestartSystem && isRestartSystem++;
-    }
-  }
-
-  if (newPSD.cached !== 'online' && oldPSD.cached === 'online') {
-    if (isRestartSystem || !hasAlertCacheDStop) {
-      hasAlertCacheDStop = true;
-      notification[getNotificationType(isRestartSystem)]({
-        message: t('cached_interrupt'),
-        description: t('cached_desc'),
         duration: 8,
         placement: 'bottomRight',
       });
@@ -142,14 +150,26 @@ watch(appStates, (newAppStates, oldAppStates) => {
 });
 
 const mainStatusWell = computed(() => {
-  const masterIsLive = processStatusData.value['master'] === 'online';
-  const ledgerIsLive = processStatusData.value['ledger'] === 'online';
-  const cachedIsLive = processStatusData.value['cached'] === 'online';
-  return masterIsLive && ledgerIsLive && cachedIsLive;
+  const masterLocation = buildMasterLocation();
+  const ledgerLocation = buildLedgerLocation();
+  const masterIsLive =
+    processStatusData.value[getProcessIdByKfLocation(masterLocation)] ===
+    'online';
+  const ledgerIsLive =
+    processStatusData.value[getProcessIdByKfLocation(ledgerLocation)] ===
+    'online';
+  return masterIsLive && ledgerIsLive;
 });
 
 function handleOpenProcessControllerBoard(): void {
   processControllerBoardVisible.value = true;
+}
+
+function handleClickReplay(config: KungfuApi.KfLocation) {
+  canBacktest = config.category === 'strategy';
+  nextTick(() => {
+    handleOpenReplayConfirmView(config);
+  });
 }
 
 const prefixMap = ref({});
@@ -314,6 +334,14 @@ onMounted(() => {
                 }}
               </div>
               <div class="actions kf-actions__warp">
+                <HistoryOutlined
+                  v-if="
+                    testCase.replayEnabled[config.category] ||
+                    (config.category === 'system' && config.name === 'ledger')
+                  "
+                  style="font-size: 12px"
+                  @click.stop="handleClickReplay(config)"
+                ></HistoryOutlined>
                 <BankOutlined
                   style="font-size: 12px"
                   @click.stop="handleOpenJournalView(config)"
@@ -328,6 +356,21 @@ onMounted(() => {
         </template>
       </div>
     </a-drawer>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :can-backtest="canBacktest"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 
@@ -399,9 +442,12 @@ onMounted(() => {
       }
 
       .actions {
-        width: 60px;
+        display: flex;
+        justify-content: flex-end;
+        width: 90px;
       }
     }
   }
 }
 </style>
+@kungfu-trader/kungfu-js-api/utils/systemConfig

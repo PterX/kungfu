@@ -43,6 +43,7 @@ import {
   getPriceTypeConfig,
   initFormStateByConfig,
   replaceNonAlphaNumericWithSpace,
+  FormItemNeedIcon,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
@@ -205,32 +206,6 @@ const configSettingFormInject = inject(
   BuiltinComponentInjectKeysMap.ConfigSettingForm,
   {},
 );
-
-const formItemNeedIcon = [
-  'str',
-  'password',
-  'int',
-  'float',
-  'percent',
-  'side',
-  'priceType',
-  'priceLevel',
-  'radio',
-  'checkbox',
-  'checkboxGroup',
-  'select',
-  'multiSelect',
-  'instrument',
-  'instruments',
-  'td',
-  'tds',
-  'md',
-  'md&operator',
-  'operator',
-  'strategy',
-  'basket',
-  'bool',
-];
 
 watch(
   () => props.configSettings,
@@ -1343,12 +1318,7 @@ defineExpose({
       "
     >
       <div
-        v-if="
-          formItemNeedIcon.includes(item.type) ||
-          numberEnumRadioTypeResolved[item.type] ||
-          numberEnumSelectType[item.type] ||
-          stringEnumSelectType[item.type]
-        "
+        v-if="FormItemNeedIcon.includes(item.type)"
         class="kf-form-item_icon__warp"
       >
         <a-input

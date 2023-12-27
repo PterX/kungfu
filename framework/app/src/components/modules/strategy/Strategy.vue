@@ -40,6 +40,7 @@ import {
   dealAssetPrice,
   getProcessIdByKfLocation,
   getConfigValue,
+  buildTableColumnSorterWithStrike,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getColumns, setStrategyConfig } from './config';
 import path from 'path';

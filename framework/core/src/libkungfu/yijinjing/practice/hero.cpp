@@ -39,17 +39,21 @@ hero::hero(io_device_ptr io_device)
 
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
-  add_location(0, get_io_device()->get_live_home());
-  add_location(0, master_home_location_);
-  add_location(0, master_cmd_location_);
-  add_location(0, ledger_home_location_);
-  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
-    add_location(0, l);
-  }
+  //  add_location(0, get_io_device()->get_live_home());
+  //  add_location(0, master_home_location_);
+  //  add_location(0, master_cmd_location_);
+  //  add_location(0, ledger_home_location_);
+  //  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
+  //    add_location(0, l);
+  //  }
   reader_ = io_device_->open_reader_to_subscribe();
 
   read_options_.fill_cache = false;
   options_.create_if_missing = true;
+  ensure_master_rocksdb();
+  auto home = verify_location_uid(get_home());
+  update_seed(home->seed);
+  master_cmd_location_->update_seed(home->seed);
 }
 
 hero::~hero() {
@@ -283,7 +287,10 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
   return true;
 }
 
-void hero::add_location(int64_t, const location_ptr &location) { locations_.try_emplace(location->uid, location); }
+void hero::add_location(int64_t, const location_ptr &location) {
+  SPDLOG_DEBUG("location: {}", location->to_string());
+  locations_.insert_or_assign(location->uid, location);
+}
 
 void hero::add_location(int64_t trigger_time, const Location &location) {
   add_location(trigger_time, data::location::make_shared(location, get_locator()));
@@ -480,8 +487,7 @@ rocksdb::DB *hero::get_master_rocksdb() const {
     }
   } else {
     if (nullptr == master_db_) {
-      rocksdb::Status status =
-          rocksdb::DB::Open(options_, get_locator()->layout_dir(get_master_home_location(), layout::MAP), &master_db_);
+      rocksdb::Status status = rocksdb::DB::Open(options_, master_db_dir, &master_db_);
       if (not status.ok()) {
         const std::string msg = fmt::format("Open for {} failed, {}", master_db_dir, status.ToString());
         SPDLOG_ERROR(msg);
@@ -518,6 +524,9 @@ std::string hero::get_master_kv(const std::string &key) const {
 }
 
 void hero::put_master_kv(const std::string &key, const std::string &value) const {
+  if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
+    return;
+  }
   rocksdb::Status status = get_master_rocksdb()->Put(write_options_, key, value);
   if (not status.ok()) {
     SPDLOG_ERROR("put key:{} value: {}, failed, {}", key, value, status.ToString());
@@ -541,5 +550,105 @@ void hero::put_app_kv(const std::string &key, const std::string &value) const {
 }
 
 void hero::update_seed(uint32_t s) { io_device_->update_seed(s); }
+
+void hero::ensure_master_rocksdb() const {
+  static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
+  try {
+    get_master_rocksdb();
+  } catch (const std::exception &e) {
+    SPDLOG_WARN("catch exception: {}", e.what());
+    rocksdb::DB *db;
+    rocksdb::DB::Open(options_, master_db_dir, &master_db_);
+    delete db;
+  }
+}
+
+bool hero::is_uid_clash(const data::location_ptr &location) {
+  std::string location_json;
+  rocksdb::Status status = get_master_rocksdb()->Get(read_options_, std::to_string(location->uid), &location_json);
+  SPDLOG_DEBUG("location_json: {}", location_json);
+  if (status.IsNotFound()) {
+    return false;
+  } else {
+    return location->to_string() != location_json;
+  }
+}
+
+data::location_ptr hero::verify_location_uid(const data::location_ptr &location) {
+  const std::string str_seed = get_master_kv(std::to_string(location->uid64));
+  if (not str_seed.empty()) {
+    location->update_seed(std::stoul(str_seed));
+    return location;
+  }
+  while (is_uid_clash(location)) {
+    location->update_seed(location->uid);
+  }
+  return location;
+}
+
+std::map<std::string, std::string> hero::get_master_kvs(const std::vector<std::string> &keys) const {
+  auto db = get_master_rocksdb();
+  std::map<std::string, std::string> values;
+  for (const std::string &key : keys) {
+    db->Get(read_options_, key, &values.try_emplace(key).first->second);
+  }
+  return values;
+}
+
+std::map<std::string, std::string> hero::get_app_kvs(const std::vector<std::string> &keys) const {
+  auto db = get_app_rocksdb();
+  std::map<std::string, std::string> values;
+  for (const std::string &key : keys) {
+    db->Get(read_options_, key, &values.try_emplace(key).first->second);
+  }
+  return values;
+}
+
+void hero::put_master_kvs(const std::map<std::string, std::string> &kvs) const {
+  if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
+    return;
+  }
+
+  rocksdb::WriteBatch batch;
+  for (const auto &pair : kvs) {
+    batch.Put(pair.first, pair.second);
+  }
+
+  rocksdb::Status status = get_master_rocksdb()->Write(write_options_, &batch);
+  if (not status.ok()) {
+    SPDLOG_ERROR("Write failed, {}", status.ToString());
+  }
+}
+
+void hero::put_app_kvs(const std::map<std::string, std::string> &kvs) const {
+  rocksdb::WriteBatch batch;
+  for (const auto &pair : kvs) {
+    batch.Put(pair.first, pair.second);
+  }
+
+  rocksdb::Status status = get_app_rocksdb()->Write(write_options_, &batch);
+  if (not status.ok()) {
+    SPDLOG_ERROR("Write failed, {}", status.ToString());
+  }
+}
+
+void hero::write_location_to_rocksdb(const location_ptr &location) {
+  location_uid64s_.insert(location->uid64);
+  const std::string str_uid32 = std::to_string(location->uid);
+  const std::string str_uid64 = std::to_string(location->uid64);
+
+  nlohmann::json json_array;
+  for (const auto &uid : location_uid64s_) {
+    json_array.push_back(uid);
+  }
+  nlohmann::json json_obj;
+  json_obj["location_uid64"] = json_array;
+
+  rocksdb::WriteBatch batch;
+  batch.Put(str_uid32, str_uid64);
+  batch.Put(str_uid64, location->to_string());
+  batch.Put("location_uid64", json_obj.dump());
+  get_master_rocksdb()->Write(write_options_, &batch);
+}
 
 } // namespace kungfu::yijinjing::practice

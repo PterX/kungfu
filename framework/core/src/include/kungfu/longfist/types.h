@@ -749,6 +749,7 @@ KF_DEFINE_DATA_TYPE(                                     //
 
 KF_DEFINE_DATA_TYPE(                                          //
     OutputKey, 701, PK(location_uid), TIMESTAMP(update_time), //
+    (uint64_t, uid64),                                        //
     (uint32_t, location_uid),                                 //
     (enums::category, category),                              //
     (enums::mode, mode),                                      //
@@ -759,6 +760,7 @@ KF_DEFINE_DATA_TYPE(                                          //
 
 KF_DEFINE_DATA_TYPE(                                //
     Register, 10101, PK(location_uid), PERPETUAL(), //
+    (uint64_t, uid64),                              //
     (uint32_t, location_uid),                       //
     (enums::category, category),                    //
     (enums::mode, mode),                            //
@@ -772,6 +774,7 @@ KF_DEFINE_DATA_TYPE(                                //
 
 KF_DEFINE_DATA_TYPE(                                  //
     Deregister, 10102, PK(location_uid), PERPETUAL(), //
+    (uint64_t, uid64),                                //
     (uint32_t, location_uid),                         //
     (enums::category, category),                      //
     (enums::mode, mode),                              //
@@ -782,6 +785,7 @@ KF_DEFINE_DATA_TYPE(                                  //
 
 KF_DEFINE_DATA_TYPE(                                                     //
     Session, 10103, PK(location_uid, begin_time), TIMESTAMP(begin_time), //
+    (uint64_t, uid64),                                                   //
     (uint32_t, location_uid),                                            //
     (enums::category, category),                                         //
     (enums::mode, mode),                                                 //
@@ -823,6 +827,7 @@ KF_DEFINE_PACK_TYPE(                                  //
 
 KF_DEFINE_DATA_TYPE(                              //
     Config, 10201, PK(location_uid), PERPETUAL(), //
+    (uint64_t, uid64),                            //
     (uint32_t, location_uid),                     //
     (enums::category, category),                  //
     (std::string, group),                         //
@@ -834,6 +839,7 @@ KF_DEFINE_DATA_TYPE(                              //
 
 KF_DEFINE_DATA_TYPE(                                   //
     RiskSetting, 10202, PK(location_uid), PERPETUAL(), //
+    (uint64_t, uid64),                                 //
     (uint32_t, location_uid),                          //
     (enums::category, category),                       //
     (std::string, group),                              //
@@ -884,6 +890,7 @@ KF_DEFINE_PACK_TYPE(                                                //
 
 KF_DEFINE_DATA_TYPE(                                //
     Location, 10205, PK(location_uid), PERPETUAL(), //
+    (uint64_t, uid64),                              //
     (uint32_t, location_uid),                       //
     (enums::category, category),                    //
     (enums::mode, mode),                            //
@@ -977,6 +984,7 @@ KF_DEFINE_PACK_TYPE(                                            //
 
 KF_DEFINE_DATA_TYPE(                                          //
     RequestWriteToBand, 10307, PK(location_uid), PERPETUAL(), //
+    (uint64_t, uid64),                                        //
     (uint32_t, location_uid),                                 //
     (enums::category, category),                              //
     (enums::mode, mode),                                      //

@@ -120,14 +120,13 @@ struct location : public std::enable_shared_from_this<location>, public longfist
 
   const locator_ptr locator;
   const std::string uname;
-  const uint64_t uid64;
   uint32_t uid;
 
   location(longfist::enums::mode m, longfist::enums::category c, std::string g, std::string n, locator_ptr l,
            uint32_t default_seed = KUNGFU_HASH_SEED)
       : locator(std::move(l)), uname(fmt::format("{}/{}/{}/{}", longfist::enums::get_category_name(c), g, n,
-                                                 longfist::enums::get_mode_name(m))),
-        uid64(util::hash_str_64(fmt::format("{}/{}/{}", longfist::enums::get_category_name(c), g, n))) {
+                                                 longfist::enums::get_mode_name(m))) {
+    uid64 = util::hash_str_64(fmt::format("{}/{}/{}", longfist::enums::get_category_name(c), g, n));
     category = c;
     group = std::move(g);
     name = std::move(n);
@@ -141,19 +140,13 @@ struct location : public std::enable_shared_from_this<location>, public longfist
     seed = s;
     uid = uid = util::hash_str_32(uname, seed);
     location_uid = uid;
+    SPDLOG_DEBUG("{}", this->to_string());
   }
-
-  uint32_t get_seed(uint32_t default_seed = KUNGFU_HASH_SEED);
-
-  bool check_location_uid(uint32_t location_uid, std::string &uname);
-
-  void verify_location_uid();
-
-  void store_location();
 
   template <typename T> inline T to() const {
     T t{};
-    t.location_uid = uid;
+    t.uid64 = uid64;
+    t.location_uid = location_uid;
     t.mode = mode;
     t.category = category;
     t.group = group;
@@ -163,7 +156,8 @@ struct location : public std::enable_shared_from_this<location>, public longfist
   }
 
   template <typename T> inline T &to(T &t) const {
-    t.location_uid = uid;
+    t.uid64 = uid64;
+    t.location_uid = location_uid;
     t.mode = mode;
     t.category = category;
     t.group = group;

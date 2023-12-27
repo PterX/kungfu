@@ -127,17 +127,33 @@ public:
 
   virtual bool is_reactable(const event_ptr &event);
 
+  void ensure_master_rocksdb() const;
+
   rocksdb::DB *get_master_rocksdb() const;
 
   rocksdb::DB *get_app_rocksdb() const;
 
   std::string get_master_kv(const std::string &key) const;
 
+  std::map<std::string, std::string> get_master_kvs(const std::vector<std::string> &keys) const;
+
   void put_master_kv(const std::string &key, const std::string &value) const;
+
+  void put_master_kvs(const std::map<std::string, std::string> &kvs) const;
 
   std::string get_app_kv(const std::string &key) const;
 
+  std::map<std::string, std::string> get_app_kvs(const std::vector<std::string> &keys) const;
+
   void put_app_kv(const std::string &key, const std::string &value) const;
+
+  void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
+
+  bool is_uid_clash(const data::location_ptr &location);
+
+  data::location_ptr verify_location_uid(const data::location_ptr &location);
+
+  void write_location_to_rocksdb(const data::location_ptr &location);
 
   void request_deregister() {
     continual_ = false;
@@ -190,6 +206,7 @@ protected:
   rocksdb::ReadOptions read_options_ = {};
   rocksdb::WriteOptions write_options_ = {};
   rocksdb::Options options_ = {};
+  std::set<uint64_t> location_uid64s_ = {};
 
   rx::connectable_observable<event_ptr> events_ = {};
 

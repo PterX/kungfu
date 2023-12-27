@@ -198,6 +198,8 @@ void apprentice::on_register(int64_t trigger_time, const Register &register_data
 }
 
 void apprentice::on_deregister(const event_ptr &event) {
+  const auto &deregister = event->data<Deregister>();
+  SPDLOG_DEBUG("deregister: {}", deregister.to_string());
   uint32_t location_uid = event->data<Deregister>().location_uid;
   SPDLOG_DEBUG("deregister app {}", get_location_uname(location_uid));
   if (location_uid == get_live_home_uid()) {
@@ -281,7 +283,6 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
 
 void apprentice::checkin() {
   auto now = time::now_in_nano();
-  verify_location_uid();
   auto home = get_live_home();
   Register register_data{};
   register_data.mode = home->mode;
@@ -357,21 +358,5 @@ journal::writer_ptr &apprentice::get_thread_writer(uint64_t page_size) {
 }
 
 journal::writer_ptr &apprentice::get_public_writer() { return public_writer_; }
-
-bool apprentice::is_uid_clash() {
-  std::string uid64;
-  rocksdb::Status status = get_master_rocksdb()->Get(read_options_, std::to_string(get_home_uid()), &uid64);
-  if (status.IsNotFound()) {
-    return false;
-  } else {
-    return std::to_string(get_home()->uid64) != uid64;
-  }
-}
-
-void apprentice::verify_location_uid() {
-  while (is_uid_clash()) {
-    update_seed(get_home_uid());
-  }
-}
 
 } // namespace kungfu::yijinjing::practice

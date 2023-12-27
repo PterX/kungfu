@@ -31,6 +31,7 @@ public:
 
   void format(const spdlog::details::log_msg &msg, spdlog::memory_buf_t &dest) override {
     spdlog::details::fmt_helper::append_string_view(time::strftime(time::now_in_nano(), TS_PATTERN), dest);
+    spdlog::details::fmt_helper::append_string_view(fmt::format("{:08x}", 1), dest);
     spdlog_formatter.format(msg, dest);
   }
 

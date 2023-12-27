@@ -15,12 +15,12 @@ struct Bar {
   InstrumentType instrument_type;
   int64_t start_time;
   int64_t end_time;
-  float open;
-  float close;
-  float high;
-  float low;
-  float volume;
-  float start_volume;
+  double open;
+  double close;
+  double high;
+  double low;
+  double volume;
+  double start_volume;
   std::size_t tick_count;
 };
 

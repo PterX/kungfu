@@ -592,31 +592,31 @@ KF_DEFINE_PACK_TYPE(                                         //
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
-    (float, pre_close_price),      // 昨收价
-    (float, pre_settlement_price), // 昨结价
+    (double, pre_close_price),      // 昨收价
+    (double, pre_settlement_price), // 昨结价
 
-    (float, last_price), // 最新价
-    (float, volume),     // 数量
-    (float, turnover),   // 成交金额
+    (double, last_price), // 最新价
+    (double, volume),     // 数量
+    (double, turnover),   // 成交金额
 
-    (float, pre_open_interest), // 昨持仓量
-    (float, open_interest),     // 持仓量
+    (double, pre_open_interest), // 昨持仓量
+    (double, open_interest),     // 持仓量
 
-    (float, open_price), // 今开盘
-    (float, high_price), // 最高价
-    (float, low_price),  // 最低价
+    (double, open_price), // 今开盘
+    (double, high_price), // 最高价
+    (double, low_price),  // 最低价
 
-    (float, upper_limit_price), // 涨停板价
-    (float, lower_limit_price), // 跌停板价
+    (double, upper_limit_price), // 涨停板价
+    (double, lower_limit_price), // 跌停板价
 
-    (float, close_price),      // 收盘价
-    (float, settlement_price), // 结算价
-    (float, iopv),             // 基金实时参考净值
+    (double, close_price),      // 收盘价
+    (double, settlement_price), // 结算价
+    (double, iopv),             // 基金实时参考净值
 
-    (kungfu::array<float, 10>, bid_price),  // 申买价
-    (kungfu::array<float, 10>, ask_price),  // 申卖价
-    (kungfu::array<float, 10>, bid_volume), // 申买量
-    (kungfu::array<float, 10>, ask_volume), // 申卖量
+    (kungfu::array<double, 10>, bid_price),  // 申买价
+    (kungfu::array<double, 10>, ask_price),  // 申卖价
+    (kungfu::array<double, 10>, bid_volume), // 申买量
+    (kungfu::array<double, 10>, ask_volume), // 申卖量
     (kungfu::array<char, TRAIDNG_PHASE_CODE_LEN>, trading_phase_code)
     // 标的状态, 上交所用四位, 深交所用两位
     //************************************上海现货行情交易状态***************************************************************
@@ -644,8 +644,8 @@ KF_DEFINE_PACK_TYPE(                                                    //
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
-    (float, price),                 // 委托价格
-    (float, volume),                // 委托量
+    (double, price),                // 委托价格
+    (double, volume),               // 委托量
     (enums::Side, side),            // 委托方向
     (enums::PriceType, price_type), // 订单价格类型（市价、限价、本方最优）
 
@@ -665,8 +665,8 @@ KF_DEFINE_PACK_TYPE(                                                        //
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
-    (float, price),  // 成交价
-    (float, volume), // 成交量
+    (double, price),  // 成交价
+    (double, volume), // 成交量
 
     (int64_t, bid_no), // 买方订单号
     (int64_t, ask_no), // 卖方订单号
@@ -693,30 +693,30 @@ KF_DEFINE_PACK_TYPE(                                        //
     (double, volume),     // 总成交量
     (double, turnover),   // 总成交金额
 
-    (float, bid_weighted_avg_price), // 加权平均委托买入价格
-    (double, total_bid_volume),      // 委托买入数量
-    (float, ask_weighted_avg_price), // 加权平均委托卖出价格
-    (double, total_ask_volume),      // 委托卖出数量
+    (double, bid_weighted_avg_price), // 加权平均委托买入价格
+    (double, total_bid_volume),       // 委托买入数量
+    (double, ask_weighted_avg_price), // 加权平均委托卖出价格
+    (double, total_ask_volume),       // 委托卖出数量
 
-    (float, pre_close_price), // 昨收价
+    (double, pre_close_price), // 昨收价
 
-    (float, last_price), // 最新价
-    (float, open_price), // 今开盘
-    (float, high_price), // 最高价
-    (float, low_price),  // 最低价
+    (double, last_price), // 最新价
+    (double, open_price), // 今开盘
+    (double, high_price), // 最高价
+    (double, low_price),  // 最低价
 
-    (float, upper_limit_price), // 涨停板价
-    (float, lower_limit_price), // 跌停板价
+    (double, upper_limit_price), // 涨停板价
+    (double, lower_limit_price), // 跌停板价
 
-    (float, close_price), // 收盘价
+    (double, close_price), // 收盘价
 
     (int32_t, bid_depth), // 申买档位数
     (int32_t, ask_depth), // 申卖档位数
 
-    (kungfu::array<float, 10>, bid_price),                            // 申买价
-    (kungfu::array<float, 10>, ask_price),                            // 申卖价
-    (kungfu::array<float, 10>, bid_volume),                           // 申买量
-    (kungfu::array<float, 10>, ask_volume),                           // 申卖量
+    (kungfu::array<double, 10>, bid_price),                           // 申买价
+    (kungfu::array<double, 10>, ask_price),                           // 申卖价
+    (kungfu::array<double, 10>, bid_volume),                          // 申买量
+    (kungfu::array<double, 10>, ask_volume),                          // 申卖量
     (kungfu::array<char, TRAIDNG_PHASE_CODE_LEN>, trading_phase_code) // 标的状态, 上交所用四位, 深交所用两位,同quote
 
 );

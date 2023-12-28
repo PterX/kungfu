@@ -593,7 +593,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (enums::InstrumentType, instrument_type), // 合约类型
 
     (double, pre_close_price),      // 昨收价
-    (double, pre_settlement_price), // 昨结价
+    (double, pre_settlement_price), // 昨日期权结算结价
 
     (double, last_price), // 最新价
     (double, volume),     // 数量
@@ -610,8 +610,12 @@ KF_DEFINE_PACK_TYPE(                                         //
     (double, lower_limit_price), // 跌停板价
 
     (double, close_price),      // 收盘价
-    (double, settlement_price), // 结算价
+    (double, settlement_price), // 期权结算价
     (double, iopv),             // 基金实时参考净值
+
+    (double, total_bid_volume), // 总委托买如量
+    (double, total_ask_volume), // 总委托卖出量
+    (int64_t, total_trades_num), // 总成交笔数
 
     (kungfu::array<double, 10>, bid_price),  // 申买价
     (kungfu::array<double, 10>, ask_price),  // 申卖价

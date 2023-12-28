@@ -1,5 +1,4 @@
 import { Subject } from 'rxjs';
-import { StoreDefinition } from 'pinia';
 import { Locale } from 'ant-design-vue/es/locale-provider';
 
 declare module '@vue/runtime-core' {
@@ -8,7 +7,6 @@ declare module '@vue/runtime-core' {
     $globalBus: Subject<KfBusEvent>;
     $tradingDataSubject: Subject<Watcher>;
     $availKfBoards: string[];
-    _: any; //vue3 shit
   }
 }
 

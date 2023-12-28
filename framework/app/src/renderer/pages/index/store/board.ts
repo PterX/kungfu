@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { StoreDefinition, defineStore, _UnwrapAll } from 'pinia';
 import {
   KfLayoutDirection,
   KfLayoutTargetDirectionClassName,
@@ -10,16 +10,58 @@ import {
   ref,
   toRaw,
   getCurrentInstance,
+  Ref,
 } from 'vue';
 import { Subscription } from 'rxjs';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
 
-export type UseBoardsStore = ReturnType<
-  ReturnType<typeof useBoards>['createBoardsStore']
->;
+// 对应store中的state
+interface StateTree {
+  boardsMap: Ref<KfLayout.BoardsMap>;
+  dragedContentData: Ref<KfLayout.ContentData | null>;
+  isBoardDragging: Ref<boolean>;
+}
+// 对应store中的action
+interface ActionsTree {
+  markIsBoardDragging: (status: boolean) => void;
+  initBoardsMap: (boardMap: KfLayout.BoardsMap) => void;
+  setBoardsMapAttrById: (
+    id: number,
+    attrKey: keyof KfLayout.BoardInfo,
+    value: KfLayout.BoardInfo[keyof KfLayout.BoardInfo],
+  ) => void;
+  addBoardFromEmpty: (targetContentId: string) => Promise<void>;
+  addBoardByContentId: (
+    targetBoardId: number,
+    targetContentId: string,
+  ) => Promise<void>;
+  removeBoardByContentId: (
+    targetBoardId: number,
+    targetContentId: string,
+  ) => void;
+  setDragedContentData: (
+    boardId: KfLayout.BoardId,
+    contentId: KfLayout.ContentId,
+  ) => void;
+  afterDragMoveBoard: (
+    dragedContentData: KfLayout.ContentData | null,
+    destBoardId: KfLayout.BoardId,
+    directionClassName: KfLayoutTargetDirectionClassName,
+  ) => void;
+}
+
+type combineType = StateTree & ActionsTree;
 declare global {
   interface Window {
-    allBoardsStore: Record<string, UseBoardsStore>;
+    allBoardsStore: Record<
+      string,
+      StoreDefinition<
+        `${string}_boardsStore`,
+        _UnwrapAll<Pick<combineType, keyof StateTree>>,
+        Pick<combineType, never>, // never在有computed的时候用，对应store中getter
+        Pick<combineType, keyof ActionsTree>
+      >
+    >;
   }
 }
 

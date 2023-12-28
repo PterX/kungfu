@@ -127,6 +127,7 @@ app
   .use(Tree)
   .use(List)
   .use(Badge)
+  .use(Tooltip)
 
   .use(Statistic)
   .use(Divider)

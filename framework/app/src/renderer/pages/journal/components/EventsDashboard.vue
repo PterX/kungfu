@@ -1,5 +1,5 @@
 <template>
-  <div v-if="contentVisible" class="kf-journal-events__wrap">
+  <div class="kf-journal-events__wrap">
     <div class="kf-journal-filters-bar">
       <div class="kf-journal-bar-title">
         <span>{{ `${$t('journalConfig.time_range')}: ` }}</span>
@@ -152,7 +152,6 @@ import { getFrameColumns } from '../config';
 import {
   dealFrame,
   buildFrameHeaderForShow,
-  useResizeFlag,
   getSourceDestMap,
   useNow,
 } from '../utils';
@@ -171,7 +170,6 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 
-const { contentVisible } = useResizeFlag();
 const {
   currentSession,
   currentTime,
@@ -426,6 +424,11 @@ onMounted(() => {
         await loadMore(false);
       }
     }, CHECK_LOAD_MORE_TIME);
+  });
+  window.addEventListener('resize', () => {
+    if (scrollerTableRef.value) {
+      scrollerTableRef.value.resizeScrollerTableWidth();
+    }
   });
 });
 

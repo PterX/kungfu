@@ -285,6 +285,12 @@ const initScrollerTableWidth = () => {
   });
 };
 
+const resizeScrollerTableWidth = () => {
+  if (kfScrollerTableBodyRef.value) {
+    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
+  }
+};
+
 onMounted(() => {
   initScrollerTableWidth();
 
@@ -555,6 +561,7 @@ defineExpose({
   scrollToTop,
   getVisibleIndexRange,
   resetSort,
+  resizeScrollerTableWidth,
 });
 </script>
 <template>

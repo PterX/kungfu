@@ -529,7 +529,7 @@ export default {
     source: 'Outline the node',
     target: 'Into the node',
     amount: 'Amount incurred',
-    trading_day: 'Transfer time',
+    update_time: 'Transfer time',
     source_target_cannot_be_same:
       'Transfer source and target cannot be the same, please reselect!',
     tip_error: 'Transfer failed, please contact the administrator!',

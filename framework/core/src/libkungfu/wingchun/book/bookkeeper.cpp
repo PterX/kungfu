@@ -52,7 +52,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | is(AlgoOrderInput::tag) |
       $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
-  events | is(AlgoOrder::tag) | $$(update_algo_book<AlgoOrder>(event));
+  events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
@@ -91,7 +91,7 @@ void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t d
 
 void Bookkeeper::on_algo_order_input(int64_t update_time, uint32_t source, uint32_t dest,
                                      const longfist::types::AlgoOrderInput &input) {
-  update_algo_book<AlgoOrderInput>(update_time, dest, source, input);
+  update_book<AlgoOrderInput>(update_time, dest, source, input);
 }
 
 void Bookkeeper::restore(const cache::bank &state_bank) {

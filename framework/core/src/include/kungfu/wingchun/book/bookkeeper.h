@@ -111,12 +111,12 @@ public:
   }
 
   template <typename TradingData = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
-  void update_algo_book(const event_ptr &event) {
-    update_algo_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>());
+  void update_book(const event_ptr &event) {
+    update_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>());
   }
 
   template <typename TradingData = void (AccountingMethod::*)(Book_ptr, const TradingData &)>
-  void update_algo_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data) {
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data) {
     std::lock_guard<std::mutex> lock(update_book_mutex_);
 
     if ((is_td(account_id) and not is_ready_td(account_id)) or (is_td(dest) and not is_ready_td(dest))) {

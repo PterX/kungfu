@@ -613,8 +613,8 @@ KF_DEFINE_PACK_TYPE(                                         //
     (double, settlement_price), // 期权结算价
     (double, iopv),             // 基金实时参考净值
 
-    (double, total_bid_volume), // 总委托买如量
-    (double, total_ask_volume), // 总委托卖出量
+    (double, total_bid_volume),  // 总委托买如量
+    (double, total_ask_volume),  // 总委托卖出量
     (int64_t, total_trades_num), // 总成交笔数
 
     (kungfu::array<double, 10>, bid_price),  // 申买价

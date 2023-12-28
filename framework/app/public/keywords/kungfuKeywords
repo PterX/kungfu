@@ -201,6 +201,7 @@ market_type
 tag_a
 tag_b
 tag_c
+uid64
 location_uid
 seed
 pid

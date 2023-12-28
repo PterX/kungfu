@@ -36,12 +36,6 @@ master::master(const location_ptr &home, bool low_latency)
   writers_.insert_or_assign(location::PUBLIC, io_device->open_writer(location::PUBLIC));
   cached_.run_store_workers();
   get_writer(location::PUBLIC)->mark(begin_time_, SessionStart::tag);
-  put_master_kv(std::to_string(get_master_home_location()->uid), std::to_string(get_master_home_location()->uid64));
-  put_master_kv(std::to_string(get_master_home_location()->uid64), std::to_string(get_master_home_location()->seed));
-  put_master_kv(std::to_string(get_ledger_home_location()->uid), std::to_string(get_ledger_home_location()->uid64));
-  put_master_kv(std::to_string(get_ledger_home_location()->uid64), std::to_string(get_ledger_home_location()->seed));
-  put_master_kv(std::to_string(get_master_cmd_location()->uid), std::to_string(get_master_cmd_location()->uid64));
-  put_master_kv(std::to_string(get_master_cmd_location()->uid64), std::to_string(get_master_cmd_location()->seed));
 }
 
 void master::on_exit() {
@@ -103,8 +97,6 @@ void master::register_app(const event_ptr &event) {
   Register register_data(request_data.c_str(), request_data.length());
 
   auto app_location = location::make_shared(register_data, home->locator);
-  put_master_kv(std::to_string(app_location->uid), std::to_string(app_location->uid64));  // uid -> uid64
-  put_master_kv(std::to_string(app_location->uid64), std::to_string(app_location->seed)); // uid64 -> seed
   if (is_location_live(app_location->uid)) {
     SPDLOG_ERROR("location {} has already been registered live", app_location->uname);
     return;
@@ -115,7 +107,8 @@ void master::register_app(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
+  auto master_cmd_location =
+      location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator, app_location->seed);
   SPDLOG_INFO("registering location {} uname {} uid {}, master_cmd_location {} uid {}", uid_str, app_location->uname,
               app_location->uid, master_cmd_location->uname, master_cmd_location->uid);
   try_add_location(event->gen_time(), master_cmd_location);
@@ -175,7 +168,7 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   timer_tasks_.erase(app_location_uid);
   const Deregister deregister = location->to<Deregister>();
   SPDLOG_DEBUG("Deregister: {}", deregister.to_string());
-  get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+  get_writer(location::PUBLIC)->write(trigger_time, deregister);
   cached_.close_session(location, time::now_in_nano());
 }
 

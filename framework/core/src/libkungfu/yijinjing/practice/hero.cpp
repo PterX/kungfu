@@ -33,27 +33,24 @@ inline std::string encode(const io_device_ptr &io_device) {
 hero::hero(io_device_ptr io_device)
     : begin_time_(time::now_in_nano()), end_time_(INT64_MAX),
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
-      master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
       io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
-  //  add_location(0, get_io_device()->get_live_home());
-  //  add_location(0, master_home_location_);
-  //  add_location(0, master_cmd_location_);
-  //  add_location(0, ledger_home_location_);
-  //  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
-  //    add_location(0, l);
-  //  }
   reader_ = io_device_->open_reader_to_subscribe();
-
   read_options_.fill_cache = false;
   options_.create_if_missing = true;
   ensure_master_rocksdb();
   auto home = verify_location_uid(get_home());
   update_seed(home->seed);
+  master_cmd_location_ = make_system_location("master", encode(io_device_), io_device_->get_locator());
   master_cmd_location_->update_seed(home->seed);
+  read_location_from_rocksdb();
+  add_location(0, get_io_device()->get_live_home());
+  add_location(0, master_home_location_);
+  add_location(0, master_cmd_location_);
+  add_location(0, ledger_home_location_);
 }
 
 hero::~hero() {
@@ -289,7 +286,11 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
 
 void hero::add_location(int64_t, const location_ptr &location) {
   SPDLOG_DEBUG("location: {}", location->to_string());
-  locations_.insert_or_assign(location->uid, location);
+  location_uid64s_.insert(std::to_string(location->uid64));
+  locations_.try_emplace(location->uid, location);
+  if (location64s_.try_emplace(location->uid64, location).second) {
+    write_location_to_rocksdb(location);
+  }
 }
 
 void hero::add_location(int64_t trigger_time, const Location &location) {
@@ -427,7 +428,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   now_ = time::now_in_nano();
   if (notice.length() > 2) {
     const auto frame = std::make_shared<nanomsg_json>(notice);
-    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    io_device_->get_bus()->set_trigger_frame(frame);
     sb.on_next(frame);
   } else if (notify) {
     on_notify();
@@ -440,7 +441,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   while (live_ and reader_->data_available()) {
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
-    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    io_device_->get_bus()->set_trigger_frame(frame);
     if (frame->gen_time() <= end_time_) {
       int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {
@@ -575,9 +576,9 @@ bool hero::is_uid_clash(const data::location_ptr &location) {
 }
 
 data::location_ptr hero::verify_location_uid(const data::location_ptr &location) {
-  const std::string str_seed = get_master_kv(std::to_string(location->uid64));
-  if (not str_seed.empty()) {
-    location->update_seed(std::stoul(str_seed));
+  const std::string str_location_json = get_master_kv(std::to_string(location->uid64));
+  if (not str_location_json.empty()) {
+    location->update_seed(Location{str_location_json}.seed);
     return location;
   }
   while (is_uid_clash(location)) {
@@ -586,7 +587,7 @@ data::location_ptr hero::verify_location_uid(const data::location_ptr &location)
   return location;
 }
 
-std::map<std::string, std::string> hero::get_master_kvs(const std::vector<std::string> &keys) const {
+std::map<std::string, std::string> hero::get_master_kvs(const std::set<std::string> &keys) const {
   auto db = get_master_rocksdb();
   std::map<std::string, std::string> values;
   for (const std::string &key : keys) {
@@ -595,7 +596,7 @@ std::map<std::string, std::string> hero::get_master_kvs(const std::vector<std::s
   return values;
 }
 
-std::map<std::string, std::string> hero::get_app_kvs(const std::vector<std::string> &keys) const {
+std::map<std::string, std::string> hero::get_app_kvs(const std::set<std::string> &keys) const {
   auto db = get_app_rocksdb();
   std::map<std::string, std::string> values;
   for (const std::string &key : keys) {
@@ -633,22 +634,48 @@ void hero::put_app_kvs(const std::map<std::string, std::string> &kvs) const {
 }
 
 void hero::write_location_to_rocksdb(const location_ptr &location) {
-  location_uid64s_.insert(location->uid64);
+  if (io_device_->is_lazy() and get_home()->mode != mode::LIVE) {
+    return;
+  }
   const std::string str_uid32 = std::to_string(location->uid);
   const std::string str_uid64 = std::to_string(location->uid64);
+  location_uid64s_.insert(str_uid64);
 
   nlohmann::json json_array;
   for (const auto &uid : location_uid64s_) {
     json_array.push_back(uid);
   }
   nlohmann::json json_obj;
-  json_obj["location_uid64"] = json_array;
+  json_obj[LOCATION_KEYS] = json_array;
 
   rocksdb::WriteBatch batch;
   batch.Put(str_uid32, str_uid64);
   batch.Put(str_uid64, location->to_string());
-  batch.Put("location_uid64", json_obj.dump());
+  batch.Put(LOCATION_KEYS, json_obj.dump());
   get_master_rocksdb()->Write(write_options_, &batch);
+}
+
+void hero::read_location_from_rocksdb() {
+  auto db = get_master_rocksdb();
+  std::string str_location_uid64s_json;
+  db->Get(read_options_, LOCATION_KEYS, &str_location_uid64s_json);
+  SPDLOG_DEBUG("str_location_uid64s_json: {}", str_location_uid64s_json);
+  if (str_location_uid64s_json.empty()) {
+    return;
+  }
+  auto location_uid64s_json = nlohmann::json::parse(str_location_uid64s_json);
+  if (location_uid64s_json.contains(LOCATION_KEYS) && location_uid64s_json[LOCATION_KEYS].is_array()) {
+    for (const std::string uid64 : location_uid64s_json[LOCATION_KEYS]) {
+      location_uid64s_.insert(uid64);
+    }
+    std::map<std::string, std::string> map_str_location64s_ = get_master_kvs(location_uid64s_);
+    for (const auto &pair : map_str_location64s_) {
+      const location_ptr location = location::make_shared(Location{pair.second}, get_locator());
+      SPDLOG_DEBUG("location: {}", location->to_string());
+      locations_.try_emplace(location->uid, location);
+      location64s_.try_emplace(location->uid64, location);
+    }
+  }
 }
 
 } // namespace kungfu::yijinjing::practice

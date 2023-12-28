@@ -135,7 +135,7 @@ public:
 
   std::string get_master_kv(const std::string &key) const;
 
-  std::map<std::string, std::string> get_master_kvs(const std::vector<std::string> &keys) const;
+  std::map<std::string, std::string> get_master_kvs(const std::set<std::string> &keys) const;
 
   void put_master_kv(const std::string &key, const std::string &value) const;
 
@@ -143,7 +143,7 @@ public:
 
   std::string get_app_kv(const std::string &key) const;
 
-  std::map<std::string, std::string> get_app_kvs(const std::vector<std::string> &keys) const;
+  std::map<std::string, std::string> get_app_kvs(const std::set<std::string> &keys) const;
 
   void put_app_kv(const std::string &key, const std::string &value) const;
 
@@ -154,6 +154,8 @@ public:
   data::location_ptr verify_location_uid(const data::location_ptr &location);
 
   void write_location_to_rocksdb(const data::location_ptr &location);
+
+  void read_location_from_rocksdb();
 
   void request_deregister() {
     continual_ = false;
@@ -206,12 +208,12 @@ protected:
   rocksdb::ReadOptions read_options_ = {};
   rocksdb::WriteOptions write_options_ = {};
   rocksdb::Options options_ = {};
-  std::set<uint64_t> location_uid64s_ = {};
+  std::set<std::string> location_uid64s_ = {};
 
   rx::connectable_observable<event_ptr> events_ = {};
 
   const yijinjing::data::location_ptr master_home_location_;
-  const yijinjing::data::location_ptr master_cmd_location_;
+  yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
@@ -268,10 +270,12 @@ private:
   int64_t now_;
   mutable rocksdb::DB *master_db_ = {};
   mutable rocksdb::DB *app_db_ = {};
+  inline static std::string LOCATION_KEYS = "location_uid64";
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
+  std::unordered_map<uint64_t, yijinjing::data::location_ptr> location64s_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
 
   volatile bool continual_ = true;

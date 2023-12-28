@@ -131,7 +131,7 @@ struct location : public std::enable_shared_from_this<location>, public longfist
     group = std::move(g);
     name = std::move(n);
     mode = m;
-    seed = default_seed;
+    seed = default_seed == 0 ? KUNGFU_HASH_SEED : default_seed;
     uid = util::hash_str_32(uname, seed);
     location_uid = uid;
   }

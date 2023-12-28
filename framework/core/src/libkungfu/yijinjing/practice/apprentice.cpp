@@ -291,11 +291,12 @@ void apprentice::checkin() {
   register_data.name = home->name;
   register_data.seed = home->seed;
   register_data.location_uid = home->uid;
+  register_data.uid64 = home->uid64;
   register_data.pid = GETPID();
   register_data.checkin_time = now;
   register_data.last_active_time = now;
 
-  SPDLOG_INFO("app checkin");
+  SPDLOG_INFO("app checkin Register: {}", register_data.to_string());
 
   auto try_register = [&]() {
     return get_io_device()->get_publisher()->publish(

@@ -431,6 +431,10 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   input.is_local = is_local;
 
   writer->write(now(), input);
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_algo_order_input(now(), get_live_home_uid(), account_location_uid, input);
+  }
+
   return input.order_id;
 }
 

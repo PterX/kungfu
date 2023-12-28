@@ -35,6 +35,8 @@ struct Book {
   map::OrderInputMap order_inputs = {};
   map::OrderMap orders = {};
   map::TradeMap trades = {};
+  map::AlgoOrderInputMap algo_order_inputs = {};
+  map::AlgoOrderMap algo_orders = {};
   yijinjing::data::location_ptr home;
 
   Book(const map::CommissionMap &commissions_ref, const map::InstrumentMap &instruments_ref,
@@ -241,6 +243,10 @@ struct Book {
   void replace(const longfist::types::Order &order);
 
   void replace(const longfist::types::Trade &trade);
+
+  void replace(const longfist::types::AlgoOrderInput &input);
+
+  void replace(const longfist::types::AlgoOrder &order);
 
   void mirror_position_from(const Book &book);
 

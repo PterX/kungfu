@@ -50,6 +50,9 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
       $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
+  events | is(AlgoOrderInput::tag) |
+      $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
+  events | is(AlgoOrder::tag) | $$(update_algo_book<AlgoOrder>(event));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
@@ -84,6 +87,11 @@ void Bookkeeper::try_update_position_end(const PositionEnd &position_end) {
 
 void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const OrderInput &input) {
   update_book<OrderInput>(update_time, dest, source, input, &AccountingMethod::apply_order_input);
+}
+
+void Bookkeeper::on_algo_order_input(int64_t update_time, uint32_t source, uint32_t dest,
+                                     const longfist::types::AlgoOrderInput &input) {
+  update_algo_book<AlgoOrderInput>(update_time, dest, source, input);
 }
 
 void Bookkeeper::restore(const cache::bank &state_bank) {
@@ -131,6 +139,17 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto dest_book = get_book(trade_state.dest);
     dest_book->replace(trade_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<AlgoOrder>]) {
+    auto &algo_order_state = pair.second;
+    auto source_book = get_book(algo_order_state.source);
+    source_book->replace(algo_order_state.data);
+    if (algo_order_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(algo_order_state.dest);
+    dest_book->replace(algo_order_state.data);
   }
 }
 

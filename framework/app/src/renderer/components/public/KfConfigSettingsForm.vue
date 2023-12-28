@@ -43,6 +43,7 @@ import {
   getPriceTypeConfig,
   initFormStateByConfig,
   replaceNonAlphaNumericWithSpace,
+  FormItemNeedIcon,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 
 import {
@@ -218,32 +219,6 @@ const configSettingFormInject = inject(
   BuiltinComponentInjectKeysMap.ConfigSettingForm,
   {},
 );
-
-const formItemNeedIcon = [
-  'str',
-  'password',
-  'int',
-  'float',
-  'percent',
-  'side',
-  'priceType',
-  'priceLevel',
-  'radio',
-  'checkbox',
-  'checkboxGroup',
-  'select',
-  'multiSelect',
-  'instrument',
-  'instruments',
-  'td',
-  'tds',
-  'md',
-  'md&operator',
-  'operator',
-  'strategy',
-  'basket',
-  'bool',
-];
 
 watch(
   () => props.configSettings,
@@ -1395,13 +1370,8 @@ defineExpose({
             ]
       "
     >
-    <div
-        v-if="
-          formItemNeedIcon.includes(item.type) ||
-          numberEnumRadioType[item.type] ||
-          numberEnumSelectType[item.type] ||
-          stringEnumSelectType[item.type]
-        "
+      <div
+        v-if="FormItemNeedIcon.includes(item.type)"
         class="kf-form-item_icon__warp"
       >
       <a-input
@@ -1923,7 +1893,7 @@ defineExpose({
                 : item.tip
             "
           >
-            <InfoCircleOutlined class="color-primary" />
+            <InfoCircleOutlined style="color: #faad14" />
           </a-tooltip>
         </div>
       </div>
@@ -1947,7 +1917,7 @@ defineExpose({
                 : item.tip
             "
           >
-            <InfoCircleOutlined class="color-primary" />
+            <InfoCircleOutlined style="color: #faad14" />
           </a-tooltip>
         </div>
         <div
@@ -1989,7 +1959,7 @@ defineExpose({
                 : item.tip
             "
           >
-            <InfoCircleOutlined class="color-primary" />
+            <InfoCircleOutlined style="color: #faad14" />
           </a-tooltip>
         </div>
         <div
@@ -2473,7 +2443,7 @@ export default defineComponent({
       }
 
       button {
-        width: 40px;
+        min-width: 40px;
       }
     }
 
@@ -2516,6 +2486,10 @@ export default defineComponent({
       color: grey;
       word-break: break-word;
       user-select: text;
+      p {
+        margin: 0;
+        padding: 0;
+      }
     }
   }
 

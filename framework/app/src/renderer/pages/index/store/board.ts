@@ -358,7 +358,7 @@ export const useBoards = () => {
         removeBoardByContentId,
         setDragedContentData,
         afterDragMoveBoard,
-      };
+      } as combineType;
     });
 
     window.allBoardsStore[boardsStoreId] = useBoardsStore;

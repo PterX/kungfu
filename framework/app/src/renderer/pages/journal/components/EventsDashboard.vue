@@ -58,7 +58,6 @@
           dynamicTableInSearching: true,
         }"
         :size-dependencies-fields="['dataAsString']"
-        :resizable="false"
         :custom-row-class="dealRowClassName"
         @click-cell="handleClickRow"
         @click-row="handleClickRow"

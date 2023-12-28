@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { sum, debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { sum } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { createReusableTemplate } from '@vueuse/core';
 import { Empty } from 'ant-design-vue';
 import {
@@ -283,11 +283,11 @@ const initScrollerTableWidth = () => {
   });
 };
 
-const resizeScrollerTableWidth = debounce(() => {
+const resizeScrollerTableWidth = () => {
   if (kfScrollerTableBodyRef.value) {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
   }
-}, 32);
+};
 
 onMounted(() => {
   initScrollerTableWidth();

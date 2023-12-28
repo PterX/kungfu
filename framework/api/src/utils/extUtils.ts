@@ -278,6 +278,7 @@ const getKfUIExtensionConfigByExtKey = (
       const extUIConfig = extConfig as KungfuApi.KfExtOriginUIConfig;
       const extKey = extUIConfig.key;
       const extName = extUIConfig.name;
+      const keepAlive = extConfig.keepAlive;
       const extPath = extUIConfig.extPath;
       const uiConfig = extUIConfig['ui_config'];
       const position = uiConfig?.position || '';
@@ -287,6 +288,7 @@ const getKfUIExtensionConfigByExtKey = (
 
       configByExtraKey[extKey] = {
         name: extName,
+        keepAlive,
         extPath,
         position,
         exhibit,

@@ -56,7 +56,10 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { dealAssetPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealAssetPrice,
+  buildTableColumnSorterWithStrike,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import {
   addTdGroup,

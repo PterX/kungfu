@@ -1814,7 +1814,7 @@ defineExpose({
                 : item.tip
             "
           >
-            <InfoCircleOutlined class="color-primary" />
+            <InfoCircleOutlined style="color: #faad14" />
           </a-tooltip>
         </div>
       </div>
@@ -1839,7 +1839,7 @@ defineExpose({
                 : item.tip
             "
           >
-            <InfoCircleOutlined class="color-primary" />
+            <InfoCircleOutlined style="color: #faad14" />
           </a-tooltip>
         </div>
         <div
@@ -1881,7 +1881,7 @@ defineExpose({
                 : item.tip
             "
           >
-            <InfoCircleOutlined class="color-primary" />
+            <InfoCircleOutlined style="color: #faad14" />
           </a-tooltip>
         </div>
         <div
@@ -2365,7 +2365,7 @@ export default defineComponent({
       }
 
       button {
-        width: 40px;
+        min-width: 40px;
       }
     }
 
@@ -2408,6 +2408,10 @@ export default defineComponent({
       color: grey;
       word-break: break-word;
       user-select: text;
+      p {
+        margin: 0;
+        padding: 0;
+      }
     }
   }
 

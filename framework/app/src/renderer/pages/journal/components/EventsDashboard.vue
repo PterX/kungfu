@@ -425,11 +425,6 @@ onMounted(() => {
       }
     }, CHECK_LOAD_MORE_TIME);
   });
-  window.addEventListener('resize', () => {
-    if (scrollerTableRef.value) {
-      scrollerTableRef.value.resizeScrollerTableWidth();
-    }
-  });
 });
 
 onBeforeMount(() => {

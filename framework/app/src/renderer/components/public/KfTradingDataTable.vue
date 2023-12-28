@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { sum } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { sum, debounce } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { createReusableTemplate } from '@vueuse/core';
 import { Empty } from 'ant-design-vue';
 import {
@@ -8,12 +8,10 @@ import {
   UpOutlined,
   DownOutlined,
 } from '@ant-design/icons-vue';
-import { filter } from 'rxjs';
 import {
   computed,
   watch,
   getCurrentInstance,
-  onBeforeMount,
   onMounted,
   ref,
   toRaw,
@@ -285,28 +283,19 @@ const initScrollerTableWidth = () => {
   });
 };
 
-const resizeScrollerTableWidth = () => {
+const resizeScrollerTableWidth = debounce(() => {
   if (kfScrollerTableBodyRef.value) {
     kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
   }
-};
+}, 32);
 
 onMounted(() => {
   initScrollerTableWidth();
 
-  if (app?.proxy && props.resizable) {
-    const subscription = app?.proxy.$globalBus
-      .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
-      .subscribe(() => {
-        if (kfScrollerTableBodyRef.value) {
-          kfScrollerTableWidth.value =
-            kfScrollerTableBodyRef.value.clientWidth - 8;
-        }
-      });
-
-    onBeforeMount(() => {
-      subscription.unsubscribe();
-    });
+  if (props.resizable && kfScrollerTableBodyRef.value) {
+    new ResizeObserver(() => {
+      resizeScrollerTableWidth();
+    }).observe(kfScrollerTableBodyRef.value.parentNode as HTMLElement);
   }
 });
 

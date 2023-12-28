@@ -1,4 +1,11 @@
-import { getCurrentInstance, onBeforeUnmount, onMounted, ref, Ref } from 'vue';
+import {
+  getCurrentInstance,
+  onBeforeUnmount,
+  onDeactivated,
+  onActivated,
+  ref,
+  Ref,
+} from 'vue';
 import path from 'path';
 import {
   useExtConfigsRelated,
@@ -163,7 +170,7 @@ export const useTradingTask = (): {
       .catch((err: Error) => error(err.message || t('operation_failed')));
   };
 
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         if (data.tag === 'setTradingTask') {
@@ -174,6 +181,10 @@ export const useTradingTask = (): {
       });
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }

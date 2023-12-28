@@ -226,6 +226,7 @@ declare namespace KungfuApi {
     key: string;
     name: string;
     type: T;
+    keepAlive: boolean;
     extPath: string;
     language?: {
       'zh-CN': Record<string, string>;
@@ -446,6 +447,7 @@ declare namespace KungfuApi {
     string,
     {
       name: string;
+      keepAlive: boolean;
       extPath: string;
       position: KfUIExtLocatorTypes;
       exhibit: KfExhibitConfig;

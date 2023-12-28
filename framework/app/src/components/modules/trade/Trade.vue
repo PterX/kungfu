@@ -26,7 +26,8 @@ import {
   computed,
   getCurrentInstance,
   onBeforeUnmount,
-  onMounted,
+  onActivated,
+  onDeactivated,
   ref,
   toRaw,
   watch,
@@ -88,53 +89,55 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-onMounted(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (historyDate.value) {
-          return;
-        }
+onActivated(() => {
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
+    (watcher: KungfuApi.Watcher) => {
+      if (historyDate.value) {
+        return;
+      }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+      if (currentGlobalKfLocation.value === null) {
+        return;
+      }
 
-        const tradesResolved =
-          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-            watcher,
-            currentGlobalKfLocation.value,
-            watcher.ledger.Trade,
-            'trade',
-          ) as KungfuApi.Trade[];
+      const tradesResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          watcher,
+          currentGlobalKfLocation.value,
+          watcher.ledger.Trade,
+          'trade',
+        ) as KungfuApi.Trade[];
 
-        const tempAllTrades = toRaw(
-          tradesResolved.map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-            );
+      const tempAllTrades = toRaw(
+        tradesResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+          );
 
-            return toRaw(
-              dealTrade(
-                watcher,
-                item,
-                watcher.ledger.OrderStat,
-                false,
-                price_precision,
-              ),
-            );
-          }),
-        );
-        allTrades.value = tempAllTrades;
-        trades.value = tempAllTrades.slice(0, 2000);
-      },
-    );
+          return toRaw(
+            dealTrade(
+              watcher,
+              item,
+              watcher.ledger.OrderStat,
+              false,
+              price_precision,
+            ),
+          );
+        }),
+      );
+      allTrades.value = tempAllTrades;
+      trades.value = tempAllTrades.slice(0, 2000);
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 watch(currentGlobalKfLocation, () => {

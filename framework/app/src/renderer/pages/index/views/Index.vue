@@ -1,9 +1,12 @@
 <template>
   <div class="kf-index__warp">
     <KfRowColIter
-      v-if="boardsMap?.[0]?.children?.length"
+      v-if="curBoardsMap?.[0]?.children?.length"
       :board-id="0"
       :closable="true"
+      :init-boards-map="curBoardsMap"
+      :boards-store-id="'main'"
+      :default-boards-map="curDefaultBoardsMap"
     ></KfRowColIter>
     <a-empty v-else class="kf-index__empty" :image="simpleImage">
       <template #description>
@@ -24,22 +27,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeUnmount, ref, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
+import { defineComponent, ref, onActivated, onDeactivated } from 'vue';
 
 import KfRowColIter from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfRowColIter.vue';
 
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import {
-  defaultBoardsMap,
-  getIndexBoardsMap,
-  saveIndexBoardsMap,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs';
+import { defaultBoardsMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs';
 import KfAddBoardModalVue from '../../../components/public/KfAddBoardModal.vue';
 import { Empty } from 'ant-design-vue';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
-import { messagePrompt } from '../../../assets/methods/uiUtils';
-const { success } = messagePrompt();
+import { Subscription } from 'rxjs';
+import { useBoards } from '../store/board';
 
 export default defineComponent({
   name: 'Index',
@@ -51,60 +49,55 @@ export default defineComponent({
 
   setup() {
     const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
-    const {
-      initBoardsMap,
-      setCurrentGlobalKfLocation,
-      setDefaultCurrentGlobalKfLocation,
-    } = useGlobalStore();
-    const { boardsMap } = storeToRefs(useGlobalStore());
+    const { setCurrentGlobalKfLocation, setDefaultCurrentGlobalKfLocation } =
+      useGlobalStore();
 
     const dealDefaultBoardsHook =
       globalThis.HookKeeper.getHooks().dealBoardsMap;
-    const curBoardsMap: KfLayout.BoardsMap =
-      getIndexBoardsMap() || dealDefaultBoardsHook.trigger(defaultBoardsMap);
-
-    initBoardsMap(curBoardsMap);
 
     const addBoardModalVisible = ref<boolean>(false);
     const addBoardTargetBoardId = ref<number>(-1);
 
-    const subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
-      if (data.tag === 'addBoard') {
-        addBoardModalVisible.value = true;
-        addBoardTargetBoardId.value = data.boardId;
-      }
-
-      if (data.tag === 'main') {
-        if (data.name === 'reset-main-dashboard') {
-          initBoardsMap(dealDefaultBoardsHook.trigger(defaultBoardsMap));
-          success();
-        }
-
-        if (data.name == 'record-before-quit') {
-          saveIndexBoardsMap(boardsMap.value);
-          window.watcher && window.watcher.quit();
-        }
-      }
-    });
+    let subscription: Subscription;
 
     const handleAddBoardFromEmpty = () => {
       addBoardModalVisible.value = true;
       addBoardTargetBoardId.value = 0;
     };
 
-    onMounted(() => {
+    const { getLocalBoardsMap } = useBoards();
+    const curDefaultBoardsMap = dealDefaultBoardsHook.trigger(
+      defaultBoardsMap,
+    ) as KfLayout.BoardsMap;
+    const curBoardsMap: KfLayout.BoardsMap =
+      getLocalBoardsMap('main') || curDefaultBoardsMap;
+
+    onActivated(() => {
+      subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
+        if (data.tag === 'addBoard') {
+          addBoardModalVisible.value = true;
+          addBoardTargetBoardId.value = data.boardId;
+        }
+
+        if (data.tag === 'main') {
+          if (data.name == 'record-before-quit') {
+            window.watcher && window.watcher.quit();
+          }
+        }
+      });
+
       setCurrentGlobalKfLocation(null);
       setDefaultCurrentGlobalKfLocation();
     });
 
-    onBeforeUnmount(() => {
+    onDeactivated(() => {
       subscription.unsubscribe();
-      saveIndexBoardsMap(boardsMap.value);
     });
 
     return {
+      curBoardsMap,
+      curDefaultBoardsMap,
       simpleImage,
-      boardsMap,
       addBoardModalVisible,
       addBoardTargetBoardId,
       handleAddBoardFromEmpty,

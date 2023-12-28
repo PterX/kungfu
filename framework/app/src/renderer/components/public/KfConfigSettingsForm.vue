@@ -1257,8 +1257,13 @@ function getContracData(open) {
     OriContractList.value = list.filter((item) => {
       const instrument = formState.value.instrument ?  formState.value.instrument.split('_')[1] : '';
       const side = formState.value.side;
-      const contractType = side === SideEnum.RepayMargin ? ContractTypeEnum.CrdBuyContract : side === SideEnum.RepayStock ? ContractTypeEnum.CrdSellContract : '';
-     return item.instrument_id.includes(instrument)  && item.close_out_flag !== CloseOutFlagEnum.Closeout && item.contract_type === contractType ;
+      if(side === SideEnum.RepayMargin){
+        return item.close_out_flag !== CloseOutFlagEnum.Closeout && item.contract_type === ContractTypeEnum.CrdBuyContract;
+      }else if(side === SideEnum.RepayStock){
+        return item.instrument_id.includes(instrument) && item.close_out_flag !== CloseOutFlagEnum.Closeout && item.contract_type === ContractTypeEnum.CrdSellContract;
+      }else{
+        return false;
+      }
     }).map((item) => {
       return {
         label: `${t('tradingConfig.instrument')} ${item.instrument_id}, ${t('tradingConfig.repaid')} ${item.contract_type === ContractTypeEnum.CrdBuyContract ? `${item.repayment_amt}/${item.total_liability_amt }`:`${item.repayment_qty}/${item.total_liability_qty}`} ${item.contract_id}`,
@@ -1753,7 +1758,6 @@ defineExpose({
         v-else-if="item.type === 'contract'"
         :ref="item.key"
         v-model:value="formState[item.key]"
-        class="instrument-select"
         :disabled="
           (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
           item.disabled

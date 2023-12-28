@@ -32,8 +32,8 @@ export interface AntTableColumn {
     | boolean
     | {
         compare: (
-          a: any,
-          b: any,
+          a: unknown,
+          b: unknown,
           sorterOrder: '' | 'ascend' | 'descend',
         ) => number;
       };

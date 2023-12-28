@@ -888,15 +888,15 @@ KF_DEFINE_PACK_TYPE(                                                //
     (enums::Currency, currency) // 币种
 );
 
-KF_DEFINE_DATA_TYPE(                                //
-    Location, 10205, PK(location_uid), PERPETUAL(), //
-    (uint64_t, uid64),                              //
-    (uint32_t, location_uid),                       //
-    (enums::category, category),                    //
-    (enums::mode, mode),                            //
-    (std::string, group),                           //
-    (std::string, name),                            //
-    (uint32_t, seed)                                //
+KF_DEFINE_DATA_TYPE(                         //
+    Location, 10205, PK(uid64), PERPETUAL(), //
+    (uint64_t, uid64),                       //
+    (uint32_t, location_uid),                //
+    (enums::category, category),             //
+    (enums::mode, mode),                     //
+    (std::string, group),                    //
+    (std::string, name),                     //
+    (uint32_t, seed)                         //
 );
 
 KF_DEFINE_DATA_TYPE(                                         //

@@ -149,9 +149,9 @@ public:
 
   void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
 
-  bool is_uid_clash(const data::location_ptr &location);
+  bool is_uid_clash(const data::location_ptr &location) const;
 
-  data::location_ptr verify_location_uid(const data::location_ptr &location);
+  data::location_ptr verify_location_uid(const data::location_ptr &location) const;
 
   void write_location_to_rocksdb(const data::location_ptr &location);
 
@@ -205,9 +205,6 @@ protected:
   WriterMap band_writers_ = {};
   mutable std::mutex band_mtx_{};
   const size_t main_thread_id_{};
-  rocksdb::ReadOptions read_options_ = {};
-  rocksdb::WriteOptions write_options_ = {};
-  rocksdb::Options options_ = {};
   std::set<std::string> location_uid64s_ = {};
 
   rx::connectable_observable<event_ptr> events_ = {};
@@ -303,4 +300,4 @@ private:
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
 };
 } // namespace kungfu::yijinjing::practice
-#endif // KUNGFU_HE
+#endif // KUNGFU_HERO_H

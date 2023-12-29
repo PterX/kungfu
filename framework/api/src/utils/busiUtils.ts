@@ -469,6 +469,7 @@ export const buildIdByPrimaryKeysFromKfConfigSettings = (
   kfConfigState: Record<string, KungfuApi.KfConfigValue>,
   keys: string[],
 ) => {
+  console.log('keys', keys);
   return keys
     .map((key) => replaceNonAlphaNumericWithSpace(kfConfigState[key]))
     .filter((value) => value !== undefined)
@@ -935,6 +936,7 @@ export const numberEnumSelectType: Record<
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
   side: Side,
+  marginSide: Side,
   priceType: PriceType,
   priceLevel: PriceLevel,
   instrumentType: InstrumentType,
@@ -973,6 +975,7 @@ export const FormItemNeedIcon = [
   'multiSelect',
   'instrument',
   'instruments',
+  'contract',
   'td',
   'tds',
   'md',

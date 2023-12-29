@@ -41,7 +41,7 @@ export const getColumns = (
     width: 110,
   },
   {
-    title: t('strategyConfig.marked_value'),
+    title: t('strategyConfig.market_value'),
     dataIndex: 'marketValue',
     align: 'right',
     sorter: {

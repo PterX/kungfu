@@ -208,6 +208,7 @@ export const getKfExtensionConfigByCategory = (
                   fundTrans: extOriginConfig[category]?.fund_trans || {},
                   showAssetMargin:
                     extOriginConfig[category]?.show_asset_margin || false,
+                  margin: extOriginConfig[category]?.margin || {},
                 },
               };
             } else if (category === 'md') {

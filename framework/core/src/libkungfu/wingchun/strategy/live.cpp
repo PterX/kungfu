@@ -241,9 +241,9 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
 
 uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                    const std::string &source, const std::string &account, double limit_price,
-                                   int64_t volume, PriceType type, Side side, Offset offset,
-                                   const std::string &contract_id, HedgeFlag hedge_flag, bool is_swap,
-                                   uint64_t block_id, uint64_t parent_id) {
+                                   int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                   bool is_swap, uint64_t block_id, uint64_t parent_id,
+                                   const std::string &contract_id) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;
@@ -352,9 +352,9 @@ std::vector<uint64_t> LiveContext::insert_batch_orders(
   writer->mark(now(), BatchOrderBegin::tag);
 
   for (int i = 0; i < instrument_ids.size(); ++i) {
-    uint64_t order_id =
-        insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
-                     types.at(i), sides.at(i), offsets.at(i), contract_ids.at(i), hedge_flags.at(i), is_swaps.at(i));
+    uint64_t order_id = insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i),
+                                     volumes.at(i), types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i),
+                                     is_swaps.at(i), 0, 0, contract_ids.at(i));
     order_ids.push_back(order_id);
   }
 
@@ -381,9 +381,9 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
   writer->mark(now(), BatchOrderBegin::tag);
 
   for (const OrderInput &input : order_inputs) {
-    uint64_t order_id =
-        insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price, input.volume,
-                     input.price_type, input.side, input.offset, input.contract_id, input.hedge_flag, input.is_swap);
+    uint64_t order_id = insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price,
+                                     input.volume, input.price_type, input.side, input.offset, input.hedge_flag,
+                                     input.is_swap, 0, 0, input.contract_id);
     order_ids.push_back(order_id);
   }
 

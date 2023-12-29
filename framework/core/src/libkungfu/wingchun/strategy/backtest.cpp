@@ -249,9 +249,9 @@ uint64_t BacktestContext::insert_block_message(const std::string &source, const 
 
 uint64_t BacktestContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                        const std::string &source, const std::string &account, double limit_price,
-                                       int64_t volume, PriceType type, Side side, Offset offset,
-                                       const std::string &contract_id, HedgeFlag hedge_flag, bool is_swap,
-                                       uint64_t block_id, uint64_t parent_id) {
+                                       int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                       bool is_swap, uint64_t block_id, uint64_t parent_id,
+                                       const std::string &contract_id) {
   auto insert_time = now();
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
   if (instrument_type == InstrumentType::Unknown) {
@@ -329,9 +329,9 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
     return order_ids;
   }
   for (int i = 0; i < instrument_ids.size(); ++i) {
-    uint64_t order_id =
-        insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
-                     types.at(i), sides.at(i), offsets.at(i), contract_ids.at(i), hedge_flags.at(i), is_swaps.at(i));
+    uint64_t order_id = insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i),
+                                     volumes.at(i), types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i),
+                                     is_swaps.at(i), 0, 0, contract_ids.at(i));
     order_ids.push_back(order_id);
   }
   return order_ids;
@@ -341,9 +341,9 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
                                                            std::vector<OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
   for (const OrderInput &input : order_inputs) {
-    uint64_t order_id =
-        insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price, input.volume,
-                     input.price_type, input.side, input.offset, input.contract_id, input.hedge_flag, input.is_swap);
+    uint64_t order_id = insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price,
+                                     input.volume, input.price_type, input.side, input.offset, input.hedge_flag,
+                                     input.is_swap, 0, 0, input.contract_id);
     order_ids.push_back(order_id);
   }
   return order_ids;

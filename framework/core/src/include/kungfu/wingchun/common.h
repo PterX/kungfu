@@ -785,6 +785,12 @@ typedef std::unordered_map<uint32_t, longfist::types::Basket> BasketMap;
 // key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentMap;
 
+// key = order_id
+typedef std::unordered_map<uint64_t, longfist::types::AlgoOrderInput> AlgoOrderInputMap;
+
+// key = order_id
+typedef std::unordered_map<uint64_t, longfist::types::AlgoOrder> AlgoOrderMap;
+
 } // namespace kungfu::wingchun::map
 
 #endif // WINGCHUN_COMMON_H

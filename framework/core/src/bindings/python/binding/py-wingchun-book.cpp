@@ -56,6 +56,8 @@ void bind_book(pybind11::module &m) {
       .def_readonly("order_inputs", &Book::order_inputs, py::return_value_policy::reference)
       .def_readonly("orders", &Book::orders, py::return_value_policy::reference)
       .def_readonly("trades", &Book::trades, py::return_value_policy::reference)
+      .def_readonly("algo_order_inputs", &Book::algo_order_inputs, py::return_value_policy::reference)
+      .def_readonly("algo_orders", &Book::algo_orders, py::return_value_policy::reference)
       .def_property_readonly("commissions", &Book::get_commissions, py::return_value_policy::reference)
       .def_property_readonly("instruments", &Book::get_instruments, py::return_value_policy::reference)
       .def_property_readonly("instrument_factors", &Book::get_instrument_factors, py::return_value_policy::reference)

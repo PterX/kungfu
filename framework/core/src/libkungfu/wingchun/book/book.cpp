@@ -196,6 +196,10 @@ void Book::replace(const Order &order) { orders.insert_or_assign(order.order_id,
 
 void Book::replace(const Trade &trade) { trades.insert_or_assign(trade.trade_id, trade); }
 
+void Book::replace(const AlgoOrderInput &input) { algo_order_inputs.insert_or_assign(input.order_id, input); }
+
+void Book::replace(const AlgoOrder &order) { algo_orders.insert_or_assign(order.order_id, order); }
+
 void Book::mirror_position_from(const Book &book) {
   auto mirror_position = [&](const PositionMap &source_map) {
     for (auto &source_pair : source_map) {

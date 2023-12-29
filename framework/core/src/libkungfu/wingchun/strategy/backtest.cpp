@@ -250,7 +250,8 @@ uint64_t BacktestContext::insert_block_message(const std::string &source, const 
 uint64_t BacktestContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                        const std::string &source, const std::string &account, double limit_price,
                                        int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                       bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                       bool is_swap, uint64_t block_id, uint64_t parent_id,
+                                       const std::string &contract_id) {
   auto insert_time = now();
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
   if (instrument_type == InstrumentType::Unknown) {
@@ -274,6 +275,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.hedge_flag = hedge_flag;
   input.block_id = block_id;
   input.is_swap = is_swap;
+  input.contract_id = contract_id.c_str();
   input.insert_time = insert_time;
   writer->write_raw_at_as(now(), now(), app_.get_home_uid(), td_dest, input.tag, reinterpret_cast<uintptr_t>(&input),
                           sizeof(input));
@@ -312,7 +314,7 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
     const std::string &source, const std::string &account, const std::vector<std::string> &instrument_ids,
     const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<int64_t> volumes,
     std::vector<PriceType> types, std::vector<Side> sides, std::vector<Offset> offsets,
-    std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
+    std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps, const std::vector<std::string> &contract_ids) {
   std::vector<uint64_t> order_ids{};
   bool flag = instrument_ids.size() == exchange_ids.size() and //
               instrument_ids.size() == limit_prices.size() and //
@@ -327,9 +329,9 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
     return order_ids;
   }
   for (int i = 0; i < instrument_ids.size(); ++i) {
-    uint64_t order_id =
-        insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
-                     types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i), is_swaps.at(i));
+    uint64_t order_id = insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i),
+                                     volumes.at(i), types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i),
+                                     is_swaps.at(i), 0, 0, contract_ids.at(i));
     order_ids.push_back(order_id);
   }
   return order_ids;
@@ -339,9 +341,9 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
                                                            std::vector<OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
   for (const OrderInput &input : order_inputs) {
-    uint64_t order_id =
-        insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price, input.volume,
-                     input.price_type, input.side, input.offset, input.hedge_flag, input.is_swap);
+    uint64_t order_id = insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price,
+                                     input.volume, input.price_type, input.side, input.offset, input.hedge_flag,
+                                     input.is_swap, 0, 0, input.contract_id);
     order_ids.push_back(order_id);
   }
   return order_ids;

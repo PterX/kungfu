@@ -87,14 +87,21 @@ public:
                                                          position.exchange_id, position.instrument_id);
       double frozen_fee = 0;
 
-      if (input.side == Side::Sell || input.side == Side::RepayMargin ||
-          input.side == Side::RepayStock) { // Offset: Close
+      if (input.side == Side::Sell || input.side == Side::GuaranteeStockSell || input.side == Side::RepayMargin ||
+          input.side == Side::StockRepayStock) { // Offset: Close
         position.frozen_total += input.volume;
         position.frozen_yesterday += input.volume;
-      } else if (input.side == Side::Buy) { // Offset: Open
+      } else if (input.side == Side::Buy || input.side == Side::GuaranteeStockBuy ||
+                 input.side == Side::RepayStock) { // Offset: Open
         double frozen_cash = input.volume * input.frozen_price * cd_mr.exchange_rate * cd_mr.margin_ratio;
         book->asset.frozen_cash += frozen_cash;
         book->asset.avail -= frozen_cash;
+      } else if (input.side == Side::MarginTrade || input.side == Side::ShortSell) {
+        // 融资买入 融券卖出 刚收到OrderInput时，可用保证金和融资融券可用资金应该减少 本次更新暂时不做处理
+        // book->asset.avail_margin -= input.limit_price * input.volume;
+        // book->asset.credit_buy_fund_available -= input.limit_price * input.volume;
+      } else if (input.side == Side::CashRepayMargin) {
+        book->asset.avail -= input.limit_price;
       }
     };
 
@@ -110,14 +117,29 @@ public:
       auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                          position.exchange_id, position.instrument_id);
       auto &asset = book->asset;
-      if (order.side == Side::Buy) {
+      if (order.side == Side::Buy || order.side == Side::GuaranteeStockBuy || order.side == Side::RepayStock) {
         auto frozen =
             book->get_frozen_price(order.order_id) * order.volume_left * cd_mr.exchange_rate * cd_mr.margin_ratio;
         book->asset.frozen_cash -= frozen;
         book->asset.avail += frozen;
-      } else if (order.side == Side::Sell || order.side == Side::RepayMargin || order.side == Side::RepayStock) {
+      } else if (order.side == Side::Sell || order.side == Side::GuaranteeStockSell ||
+                 order.side == Side::RepayMargin) {
         position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
+      } else if (order.side == Side::MarginTrade || order.side == Side::ShortSell) {
+        // book->asset.avail_margin += order.limit_price * order.volume_left;
+        // book->asset.credit_buy_fund_available += order.limit_price * order.volume_left;
+      } else if (order.side == Side::CashRepayMargin) {
+        // 现金还款 只有成交回报 没有撤单功能 不会有冻结 所以在下单的时候已经处理了可用资金 这里就不需要再处理
+        // book->asset.avail += order.limit_price;
+      } else if (order.side == Side::StockRepayStock) {
+        // 现券还券没有成交回报 当状态为清算中的时候 此时为最终状态 在账号现券还券权限为直接还券的情况下持仓不变
+        // 现券还券撤单的时候 多仓的冻结会相应减少
+        // 由于现券还券委托价格为0 所以涉及持仓的盈亏以及最新价格暂时无法处理
+        if (order.status != OrderStatus::PendingSettlement) {
+          position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+          position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
+        }
       }
       // it assumes position.volume is changed already(apply_trade), otherwise position.volume would be inconsistant.
       update_position(book, position);
@@ -134,9 +156,9 @@ public:
     auto is_local = dest != location::PUBLIC and dest != location::SYNC;
 
     auto apply = [&](auto &position) {
-      if (trade.side == Side::Sell) {
+      if (trade.side == Side::Sell || trade.side == Side::GuaranteeStockSell) {
         apply_sell(book, position, trade, is_local);
-      } else if (trade.side == Side::Buy) {
+      } else if (trade.side == Side::Buy || trade.side == Side::GuaranteeStockBuy) {
         apply_buy(book, position, trade, is_local);
       }
 
@@ -147,7 +169,7 @@ public:
       } else if (trade.side == Side::RepayMargin) {
         apply_repaymargin(book, position, trade);
       } else if (trade.side == Side::RepayStock) {
-        apply_repaystock(book, position, trade);
+        apply_repaystock(book, position, trade, is_local);
       }
     };
 
@@ -227,25 +249,25 @@ protected:
                                                        position.exchange_id, position.instrument_id);
 
     double trade_amt = trade.price /** cd_mr.exchange_rate*/ * trade.volume;
-    double commission = calculate_commission(trade);
-    auto tax = calculate_tax(trade);
-    if (not position.last_price) {
-      position.last_price = trade.price;
-    }
+    // double commission = calculate_commission(trade);
+    // auto tax = calculate_tax(trade);
+    // if (not position.last_price) {
+    //   position.last_price = trade.price;
+    // }
 
-    double cash_debt_change = trade_amt;
+    // double cash_debt_change = trade_amt;
     double original_volume = position.volume;
     if (position.volume + trade.volume > 0 && trade.price > 0) {
       position.avg_open_price =
           (position.avg_open_price * original_volume + trade_amt) / (double)(original_volume + trade.volume);
-      position.position_cost_price =
-          (position.volume + trade.volume == 0)
-              ? 0
-              : (position.position_cost_price * position.volume + trade_amt + commission + tax) /
-                    (double)(position.volume + trade.volume);
+      // position.position_cost_price =
+      //     (position.volume + trade.volume == 0)
+      //         ? 0
+      //         : (position.position_cost_price * position.volume + trade_amt + commission + tax) /
+      //               (double)(position.volume + trade.volume);
     }
 
-    position.margin += cash_debt_change; // The margin is actually the cash debt of Position instead of margin
+    // position.margin += cash_debt_change; // The margin is actually the cash debt of Position instead of margin
     position.volume += trade.volume;
     update_position(book, position);
   }
@@ -253,61 +275,77 @@ protected:
   virtual void apply_shortsell(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
     auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                        position.exchange_id, position.instrument_id);
-    double trade_amt = trade.price * trade.volume * cd_mr.exchange_rate;
-    double commission = calculate_commission(trade);
-    auto tax = calculate_tax(trade);
+    double trade_amt = trade.price * trade.volume /** cd_mr.exchange_rate*/;
+    // double commission = calculate_commission(trade);
+    // auto tax = calculate_tax(trade);
     if (position.volume + trade.volume > 0 && trade.price > 0) {
       position.avg_open_price = (position.volume + trade.volume == 0)
                                     ? 0
                                     : (position.avg_open_price * position.volume + trade_amt / cd_mr.exchange_rate) /
                                           (double)(position.volume + trade.volume);
-      position.position_cost_price =
-          (position.volume + trade.volume == 0)
-              ? 0
-              : (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate - commission - tax) /
-                    (double)(position.volume + trade.volume);
+      // position.position_cost_price =
+      //     (position.volume + trade.volume == 0)
+      //         ? 0
+      //         : (position.position_cost_price * position.volume + trade_amt / cd_mr.exchange_rate - commission - tax)
+      //         /
+      //               (double)(position.volume + trade.volume);
     }
-    double original_volume = position.volume;
+    // double original_volume = position.volume;
     position.volume += trade.volume;
     // The market value is calculated in Book::update()
-    if (position.last_price <= 0) {
-      position.last_price = trade.price;
-    }
-    position.last_price = position.last_price > 0 ? position.last_price : position.avg_open_price;
+    // if (position.last_price <= 0) {
+    //   position.last_price = trade.price;
+    // }
+    // position.last_price = position.last_price > 0 ? position.last_price : position.avg_open_price;
     update_position(book, position);
   }
 
   virtual void apply_repaymargin(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
     auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                        position.exchange_id, position.instrument_id);
-    if (not position.last_price) {
-      position.last_price = trade.price;
-    }
-    double commission = calculate_commission(trade);
-    auto tax = calculate_tax(trade);
+    // if (not position.last_price) {
+    //   position.last_price = trade.price;
+    // }
+    // double commission = calculate_commission(trade);
+    // auto tax = calculate_tax(trade);
     position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
     position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
-    position.realized_pnl += (trade.price - position.avg_open_price) * trade.volume;
+    // position.realized_pnl += (trade.price - position.avg_open_price) * trade.volume;
     update_position(book, position);
   }
 
-  virtual void apply_repaystock(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
+  virtual void apply_repaystock(Book_ptr &book, longfist::types::Position &position, const Trade &trade,
+                                bool is_local) {
     auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
                                                        position.exchange_id, position.instrument_id);
     double commission = calculate_commission(trade);
     auto tax = calculate_tax(trade);
-    position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
-    position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
+    double trade_amt = trade.price * trade.volume * cd_mr.exchange_rate;
+    // 买券还券 成交之后 资金部分在apply_order已经处理过 这里只处理持仓:可平空仓减少、空仓减少
+    // position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
+    // position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
     position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
-    position.last_price = position.last_price > 0 ? position.last_price : trade.price;
-    auto realized_pnl = (position.avg_open_price - trade.price) * trade.volume;
-    position.realized_pnl += realized_pnl;
-    double released_margin = position.last_price * cd_mr.exchange_rate * trade.volume * cd_mr.margin_ratio;
-    position.margin -= released_margin;
+    // position.last_price = position.last_price > 0 ? position.last_price : trade.price;
+    // auto realized_pnl = (position.avg_open_price - trade.price) * trade.volume;
+    // position.realized_pnl += realized_pnl;
+    // double released_margin = position.last_price * cd_mr.exchange_rate * trade.volume * cd_mr.margin_ratio;
+    // position.margin -= released_margin;
     update_position(book, position);
+
+    auto &asset = book->asset;
+
+    if (is_local) {
+      double frozen_cash_to_release =
+          book->get_frozen_price(trade.order_id) * cd_mr.exchange_rate * trade.volume * cd_mr.margin_ratio;
+      asset.frozen_cash -= frozen_cash_to_release;
+      double avail_cash_change = frozen_cash_to_release - trade_amt * cd_mr.margin_ratio - (commission + tax);
+      asset.avail += avail_cash_change;
+    }
+    asset.intraday_fee += commission + tax;
+    asset.accumulated_fee += commission + tax;
   }
 
   virtual double calculate_commission(const Trade &trade) { return trade.commission; }

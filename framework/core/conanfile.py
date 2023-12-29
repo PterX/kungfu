@@ -36,7 +36,7 @@ class KungfuCoreConan(ConanFile):
         # "sqlite_orm/1.7.1",
         "spdlog/1.10.0",
         "tabulate/1.4",
-        "rocksdb/6.29.5",
+        # "rocksdb/6.29.5",
     ]
     settings = "os", "compiler", "build_type", "arch"
     options = {
@@ -132,6 +132,7 @@ class KungfuCoreConan(ConanFile):
             self.copy("*", dst="deps/hana", src=glob(".deps/hana-*")[0])
             self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
             self.copy("*", dst="deps/sqlite_orm", src=glob(".deps/sqlite_orm-*")[0])
+            self.copy("*", dst="deps/rocksdb", src=glob(".deps/rocksdb-*")[0])
             self.copy("*", dst="cmake", src=".cmake")
 
     def package_info(self):

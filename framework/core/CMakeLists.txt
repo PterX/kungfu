@@ -30,6 +30,7 @@ option(KUNGFU_WITH_DEBUG_EXAMPLE "" OFF)
 
 include_directories(.deps/hana-1.80.0/include)
 include_directories(.deps/sqlite_orm-1.7.1/include)
+include_directories(.deps/rocksdb-8.8.1/include)
 include_directories(src/include)
 
 ##########################################################################
@@ -51,7 +52,8 @@ endif()
 ##########################################################################
 
 if (NOT DEFINED ENV{KUNGFU_BUILD_SKIP_LIBKUNGFU} OR NOT $ENV{KUNGFU_BUILD_SKIP_LIBKUNGFU})
-  message(STATUS "Enabled libkungfu")
+  message(STATUS "Enabled libkungfu")  
+  add_subdirectory(.deps/rocksdb-8.8.1)
   add_subdirectory(src/libkungfu)
 endif()
 

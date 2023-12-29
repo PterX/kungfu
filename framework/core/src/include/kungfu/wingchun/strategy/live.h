@@ -160,7 +160,7 @@ public:
    */
   uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
                         const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
-                        longfist::enums::Side side, longfist::enums::Offset offset,
+                        longfist::enums::Side side, longfist::enums::Offset offset, const std::string &contract_id = "",
                         longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                         bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0) override;
 
@@ -195,7 +195,7 @@ public:
                       std::vector<double> limit_prices, std::vector<int64_t> volumes,
                       std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
                       std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
-                      std::vector<bool> is_swaps) override;
+                      std::vector<bool> is_swaps, const std::vector<std::string> &contract_ids = {}) override;
 
   /**
    *

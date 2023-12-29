@@ -266,6 +266,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.hedge_flag = hedge_flag;
   input.block_id = block_id;
   input.is_swap = is_swap;
+  input.contract_id = contract_id.c_str();
   input.insert_time = insert_time;
   writer->write_raw_at_as(now(), now(), app_.get_home_uid(), td_dest, input.tag, reinterpret_cast<uintptr_t>(&input),
                           sizeof(input));

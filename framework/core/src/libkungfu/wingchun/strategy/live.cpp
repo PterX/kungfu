@@ -277,6 +277,7 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   input.block_id = block_id;
   input.parent_id = parent_id;
   input.is_swap = is_swap;
+  input.contract_id = contract_id.c_str();
   input.insert_time = now();
   writer->close_data();
   if (not is_bypass_accounting()) {

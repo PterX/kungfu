@@ -1256,9 +1256,9 @@ declare namespace KungfuApi {
     etf_value: number; // 基金份额净值
     cash_difference: number; // 现金差额
     max_cash_ratio: number; // 现金替代比例上限
-    max_purchase_volume: bigint; // 申购上限
-    max_redemption_volume: bigint; // 赎回上限
-    min_volume: bigint; // 最小申赎单位
+    max_purchase_volume: number; // 申购上限
+    max_redemption_volume: number; // 赎回上限
+    min_volume: number; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
     etf_status: ETFStatus; // etf状态
   }
@@ -1275,7 +1275,7 @@ declare namespace KungfuApi {
     exchange_id: string;
     instrument_type: InstrumentTypeEnum;
     direction: DirectionEnum;
-    volume: bigint; // 数量
+    volume: number; // 数量
     rate: number; // 比例
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率

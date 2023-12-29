@@ -11998,11 +11998,7 @@ utils-merge@1.0.1:
 
 uuid@^3.2.1, uuid@^7.0.0, uuid@^8.3.2:
   version "7.0.3"
-<<<<<<< HEAD
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-7.0.3.tgz#c5c9f2c8cf25dc0a372c4df1441c41f5bd0c680b"
-=======
   resolved "https://registry.npmmirror.com/uuid/-/uuid-7.0.3.tgz#c5c9f2c8cf25dc0a372c4df1441c41f5bd0c680b"
->>>>>>> 0de9a8d4f3cf01423885c2752e6a07b7afd1e696
   integrity sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==
 
 v8-compile-cache@2.3.0:

@@ -109,6 +109,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
         get_source_op_id(position.holder_uid, position.source_id);
     book->add_source_id(position.source_id);
   }
+
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {
     auto &state = pair.second;
     auto &asset = state.data;
@@ -119,6 +120,15 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->asset = asset;
     book->update(app_.now(), account_method_type_);
   }
+
+  for (auto &pair : state_bank[boost::hana::type_c<OrderInput>]) {
+    auto &order_input_state = pair.second;
+    auto source_book = get_book(order_input_state.source);
+    source_book->replace(order_input_state.data);
+    auto dest_book = get_book(order_input_state.dest);
+    dest_book->replace(order_input_state.data);
+  }
+
   for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto source_book = get_book(order_state.source);
@@ -139,6 +149,14 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto dest_book = get_book(trade_state.dest);
     dest_book->replace(trade_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<AlgoOrderInput>]) {
+    auto &algo_order_input_state = pair.second;
+    auto source_book = get_book(algo_order_input_state.source);
+    source_book->replace(algo_order_input_state.data);
+    auto dest_book = get_book(algo_order_input_state.dest);
+    dest_book->replace(algo_order_input_state.data);
   }
 
   for (auto &pair : state_bank[boost::hana::type_c<AlgoOrder>]) {

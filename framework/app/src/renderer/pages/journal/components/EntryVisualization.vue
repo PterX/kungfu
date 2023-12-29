@@ -139,6 +139,7 @@ import {
 import {
   OffsetEnum,
   SideEnum,
+  OrderActionFlagEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   delayMilliSeconds,
@@ -688,7 +689,11 @@ function updateChartSeriesData(
       price,
       active,
     );
-  else if (msgTypeName === 'OrderAction')
+  else if (
+    msgTypeName === 'OrderAction' &&
+    (tradingDataResolved as OrderActionResolved).action_flag ===
+      OrderActionFlagEnum.Cancel
+  )
     updateOrderActionData(
       tradingDataResolved as OrderActionResolved,
       key,

@@ -48,6 +48,9 @@ public:
 
   void on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const longfist::types::OrderInput &input);
 
+  void on_algo_order_input(int64_t update_time, uint32_t source, uint32_t dest,
+                           const longfist::types::AlgoOrderInput &input);
+
   void restore(const yijinjing::cache::bank &state_bank);
 
   void guard_positions();
@@ -100,6 +103,24 @@ public:
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
       book->update(update_time, account_method_type_);
+    };
+    apply_and_update(account_id);
+    if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
+      apply_and_update(dest);
+    }
+  }
+
+  template <typename TradingData> void update_book(const event_ptr &event) {
+    update_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>());
+  }
+
+  template <typename TradingData>
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data) {
+    std::lock_guard<std::mutex> lock(update_book_mutex_);
+    auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
+      auto book = get_book(book_uid);
+      book->add_source_id(account_id);
+      book->replace(data);
     };
     apply_and_update(account_id);
     if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {

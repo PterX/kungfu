@@ -922,7 +922,7 @@ KF_DEFINE_DATA_TYPE(                                //
 );
 
 KF_DEFINE_DATA_TYPE(                                         //
-    Basket, 10206, PK(id), PERPETUAL(),                     //
+    Basket, 10206, PK(id), PERPETUAL(),                      //
     (uint32_t, id),                                          // basket id
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
@@ -941,18 +941,18 @@ KF_DEFINE_DATA_TYPE(                                         //
     (enums::ETFStatus, etf_status)                           // etf状态
 );
 
-KF_DEFINE_PACK_TYPE(                                                                   //
+KF_DEFINE_PACK_TYPE(                                                                  //
     BasketInstrument, 10207, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
-    (uint32_t, basket_uid),                                                            //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                           // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                               // 交易所ID
-    (enums::InstrumentType, instrument_type),                                          // 合约类型
-    (enums::Direction, direction),                                                     // 方向
-    (int64_t, volume),                                                                 // 数量
-    (double, rate),                                                                    // 比例, volume比例
-    (enums::CashReplaceFlag, replace_flag),                                            // 是否可以由现金替代
-    (double, cash_premium_ratio),                                                      // 现金替代溢价比率
-    (double, replace_balance)                                                          // 替代金额
+    (uint32_t, basket_uid),                                                           //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                          // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                              // 交易所ID
+    (enums::InstrumentType, instrument_type),                                         // 合约类型
+    (enums::Direction, direction),                                                    // 方向
+    (int64_t, volume),                                                                // 数量
+    (double, rate),                                                                   // 比例, volume比例
+    (enums::CashReplaceFlag, replace_flag),                                           // 是否可以由现金替代
+    (double, cash_premium_ratio),                                                     // 现金替代溢价比率
+    (double, replace_balance)                                                         // 替代金额
 );
 
 KF_DEFINE_PACK_TYPE(                              //

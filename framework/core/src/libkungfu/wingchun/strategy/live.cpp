@@ -199,7 +199,7 @@ uint64_t LiveContext::insert_block_message(const std::string &source, const std:
 
 uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
                                            const std::string &source, const std::string &account, double limit_price,
-                                           int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                           double volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                            longfist::enums::Offset offset,
                                            longfist::enums::OrderTriggerType trigger_type, double stop_price,
                                            longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
@@ -242,7 +242,7 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
 
 uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                    const std::string &source, const std::string &account, double limit_price,
-                                   int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                   double volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                    bool is_swap, uint64_t block_id, uint64_t parent_id) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
@@ -320,7 +320,7 @@ std::vector<uint64_t>
 LiveContext::insert_batch_orders(const std::string &source, const std::string &account,
                                  const std::vector<std::string> &instrument_ids,
                                  const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices,
-                                 std::vector<int64_t> volumes, std::vector<longfist::enums::PriceType> types,
+                                 std::vector<double> volumes, std::vector<longfist::enums::PriceType> types,
                                  std::vector<longfist::enums::Side> sides, std::vector<longfist::enums::Offset> offsets,
                                  std::vector<longfist::enums::HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
@@ -394,7 +394,7 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
 
 uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
                                         const std::string &source, const std::string &account, int64_t begin_time,
-                                        int64_t end_time, int64_t volume, longfist::enums::PriceType type,
+                                        int64_t end_time, double volume, longfist::enums::PriceType type,
                                         longfist::enums::Side side, longfist::enums::Offset offset,
                                         const std::string &algo_type_id, const std::string &algo_id,
                                         const std::string &args, bool is_local, uint32_t basket_uid,
@@ -439,7 +439,7 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
 }
 
 uint64_t LiveContext::update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
-                                               const std::string &account, int64_t volume) {
+                                               const std::string &account, double volume) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;

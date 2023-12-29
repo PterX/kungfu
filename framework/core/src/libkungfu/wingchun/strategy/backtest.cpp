@@ -249,7 +249,7 @@ uint64_t BacktestContext::insert_block_message(const std::string &source, const 
 
 uint64_t BacktestContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                        const std::string &source, const std::string &account, double limit_price,
-                                       int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                       double volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
                                        bool is_swap, uint64_t block_id, uint64_t parent_id) {
   auto insert_time = now();
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
@@ -302,7 +302,7 @@ uint64_t BacktestContext::insert_order_input(const std::string &source, const st
 
 uint64_t BacktestContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
                                                const std::string &source, const std::string &account,
-                                               double limit_price, int64_t volume, PriceType type, Side side,
+                                               double limit_price, double volume, PriceType type, Side side,
                                                Offset offset, OrderTriggerType trigger_type, double stop_price,
                                                HedgeFlag hedge_flag, bool is_swap) {
   return {};
@@ -310,7 +310,7 @@ uint64_t BacktestContext::insert_order_trigger(const std::string &instrument_id,
 
 std::vector<uint64_t> BacktestContext::insert_batch_orders(
     const std::string &source, const std::string &account, const std::vector<std::string> &instrument_ids,
-    const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<int64_t> volumes,
+    const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<double> volumes,
     std::vector<PriceType> types, std::vector<Side> sides, std::vector<Offset> offsets,
     std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
   std::vector<uint64_t> order_ids{};
@@ -349,7 +349,7 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
 
 uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
                                             const std::string &source, const std::string &account, int64_t begin_time,
-                                            int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
+                                            int64_t end_time, double volume, PriceType type, Side side, Offset offset,
                                             const std::string &algo_type_id, const std::string &algo_id,
                                             const std::string &args, bool is_local, uint32_t basket_uid,
                                             longfist::enums::PriceLevel price_level, double price_offset) {
@@ -357,7 +357,7 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
 }
 
 uint64_t BacktestContext::update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
-                                                   const std::string &account, int64_t volume) {
+                                                   const std::string &account, double volume) {
   return {};
 }
 

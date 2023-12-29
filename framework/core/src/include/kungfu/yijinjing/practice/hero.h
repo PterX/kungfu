@@ -22,9 +22,10 @@
 namespace kungfu::yijinjing::practice {
 
 inline yijinjing::data::location_ptr make_system_location(const std::string &group, const std::string &name,
-                                                          const data::locator_ptr &locator) {
+                                                          const data::locator_ptr &locator,
+                                                          uint32_t seed = KUNGFU_HASH_SEED) {
   return yijinjing::data::location::make_shared(locator->get_dir_mode(), longfist::enums::category::SYSTEM, group, name,
-                                                locator);
+                                                locator, seed);
 }
 
 typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
@@ -149,10 +150,6 @@ public:
 
   void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
 
-  bool is_uid_clash(const data::location_ptr &location) const;
-
-  data::location_ptr verify_location_uid(const data::location_ptr &location) const;
-
   void write_location_to_rocksdb(const data::location_ptr &location);
 
   void read_location_from_rocksdb();
@@ -210,7 +207,7 @@ protected:
   rx::connectable_observable<event_ptr> events_ = {};
 
   const yijinjing::data::location_ptr master_home_location_;
-  yijinjing::data::location_ptr master_cmd_location_;
+  const yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
@@ -250,8 +247,6 @@ protected:
 
   void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
                              uint64_t page_size = 0) const;
-
-  void update_seed(uint32_t s);
 
   virtual void pre_setup();
 

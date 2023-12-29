@@ -40,8 +40,11 @@ rocksdb::Options &rocks::options() {
 
 rocksdb::Status rocks::put_kv(const std::string &key, const std::string &value, const std::string &dir) {
   rocksdb::DB *db;
-  open_db(dir, &db, true);
-  rocksdb::Status status = put_kv(key, value, db);
+  rocksdb::Status status = open_db(dir, &db, true);
+  if (not status.ok()) {
+    return status;
+  }
+  status = put_kv(key, value, db);
   delete db;
   return status;
 }
@@ -57,8 +60,11 @@ rocksdb::Status rocks::put_kv(const std::string &key, const std::string &value, 
 
 rocksdb::Status rocks::put_kvs(const std::map<std::string, std::string> &kvs, const std::string &dir) {
   rocksdb::DB *db;
-  open_db(dir, &db, true);
-  rocksdb::Status status = put_kvs(kvs, db);
+  rocksdb::Status status = open_db(dir, &db, true);
+  if (not status.ok()) {
+    return status;
+  }
+  status = put_kvs(kvs, db);
   delete db;
   return status;
 }
@@ -78,8 +84,11 @@ rocksdb::Status rocks::put_kvs(const std::map<std::string, std::string> &kvs, ro
 
 rocksdb::Status rocks::put_kvs(rocksdb::WriteBatch &batch, const std::string &dir) {
   rocksdb::DB *db;
-  open_db(dir, &db, true);
-  rocksdb::Status status = put_kvs(batch, db);
+  rocksdb::Status status = open_db(dir, &db, true);
+  if (not status.ok()) {
+    return status;
+  }
+  status = put_kvs(batch, db);
   delete db;
   return status;
 }
@@ -95,8 +104,11 @@ rocksdb::Status rocks::put_kvs(rocksdb::WriteBatch &batch, rocksdb::DB *db) {
 
 rocksdb::Status rocks::get_kv(const std::string &key, std::string &value, const std::string &dir) {
   rocksdb::DB *db;
-  open_db(dir, &db, false);
-  rocksdb::Status status = get_kv(key, value, db);
+  rocksdb::Status status = open_db(dir, &db, false);
+  if (not status.ok()) {
+    return status;
+  }
+  status = get_kv(key, value, db);
   delete db;
   return status;
 }
@@ -112,7 +124,9 @@ rocksdb::Status rocks::get_kv(const std::string &key, std::string &value, rocksd
 
 std::map<std::string, std::string> rocks::get_kvs(const std::set<std::string> &keys, const std::string &dir) {
   rocksdb::DB *db;
-  open_db(dir, &db, false);
+  if (not open_db(dir, &db, false).ok()) {
+    return {};
+  }
   std::map<std::string, std::string> result = get_kvs(keys, db);
   delete db;
   return result;

@@ -72,7 +72,9 @@ class PrioritizedCommandGroup(click.Group):
                     for key, value in kwargs.items()
                     if key.upper().startswith("ENV_")
                 }
+                print(ENV_dict)
                 for k, v in ENV_dict.items():
+                    print(f"k: {k}, v: {v}")
                     if v:
                         os.environ[k] = k
 
@@ -140,10 +142,19 @@ class PrioritizedCommandGroup(click.Group):
 @click.option(
     "-i", "--cli_dev_path", type=str, help="cli entry path (cli.dev.js or index.js)"
 )
+@click.option(
+    "-ENV-verify-location",
+    is_flag=True,
+    required=False,
+    help="verify location_uid and change seed regenerate if clash ",
+)
 @click.help_option("-h", "--help")
 @click.version_option(kungfu.__version__, "--version", message=kungfu.__version__)
 @click.pass_context
-def kfc(ctx, home, extension_path, log_level, name, cli_dev_path):
+def kfc(ctx, home, extension_path, log_level, name, cli_dev_path, env_verify_location):
+    if env_verify_location:
+        os.environ["KF_VERIFY_LOCATION"] = "KF_VERIFY_LOCATION"
+
     if not home:
         osname = platform.system()
         user_home = os.path.expanduser("~")

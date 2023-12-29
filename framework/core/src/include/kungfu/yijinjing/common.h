@@ -123,25 +123,17 @@ struct location : public std::enable_shared_from_this<location>, public longfist
   uint32_t uid;
 
   location(longfist::enums::mode m, longfist::enums::category c, std::string g, std::string n, locator_ptr l,
-           uint32_t default_seed = KUNGFU_HASH_SEED)
-      : locator(std::move(l)), uname(fmt::format("{}/{}/{}/{}", longfist::enums::get_category_name(c), g, n,
-                                                 longfist::enums::get_mode_name(m))) {
-    uid64 = util::hash_str_64(fmt::format("{}/{}/{}", longfist::enums::get_category_name(c), g, n));
-    category = c;
-    group = std::move(g);
-    name = std::move(n);
-    mode = m;
-    seed = default_seed == 0 ? KUNGFU_HASH_SEED : default_seed;
-    uid = util::hash_str_32(uname, seed);
-    location_uid = uid;
-  }
+           uint32_t default_seed = KUNGFU_HASH_SEED);
 
-  void update_seed(uint32_t s) {
-    seed = s;
-    uid = uid = util::hash_str_32(uname, seed);
-    location_uid = uid;
-    SPDLOG_DEBUG("{}", this->to_string());
-  }
+  bool static is_verify_location();
+
+  bool is_uid_clash();
+
+  void verify_location_uid();
+
+  std::string get_master_kv(const std::string &key);
+
+  void update_seed(uint32_t s);
 
   template <typename T> inline T to() const {
     T t{};

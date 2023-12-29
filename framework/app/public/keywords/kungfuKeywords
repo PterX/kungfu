@@ -43,6 +43,7 @@ asset
 long_positions
 short_positions
 order_inputs
+algo_order_inputs
 mode
 category
 group
@@ -552,6 +553,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

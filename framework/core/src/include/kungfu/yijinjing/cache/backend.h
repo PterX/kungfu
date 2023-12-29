@@ -23,9 +23,7 @@ template <typename ValueType> std::enable_if_t<is_array_v<ValueType>, std::strin
 }
 
 template <typename ValueType>
-std::enable_if_t<not is_numeric_v<ValueType> and not is_array_v<ValueType>, ValueType>
-
-make_default() {
+std::enable_if_t<not is_numeric_v<ValueType> and not is_array_v<ValueType>, ValueType> make_default() {
   return ValueType();
 }
 

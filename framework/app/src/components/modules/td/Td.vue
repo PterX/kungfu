@@ -207,9 +207,7 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = computed(() => {
-  const sorter = (
-    dataIndex: keyof KungfuApi.KfConfig | keyof KungfuApi.Asset,
-  ) => {
+  const sorter = (dataIndex: string) => {
     return buildTableColumnSorterWithStrike<
       KungfuApi.KfConfig,
       KungfuApi.Asset

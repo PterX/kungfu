@@ -154,6 +154,7 @@ function handleMakeOrder() {
         hedge_flag: HedgeFlagEnum.Speculation,
         is_swap: !!is_swap,
         parent_id: 0n,
+        contract_id: '',
       };
 
       const blockMessage: KungfuApi.BlockMessage = {

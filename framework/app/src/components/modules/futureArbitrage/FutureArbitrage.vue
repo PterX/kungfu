@@ -177,7 +177,7 @@ function handleMakeOrder() {
         hedge_flag: +(hedge_flag || 0),
         is_swap: !!is_swap,
         parent_id: 0n,
-        contract_id: ''
+        contract_id: '',
       };
 
       if (!currentAccountLocation.value) {

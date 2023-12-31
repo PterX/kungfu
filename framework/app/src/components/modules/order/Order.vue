@@ -643,6 +643,7 @@ function handleClickAdjustOrderMask(): void {
         hedge_flag: +order.hedge_flag,
         is_swap: !!order.is_swap,
         parent_id: 0n,
+        contract_id: '',
       };
 
       return makeOrderByOrderInput(

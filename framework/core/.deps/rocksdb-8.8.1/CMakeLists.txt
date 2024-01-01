@@ -34,9 +34,6 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
 include(ReadVersion)
 include(GoogleTest)
@@ -77,7 +74,7 @@ option(WITH_WINDOWS_UTF8_FILENAMES "use UTF8 as characterset for opening files, 
 if (WITH_WINDOWS_UTF8_FILENAMES)
   add_definitions(-DROCKSDB_WINDOWS_UTF8_FILENAMES)
 endif()
-option(ROCKSDB_BUILD_SHARED "Build shared versions of the RocksDB libraries" ON)
+option(ROCKSDB_BUILD_SHARED "Build shared versions of the RocksDB libraries" OFF)
 
 if( NOT DEFINED CMAKE_CXX_STANDARD )
   set(CMAKE_CXX_STANDARD 17)
@@ -174,7 +171,7 @@ else()
   endif()
 endif()
 
-option(WITH_MD_LIBRARY "build with MD" OFF)
+option(WITH_MD_LIBRARY "build with MD" ON)
 if(WIN32 AND MSVC)
   if(WITH_MD_LIBRARY)
     set(RUNTIME_LIBRARY "MD")
@@ -320,17 +317,17 @@ endif()
 # Reset the required flags
 set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAGS})
 
-option(WITH_IOSTATS_CONTEXT "Enable IO stats context" OFF)
+option(WITH_IOSTATS_CONTEXT "Enable IO stats context" ON)
 if (NOT WITH_IOSTATS_CONTEXT)
   add_definitions(-DNIOSTATS_CONTEXT)
 endif()
 
-option(WITH_PERF_CONTEXT "Enable perf context" OFF)
+option(WITH_PERF_CONTEXT "Enable perf context" ON)
 if (NOT WITH_PERF_CONTEXT)
   add_definitions(-DNPERF_CONTEXT)
 endif()
 
-option(FAIL_ON_WARNINGS "Treat compile warnings as errors" OFF)
+option(FAIL_ON_WARNINGS "Treat compile warnings as errors" ON)
 if(FAIL_ON_WARNINGS)
   if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
@@ -431,7 +428,7 @@ else()
 endif()
 
 # Used to run CI build and tests so we can run faster
-option(OPTDBG "Build optimized debug build with MSVC" OFF)
+option(OPTDBG "Build optimized debug build with MSVC" ON)
 option(WITH_RUNTIME_DEBUG "build with debug version of runtime library" ON)
 if(MSVC)
   if(OPTDBG)
@@ -494,7 +491,7 @@ if(NOT WIN32)
   add_definitions(-DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX)
 endif()
 
-option(WITH_FALLOCATE "build with fallocate" OFF)
+option(WITH_FALLOCATE "build with fallocate" ON)
 if(WITH_FALLOCATE)
   CHECK_CXX_SOURCE_COMPILES("
 #include <fcntl.h>

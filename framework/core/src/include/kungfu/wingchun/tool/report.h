@@ -68,7 +68,6 @@ private:
     report.app_ = runner;
     report.bookkeeper_ = bookkeeper;
     report.config_ = config;
-    report.init();
   }
 
   yijinjing::practice::apprentice *app_;

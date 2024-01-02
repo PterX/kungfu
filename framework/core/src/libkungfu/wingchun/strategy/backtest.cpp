@@ -63,6 +63,7 @@ void BacktestContext::on_start() {
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
   events_ | $$(on_timer_check(); lease_expired_check(););
   init_time_events();
+  report_->init();
 }
 
 bool BacktestContext::is_started() const { return true; }

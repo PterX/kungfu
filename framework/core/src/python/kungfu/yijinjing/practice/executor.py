@@ -480,6 +480,7 @@ def try_load_cpp_module(ctx, path, key, cls, cls_name):
         sys.modules.pop(key)
         ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
+        setattr(ctx, cls_name.lower(), ctx.path)
         return cls(ctx)
 
 

@@ -13,7 +13,7 @@
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
-#include <rocksdb/db.h>
+#include <kungfu/yijinjing/util/rocks.h>
 
 #ifndef KUNGFU_SETUP_LOG
 #define KUNGFU_SETUP_LOG() kungfu::yijinjing::log::copy_log_settings(get_home(), get_home()->name)

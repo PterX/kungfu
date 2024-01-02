@@ -21,6 +21,9 @@ static constexpr int TRAIDNG_PHASE_CODE_LEN = 8;
 static constexpr int ERROR_MSG_LEN = 256;
 static constexpr int EXTERNAL_ID_LEN = 32;
 static constexpr int OPPONENT_SEAT_LEN = 16;
+static constexpr int CONTRACT_OPENINGDATE_LEN = 16;
+static constexpr int CONTRACT_EXPIRATIONDATE_LEN = 16;
+static constexpr int CONTRACT_ID_LEN = 64;
 
 KF_DEFINE_MARK_TYPE(BatchOrderBegin, 251);
 KF_DEFINE_MARK_TYPE(BatchOrderEnd, 252);
@@ -29,6 +32,7 @@ KF_DEFINE_MARK_TYPE(PositionRequest, 352);
 KF_DEFINE_MARK_TYPE(AssetSync, 353);
 KF_DEFINE_MARK_TYPE(PositionSync, 354);
 KF_DEFINE_MARK_TYPE(OrderTriggerRequest, 355);
+KF_DEFINE_MARK_TYPE(ContractRequest, 356);
 KF_DEFINE_MARK_TYPE(PageEnd, 10051);
 KF_DEFINE_MARK_TYPE(Time, 10052);
 KF_DEFINE_MARK_TYPE(Ping, 10053);
@@ -120,15 +124,46 @@ KF_DEFINE_PACK_TYPE(                         //
     (double, total_asset),  // 总资产
     (double, avail_margin), // 可用保证金
 
-    (double, long_debt),  // 融资负债
+    (double, long_debt),  // 融资欠款金额（原融资负债字段 现更新定义）
     (double, short_cash), // 融券卖出金额
 
     (double, margin_interest), // 融资融券利息
     (double, settlement),      // 融资融券清算资金
 
-    (double, credit),          // 信贷额度
-    (double, collateral_ratio) // 担保比例
+    (double, credit),           // 信贷额度
+    (double, collateral_ratio), // 担保比例
+
+    (double, total_debt),                  // 总负债
+    (double, net_assets),                  // 净资产
+    (double, long_total_debt),             // 融资总负债（融资欠款+融资利息+融资费用）
+    (double, short_total_debt),            // 融券总负债（融券市值+融券利息+融券费用）
+    (double, gage_buy_fund_available),     // 担保品买入可用资金
+    (double, credit_buy_fund_available),   // 融资融券可用资金
+    (double, buyredeliver_fund_available), // 买券还券可用资金
+    (double, directrepay_fund_available)   // 现金还款可用资金
 );
+
+KF_DEFINE_PACK_TYPE(                                         //
+    Contract, 102, PK(holder_uid, contract_id), PERPETUAL(), //
+    (int64_t, update_time),                                  // 更新时间
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),             // 证券代码
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                 // 交易所代码
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),                 // 合约id(合约唯一标识)
+    (kungfu::array<char, CONTRACT_OPENINGDATE_LEN>, opening_date),       // 开仓日期
+    (kungfu::array<char, CONTRACT_EXPIRATIONDATE_LEN>, expiration_date), // 归还截止日期
+
+    (enums::ContractType, contract_type),     // 合约类型
+    (enums::InstrumentType, instrument_type), // 证券类型
+    (enums::CloseOutFlag, close_out_flag),    // 合约了结状态
+
+    (double, repayment_amt),       // 已偿还金额(融资)
+    (double, total_liability_amt), // 融资总金额
+    (double, unsettled_interest),  // 未结利息罚息
+
+    (int64_t, repayment_qty),       // 已偿还数量(融券)
+    (int64_t, total_liability_qty), // 融券总数量
+    (uint32_t, holder_uid));
 
 KF_DEFINE_PACK_TYPE(                                                                                 //
     Position, 103, PK(holder_uid, instrument_id, exchange_id, source_op_id, direction), PERPETUAL(), //
@@ -199,7 +234,8 @@ KF_DEFINE_PACK_TYPE(                                       //
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
 
-    (enums::InstrumentType, instrument_type), // 合约类型
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id), // 两融合约唯一标识
+    (enums::InstrumentType, instrument_type),            // 合约类型
 
     (double, limit_price),  // 价格
     (double, frozen_price), // 冻结价格
@@ -229,6 +265,7 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),     // 两融合约唯一标识
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
@@ -268,6 +305,7 @@ KF_DEFINE_PACK_TYPE(                                 //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),     // 两融合约唯一标识
 
     (enums::InstrumentType, instrument_type), // 合约类型
 
@@ -501,6 +539,7 @@ KF_DEFINE_PACK_TYPE(                                           //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),     // 两融合约唯一标识
 
     (bool, is_last),                     // 是否为本次查询的最后一条记录
     (enums::HistoryDataType, data_type), // 标记本数据是正常数据, 本页最后一条数据, 全部数据的最后一条
@@ -543,6 +582,7 @@ KF_DEFINE_PACK_TYPE(                                        //
 
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所ID
+    (kungfu::array<char, CONTRACT_ID_LEN>, contract_id),     // 两融合约唯一标识
 
     (bool, is_last),                     // 是否为本次查询的最后一条记录
     (enums::HistoryDataType, data_type), // 标记本数据是正常数据, 本页最后一条数据, 全部数据的最后一条
@@ -882,7 +922,7 @@ KF_DEFINE_DATA_TYPE(                                //
 );
 
 KF_DEFINE_DATA_TYPE(                                         //
-    Basket, 100040, PK(id), PERPETUAL(),                     //
+    Basket, 10206, PK(id), PERPETUAL(),                      //
     (uint32_t, id),                                          // basket id
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
@@ -901,18 +941,18 @@ KF_DEFINE_DATA_TYPE(                                         //
     (enums::ETFStatus, etf_status)                           // etf状态
 );
 
-KF_DEFINE_PACK_TYPE(                                                                   //
-    BasketInstrument, 100041, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
-    (uint32_t, basket_uid),                                                            //
-    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                           // 合约ID
-    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                               // 交易所ID
-    (enums::InstrumentType, instrument_type),                                          // 合约类型
-    (enums::Direction, direction),                                                     // 方向
-    (int64_t, volume),                                                                 // 数量
-    (double, rate),                                                                    // 比例, volume比例
-    (enums::CashReplaceFlag, replace_flag),                                            // 是否可以由现金替代
-    (double, cash_premium_ratio),                                                      // 现金替代溢价比率
-    (double, replace_balance)                                                          // 替代金额
+KF_DEFINE_PACK_TYPE(                                                                  //
+    BasketInstrument, 10207, PK(basket_uid, instrument_id, exchange_id), PERPETUAL(), //
+    (uint32_t, basket_uid),                                                           //
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id),                          // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                              // 交易所ID
+    (enums::InstrumentType, instrument_type),                                         // 合约类型
+    (enums::Direction, direction),                                                    // 方向
+    (int64_t, volume),                                                                // 数量
+    (double, rate),                                                                   // 比例, volume比例
+    (enums::CashReplaceFlag, replace_flag),                                           // 是否可以由现金替代
+    (double, cash_premium_ratio),                                                     // 现金替代溢价比率
+    (double, replace_balance)                                                         // 替代金额
 );
 
 KF_DEFINE_PACK_TYPE(                              //

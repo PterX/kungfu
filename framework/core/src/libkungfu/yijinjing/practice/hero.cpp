@@ -36,7 +36,7 @@ hero::hero(io_device_ptr io_device)
     : begin_time_(time::now_in_nano()), end_time_(INT64_MAX),
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(
-          make_system_location("master", encode(io_device_), io_device->get_locator(), io_device->get_home()->seed)),
+          make_system_location("master", encode(io_device), io_device->get_locator(), io_device->get_home()->seed)),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
       io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
@@ -285,9 +285,11 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
 
 void hero::add_location(int64_t, const location_ptr &location) {
   SPDLOG_DEBUG("location: {}", location->to_string());
+  bool write_rocks = false;
   location_uid64s_.insert(std::to_string(location->uid64));
-  locations_.try_emplace(location->uid, location);
-  if (location64s_.try_emplace(location->uid64, location).second) {
+  write_rocks |= locations_.try_emplace(location->uid, location).second;
+  write_rocks |= location64s_.try_emplace(location->uid64, location).second;
+  if (write_rocks) {
     write_location_to_rocksdb(location);
   }
 }
@@ -477,8 +479,8 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 bool hero::is_reactable(const event_ptr &event) { return true; }
 
 rocksdb::DB *hero::get_master_rocksdb() const {
-  SPDLOG_DEBUG("get_master_rocksdb");
   static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
+  SPDLOG_DEBUG("get_master_rocksdb from dir: {}", master_db_dir);
   if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
     rocksdb::Status status = rocks::open_db(master_db_dir, &master_db_, false);
     if (not status.ok()) {
@@ -518,7 +520,7 @@ std::string hero::get_master_kv(const std::string &key) const {
   std::string value{};
   rocksdb::Status status = rocks::get_kv(key, value, get_master_rocksdb());
   if (not status.ok()) {
-    SPDLOG_ERROR("get key:{} failed, {}", key, status.ToString());
+    SPDLOG_DEBUG("get key:{} failed, {}", key, status.ToString());
   }
   return value;
 }

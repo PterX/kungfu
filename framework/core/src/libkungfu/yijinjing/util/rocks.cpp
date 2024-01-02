@@ -1,20 +1,12 @@
-//
-// Created by PC on 2023/12/28.
-//
 #include <kungfu/yijinjing/util/rocks.h>
 namespace kungfu::yijinjing::util {
 
 rocksdb::Status rocks::open_db(const std::string &dir, rocksdb::DB **db, bool is_writing) {
-  SPDLOG_DEBUG("open_db: {}", dir);
   if (is_writing) {
-    SPDLOG_DEBUG("Open before");
     auto status = rocksdb::DB::Open(rocks::options(), dir, db);
-    SPDLOG_DEBUG("Open after ");
     return status;
   } else {
-    SPDLOG_DEBUG("OpenForReadOnly before");
     auto status = rocksdb::DB::OpenForReadOnly(rocks::options(), dir, db);
-    SPDLOG_DEBUG("OpenForReadOnly after");
     return status;
   }
 }
@@ -33,10 +25,7 @@ rocksdb::ReadOptions &rocks::read_options() { return get_rocks()->read_options_;
 
 rocksdb::WriteOptions &rocks::write_options() { return get_rocks()->write_options_; }
 
-rocksdb::Options &rocks::options() {
-  SPDLOG_DEBUG("option");
-  return get_rocks()->options_;
-}
+rocksdb::Options &rocks::options() { return get_rocks()->options_; }
 
 rocksdb::Status rocks::put_kv(const std::string &key, const std::string &value, const std::string &dir) {
   rocksdb::DB *db;

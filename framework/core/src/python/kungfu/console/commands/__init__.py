@@ -72,9 +72,8 @@ class PrioritizedCommandGroup(click.Group):
                     for key, value in kwargs.items()
                     if key.upper().startswith("ENV_")
                 }
-                print(ENV_dict)
+
                 for k, v in ENV_dict.items():
-                    print(f"k: {k}, v: {v}")
                     if v:
                         os.environ[k] = k
 

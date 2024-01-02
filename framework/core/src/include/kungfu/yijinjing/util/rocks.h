@@ -1,8 +1,4 @@
 // SPDX-License-Identifier: Apache-2.0
-//
-// Created by PC on 2023/12/28.
-//
-
 #ifndef KUNGFU_ROCKS_H
 #define KUNGFU_ROCKS_H
 #include <kungfu/common.h>

@@ -229,12 +229,10 @@ location::location(longfist::enums::mode m, longfist::enums::category c, std::st
   uid = util::hash_str_32(uname, seed);
   location_uid = uid;
   verify_location_uid();
-  SPDLOG_DEBUG("Location: {}", this->to_string());
 }
 
 bool location::is_verify_location() {
   static bool is_verify = std::getenv("KF_VERIFY_LOCATION") != nullptr;
-  SPDLOG_INFO("is_verify: {}", is_verify);
   return is_verify;
 }
 
@@ -242,24 +240,24 @@ void location::verify_location_uid() {
   if (not is_verify_location()) {
     return;
   }
-  const std::string str_seed = get_master_kv(uname);
-  SPDLOG_DEBUG("str_seed: {}", str_seed);
-  if (not str_seed.empty()) {
-    update_seed(std::stoul(str_seed));
+  const std::string rocksdb_seed = get_master_kv(uname);
+  SPDLOG_TRACE("rocksdb_seed: {}", rocksdb_seed);
+  if (not rocksdb_seed.empty()) {
+    update_seed(std::stoul(rocksdb_seed));
     return;
   }
   while (is_uid_clash()) {
-    SPDLOG_DEBUG("Location: {}", this->to_string());
+    SPDLOG_TRACE("Location: {}", this->to_string());
   }
 }
 
 bool location::is_uid_clash() {
   std::string str_location_uid64;
-  const std::string str_uname = get_master_kv(std::to_string(uid));
-  SPDLOG_DEBUG("str_uname: {}", str_uname);
-  if (str_uname.empty() or str_uname == uname) {
+  const std::string clash_uname = get_master_kv(std::to_string(uid));
+  if (clash_uname.empty() or clash_uname == uname) {
     return false;
   } else {
+    SPDLOG_TRACE("clash_uname: {}, uname: {} , same uid: {}", clash_uname, uname, uid);
     update_seed(uid);
     return true;
   }
@@ -267,8 +265,8 @@ bool location::is_uid_clash() {
 
 std::string location::get_master_kv(const std::string &key) {
   const std::string rocksdb_dir =
-      locator->layout_directory(es::layout::MAP, es::category::SYSTEM, "system", "master", mode, false);
-  SPDLOG_DEBUG("rocksdb_dir: {}");
+      locator->layout_directory(es::layout::MAP, es::category::SYSTEM, "master", "master", mode, false);
+  SPDLOG_TRACE("rocksdb_dir: {}", rocksdb_dir);
   std::string value{};
   util::rocks::get_kv(key, value, rocksdb_dir);
   return value;
@@ -278,6 +276,6 @@ void location::update_seed(uint32_t s) {
   seed = s;
   uid = util::hash_str_32(uname, seed);
   location_uid = uid;
-  SPDLOG_DEBUG("{}", this->to_string());
+  SPDLOG_TRACE("{}", this->to_string());
 }
 } // namespace kungfu::yijinjing::data

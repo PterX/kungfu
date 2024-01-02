@@ -38,6 +38,7 @@ import { Empty } from 'ant-design-vue';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { Subscription } from 'rxjs';
 import { useBoards } from '../store/board';
+import { deepClone } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export default defineComponent({
   name: 'Index',
@@ -70,7 +71,7 @@ export default defineComponent({
       defaultBoardsMap,
     ) as KfLayout.BoardsMap;
     const curBoardsMap: KfLayout.BoardsMap =
-      getLocalBoardsMap('main') || curDefaultBoardsMap;
+      getLocalBoardsMap('main') || deepClone(defaultBoardsMap);
 
     onActivated(() => {
       subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {

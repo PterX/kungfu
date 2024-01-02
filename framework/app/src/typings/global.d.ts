@@ -7,6 +7,7 @@ declare module '@vue/runtime-core' {
     $globalBus: Subject<KfBusEvent>;
     $tradingDataSubject: Subject<Watcher>;
     $availKfBoards: string[];
+    _: any; //vue3 shit
   }
 }
 

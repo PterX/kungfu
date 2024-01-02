@@ -415,6 +415,7 @@ onMounted(() => {
         justify-content: flex-start;
         align-items: center;
         margin-right: 8px;
+        word-break: break-all;
 
         .process-id {
           width: 112px;

@@ -934,7 +934,7 @@ KF_DEFINE_DATA_TYPE(                                         //
     (uint32_t, id),                                          // basket id
     (std::string, name),                                     // basket 名字
     (enums::BasketVolumeType, volume_type),                  // 比例/数量
-    (double, total_amount),                                 // 总数量
+    (double, total_amount),                                  // 总数量
     (enums::BasketType, basket_type),                        // 类型: Custom 或 ETF
     (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // ETF基金代码
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // ETF基金的市场
@@ -942,9 +942,9 @@ KF_DEFINE_DATA_TYPE(                                         //
     (double, etf_value),                                     // 基金份额净值
     (double, cash_difference),                               // 现金差额
     (double, max_cash_ratio),                                // 现金替代比例上限
-    (double, max_purchase_volume),                          // 申购上限
-    (double, max_redemption_volume),                        // 赎回上限
-    (double, min_volume),                                   // 最小申赎单位
+    (double, max_purchase_volume),                           // 申购上限
+    (double, max_redemption_volume),                         // 赎回上限
+    (double, min_volume),                                    // 最小申赎单位
     (enums::ETFType, etf_type),                              // etf种类
     (enums::ETFStatus, etf_status)                           // etf状态
 );
@@ -956,7 +956,7 @@ KF_DEFINE_PACK_TYPE(                                                            
     (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),                              // 交易所ID
     (enums::InstrumentType, instrument_type),                                         // 合约类型
     (enums::Direction, direction),                                                    // 方向
-    (double, volume),                                                                // 数量
+    (double, volume),                                                                 // 数量
     (double, rate),                                                                   // 比例, volume比例
     (enums::CashReplaceFlag, replace_flag),                                           // 是否可以由现金替代
     (double, cash_premium_ratio),                                                     // 现金替代溢价比率

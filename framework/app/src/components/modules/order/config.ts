@@ -41,7 +41,7 @@ export const getColumns = (
         type: 'string',
         name: '',
         dataIndex: 'side',
-        width: 40,
+        width: 80,
       },
       {
         type: 'string',

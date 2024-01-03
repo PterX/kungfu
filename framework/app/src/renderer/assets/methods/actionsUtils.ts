@@ -12,6 +12,7 @@ import {
   kfRequestMarketData,
   getKungfuHistoryData,
   getNanoDateString,
+  isShowPosition,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -870,6 +871,10 @@ export const showTradingDataDetail = <
   item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
+  renameValues?: Record<
+    string,
+    (item: KungfuApi.KfConfigValue) => KungfuApi.KfConfigValue
+  >,
 ): Promise<boolean> => {
   const generateVnode = () => {
     const itemResolved = typeof item === 'function' ? item() : item;
@@ -888,12 +893,15 @@ export const showTradingDataDetail = <
         }
         return dataResolved[key] !== '';
       })
-      .map((key) =>
-        h('div', { class: 'trading-data-detail-row' }, [
+      .map((key) => {
+        const value = renameValues?.[key]
+          ? renameValues[key](dataResolved[key])
+          : dataResolved[key];
+        return h('div', { class: 'trading-data-detail-row' }, [
           h('span', { class: 'label' }, `${key}`),
-          h('span', { class: 'value' }, `${dataResolved[key]}`),
-        ]),
-      );
+          h('span', { class: 'value' }, `${value}`),
+        ]);
+      });
 
     return h(
       'div',
@@ -1665,7 +1673,7 @@ export const useDealInstruments = (): void => {
 };
 
 export const useActiveInstruments = () => {
-  const { instrumentsMap } = useGlobalStore();
+  const { instrumentsMap } = storeToRefs(useGlobalStore());
 
   const getInstrumentByIds = (
     instrumentId: string,
@@ -1673,8 +1681,7 @@ export const useActiveInstruments = () => {
     forceConvert = false,
   ) => {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved = instrumentsMap[ukey];
-
+    const instrumentResolved = instrumentsMap.value[ukey];
     if (instrumentResolved) {
       return instrumentResolved;
     } else {
@@ -2528,6 +2535,7 @@ export const getPosClosableVolumeByOffset = (
 
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  isMarginMakeOrder: Ref<boolean>,
 ) => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
@@ -2554,6 +2562,9 @@ export const useMakeOrderInfo = (
   );
 
   const isAccountOrInstrumentConfirmed = computed(() => {
+    if (isMarginMakeOrder.value) {
+      return true;
+    }
     if (formState.value?.side === SideEnum.Buy) {
       return isCurrentCategoryIsTd.value ? true : !!formState.value.account_id;
     } else if (formState.value.side === SideEnum.Sell) {
@@ -2565,8 +2576,10 @@ export const useMakeOrderInfo = (
   });
 
   const showAmountOrPosition = computed(() => {
-    const { offset } = formState.value;
-
+    const { offset, side } = formState.value;
+    if (isMarginMakeOrder.value) {
+      return isShowPosition(side) ? 'position' : 'amount';
+    }
     return offset === OffsetEnum.Open ? 'amount' : 'position';
   });
 
@@ -2677,6 +2690,7 @@ export const useMakeOrderInfo = (
   });
 
   const currentPosition = computed(() => {
+    if (isMarginMakeOrder.value) return currentPositionWithLongDirection.value;
     if (currentFormDirection.value === DirectionEnum.Long) {
       return currentPositionWithLongDirection.value;
     } else if (currentFormDirection.value === DirectionEnum.Short) {
@@ -2688,6 +2702,28 @@ export const useMakeOrderInfo = (
 
   const currentAvailMoney = computed(() => {
     if (!currentAccountLocation.value) return '--';
+    if (isMarginMakeOrder.value) {
+      const { side } = formState.value;
+      if (side === SideEnum.GuaranteeStockBuy) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).gage_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).credit_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.RepayStock) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).buyredeliver_fund_available;
+
+        return dealKfPrice(avail);
+      }
+    }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
@@ -2700,6 +2736,9 @@ export const useMakeOrderInfo = (
     const { offset } = formState.value;
 
     if (currentPosition.value) {
+      if (isMarginMakeOrder.value) {
+        return dealKfNumber(currentPosition.value.closable_volume);
+      }
       return (
         dealKfNumber(
           getPosClosableVolumeByOffset(currentPosition.value, offset),
@@ -2778,6 +2817,11 @@ export const useMakeOrderInfo = (
     const { volume, offset } = formState.value;
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
+        if (isMarginMakeOrder.value) {
+          return dealKfNumber(
+            Number(currentAvailPosVolume.value) - Number(volume),
+          );
+        }
         if (offset === OffsetEnum.Open) {
           return dealKfNumber(
             Number(currentAvailPosVolume.value) + Number(volume),

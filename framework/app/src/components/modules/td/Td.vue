@@ -614,9 +614,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               >
                 {{ record.group }}
               </a-tag>
-              <span>
+              <div>
                 {{ record.name }}
-              </span>
+              </div>
               <Icon
                 v-if="getPrefixByLocation(record).prefixType === 'icon'"
                 :component="getPrefixByLocation(record).prefix"
@@ -631,9 +631,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
           >
             <div class="td-name__warp">
               <a-tag color="#FAAD14">{{ $t('tdConfig.account_group') }}</a-tag>
-              <span>
+              <div>
                 {{ record.name }}
-              </span>
+              </div>
             </div>
           </template>
           <template
@@ -1010,6 +1010,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
   height: 100%;
 
   .td-name__warp {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-right: 8px;
     word-break: break-all;
   }
 }

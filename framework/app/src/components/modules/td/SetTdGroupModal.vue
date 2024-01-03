@@ -157,7 +157,7 @@ getInstrumentTypeColor;
       @drop="handleDrop"
     >
       <template #title="{ dataRef }">
-        <div v-if="dataRef.category === 'td'">
+        <div v-if="dataRef.category === 'td'" class="set-td-name__warp">
           <a-tag
             class="kf-td-tree-tag"
             size="small"
@@ -165,13 +165,20 @@ getInstrumentTypeColor;
           >
             {{ dataRef.group }}
           </a-tag>
-          {{ dataRef.name }}
+          <div>
+            {{ dataRef.name }}
+          </div>
         </div>
-        <div v-else-if="dataRef.category === 'tdGroup'">
+        <div
+          v-else-if="dataRef.category === 'tdGroup'"
+          class="set-td-name__warp"
+        >
           <a-tag size="small" color="#FAAD14">
             {{ $t('tdConfig.account_group') }}
           </a-tag>
-          {{ dataRef.name }}
+          <div>
+            {{ dataRef.name }}
+          </div>
         </div>
       </template>
     </a-tree>
@@ -181,6 +188,14 @@ getInstrumentTypeColor;
 .set-td-group-modal {
   .kf-td-tree-tag {
     display: inline-block;
+  }
+  .set-td-name__warp {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-right: 8px;
+    word-break: break-all;
   }
 }
 </style>

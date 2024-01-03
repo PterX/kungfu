@@ -165,9 +165,7 @@ getInstrumentTypeColor;
           >
             {{ dataRef.group }}
           </a-tag>
-          <div>
-            {{ dataRef.name }}
-          </div>
+          {{ dataRef.name }}
         </div>
         <div
           v-else-if="dataRef.category === 'tdGroup'"
@@ -176,9 +174,7 @@ getInstrumentTypeColor;
           <a-tag size="small" color="#FAAD14">
             {{ $t('tdConfig.account_group') }}
           </a-tag>
-          <div>
-            {{ dataRef.name }}
-          </div>
+          {{ dataRef.name }}
         </div>
       </template>
     </a-tree>
@@ -190,11 +186,6 @@ getInstrumentTypeColor;
     display: inline-block;
   }
   .set-td-name__warp {
-    flex: 1;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    margin-right: 8px;
     word-break: break-all;
   }
 }

@@ -688,6 +688,38 @@ export const loopToRunProcess = async <T>(
   return resList;
 };
 
+export async function parallelTaskScheduler<T>(
+  tasks: Array<() => Promise<T>>,
+  maxConcurrentTasks: number = 1,
+): Promise<(T | Error)[]> {
+  const results: (T | Error)[] = [];
+  const executing: Array<Promise<void>> = [];
+
+  for (const task of tasks) {
+    if (executing.length >= maxConcurrentTasks) {
+      await Promise.race(executing);
+    }
+
+    const p = (async () => {
+      try {
+        return await task();
+      } catch (err: unknown) {
+        return err as Error;
+      }
+    })();
+
+    const e = p.then((res) => {
+      results.push(res);
+      executing.splice(executing.indexOf(e), 1);
+    });
+
+    executing.push(e);
+  }
+  await Promise.all(executing);
+
+  return results;
+}
+
 export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   let timer; // for ui refresh
   return new Observable<boolean>((sub) => {

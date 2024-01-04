@@ -135,6 +135,22 @@ const tdGroup = useTdGroups();
 const tdGroupNames = computed(() => {
   return tdGroup.value.map((item) => item.name);
 });
+
+watch(
+  () => extConfigs.value,
+  (newVal) => {
+    if (!newVal || !newVal['td']) {
+      marginSupportTdMap = {};
+      return;
+    }
+    Object.keys(newVal['td']).forEach((key) => {
+      newVal['td'][key]?.margin?.showMargin && (marginSupportTdMap[key] = true);
+    });
+  },
+
+  { immediate: true },
+);
+
 const addTdGroupConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('tdConfig.account_group'),
@@ -300,22 +316,6 @@ async function handleOpenSetTdModal(
     );
     return;
   }
-
-  watch(
-    () => extConfigs,
-    () => {
-      if (!extConfigs.value || !extConfigs.value['td']) {
-        marginSupportTdMap = {};
-        return;
-      }
-      Object.keys(extConfigs.value['td']).forEach((key) => {
-        extConfigs.value['td'][key]?.margin?.showMargin &&
-          (marginSupportTdMap[key] = true);
-      });
-    },
-
-    { immediate: true },
-  );
 
   currentSelectedSourceId.value = selectedSource;
   setTdConfigPayload.value.type = type;
@@ -692,7 +692,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByTdGroup(record).unrealized_pnl)"
+              :num="
+                dealAssetPrice(
+                  getAssetsByTdGroup(marginSupportTdMap, record).unrealized_pnl,
+                )
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'marketValue'">
@@ -708,8 +712,14 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).total_asset)
-                  : dealAssetPrice(getAssetsByTdGroup(record).market_value)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .total_asset,
+                    )
+                  : dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .market_value,
+                    )
               "
             ></KfBlinkNum>
           </template>
@@ -727,8 +737,8 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 dealAssetPrice(
-                  getAssetsByTdGroup(record).margin ||
-                    getAssetsByTdGroup(record).margin,
+                  getAssetsByTdGroup(marginSupportTdMap, record).margin ||
+                    getAssetsByTdGroup(marginSupportTdMap, record).margin,
                 )
               "
             ></KfBlinkNum>
@@ -741,7 +751,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealAssetPrice(getAssetsByTdGroup(record).avail)"
+              :num="
+                dealAssetPrice(
+                  getAssetsByTdGroup(marginSupportTdMap, record).avail,
+                )
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'frozen_funds'">
@@ -758,7 +772,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).frozen_cash)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .frozen_cash,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -777,7 +794,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).short_cash)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record).short_cash,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -809,7 +828,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).avail_margin)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .avail_margin,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -828,7 +850,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).total_debt)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record).total_debt,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -847,7 +871,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).net_assets)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record).net_assets,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -866,7 +892,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).long_total_debt)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .long_total_debt,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -885,7 +914,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).short_total_debt)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .short_total_debt,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -904,7 +936,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).cash_debt)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record).cash_debt,
+                    )
                   : '--'
               "
             ></KfBlinkNum>
@@ -923,7 +957,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-else-if="record.category === 'tdGroup'"
               :num="
                 marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByTdGroup(record).total_asset)
+                  ? dealAssetPrice(
+                      getAssetsByTdGroup(marginSupportTdMap, record)
+                        .total_asset,
+                    )
                   : '--'
               "
             ></KfBlinkNum>

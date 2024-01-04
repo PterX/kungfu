@@ -188,10 +188,9 @@ const afterWatchIsLive = () => {
   const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
   watcherIsLiveObervable.pipe(first()).subscribe(() => {
     kfLogger.info('watcher is live');
-    delayMilliSeconds(2000)
+    delayMilliSeconds(1000)
       .then(() => startLedger(false))
       .then(() => postStartAll())
-      .then(() => delayMilliSeconds(1000))
       .then(() => {
         globalBus.next({
           tag: 'processStatus',

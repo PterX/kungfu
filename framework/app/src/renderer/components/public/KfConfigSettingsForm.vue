@@ -2249,9 +2249,10 @@ defineExpose({
               (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
               item.disabled
             "
+            @click.stop="handleAddItemIntoTableRows(item)"
           >
             <template #icon>
-              <PlusOutlined @click.stop="handleAddItemIntoTableRows(item)" />
+              <PlusOutlined />
             </template>
           </a-button>
           <div

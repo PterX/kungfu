@@ -93,7 +93,9 @@
             <a-tag :color="currentCategoryData?.color || 'default'">
               {{ currentCategoryData?.name }}
             </a-tag>
-            {{ currentSessionName }}
+            <span>
+              {{ currentSessionName }}
+            </span>
           </div>
           <TimeSlider
             v-if="currentSession"
@@ -188,6 +190,7 @@ import {
   getYearMonthDay,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { dealCategory } from './utils';
@@ -539,7 +542,7 @@ const onJournalActionsData = (
 ) => {
   exportData(exportFileName.value, currentFrameList.value);
 };
-const dealLocation = () => {
+const dealLocation = async () => {
   const { value: currentSessionValue } = currentSession;
   if (!currentSessionValue) {
     messagePrompt().error(t('replay.please_select_session'));
@@ -555,6 +558,20 @@ const dealLocation = () => {
     location_uid,
     value: '',
   };
+
+  const { processStatusWithDetail } = await listProcessStatus();
+  const processId = getProcessIdByKfLocation({
+    category,
+    group,
+    name,
+    mode,
+  });
+
+  const processStatusDetail = processStatusWithDetail[processId];
+  if (!processStatusDetail) {
+    messagePrompt().error(t('replay.process_not_found'));
+    return;
+  }
 
   switch (category) {
     case 'operator':
@@ -707,8 +724,12 @@ function onEntryVisualization(visible: boolean) {
         justify-content: space-between;
 
         .kf-journal-bar-title {
+          max-width: 300px;
           font-size: 14px;
           margin-right: 16px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .kf-journal-time-slider {

@@ -23,7 +23,7 @@ import {
   categoryRegisterConfig,
   getColumns,
   getFundTransKey,
-  assetDetailShowList,
+  getAssetDetailShowList,
   assetMarginDetailShowList,
 } from './config';
 import {
@@ -77,23 +77,6 @@ const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { testCase } = storeToRefs(useGlobalStore());
-const tdAssetMarginMap = computed(() => {
-  const obj: Record<string, boolean> = {};
-  if (!extConfigs.value['td']) return obj;
-  Object.keys(extConfigs.value['td'] || {}).forEach((key) => {
-    const extConfig = extConfigs.value['td'][key];
-    if (extConfig?.showAssetMargin) {
-      obj[key] = true;
-    }
-  });
-  return obj;
-});
-const isShowAssetMargin = computed(() => {
-  if (!extConfigs.value['td']) return false;
-  return Object.keys(extConfigs.value['td']).some(
-    (item: string) => tdAssetMarginMap.value[item],
-  );
-});
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
@@ -127,6 +110,15 @@ const {
   currentGlobalKfLocation,
   resetCurrentGlobalKfLocation,
 } = useCurrentGlobalKfLocation(window.watcher);
+
+const getTdMarginSupport = (tdLocation: KungfuApi.KfLocation) => {
+  if (!extConfigs.value['td']) return false;
+  const extConfig = extConfigs.value['td'][tdLocation.group];
+  if (extConfig?.margin?.showMargin) {
+    return true;
+  }
+  return false;
+};
 
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();
@@ -215,9 +207,7 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = computed(() => {
-  const sorter = (
-    dataIndex: keyof KungfuApi.KfConfig | keyof KungfuApi.Asset,
-  ) => {
+  const sorter = (dataIndex: string) => {
     return buildTableColumnSorterWithStrike<
       KungfuApi.KfConfig,
       KungfuApi.Asset
@@ -251,16 +241,10 @@ const columns = computed(() => {
       },
       sorter,
       marginSorter,
-      isShowAssetMargin.value,
     );
   }
 
-  return getColumns(
-    currentGlobalKfLocation.value,
-    sorter,
-    marginSorter,
-    isShowAssetMargin.value,
-  );
+  return getColumns(currentGlobalKfLocation.value, sorter, marginSorter);
 });
 
 const customRowResolved = (
@@ -269,10 +253,11 @@ const customRowResolved = (
   if (record.category === 'tdGroup') {
     return customRow(record);
   }
+  const supportMargin = getTdMarginSupport(record);
 
   const allAssetDetailList = [
-    ...assetDetailShowList,
-    ...(tdAssetMarginMap.value[record.group] ? assetMarginDetailShowList : []),
+    ...getAssetDetailShowList(supportMargin),
+    ...(getTdMarginSupport(record) ? assetMarginDetailShowList : []),
   ];
   const assetGetter = () =>
     allAssetDetailList.reduce((assetDetails, assetInfo) => {
@@ -285,7 +270,10 @@ const customRowResolved = (
     ...customRow(record),
     onMousedown: (event: MouseEvent) => {
       if (event.button === 2) {
-        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'));
+        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], {
+          [t('tdConfig.maintain_margin_ratio')]: (str) =>
+            (Number(str) * 100).kfToFixed(1) + '%',
+        });
       }
     },
   };
@@ -717,11 +705,19 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'marketValue'">
             <KfBlinkNum
               v-if="record.category === 'td'"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).market_value)"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).total_asset)
+                  : dealAssetPrice(getAssetsByKfConfig(record).market_value)
+              "
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealAssetPrice(getAssetsByTdGroup(record).market_value)"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).total_asset)
+                  : dealAssetPrice(getAssetsByKfConfig(record).market_value)
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'margin'">
@@ -755,14 +751,63 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="dealAssetPrice(getAssetsByTdGroup(record).avail)"
             ></KfBlinkNum>
           </template>
-          <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'avail_margin'"
-          >
+          <template v-else-if="column.dataIndex === 'frozen_funds'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
-                tdAssetMarginMap[record.group]
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).frozen_cash)
+                  : '--'
+              "
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByTdGroup(record).frozen_cash)
+                  : '--'
+              "
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'short_sale_proceeds'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).short_cash)
+                  : '--'
+              "
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByTdGroup(record).short_cash)
+                  : '--'
+              "
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'maintain_margin_ratio'">
+            <span v-if="record.category === 'td'">
+              {{
+                getTdMarginSupport(record) &&
+                getAssetsByKfConfig(record).collateral_ratio
+                  ? `${Math.floor(
+                      getAssetsByKfConfig(record).collateral_ratio * 100,
+                    ).kfToFixed(1)}%`
+                  : '--'
+              }}
+            </span>
+            <span v-else-if="record.category === 'tdGroup'">{{ '--' }}</span>
+          </template>
+          <template v-else-if="column.dataIndex === 'avail_margin'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="
+                getTdMarginSupport(record)
                   ? dealAssetPrice(getAssetsByKfConfig(record).avail_margin)
                   : '--'
               "
@@ -772,14 +817,72 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="dealAssetPrice(getAssetsByTdGroup(record).avail_margin)"
             ></KfBlinkNum>
           </template>
-          <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'cash_debt'"
-          >
+          <template v-else-if="column.dataIndex === 'total_liabilities'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
-                tdAssetMarginMap[record.group]
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).total_debt)
+                  : '--'
+              "
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealAssetPrice(getAssetsByTdGroup(record).total_debt)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'equity'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).net_assets)
+                  : '--'
+              "
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealAssetPrice(getAssetsByTdGroup(record).net_assets)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'total_borrowed_funds'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).long_total_debt)
+                  : '--'
+              "
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealAssetPrice(getAssetsByTdGroup(record).long_total_debt)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'total_short_liabilities'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="
+                getTdMarginSupport(record)
+                  ? dealAssetPrice(getAssetsByKfConfig(record).short_total_debt)
+                  : '--'
+              "
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealAssetPrice(getAssetsByTdGroup(record).short_total_debt)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'cash_debt'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="
+                getTdMarginSupport(record)
                   ? dealAssetPrice(getAssetsByKfConfig(record).cash_debt)
                   : '--'
               "
@@ -789,22 +892,20 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="dealAssetPrice(getAssetsByTdGroup(record).cash_debt)"
             ></KfBlinkNum>
           </template>
-          <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'total_asset'"
-          >
+          <template v-else-if="column.dataIndex === 'total_asset'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
-                tdAssetMarginMap[record.group]
+                getTdMarginSupport(record)
                   ? dealAssetPrice(getAssetsByKfConfig(record).total_asset)
                   : '--'
               "
             ></KfBlinkNum>
             <KfBlinkNum
-              v-else-if="isShowAssetMargin && record.category === 'tdGroup'"
+              v-else-if="record.category === 'tdGroup'"
               :num="
-                tdAssetMarginMap[record.group]
+                getTdMarginSupport(record)
                   ? dealAssetPrice(getAssetsByTdGroup(record).total_asset)
                   : '--'
               "
@@ -923,6 +1024,16 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
 <style lang="less">
 .kf-td__warp {
   height: 100%;
+  .ant-table-tbody > tr > td:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .ant-table-tbody > tr > td:first-child .ant-table-row-expand-icon {
+    flex-shrink: 0;
+    margin-right: 8px;
+  }
 
   .td-name__warp {
     word-break: break-all;

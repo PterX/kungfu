@@ -111,15 +111,17 @@ const {
   resetCurrentGlobalKfLocation,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const getTdMarginSupport = (tdLocation: KungfuApi.KfLocation | KungfuApi.KfExtraLocation) => {
+const getTdMarginSupport = (
+  tdLocation: KungfuApi.KfLocation | KungfuApi.KfExtraLocation,
+) => {
   if (!extConfigs.value['td']) return false;
 
-  if(tdLocation.group === 'group'){
-    if('children' in tdLocation && tdLocation.children.length > 0){
+  if (tdLocation.group === 'group') {
+    if ('children' in tdLocation && tdLocation.children.length > 0) {
       return tdLocation.children.some((item) => {
         const extConfig = extConfigs.value['td'][item.group];
         return extConfig?.margin?.showMargin;
-      })
+      });
     }
   }
   const extConfig = extConfigs.value['td'][tdLocation.group];

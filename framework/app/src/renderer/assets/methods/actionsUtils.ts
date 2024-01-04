@@ -2058,7 +2058,9 @@ export const useAssets = (): {
   getAssetsByKfConfig(
     kfLocation: KungfuApi.KfLocation | KungfuApi.KfConfig,
   ): KungfuApi.Asset;
-  getAssetsByTdGroup(tdGroup: KungfuApi.KfExtraLocation): KungfuApi.Asset;
+  getAssetsByTdGroup(
+    tdGroup: KungfuApi.KfExtraLocation,
+  ): KungfuApi.Asset | Record<string, never>;
 } => {
   const { assets } = storeToRefs(useGlobalStore());
 
@@ -2071,21 +2073,35 @@ export const useAssets = (): {
 
   const getAssetsByTdGroup = (
     tdGroup: KungfuApi.KfExtraLocation,
-  ): KungfuApi.Asset => {
-    const children = (tdGroup.children || []) as KungfuApi.KfConfig[];
-    const assetsList = children
-      .map((item) => getAssetsByKfConfig(item))
-      .filter((item) => Object.keys(item).length);
-
-    return assetsList.reduce((allAssets, asset) => {
-      return {
-        ...allAssets,
-        unrealized_pnl: (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl,
-        market_value: (allAssets.market_value || 0) + asset.market_value,
-        margin: (allAssets.margin || 0) + asset.margin,
-        avail: (allAssets.avail || 0) + asset.avail,
-        avail_margin: (allAssets.avail_margin || 0) + asset.avail_margin,
-      };
+  ): KungfuApi.Asset | Record<string, never> => {
+    const children = (tdGroup?.children || []) as KungfuApi.KfConfig[];
+    const group = children[0]?.group;
+    if (!group) return {};
+    const isSameGroup = children.every((item) => item.group === group);
+    if (!isSameGroup) {
+      return {};
+    }
+    return children.reduce((allAssets, item) => {
+      const asset = getAssetsByKfConfig(item);
+      if (Object.keys(asset).length === 0) return allAssets;
+      allAssets.unrealized_pnl =
+        (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl;
+      allAssets.market_value =
+        (allAssets.market_value || 0) + asset.market_value;
+      allAssets.margin = (allAssets.margin || 0) + asset.margin;
+      allAssets.avail = (allAssets.avail || 0) + asset.avail;
+      allAssets.avail_margin =
+        (allAssets.avail_margin || 0) + asset.avail_margin;
+      allAssets.net_assets = (allAssets.net_assets || 0) + asset.net_assets;
+      allAssets.long_total_debt =
+        (allAssets.long_total_debt || 0) + asset.long_total_debt;
+      allAssets.total_debt = (allAssets.total_debt || 0) + asset.total_debt;
+      allAssets.short_cash = (allAssets.short_cash || 0) + asset.short_cash;
+      allAssets.frozen_cash = (allAssets.frozen_cash || 0) + asset.frozen_cash;
+      allAssets.total_asset = (allAssets.total_asset || 0) + asset.total_asset;
+      allAssets.short_total_debt =
+        (allAssets.short_total_debt || 0) + asset.short_total_debt;
+      return allAssets;
     }, {} as KungfuApi.Asset);
   };
 

@@ -25,7 +25,8 @@
     "clean": "kfs extension clean",
     "build": "kfs extension build",
     "package": "kfs project package",
-    "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
+    "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
+    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\""
   },
   "devDependencies": {
     "@kungfu-trader/kungfu-sdk": "^2.6.11-alpha.11"

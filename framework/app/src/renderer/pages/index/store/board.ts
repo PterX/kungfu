@@ -48,6 +48,7 @@ interface ActionsTree {
     destBoardId: KfLayout.BoardId,
     directionClassName: KfLayoutTargetDirectionClassName,
   ) => void;
+  saveBoardsMap: () => Promise<void>;
 }
 
 type combineType = StateTree & ActionsTree;
@@ -92,7 +93,9 @@ export const useBoards = () => {
               }
 
               if (data.name == 'record-before-quit') {
-                saveBoardsMap_();
+                Object.values(window.allBoardsStore).forEach((store) => {
+                  store().saveBoardsMap();
+                });
               }
             }
           },
@@ -105,7 +108,7 @@ export const useBoards = () => {
 
       onUnmounted(() => {
         subscription && subscription.unsubscribe();
-        saveBoardsMap_();
+        saveBoardsMap();
       });
 
       function markIsBoardDragging(status: boolean) {
@@ -337,7 +340,7 @@ export const useBoards = () => {
         return boardIds[0] + 1;
       }
 
-      function saveBoardsMap_(): Promise<void> {
+      function saveBoardsMap(): Promise<void> {
         localStorage.setItem(
           localBoardsMapKey,
           JSON.stringify(boardsMap.value || '{}'),
@@ -358,6 +361,7 @@ export const useBoards = () => {
         removeBoardByContentId,
         setDragedContentData,
         afterDragMoveBoard,
+        saveBoardsMap,
       } as combineType;
     });
 

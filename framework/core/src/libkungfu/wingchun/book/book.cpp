@@ -171,7 +171,7 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
 
     if (position.direction == Direction::Long || !is_stock) {
       asset.market_value += position_market_value;
-      asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;;
+      asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
 
       if (is_stock) {
         asset.dynamic_equity += position_market_value;

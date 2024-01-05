@@ -165,24 +165,25 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
       db_contract_multiplier = (instrument.contract_multiplier > 0) ? instrument.contract_multiplier
                                                                     : DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     }
-
     auto position_market_value = position.volume *
                                  (position.last_price > 0 ? position.last_price : position.avg_open_price) *
                                  db_exchage_rate * db_contract_multiplier;
 
-    asset.market_value += position_market_value;
-    asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
+    if (position.direction == Direction::Long || !is_stock) {
+      asset.market_value += position_market_value;
+      asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;;
 
-    if (is_stock) {
-      asset.dynamic_equity += position_market_value;
-    } else if (is_future) {
-      asset.dynamic_equity += position.margin + position.position_pnl * db_exchage_rate;
-    }
+      if (is_stock) {
+        asset.dynamic_equity += position_market_value;
+      } else if (is_future) {
+        asset.dynamic_equity += position.margin + position.position_pnl * db_exchage_rate;
+      }
 
-    if (position.direction == Direction::Short) {
-      asset.short_market_value += position_market_value;
-    } else {
-      asset.long_market_value += position_market_value;
+      if (position.direction == Direction::Short) {
+        asset.short_market_value += position_market_value;
+      } else {
+        asset.long_market_value += position_market_value;
+      }
     }
   };
 

@@ -124,6 +124,15 @@ export const getColumns = (
         width: 140,
       },
       {
+        title: t('tdConfig.total_asset'),
+        dataIndex: 'total_asset',
+        align: 'right',
+        sorter: {
+          compare: marginSorter('total_asset'),
+        },
+        width: 140,
+      },
+      {
         title: t('tdConfig.total_liabilities'),
         dataIndex: 'total_liabilities',
         align: 'right',

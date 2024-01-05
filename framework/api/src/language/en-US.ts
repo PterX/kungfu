@@ -500,7 +500,7 @@ export default {
     td_group: 'Td Group',
     td_name: 'Td Group Name',
     account_name: 'Account',
-    account_ps: 'Note',
+    account_ps: 'Remarks',
     state_status: 'Status',
     process_status: 'Process',
     unrealized_pnl: 'Unrealized Pnl',

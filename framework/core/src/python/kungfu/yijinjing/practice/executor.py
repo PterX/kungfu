@@ -205,6 +205,7 @@ class ServiceLoader(dict):
 
     def load_service(self, ctx):
         sys.path.append(ctx.extension_path)
+        site.setup(ctx.extension_path)
         module = importlib.import_module(ctx.name)
         service_builder = getattr(module, "service")
         self[ctx.name] = self.create_service(ctx.name, service_builder)

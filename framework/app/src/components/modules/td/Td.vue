@@ -1024,6 +1024,16 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
 <style lang="less">
 .kf-td__warp {
   height: 100%;
+  .ant-table-tbody > tr > td:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .ant-table-tbody > tr > td:first-child .ant-table-row-expand-icon {
+    flex-shrink: 0;
+    margin-right: 8px;
+  }
 
   .td-name__warp {
     word-break: break-all;

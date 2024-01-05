@@ -100,7 +100,6 @@ private:
   uint64_t page_frame_nb_ = 0;
   bool replica_ = false;
   bool keep_page_ = false;
-  bool preload_ = false;
   uint32_t max_pre_create_size_ = 0;
 
   void load_page(uint32_t page_id);

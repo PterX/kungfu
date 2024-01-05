@@ -298,6 +298,8 @@ public:
 
   virtual bool req_order_trigger() { return true; }
 
+  virtual bool req_contract() { return true; }
+
   virtual bool req_algo_order(const event_ptr &event) { return true; }
 
   virtual bool req_history_order(const event_ptr &event) { return true; }

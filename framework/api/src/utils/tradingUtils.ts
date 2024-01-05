@@ -22,6 +22,7 @@ import {
   CommissionMode,
   InstrumentMinOrderVolume,
   ExportTradingDataColumnsToFilter,
+  showVolumeSideTypes,
 } from '../config/tradingConfig';
 import {
   DirectionEnum,
@@ -1210,6 +1211,10 @@ export const isShotable = (instrumentType: InstrumentTypeEnum): boolean => {
   return instrumentType
     ? ShotableInstrumentTypes.includes(instrumentType)
     : false;
+};
+
+export const isShowPosition = (side: SideEnum): boolean => {
+  return showVolumeSideTypes.includes(side);
 };
 
 export const dealOrderTriggerStatus = (

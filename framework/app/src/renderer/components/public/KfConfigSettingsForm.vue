@@ -70,6 +70,8 @@ import {
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
+  ContractTypeEnum,
+  CloseOutFlagEnum,
   OffsetEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -186,6 +188,14 @@ const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
 const numberEnumRadioTypeResolved = ref({ ...numberEnumRadioType });
 const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
+const marginSideRadioList = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayStock,
+  SideEnum.RepayMargin,
+];
 const customerFormItemTips = reactive<Record<string, string>>({});
 const instrumentKeys = ref<
   Record<string, 'instrument' | 'instruments' | 'instrumentsCsv'>
@@ -201,6 +211,10 @@ const numberKeys = ref<Record<string, KungfuApi.KfConfigItem>>(
   filterNumberKeysFromConfigSettings(props.configSettings),
 );
 const numbersTyping = ref<Record<string, boolean>>({});
+
+const OriContractList = ref<{ label: string; value: string }[]>([]);
+
+const contractList = ref<{ label: string; value: string }[]>([]);
 
 const configSettingFormInject = inject(
   BuiltinComponentInjectKeysMap.ConfigSettingForm,
@@ -252,6 +266,8 @@ const instrumentsInFrom = computed(() =>
     value: formState.value[key],
   })),
 );
+
+// Use filteredInstrumentOptions as options for <a-select>
 watch(instrumentsInFrom, (insts) => {
   // have to be after watch(() => instrumentKeys.value, xxx)
   nextTick().then(() => {
@@ -1211,6 +1227,60 @@ function calcTableItemHeight(
   return baseHeight + dividerHeight;
 }
 
+function getContracData(open) {
+  if (open) {
+    const list: KungfuApi.Contract[] = window.watcher.ledger.Contract.list();
+    OriContractList.value = list
+      .filter((item) => {
+        const instrument = formState.value.instrument
+          ? formState.value.instrument.split('_')[1]
+          : '';
+        const side = formState.value.side;
+        if (side === SideEnum.RepayMargin) {
+          return (
+            item.close_out_flag !== CloseOutFlagEnum.Closeout &&
+            item.contract_type === ContractTypeEnum.CrdBuyContract
+          );
+        } else if (side === SideEnum.RepayStock) {
+          return (
+            item.instrument_id.includes(instrument) &&
+            item.close_out_flag !== CloseOutFlagEnum.Closeout &&
+            item.contract_type === ContractTypeEnum.CrdSellContract
+          );
+        } else {
+          return false;
+        }
+      })
+      .map((item) => {
+        return {
+          label: `${t('tradingConfig.instrument')} ${item.instrument_id}, ${t(
+            'tradingConfig.repaid',
+          )} ${
+            item.contract_type === ContractTypeEnum.CrdBuyContract
+              ? `${item.repayment_amt}/${item.total_liability_amt}`
+              : `${item.repayment_qty}/${item.total_liability_qty}`
+          } ${item.contract_id}`,
+          value: item.contract_id,
+        };
+      });
+    contractList.value = OriContractList.value;
+  }
+}
+
+function handleContractSearch(str: string) {
+  if (str) {
+    contractList.value = OriContractList.value.filter((item) => {
+      return item.label.includes(str);
+    });
+  }
+}
+
+function handleContractBlur() {
+  if (contractList.value.length === 1 && formState.value.contract_id) {
+    formState.value.contract_id = contractList.value[0].value;
+  }
+}
+
 defineExpose({
   validate,
   clearValidate,
@@ -1399,6 +1469,19 @@ defineExpose({
           "
         >
           <a-radio v-for="key in sideRadiosList" :key="key" :value="+key">
+            {{ dealSide(+key).name }}
+          </a-radio>
+        </a-radio-group>
+        <a-radio-group
+          v-else-if="item.type === 'marginSide'"
+          v-model:value="formState[item.key]"
+          :name="item.key"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+        >
+          <a-radio v-for="key in marginSideRadioList" :key="key" :value="+key">
             {{ dealSide(+key).name }}
           </a-radio>
         </a-radio-group>
@@ -1661,6 +1744,22 @@ defineExpose({
           @blur="instrumentsSearchRelated[item.key].handleSearchInstrumentBlur"
         ></a-select>
         <a-select
+          v-else-if="item.type === 'contract'"
+          :ref="item.key"
+          v-model:value="formState[item.key]"
+          :disabled="
+            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
+            item.disabled
+          "
+          show-search
+          :filter-option="false"
+          @search="handleContractSearch"
+          @blur="handleContractBlur"
+          @dropdownVisibleChange="getContracData"
+          :options="contractList"
+        ></a-select>
+
+        <a-select
           v-else-if="item.type === 'td'"
           v-model:value="formState[item.key]"
           :disabled="
@@ -1804,7 +1903,6 @@ defineExpose({
             item.disabled
           "
         ></a-switch>
-
         <div v-if="item.showTipWithIcon && item.tip" class="tooltip__wrap">
           <a-tooltip
             :placement="item.toolTipPlacement ?? 'top'"
@@ -1818,7 +1916,6 @@ defineExpose({
           </a-tooltip>
         </div>
       </div>
-
       <div v-else-if="item.type === 'file'" class="kf-form-item__warp file">
         <a-button
           size="small"
@@ -2152,9 +2249,10 @@ defineExpose({
               (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
               item.disabled
             "
+            @click.stop="handleAddItemIntoTableRows(item)"
           >
             <template #icon>
-              <PlusOutlined @click.stop="handleAddItemIntoTableRows(item)" />
+              <PlusOutlined />
             </template>
           </a-button>
           <div

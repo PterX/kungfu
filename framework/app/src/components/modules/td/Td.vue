@@ -151,14 +151,14 @@ watch(
   { immediate: true },
 );
 
-const getTdGroupSupportMargin=(record:KungfuApi.KfExtraLocation)=>{
-  if(record.children?.length){
-    return record.children.some((item)=>{
-      return marginSupportTdMap[item.group]
-    })
+const getTdGroupSupportMargin = (record: KungfuApi.KfExtraLocation) => {
+  if (record.children?.length) {
+    return record.children.some((item) => {
+      return marginSupportTdMap[item.group];
+    });
   }
-  return false
-}
+  return false;
+};
 
 const addTdGroupConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
@@ -711,18 +711,14 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'marketValue'">
             <KfBlinkNum
               v-if="record.category === 'td'"
-              :num="
- dealAssetPrice(getAssetsByKfConfig(record).market_value)
-              "
+              :num="dealAssetPrice(getAssetsByKfConfig(record).market_value)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
               :num="
-dealAssetPrice(
-                      getAssetsByTdGroup(marginSupportTdMap, record)
-                        .market_value,
-                    )
-
+                dealAssetPrice(
+                  getAssetsByTdGroup(marginSupportTdMap, record).market_value,
+                )
               "
             ></KfBlinkNum>
           </template>

@@ -89,27 +89,37 @@ const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 const formState = ref(
   initFormStateByConfig(
-    getConfigSettings(
-      currentGlobalKfLocation.value,
-      InstrumentTypeEnum.future,
-      extConfigs.value,
-    ),
+    getConfigSettings({
+      location: currentGlobalKfLocation.value,
+      instrumentType: InstrumentTypeEnum.future,
+      extConfigs: extConfigs.value,
+    }),
     {},
   ),
 );
-const autoFillInstrument = ref<boolean>(false);
 
+const contractSideTypes = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayMargin,
+  SideEnum.RepayStock,
+];
+const autoFillInstrument = ref<boolean>(false);
 const isMarginMakeOrder = computed(() => {
+  const accountId = formState.value?.account_id;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.marginMakeOrder || false
+    extConfigs.value?.td?.[accountPrefix]?.margin?.marginMakeOrder || false
   );
 });
 
 const isSpecifyContract = computed(() => {
+  const accountId = formState.value?.account_id;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.specifyContract || false
+    extConfigs.value?.td?.[accountPrefix]?.margin?.specifyContract || false
   );
 });
 
@@ -149,7 +159,7 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getConfigSettings();
+    return getConfigSettings({});
   }
 
   let step = 0.0001,
@@ -164,16 +174,26 @@ const configSettings = computed(() => {
     pricePrecision = price_precision;
   }
 
-  const { side } = formState.value;
-  return getConfigSettings(
-    currentGlobalKfLocation.value,
-    makeOrderInstrumentType.value,
-    extConfigs.value,
+  const { account_id, side } = formState.value;
+  let accountGroup = '';
+  if (account_id) {
+    accountGroup = account_id.split('_')[0];
+  }
+  if (isMarginMakeOrder.value) {
+    if (!contractSideTypes.includes(formState.value.side)) {
+      formState.value.side = SideEnum.GuaranteeStockBuy;
+    }
+  }
+  return getConfigSettings({
+    location: currentGlobalKfLocation.value,
+    instrumentType: makeOrderInstrumentType.value,
+    extConfigs: extConfigs.value,
     side,
-    +formState.value.price_type,
+    priceType: +formState.value.price_type,
     pricePrecision,
     step,
-  );
+    accountGroup: accountGroup,
+  });
 });
 
 const rules = computed(() => {
@@ -327,11 +347,12 @@ watch(
     nextTick().then(() => {
       formRef.value.clearValidate();
       formState.value = initFormStateByConfig(
-        getConfigSettings(
-          currentGlobalKfLocation.value,
-          InstrumentTypeEnum.future,
-          extConfigs.value,
-        ),
+        getConfigSettings({
+          location: currentGlobalKfLocation.value,
+          instrumentType: makeOrderInstrumentType.value,
+          side: formState.value.side,
+          accountId: formState.value.account_id,
+        }),
         {},
       );
       formState.value.offset = OffsetEnum.Open;

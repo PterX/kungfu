@@ -111,7 +111,7 @@ const {
   resetCurrentGlobalKfLocation,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-let marginSupportTdMap: Record<string, boolean> = {};
+const marginSupportTdMap = ref<Record<string, boolean>>({});
 
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();
@@ -140,11 +140,12 @@ watch(
   () => extConfigs.value,
   (newVal) => {
     if (!newVal || !newVal['td']) {
-      marginSupportTdMap = {};
+      marginSupportTdMap.value = {};
       return;
     }
     Object.keys(newVal['td']).forEach((key) => {
-      newVal['td'][key]?.margin?.showMargin && (marginSupportTdMap[key] = true);
+      newVal['td'][key]?.margin?.showMargin &&
+        (marginSupportTdMap.value[key] = true);
     });
   },
 
@@ -154,7 +155,7 @@ watch(
 const getTdGroupSupportMargin = (record: KungfuApi.KfExtraLocation) => {
   if (record.children?.length) {
     return record.children.some((item) => {
-      return marginSupportTdMap[item.group];
+      return marginSupportTdMap.value[item.group];
     });
   }
   return false;
@@ -271,11 +272,13 @@ const customRowResolved = (
   if (record.category === 'tdGroup') {
     return customRow(record);
   }
-  const supportMargin = marginSupportTdMap[record.group];
+  const supportMargin = marginSupportTdMap.value[record.group];
 
   const allAssetDetailList = [
     ...getAssetDetailShowList(supportMargin),
-    ...(marginSupportTdMap[record.group] ? assetMarginDetailShowList : []),
+    ...(marginSupportTdMap.value[record.group]
+      ? assetMarginDetailShowList
+      : []),
   ];
   const assetGetter = () =>
     allAssetDetailList.reduce((assetDetails, assetInfo) => {
@@ -289,8 +292,13 @@ const customRowResolved = (
     onMousedown: (event: MouseEvent) => {
       if (event.button === 2) {
         showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], {
-          [t('tdConfig.maintain_margin_ratio')]: (str) =>
-            (Number(str) * 100).kfToFixed(1) + '%',
+          [t('tdConfig.maintain_margin_ratio')]: (str) => {
+            if (str === '--') {
+              return str;
+            } else {
+              return ((Number(str) || 0) * 100).kfToFixed(1) + '%';
+            }
+          },
         });
       }
     },

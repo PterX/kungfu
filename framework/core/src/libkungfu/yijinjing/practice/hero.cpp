@@ -463,6 +463,15 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
 }
 
 void hero::on_frame_done() {
+  /**
+   * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
+   * 1. It may release current reading journal, causing segmentation violation or memory crash,
+   * 2. It may change reader_->current_ to another journal, leading to reader->next() in wrong journal,
+   * 3. It poses a risk of processing the current frame multiple times.
+   * Consequently, reader_->disjoin  should only be invoked after events_ stream over,
+   * specifically when the current frame dealt over and reader_->next() called.
+   */
+
   for (uint32_t uid : disjoin_uids_) {
     reader_->disjoin(uid);
   }

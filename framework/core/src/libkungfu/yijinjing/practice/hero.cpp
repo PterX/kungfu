@@ -429,6 +429,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
         sb.on_next(frame);
       }
       on_frame();
+      disjoin();
       reader_->next();
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
@@ -454,5 +455,24 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 }
 
 bool hero::is_reactable(const event_ptr &event) { return true; }
+
+void hero::disjoin(uint32_t location_uid) { disjoin_uids_.insert(location_uid); }
+
+void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
+  disjoin_channels_.insert({location_uid, dest_id});
+}
+
+void hero::disjoin() {
+  for (uint32_t uid : disjoin_uids_) {
+    reader_->disjoin(uid);
+  }
+  for (auto &pair : disjoin_channels_) {
+    if (has_location(pair.first)) {
+      reader_->disjoin(get_location(pair.first), pair.second);
+    }
+  }
+  disjoin_uids_.clear();
+  disjoin_channels_.clear();
+}
 
 } // namespace kungfu::yijinjing::practice

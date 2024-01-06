@@ -8,16 +8,6 @@
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <unordered_map>
 
-namespace std {
-// template <typename DataType> struct hash<kungfu::data<DataType>> {
-//   std::size_t operator()(const kungfu::data<DataType> &value) { return value.uid(); }
-// };
-// template <typename DataType, std::enable_if_t<std::is_base_of<DataType, kungfu::data<DataType>>::value>...>
-// struct hash<DataType> {
-//   std::size_t operator()(const DataType &value) { return value.uid(); }
-// };
-
-}
 namespace kungfu::wingchun::strategy {
 FORWARD_DECLARE_CLASS_PTR(Runner)
 class Matcher : public std::enable_shared_from_this<Matcher> {

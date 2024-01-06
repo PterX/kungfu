@@ -23,11 +23,15 @@ static constexpr double DEFAULT_STOCK_CONVERSION_RATE = 0.7;
 
 FORWARD_DECLARE_STRUCT_PTR(Book)
 FORWARD_DECLARE_CLASS_PTR(Bookkeeper)
+FORWARD_DECLARE_CLASS_PTR(AccountingMethod)
+
+typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
 
 struct Book {
   const map::CommissionMap &commissions;
   const map::InstrumentMap &instruments;
   const map::InstrumentFactorMap &instrument_factors;
+  const AccountingMethodMap &accounting_methods;
   longfist::types::Asset asset = {};
   map::PositionMap long_positions = {};
   map::PositionMap short_positions = {};
@@ -40,7 +44,8 @@ struct Book {
   yijinjing::data::location_ptr home;
 
   Book(const map::CommissionMap &commissions_ref, const map::InstrumentMap &instruments_ref,
-       const map::InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr &home_location);
+       const map::InstrumentFactorMap &instrument_factors_ref, const AccountingMethodMap &accounting_methods_ref,
+       yijinjing::data::location_ptr &home_location);
 
   double get_frozen_price(uint64_t order_id);
 
@@ -236,7 +241,7 @@ struct Book {
     return get_position(source_id, direction, data.exchange_id, data.instrument_id);
   }
 
-  void update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type);
+  void update(int64_t update_time);
 
   void replace(const longfist::types::OrderInput &input);
 

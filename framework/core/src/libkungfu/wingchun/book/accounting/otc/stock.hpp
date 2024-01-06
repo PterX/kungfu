@@ -9,8 +9,6 @@
 
 #include "../default/stock.hpp"
 #include <exception>
-#include <kungfu/wingchun/book/accounting.h>
-#include <kungfu/wingchun/book/bookkeeper.h>
 #include <math.h>
 #include <mutex>
 

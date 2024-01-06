@@ -228,6 +228,8 @@ protected:
 
   virtual void on_frame() = 0;
 
+  void on_frame_done();
+
 private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
@@ -248,8 +250,6 @@ private:
   bool drain(const rx::subscriber<event_ptr> &sb);
 
   void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
-
-  void disjoin();
 
   template <typename T>
   std::enable_if_t<T::reflect> do_require_read_from(yijinjing::journal::writer_ptr &&writer, int64_t trigger_time,

@@ -429,8 +429,8 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
         sb.on_next(frame);
       }
       on_frame();
-      disjoin();
       reader_->next();
+      on_frame_done();
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
@@ -462,7 +462,7 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   disjoin_channels_.insert({location_uid, dest_id});
 }
 
-void hero::disjoin() {
+void hero::on_frame_done() {
   for (uint32_t uid : disjoin_uids_) {
     reader_->disjoin(uid);
   }

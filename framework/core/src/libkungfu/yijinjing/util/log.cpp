@@ -13,10 +13,10 @@
 
 namespace kungfu::yijinjing::log {
 bool signal_log = true;
-static thread_local uint64_t trigger_frame_uid = 0;
-static thread_local uint32_t trigger_source_id = 0;
-static thread_local uint32_t trigger_dest_id = 0;
-static thread_local int32_t trigger_msg_type = 0;
+thread_local uint64_t trigger_frame_uid = 0;
+thread_local uint32_t trigger_source_id = 0;
+thread_local uint32_t trigger_dest_id = 0;
+thread_local int32_t trigger_msg_type = 0;
 
 void disable_signal_log() { signal_log = false; }
 
@@ -35,10 +35,12 @@ public:
 
   void format(const spdlog::details::log_msg &msg, spdlog::memory_buf_t &dest) override {
     spdlog::details::fmt_helper::append_string_view(time::strftime(time::now_in_nano(), TS_PATTERN), dest);
-    spdlog::details::fmt_helper::append_string_view(fmt::format("[{:>10}->{:<10}:{:<10}:{:<20}]",
-                                                                get_trigger_source_id(), get_trigger_dest_id(),
-                                                                get_trigger_msg_type(), get_trigger_frame_uid()),
-                                                    dest);
+    if (get_main_logger()->level() <= spdlog::level::level_enum::debug) {
+      spdlog::details::fmt_helper::append_string_view(fmt::format("[{:>10}->{:<10}:{:<10}:{:<20}]",
+                                                                  get_trigger_source_id(), get_trigger_dest_id(),
+                                                                  get_trigger_msg_type(), get_trigger_frame_uid()),
+                                                      dest);
+    }
     spdlog_formatter.format(msg, dest);
   }
 

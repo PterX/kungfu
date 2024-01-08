@@ -40,6 +40,8 @@
 
 namespace kungfu::yijinjing::log {
 
+bool is_log_frame();
+
 void set_trigger_frame_uid(uint64_t frame_uid);
 
 void set_trigger_source_id(uint32_t source_id);

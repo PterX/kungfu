@@ -107,20 +107,22 @@ const contractSideTypes = [
   SideEnum.RepayStock,
 ];
 const autoFillInstrument = ref<boolean>(false);
-const isMarginMakeOrder = computed(() => {
+  const isMarginMakeOrder = computed(() => {
   const accountId = formState.value?.account_id;
   const accountPrefix = accountId ? accountId.split('_')[0] : '';
-  return (
-    extConfigs.value?.td?.[accountPrefix]?.margin?.marginMakeOrder || false
-  );
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
+  return extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder || false;
 });
 
 const isSpecifyContract = computed(() => {
   const accountId = formState.value?.account_id;
   const accountPrefix = accountId ? accountId.split('_')[0] : '';
-  return (
-    extConfigs.value?.td?.[accountPrefix]?.margin?.specifyContract || false
-  );
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
+  return extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract || false;
 });
 
 const formRef = ref();

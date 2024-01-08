@@ -17,6 +17,7 @@ using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -415,7 +416,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   now_ = time::now_in_nano();
   if (notice.length() > 2) {
     const auto frame = std::make_shared<nanomsg_json>(notice);
-    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    io_device_->get_bus()->set_trigger_frame(frame);
     sb.on_next(frame);
   } else if (notify) {
     on_notify();
@@ -428,7 +429,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   while (live_ and reader_->data_available()) {
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
-    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    io_device_->get_bus()->set_trigger_frame(frame);
     if (frame->gen_time() <= end_time_) {
       int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {

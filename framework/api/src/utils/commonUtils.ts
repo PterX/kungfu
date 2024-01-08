@@ -690,7 +690,7 @@ export const loopToRunProcess = async <T>(
 
 export async function parallelTaskScheduler<T>(
   tasks: Array<() => Promise<T>>,
-  maxConcurrentTasks: number = 1,
+  maxConcurrentTasks = 1,
 ): Promise<(T | Error)[]> {
   const results: (T | Error)[] = [];
   const executing: Array<Promise<void>> = [];

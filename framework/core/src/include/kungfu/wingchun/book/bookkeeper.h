@@ -18,8 +18,6 @@ typedef std::unordered_map<uint32_t, Book_ptr> BookMap;
 
 typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteStateMap;
 
-typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
-
 class BookListener {
 public:
   virtual void on_position_sync_reset(const Book &old_book, const Book &new_book){};
@@ -69,8 +67,6 @@ public:
 
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
-  longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
-
   [[nodiscard]] const StaticData &get_static_data() const { return static_data_; }
 
   std::mutex &get_update_book_mutex();
@@ -102,7 +98,7 @@ public:
       auto direction = get_direction(data.instrument_type, data.side, data.offset);
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
-      book->update(update_time, account_method_type_);
+      book->update(update_time);
     };
     apply_and_update(account_id);
     if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {

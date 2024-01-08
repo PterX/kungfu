@@ -10,6 +10,7 @@
 #include "accounting/default/repo.hpp"
 #include "accounting/default/stock.hpp"
 #include "accounting/otc/stock.hpp"
+#include <kungfu/wingchun/book/bookkeeper.h>
 
 using namespace kungfu::wingchun;
 using namespace kungfu::longfist::enums;

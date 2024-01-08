@@ -4,6 +4,7 @@
 // Created by qlu on 2019-10-14.
 //
 
+#include <kungfu/wingchun/book/accounting.h>
 #include <kungfu/wingchun/book/book.h>
 
 #include <utility>
@@ -18,9 +19,10 @@ using namespace kungfu::wingchun::map;
 
 namespace kungfu::wingchun::book {
 Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instruments_ref,
-           const InstrumentFactorMap &instrument_factors_ref, yijinjing::data::location_ptr &home_location)
+           const InstrumentFactorMap &instrument_factors_ref, const AccountingMethodMap &accounting_methods_ref,
+           yijinjing::data::location_ptr &home_location)
     : commissions(commissions_ref), instruments(instruments_ref), instrument_factors(instrument_factors_ref),
-      home(home_location) {}
+      accounting_methods(accounting_methods_ref), home(home_location) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
   if (orders.find(order_id) != orders.end()) {
@@ -124,7 +126,7 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
   return position;
 }
 
-void Book::update(int64_t update_time, longfist::enums::AccountingMethodType accounting_method_type) {
+void Book::update(int64_t update_time) {
   asset.update_time = update_time;
 
   /* IMPORTANT:
@@ -142,48 +144,13 @@ void Book::update(int64_t update_time, longfist::enums::AccountingMethodType acc
   asset.dynamic_equity = asset.avail;
 
   auto update_position = [&](const Position &position) {
-    auto is_stock =
-        position.instrument_type == InstrumentType::Stock or position.instrument_type == InstrumentType::Bond or
-        position.instrument_type == InstrumentType::Fund or position.instrument_type == InstrumentType::StockOption or
-        position.instrument_type == InstrumentType::TechStock or position.instrument_type == InstrumentType::Index or
-        position.instrument_type == InstrumentType::Repo;
-    auto is_future = position.instrument_type == InstrumentType::Future;
-
-    double db_exchage_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
-    double db_contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
-    auto hashed_instrument_factor_key =
-        hash_instrument(position.source_id, position.exchange_id, position.instrument_id);
-    if (instrument_factors.find(hashed_instrument_factor_key) != instrument_factors.end()) {
-      auto &instrument_factor = instrument_factors.at(hashed_instrument_factor_key);
-      db_exchage_rate = is_equal(instrument_factor.exchange_rate, 0.0) ? DEFAULT_INSTRUMENT_EXCHANGE_RATE
-                                                                       : instrument_factor.exchange_rate;
+    if (accounting_methods.find(position.instrument_type) == accounting_methods.end()) {
+      SPDLOG_WARN("accounting method not found for position {}", position.to_string());
+      return;
     }
 
-    auto hashed_instrument_key = hash_instrument(position.exchange_id, position.instrument_id);
-    if (instruments.find(hashed_instrument_key) != instruments.end()) {
-      const auto &instrument = instruments.at(hashed_instrument_key);
-      db_contract_multiplier = (instrument.contract_multiplier > 0) ? instrument.contract_multiplier
-                                                                    : DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
-    }
-
-    auto position_market_value = position.volume *
-                                 (position.last_price > 0 ? position.last_price : position.avg_open_price) *
-                                 db_exchage_rate * db_contract_multiplier;
-
-    asset.market_value += position_market_value;
-    asset.unrealized_pnl += position.unrealized_pnl * db_exchage_rate;
-
-    if (is_stock) {
-      asset.dynamic_equity += position_market_value;
-    } else if (is_future) {
-      asset.dynamic_equity += position.margin + position.position_pnl * db_exchage_rate;
-    }
-
-    if (position.direction == Direction::Short) {
-      asset.short_market_value += position_market_value;
-    } else {
-      asset.long_market_value += position_market_value;
-    }
+    AccountingMethod_ptr accounting_method = accounting_methods.at(position.instrument_type);
+    accounting_method->update_asset(instruments, instrument_factors, asset, position);
   };
 
   apply_long_positions(update_position);

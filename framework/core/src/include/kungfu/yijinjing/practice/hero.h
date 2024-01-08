@@ -139,6 +139,10 @@ public:
 
   const rx::connectable_observable<event_ptr> &get_events() const;
 
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
@@ -227,6 +231,8 @@ protected:
 
   virtual void on_frame() = 0;
 
+  void on_frame_done();
+
 private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
@@ -236,6 +242,8 @@ private:
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+  std::set<uint32_t> disjoin_uids_ = {};
+  std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
 
   volatile bool continual_ = true;
   volatile bool live_ = false;

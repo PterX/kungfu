@@ -45,6 +45,11 @@ public:
   void update_position(Book_ptr &book, Position &position) override {
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, update_position, book, position);
   }
+
+  void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+                    Asset &asset, const Position &position) override {
+    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, update_asset, instruments, instrument_factors, asset, position);
+  }
 };
 
 void bind_book(pybind11::module &m) {

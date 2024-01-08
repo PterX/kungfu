@@ -208,7 +208,7 @@ void apprentice::on_deregister(const event_ptr &event) {
     return;
   }
 
-  reader_->disjoin(location_uid);
+  disjoin(location_uid);
   deregister_channel(location_uid);
   deregister_band(location_uid);
   deregister_location(event->trigger_time(), location_uid);

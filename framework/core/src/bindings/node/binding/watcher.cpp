@@ -755,7 +755,7 @@ void Watcher::RequestDeregister() {
 void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("after master down");
   Napi::HandleScope scope(info.Env());
-  reader_->disjoin(get_master_command_uid());
+  disjoin(get_master_command_uid());
   writers_.clear();
   serialize::initObjectReference(info, app_states_ref_);
   serialize::initObjectReference(info, strategy_states_ref_);

@@ -263,6 +263,7 @@ function handleToPage(pathname: string) {
     height: @layout-footer-height;
     line-height: @layout-footer-height;
     padding: 0 8px 0 0;
+    z-index: 1000;
 
     .kf-footer-box__warp {
       float: right;

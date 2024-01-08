@@ -205,6 +205,7 @@ class ServiceLoader(dict):
 
     def load_service(self, ctx):
         sys.path.append(ctx.extension_path)
+        site.setup(ctx.extension_path)
         module = importlib.import_module(ctx.name)
         service_builder = getattr(module, "service")
         self[ctx.name] = self.create_service(ctx.name, service_builder)
@@ -480,6 +481,7 @@ def try_load_cpp_module(ctx, path, key, cls, cls_name):
         sys.modules.pop(key)
         ctx.logger.debug(f"fallback to python loader due to: {e}")
         ctx.path = os.path.join(os.path.dirname(path), key)
+        setattr(ctx, cls_name.lower(), ctx.path)
         return cls(ctx)
 
 

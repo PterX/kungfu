@@ -13,7 +13,6 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
       low_latency_(low_latency), bus_(std::move(bus)), frame_(std::shared_ptr<frame>(new frame())), page_frame_nb_(0u),
       page_size_(page_size), priority_(priority), replica_(false) {
   keep_page_ = std::getenv("KF_KEEP_PAGE") != nullptr;
-  preload_ = std::getenv("KF_PRELOAD") != nullptr;
   char *pre_create_size = std::getenv("KF_MAX_PRE_CREATE_SIZE");
   try {
     if (pre_create_size != nullptr) {
@@ -23,7 +22,8 @@ journal::journal(data::location_ptr location, uint32_t dest_id, bool is_writing,
     SPDLOG_ERROR("failed to parse KF_MAX_PRE_CREATE_SIZE: {}", e.what());
     max_pre_create_size_ = 0;
   }
-  SPDLOG_DEBUG("keep_page_: {}, preload_: {}, max_pre_create_size_: {}", keep_page_, preload_, max_pre_create_size_);
+  SPDLOG_TRACE("keep_page_: {}, low_latency_: {}, max_pre_create_size_: {}", keep_page_, low_latency_,
+               max_pre_create_size_);
 }
 
 journal::journal(const journal &other)
@@ -84,7 +84,7 @@ void journal::load_page(uint32_t page_id) {
         }
       }
 
-      if (preload_ and preload_page_ and preload_page_->get_page_id() == page_id) {
+      if (low_latency_ and preload_page_ and preload_page_->get_page_id() == page_id) {
         page_ = std::move(preload_page_);
         page_->enable_page();
       } else {
@@ -95,7 +95,7 @@ void journal::load_page(uint32_t page_id) {
     page_frame_nb_ = 0u;
   };
 
-  if (preload_ and bus_->is_on_load_page_required()) {
+  if (low_latency_) {
     std::lock_guard<std::recursive_mutex> lk_load_page(load_page_mtx_);
     fn_load();
     bus_->on_load_page();
@@ -108,7 +108,7 @@ void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
 void journal::preload_next_page() {
   std::lock_guard<std::recursive_mutex> lk(load_page_mtx_);
-  if ((not preload_ or not page_) or                                                                           //
+  if ((not low_latency_ or not page_) or                                                                       //
       (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or                          //
       (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                                      //
       (not is_writing_ and not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //

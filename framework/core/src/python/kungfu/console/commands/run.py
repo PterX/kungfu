@@ -80,9 +80,6 @@ service_command_context = kfc.pass_context("low_latency")
     help="keep journal page when process running",
 )
 @click.option(
-    "-ENV-preload", is_flag=True, required=False, help="preload journal page "
-)
-@click.option(
     "-ENV-bypass-accounting",
     is_flag=True,
     required=False,
@@ -110,7 +107,7 @@ service_command_context = kfc.pass_context("low_latency")
     "-ARG-max-pre-create-size",
     type=str,
     required=False,
-    help="master max preload journal page size ",
+    help="master max pre-created journal page size ",
 )
 @kfc.pass_context()
 def run(
@@ -133,7 +130,6 @@ def run(
     arguments,
     vendor,
     env_keep_page,
-    env_preload,
     env_bypass_accounting,
     env_bypass_refresh_book,
     env_bypass_cached,

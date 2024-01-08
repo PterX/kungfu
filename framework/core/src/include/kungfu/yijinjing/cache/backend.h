@@ -172,6 +172,7 @@ private:
     }
   }
 };
+
 DECLARE_PTR(shift)
 } // namespace kungfu::yijinjing::cache
 

@@ -5,8 +5,12 @@ import {
   PriceTypeEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { Side } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { getAbleHedgeFlag } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getAbleHedgeFlag,
+  enableCustomRadioType,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
@@ -23,6 +27,8 @@ export const getConfigSettings = ({
   step,
   accountGroup,
   accountId,
+  sideList,
+  offsetList,
 }: {
   location?:
     | KungfuApi.KfLocation
@@ -37,6 +43,8 @@ export const getConfigSettings = ({
   step?: number;
   accountGroup?: string;
   accountId?: string;
+  sideList?: string[];
+  offsetList?: string[];
 }): KungfuApi.KfConfigItem[] => {
   const supportMargin =
     extConfigs?.td?.[accountGroup || location?.group || '']?.margin
@@ -74,8 +82,8 @@ export const getConfigSettings = ({
             key: 'side',
             name: t('tradingConfig.side'),
             type: 'side',
+            customRadioList: sideList || Object.keys(Side).slice(0, 2),
             default: SideEnum.Buy,
-
             required: true,
           },
     ],
@@ -102,6 +110,8 @@ export const getConfigSettings = ({
                 key: 'offset',
                 name: t('tradingConfig.offset'),
                 type: 'offset',
+                customRadioList:
+                  offsetList || Object.keys(enableCustomRadioType['offset']),
                 default: OffsetEnum.Open,
                 required: true,
               },

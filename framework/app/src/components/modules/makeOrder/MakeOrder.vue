@@ -2,6 +2,7 @@
 import {
   computed,
   getCurrentInstance,
+  inject,
   nextTick,
   onMounted,
   ref,
@@ -15,6 +16,7 @@ import {
   confirmModal,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
@@ -36,6 +38,7 @@ import {
   PriceTypeEnum,
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { Side } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
@@ -43,7 +46,10 @@ import {
   useProcessStatusDetailData,
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  initFormStateByConfig,
+  enableCustomRadioType,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
@@ -87,6 +93,9 @@ const {
 const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
+
+const MakeOrderInject = inject(BuiltinComponentInjectKeysMap.MakeOrder, {});
+
 const formState = ref(
   initFormStateByConfig(
     getConfigSettings({
@@ -98,6 +107,9 @@ const formState = ref(
   ),
 );
 
+const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
+const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+
 const contractSideTypes = [
   SideEnum.GuaranteeStockBuy,
   SideEnum.GuaranteeStockSell,
@@ -107,13 +119,16 @@ const contractSideTypes = [
   SideEnum.RepayStock,
 ];
 const autoFillInstrument = ref<boolean>(false);
-  const isMarginMakeOrder = computed(() => {
+const isMarginMakeOrder = computed(() => {
   const accountId = formState.value?.account_id;
   const accountPrefix = accountId ? accountId.split('_')[0] : '';
   const group = currentGlobalKfLocation.value?.group;
   const isGroupValid = group && group !== 'group';
   const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
-  return extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder || false;
+  return (
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
+    false
+  );
 });
 
 const isSpecifyContract = computed(() => {
@@ -122,7 +137,10 @@ const isSpecifyContract = computed(() => {
   const group = currentGlobalKfLocation.value?.group;
   const isGroupValid = group && group !== 'group';
   const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
-  return extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract || false;
+  return (
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
+    false
+  );
 });
 
 const formRef = ref();
@@ -186,6 +204,36 @@ const configSettings = computed(() => {
       formState.value.side = SideEnum.GuaranteeStockBuy;
     }
   }
+  if (instrumentResolved.value) {
+    const { instrumentType, exchangeId } = instrumentResolved.value;
+    if (instrumentType === InstrumentTypeEnum.stockoption) {
+      sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
+    } else {
+      sideList.value = Object.keys(Side).slice(0, 2);
+    }
+
+    if (MakeOrderInject?.sideFilter) {
+      sideList.value = MakeOrderInject.sideFilter(instrumentType);
+    }
+
+    if (
+      !isMarginMakeOrder.value &&
+      'side' in formState.value &&
+      !sideList.value.includes(formState.value.side + '')
+    ) {
+      formState.value.side = +sideList.value[0];
+    }
+
+    if (instrumentType === InstrumentTypeEnum.future) {
+      if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
+        offsetList.value = offsetList.value.filter(
+          (item) =>
+            item !== OffsetEnum.CloseToday + '' ||
+            item !== OffsetEnum.CloseYest + '',
+        );
+      }
+    }
+  }
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
@@ -194,6 +242,8 @@ const configSettings = computed(() => {
     priceType: +formState.value.price_type,
     pricePrecision,
     step,
+    sideList: sideList.value,
+    offsetList: offsetList.value,
     accountGroup: accountGroup,
   });
 });
@@ -340,29 +390,6 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
-  },
-);
-
-watch(
-  () => isMarginMakeOrder.value,
-  () => {
-    nextTick().then(() => {
-      formRef.value.clearValidate();
-      formState.value = initFormStateByConfig(
-        getConfigSettings({
-          location: currentGlobalKfLocation.value,
-          instrumentType: makeOrderInstrumentType.value,
-          side: formState.value.side,
-          accountId: formState.value.account_id,
-        }),
-        {},
-      );
-      formState.value.offset = OffsetEnum.Open;
-    });
-  },
-
-  {
-    immediate: true,
   },
 );
 

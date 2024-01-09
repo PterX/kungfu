@@ -272,13 +272,10 @@ const customRowResolved = (
   if (record.category === 'tdGroup') {
     return customRow(record);
   }
-  const supportMargin = marginSupportTdMap.value[record.group];
 
   const allAssetDetailList = [
-    ...getAssetDetailShowList(supportMargin),
-    ...(marginSupportTdMap.value[record.group]
-      ? assetMarginDetailShowList
-      : []),
+    ...getAssetDetailShowList(),
+    ...assetMarginDetailShowList,
   ];
   const assetGetter = () =>
     allAssetDetailList.reduce((assetDetails, assetInfo) => {

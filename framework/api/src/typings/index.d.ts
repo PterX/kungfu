@@ -214,6 +214,8 @@ declare namespace KungfuApi {
     maxlength?: number;
     showArg?: boolean; // 交易任务是否显示参数
 
+    customRadioList?: string[];
+
     // ---- some ui releated ----;
     noDivider?: boolean;
     wrap?: string;

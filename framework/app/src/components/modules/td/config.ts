@@ -178,11 +178,11 @@ export const getColumns = (
       },
     ]);
 
-export const getAssetDetailShowList = (supportMargin: boolean) =>
+export const getAssetDetailShowList = () =>
   [
     { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
     {
-      key: supportMargin ? 'total_asset' : 'market_value',
+      key: 'market_value',
       label: t('tdConfig.market_value'),
     },
     { key: 'margin', label: t('tdConfig.used_margin') },
@@ -193,6 +193,7 @@ export const assetMarginDetailShowList = [
   { key: 'frozen_cash', label: t('tdConfig.frozen_funds') },
   { key: 'collateral_ratio', label: t('tdConfig.maintain_margin_ratio') },
   { key: 'avail_margin', label: t('tdConfig.avail_margin') },
+  { key: 'total_asset', label: t('tdConfig.total_asset') },
   { key: 'short_cash', label: t('tdConfig.short_sale_proceeds') },
   { key: 'total_debt', label: t('tdConfig.total_liabilities') },
   { key: 'net_assets', label: t('tdConfig.equity') },

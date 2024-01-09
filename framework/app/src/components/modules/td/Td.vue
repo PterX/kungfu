@@ -221,6 +221,8 @@ const tableDataResolved = computed(() => {
   return [...Object.values(tdGroupResolved), ...tdResolved];
 });
 
+const hasTableData = computed(() => tableDataResolved.value.length > 0);
+
 const { getAssetsByKfConfig, getAssetsByTdGroup } = useAssets();
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
@@ -272,13 +274,10 @@ const customRowResolved = (
   if (record.category === 'tdGroup') {
     return customRow(record);
   }
-  const supportMargin = marginSupportTdMap.value[record.group];
 
   const allAssetDetailList = [
-    ...getAssetDetailShowList(supportMargin),
-    ...(marginSupportTdMap.value[record.group]
-      ? assetMarginDetailShowList
-      : []),
+    ...getAssetDetailShowList(),
+    ...assetMarginDetailShowList,
   ];
   const assetGetter = () =>
     allAssetDetailList.reduce((assetDetails, assetInfo) => {
@@ -611,7 +610,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
       </template>
       <a-table
         v-if="tdGroupDataLoaded"
-        class="kf-ant-table"
+        :class="{ 'has-data': hasTableData, 'kf-ant-table': true }"
         :columns="columns"
         :data-source="tableDataResolved"
         size="small"
@@ -1085,13 +1084,13 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
 <style lang="less">
 .kf-td__warp {
   height: 100%;
-  .ant-table-tbody > tr > td:first-child {
+  .has-data .ant-table-tbody > tr > td:first-child {
     display: flex;
     align-items: center;
     justify-content: flex-start;
   }
 
-  .ant-table-tbody > tr > td:first-child .ant-table-row-expand-icon {
+  .has-data .ant-table-tbody > tr > td:first-child .ant-table-row-expand-icon {
     flex-shrink: 0;
     margin-right: 8px;
   }

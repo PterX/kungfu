@@ -107,13 +107,16 @@ const contractSideTypes = [
   SideEnum.RepayStock,
 ];
 const autoFillInstrument = ref<boolean>(false);
-  const isMarginMakeOrder = computed(() => {
+const isMarginMakeOrder = computed(() => {
   const accountId = formState.value?.account_id;
   const accountPrefix = accountId ? accountId.split('_')[0] : '';
   const group = currentGlobalKfLocation.value?.group;
   const isGroupValid = group && group !== 'group';
   const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
-  return extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder || false;
+  return (
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
+    false
+  );
 });
 
 const isSpecifyContract = computed(() => {
@@ -122,7 +125,10 @@ const isSpecifyContract = computed(() => {
   const group = currentGlobalKfLocation.value?.group;
   const isGroupValid = group && group !== 'group';
   const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
-  return extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract || false;
+  return (
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
+    false
+  );
 });
 
 const formRef = ref();
@@ -340,29 +346,6 @@ watch(
     triggerOrderBook(instrumentResolved.value);
 
     makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
-  },
-);
-
-watch(
-  () => isMarginMakeOrder.value,
-  () => {
-    nextTick().then(() => {
-      formRef.value.clearValidate();
-      formState.value = initFormStateByConfig(
-        getConfigSettings({
-          location: currentGlobalKfLocation.value,
-          instrumentType: makeOrderInstrumentType.value,
-          side: formState.value.side,
-          accountId: formState.value.account_id,
-        }),
-        {},
-      );
-      formState.value.offset = OffsetEnum.Open;
-    });
-  },
-
-  {
-    immediate: true,
   },
 );
 

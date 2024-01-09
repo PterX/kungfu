@@ -451,4 +451,3 @@ onMounted(() => {
   }
 }
 </style>
-@kungfu-trader/kungfu-js-api/utils/systemConfig

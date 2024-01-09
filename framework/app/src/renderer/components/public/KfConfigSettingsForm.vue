@@ -351,7 +351,6 @@ if ('instrument' in formState.value) {
               sideRadiosList.value = Object.keys(Side).slice(0, 2);
             }
           }
-          console.log('isMargin',isMargin)
 
           if (
             !isMargin &&

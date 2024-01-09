@@ -379,7 +379,7 @@ int64_t cached::find_last_active_time(const location_ptr &location) {
 }
 
 void cached::update_session(const journal::frame_ptr &frame) {
-  if (bypass_cached_) {
+  if (bypass_cached_ or storage_pause_) {
     return;
   }
   session_builder_.update_session(frame);

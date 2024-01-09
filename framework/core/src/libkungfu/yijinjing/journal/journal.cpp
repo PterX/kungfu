@@ -111,6 +111,7 @@ void journal::preload_next_page() {
     return;
   }
   preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
+  SPDLOG_TRACE("journal: {} ", page::get_page_path(location_, dest_id_, preload_page_->get_page_id()));
 }
 
 // saving time for other process switch page, except the master

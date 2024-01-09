@@ -381,7 +381,10 @@ body {
 .kf-markdown__wrap {
   width: 100%;
   font-size: 14px;
+  word-break: break-all;
+  white-space: initial;
   font-family: inherit !important;
+  user-select: text;
 
   code {
     font-family: inherit !important;
@@ -394,6 +397,38 @@ body {
 
   &.markdown-body {
     background-color: inherit !important;
+
+    ul,
+    ol {
+      list-style-type: auto;
+    }
+
+    .kf-md-checkbox {
+      input[type='checkbox'] {
+        display: none;
+      }
+
+      label::before {
+        content: '';
+        display: inline-block;
+        text-align: center;
+        line-height: 10px;
+        height: 16px;
+        width: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 2px;
+        position: relative;
+        top: 2px;
+      }
+
+      input:checked + label::before {
+        content: '\2714';
+        color: #fff;
+        background-color: #faad14;
+        border: 1px solid #faad14;
+        top: 0px;
+      }
+    }
   }
 }
 

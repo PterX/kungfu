@@ -7,6 +7,7 @@ import kungfu
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing.practice.executor import ExecutorRegistry
+from kungfu.yijinjing.practice.run import run_forever, run_by_step
 from kungfu.yijinjing.practice.master import Master
 
 lf = kungfu.__binding__.longfist
@@ -162,14 +163,22 @@ def run(
         "ledger": registry["system"]["service"]["ledger"],
     }
 
+    ctx.executor = None
+
     if not category and not reference:
         click.echo(run.get_help(ctx))
     elif reference in cheatsheet:
-        cheatsheet[reference](mode, low_latency)
+        ctx.executor = cheatsheet[reference](mode, low_latency)
     else:
         registry.load_extensions()
-        registry[category][group][name](mode, low_latency)
+        ctx.executor = registry[category][group][name](mode, low_latency)
 
+    if ctx.executor is not None:
+        if not low_latency:
+            ctx.logger.debug("by step mode")
+            run_by_step(ctx, ctx.executor)
+        else:
+            run_forever(ctx, ctx.executor)
 
 @kfc.command(cls=PrioritizedCommandGroup, help_priority=-1)
 @kfc.pass_context()

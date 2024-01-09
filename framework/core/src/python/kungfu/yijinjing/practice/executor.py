@@ -149,9 +149,9 @@ class MasterLoader(dict):
     def __init__(self, ctx):
         super().__init__()
         self.ctx = ctx
-        self["master"] = self.run
+        self["master"] = self.get_executor
 
-    def run(self, mode: str, low_latency: bool):
+    def get_executor(self, mode: str, low_latency: bool):
         self.ctx.location = yjj.location(
             kfj.MODES[mode],
             lf.enums.category.SYSTEM,
@@ -160,7 +160,7 @@ class MasterLoader(dict):
             self.ctx.runtime_locator,
         )
         self.ctx.logger = find_logger(self.ctx.location, self.ctx.log_level)
-        Master(self.ctx).run()
+        return Master(self.ctx)
 
 
 class ServiceLoader(dict):
@@ -170,7 +170,9 @@ class ServiceLoader(dict):
         self["ledger"] = self.create_service("ledger", wc.Ledger)
 
     def create_service(self, name, service):
-        def run(mode: str, low_latency: bool):
+        ctx = self.ctx
+
+        def get_executor(mode: str, low_latency: bool):
             self.ctx.location = yjj.location(
                 kfj.MODES[mode],
                 lf.enums.category.SYSTEM,
@@ -183,7 +185,7 @@ class ServiceLoader(dict):
                 f"starting service {name}, low_latency={low_latency}, arguments={self.ctx.arguments}, mode={mode}"
             )
 
-            the_service = (
+            ctx.service_runner = (
                 service(self.ctx)
                 if "is_python_service" in dir(service) and service.is_python_service
                 else service(
@@ -196,12 +198,12 @@ class ServiceLoader(dict):
 
             if kfj.MODES[self.ctx.mode] == lf.enums.mode.REPLAY:
                 begin_time_stamp, end_time_stamp = parse_begin_end(self.ctx)
-                the_service.set_begin_time(begin_time_stamp)
-                the_service.set_end_time(end_time_stamp)
+                ctx.service_runner.set_begin_time(begin_time_stamp)
+                ctx.service_runner.set_end_time(end_time_stamp)
 
-            the_service.run()
+            return ctx.service_runner
 
-        return run
+        return get_executor
 
     def load_service(self, ctx):
         sys.path.append(ctx.extension_path)
@@ -232,14 +234,14 @@ class ExtensionExecutor:
         self.ctx = ctx
         self.loader = loader
         self.runners = {
-            "md": self.run_market_data,
-            "td": self.run_trader,
-            "strategy": self.run_strategy,
-            "operator": self.run_operator,
+            "md": self.get_market_data_vendor,
+            "td": self.get_trader_vendor,
+            "strategy": self.get_strategy_runner,
+            "operator": self.get_operator_runner,
         }
 
     def __call__(self, mode, low_latency):
-        self.runners[self.ctx.category]()
+        return self.runners[self.ctx.category]()
 
     def setup(self, loader, use_ctx_path=True):
         if loader.extension_dir:
@@ -250,7 +252,7 @@ class ExtensionExecutor:
             site.setup(dirname)
             sys.path.insert(0, dirname)
 
-    def run_broker_vendor(self, vendor_builder):
+    def get_broker_vendor(self, vendor_builder):
         ctx = self.ctx
         loader = self.loader
         location = yjj.location(
@@ -266,29 +268,29 @@ class ExtensionExecutor:
         sys.path.insert(0, ctx.extension_path)
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
-        vendor = vendor_builder(
+        ctx.broker_vendor = vendor_builder(
             ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency, ctx.arguments
         )
         service_builder = getattr(module, ctx.category)
-        self.ctx.logger.debug(f"loaded service builder")
-        service = service_builder(vendor)
-        self.ctx.logger.debug("set service for vendor")
-        vendor.set_service(service)
-        self.ctx.logger.info(f"vendor {location.uname} ready to run")
+        self.ctx.logger.debug(f"loaded broker service builder")
+        ctx.broker_service = service_builder(ctx.broker_vendor)
+        self.ctx.logger.debug("set broker service for broker vendor")
+        ctx.broker_vendor.set_service(ctx.broker_service)
+        self.ctx.logger.info(f"broker vendor {location.uname} ready to run")
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
-            vendor.set_begin_time(begin_time_stamp)
-            vendor.set_end_time(end_time_stamp)
-        vendor.run()
+            ctx.broker_vendor.set_begin_time(begin_time_stamp)
+            ctx.broker_vendor.set_end_time(end_time_stamp)
+        return ctx.broker_vendor
 
-    def run_market_data(self):
-        self.run_broker_vendor(wc.MarketDataVendor)
+    def get_market_data_vendor(self):
+        return self.get_broker_vendor(wc.MarketDataVendor)
 
-    def run_trader(self):
-        self.run_broker_vendor(wc.TraderVendor)
+    def get_trader_vendor(self):
+        return self.get_broker_vendor(wc.TraderVendor)
 
-    def run_strategy(self):
+    def get_strategy_runner(self):
         loader = self.loader
         self.setup(loader, use_ctx_path=True)
         ctx = self.ctx
@@ -306,7 +308,7 @@ class ExtensionExecutor:
         )
         os.environ["KF_STG_GROUP"] = ctx.group
         os.environ["KF_STG_NAME"] = ctx.name
-        ctx.runner = load_runner(ctx, locator)  # 先load runner才能识别出定制的Strategy
+        ctx.strategy_runner = load_runner(ctx, locator)  # 先load runner才能识别出定制的Strategy
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
@@ -335,43 +337,46 @@ class ExtensionExecutor:
                     None,
                     "matcher",
                 )
-                ctx.runner.set_matcher(matcher)
+                ctx.strategy_runner.set_matcher(matcher)
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
-            ctx.runner.set_begin_time(begin_time_stamp)
-            ctx.runner.set_end_time(end_time_stamp)
+            ctx.strategy_runner.set_begin_time(begin_time_stamp)
+            ctx.strategy_runner.set_end_time(end_time_stamp)
             from_indexer, to_indexer = parse_from_to_indexer(
                 ctx, begin_time_stamp, end_time_stamp
             )
-            ctx.runner.set_from_indexer(from_indexer)
-            ctx.runner.set_to_indexer(to_indexer)
+            ctx.strategy_runner.set_from_indexer(from_indexer)
+            ctx.strategy_runner.set_to_indexer(to_indexer)
             if ctx.report:
                 report = load_module(
                     ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
                 )
-                ctx.runner.set_report(report)
+                ctx.strategy_runner.set_report(report)
             if ctx.time_interval:
-                ctx.runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
-            ctx.runner.set_backtest_config(parse_backtest_config(ctx))
+                ctx.strategy_runner.set_time_interval(
+                    ctx.time_interval * kft.NANO_PER_SECOND
+                )
+            ctx.strategy_runner.set_backtest_config(parse_backtest_config(ctx))
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
-            ctx.runner.set_begin_time(begin_time_stamp)
-            ctx.runner.set_end_time(end_time_stamp)
+            ctx.strategy_runner.set_begin_time(begin_time_stamp)
+            ctx.strategy_runner.set_end_time(end_time_stamp)
 
-        ctx.runner.add_strategy(ctx.strategy)
+        ctx.strategy_runner.add_strategy(ctx.strategy)
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE and "is_cpp_module" not in dir(
             ctx
         ):
-            ctx.logger.info("use run_forever")
-            ctx.loop = KungfuEventLoop(ctx, ctx.runner)
-            ctx.loop.run_forever()
+            ctx.logger.debug("use kungfu event loop")
+            # IMPORTANT, ctx.loop is taken by strategy.py
+            ctx.loop = KungfuEventLoop(ctx, ctx.strategy_runner)
+            return ctx.loop
         else:
-            ctx.logger.info("use run")
-            ctx.runner.run()
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
-            report.sumerize()
+            ctx.logger.debug("use run")
+            return ctx.strategy_runner
+        # if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
+        #     report.sumerize()
 
-    def run_operator(self):
+    def get_operator_runner(self):
         loader = self.loader
         self.setup(loader, use_ctx_path=True)
         ctx = self.ctx
@@ -429,16 +434,16 @@ class ExtensionExecutor:
             if ctx.time_interval:
                 ctx.op_runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
             ctx.op_runner.set_backtest_config(parse_backtest_config(ctx))
-        # ctx.runner = self.load_runner(ctx)
+
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.op_runner.set_begin_time(begin_time_stamp)
             ctx.op_runner.set_end_time(end_time_stamp)
 
         ctx.op_runner.add_operator(ctx.operator)
-        ctx.op_runner.run()
-        if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
-            report.sumerize()
+        return ctx.op_runner
+        # if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and ctx.report:
+        #     report.sumerize()
 
 
 class RegistryJSONEncoder(json.JSONEncoder):

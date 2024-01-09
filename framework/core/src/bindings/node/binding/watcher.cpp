@@ -22,7 +22,12 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 
+
+
 namespace kungfu::node {
+
+constexpr uint32_t STEP_LIMIT = 500;
+
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 
 Napi::FunctionReference Watcher::constructor = {};
@@ -698,7 +703,7 @@ void Watcher::StartWorker() {
         watcher->setup();
       }
       if (watcher->is_live() && watcher->feed_mutex_.try_lock()) {
-        watcher->step();
+        watcher->step(STEP_LIMIT);
         watcher->feed_mutex_.unlock();
       }
       std::this_thread::sleep_for(std::chrono::microseconds(watcher->milliseconds_sleep_after_step_));

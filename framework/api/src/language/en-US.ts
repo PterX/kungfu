@@ -503,7 +503,7 @@ export default {
     process_status: 'Process',
     unrealized_pnl: 'Unrealized Pnl',
     market_value: 'Market Value',
-    used_margin: 'Margin',
+    used_margin: 'Used Margin',
 
     avail_funds: 'Avail Funds',
     avail_margin: 'Avail Margin',

@@ -427,10 +427,10 @@ class StrategyRunner(ExtensionExecutor):
             ctx.strategy_runner.set_from_indexer(from_indexer)
             ctx.strategy_runner.set_to_indexer(to_indexer)
             if ctx.report:
-                report = load_module(
+                self.report = load_module(
                     ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
                 )
-                ctx.strategy_runner.set_report(report)
+                ctx.strategy_runner.set_report(self.report)
             if ctx.time_interval:
                 ctx.strategy_runner.set_time_interval(
                     ctx.time_interval * kft.NANO_PER_SECOND
@@ -456,7 +456,7 @@ class StrategyRunner(ExtensionExecutor):
 
     def post_run(self):
         if kfj.MODES[self.ctx.mode] == lf.enums.mode.BACKTEST and self.ctx.report:
-            self.ctx.report.sumerize()
+            self.report.sumerize()
 
 
 class OperatorRunner(ExtensionExecutor):
@@ -512,10 +512,10 @@ class OperatorRunner(ExtensionExecutor):
             ctx.op_runner.set_from_indexer(from_indexer)
             ctx.op_runner.set_to_indexer(to_indexer)
             if ctx.report:
-                report = load_module(
+                self.report = load_module(
                     ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
                 )
-                ctx.op_runner.set_report(report)
+                ctx.op_runner.set_report(self.report)
             if ctx.time_interval:
                 ctx.op_runner.set_time_interval(ctx.time_interval * kft.NANO_PER_SECOND)
             ctx.op_runner.set_backtest_config(parse_backtest_config(ctx))

@@ -551,7 +551,7 @@ void Watcher::SyncLedger() {
 
 void Watcher::TryRefreshTradingData() {
   if (refresh_trading_data_before_sync_) {
-    serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
+    serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger", data_bank_);
   }
 }
 
@@ -760,8 +760,8 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   disjoin(get_master_command_uid());
   writers_.clear();
-  serialize::initObjectReference(info, app_states_ref_);
-  serialize::initObjectReference(info, strategy_states_ref_);
+  serialize::InitObjectReference(info, app_states_ref_);
+  serialize::InitObjectReference(info, strategy_states_ref_);
   serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }

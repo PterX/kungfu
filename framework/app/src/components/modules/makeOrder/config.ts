@@ -13,23 +13,37 @@ const { t } = VueI18n.global;
 export const LABEL_COL = 6;
 export const WRAPPER_COL = 14;
 
-export const getConfigSettings = (
+export const getConfigSettings = ({
+  location,
+  instrumentType,
+  extConfigs,
+  side,
+  priceType,
+  pricePrecision,
+  step,
+  accountGroup,
+  accountId,
+}: {
   location?:
     | KungfuApi.KfLocation
     | KungfuApi.KfLocationGroup
     | KungfuApi.KfConfig
-    | null,
-  instrumentTypeEnum?: InstrumentTypeEnum,
-  extConfigs?: KungfuApi.KfExtConfigs,
-  sideEnum?: SideEnum,
-  priceType?: PriceTypeEnum,
-  pricePrecision?: number,
-  step?: number,
-): KungfuApi.KfConfigItem[] => {
+    | null;
+  instrumentType?: InstrumentTypeEnum;
+  extConfigs?: KungfuApi.KfExtConfigs;
+  side?: SideEnum;
+  priceType?: PriceTypeEnum;
+  pricePrecision?: number;
+  step?: number;
+  accountGroup?: string;
+  accountId?: string;
+}): KungfuApi.KfConfigItem[] => {
   const supportMargin =
-    extConfigs?.td?.[location?.group || '']?.margin?.marginMakeOrder;
+    extConfigs?.td?.[accountGroup || location?.group || '']?.margin
+      ?.marginMakeOrder;
   const SpecifyContract =
-    extConfigs?.td?.[location?.group || '']?.margin?.specifyContract;
+    extConfigs?.td?.[accountGroup || location?.group || '']?.margin
+      ?.specifyContract;
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     location?.category === 'td'
       ? null
@@ -37,6 +51,7 @@ export const getConfigSettings = (
           key: 'account_id',
           name: t('tradingConfig.account'),
           type: 'td',
+          default: accountId || '',
           required: true,
         },
     {
@@ -60,28 +75,28 @@ export const getConfigSettings = (
             name: t('tradingConfig.side'),
             type: 'side',
             default: SideEnum.Buy,
+
             required: true,
           },
     ],
     ...[
       supportMargin &&
-      (sideEnum === SideEnum.RepayStock || sideEnum === SideEnum.RepayMargin)
+      (side === SideEnum.RepayStock || side === SideEnum.RepayMargin)
         ? {
             key: 'contract_id',
             name: t('tradingConfig.specfy_contract'),
             type: 'contract',
             placeholder: t('tradingConfig.specfy_contract_placeholder'),
-            disabled:
-              sideEnum === SideEnum.RepayMargin ? !SpecifyContract : false,
+            disabled: side === SideEnum.RepayMargin ? !SpecifyContract : false,
           }
         : null,
     ],
 
-    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown) &&
+    ...(isShotable(instrumentType || InstrumentTypeEnum.unknown) &&
     !supportMargin
       ? ([
-          instrumentTypeEnum === InstrumentTypeEnum.stockoption &&
-          sideEnum === SideEnum.Exec
+          instrumentType === InstrumentTypeEnum.stockoption &&
+          side === SideEnum.Exec
             ? null
             : {
                 key: 'offset',
@@ -90,7 +105,7 @@ export const getConfigSettings = (
                 default: OffsetEnum.Open,
                 required: true,
               },
-          instrumentTypeEnum === InstrumentTypeEnum.future && getAbleHedgeFlag()
+          instrumentType === InstrumentTypeEnum.future && getAbleHedgeFlag()
             ? {
                 key: 'hedge_flag',
                 name: t('tradingConfig.hedge'),

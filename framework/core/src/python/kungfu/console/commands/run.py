@@ -104,6 +104,12 @@ service_command_context = kfc.pass_context("low_latency")
     help="bypass sync position every minute  ",
 )
 @click.option(
+    "-ENV-log-frame",
+    is_flag=True,
+    required=False,
+    help="log frame message source->dest:msg_type:frame_uid  ",
+)
+@click.option(
     "-ARG-max-pre-create-size",
     type=str,
     required=False,
@@ -135,6 +141,7 @@ def run(
     env_bypass_cached,
     env_bypass_sync_asset,
     env_bypass_sync_position,
+    env_log_frame,
     arg_max_pre_create_size,
 ):
     ctx.mode = mode

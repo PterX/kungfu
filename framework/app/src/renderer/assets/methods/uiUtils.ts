@@ -103,6 +103,7 @@ import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import mdHljs from 'markdown-it-highlightjs';
+import mdCheckbox from 'markdown-it-task-checkbox';
 import hlForCpp from 'highlight.js/lib/languages/cpp';
 import hlForPython from 'highlight.js/lib/languages/python';
 import hlForJs from 'highlight.js/lib/languages/javascript';
@@ -1386,6 +1387,11 @@ markdown.use(mdHljs, {
     ts: hlForTs,
   },
 });
+
+markdown.use(mdCheckbox, {
+  divWrap: true,
+  divClass: 'kf-md-checkbox',
+});
 export const compileMd2Html = (content: string): string => {
   try {
     return (
@@ -1408,21 +1414,28 @@ export const compileMdFile2Html = (filePath: string): string => {
   return '';
 };
 
-export const openReadmeModal = (title: string, readmePath: string) => {
+export const openReadmeModal = (
+  readmePath: string,
+  extraConfig?: ModalFuncProps,
+) => {
   if (fse.existsSync(readmePath)) {
     return fse.readFile(readmePath).then((buffer) => {
       const str = buffer.toString();
       const mdHtml = markdown.render(str);
       const content = h('div', {
         class: 'kf-markdown__wrap markdown-body',
+        style: {
+          maxHeight: '60vh',
+          overflow: 'auto',
+        },
         innerHTML: mdHtml,
       });
-      return Modal.confirm({
-        title: title,
+      return Modal.info({
         content: content,
-        width: 600,
+        width: '60vw',
         okText: t('confirm'),
         cancelText: t('cancel'),
+        ...(extraConfig || {}),
       });
     });
   } else {

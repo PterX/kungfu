@@ -180,7 +180,7 @@ bool reader::later::operator()(const journal *const lhs, const journal *const rh
     return const_cast<journal *>(lhs)->current_frame()->gen_time() >
            const_cast<journal *>(rhs)->current_frame()->gen_time();
   }
-  return lhs->priority_ > rhs->priority_;
+  return lhs->priority_ < rhs->priority_;
 }
 
 } // namespace kungfu::yijinjing::journal

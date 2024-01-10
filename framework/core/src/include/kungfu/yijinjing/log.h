@@ -40,6 +40,24 @@
 
 namespace kungfu::yijinjing::log {
 
+bool is_log_frame();
+
+void set_trigger_frame_uid(uint64_t frame_uid);
+
+void set_trigger_source_id(uint32_t source_id);
+
+void set_trigger_dest_id(uint32_t dest_id);
+
+void set_trigger_msg_type(int32_t msg_type);
+
+uint64_t get_trigger_frame_uid();
+
+uint32_t get_trigger_source_id();
+
+uint32_t get_trigger_dest_id();
+
+int32_t get_trigger_msg_type();
+
 void disable_signal_log();
 
 bool is_signal_log();

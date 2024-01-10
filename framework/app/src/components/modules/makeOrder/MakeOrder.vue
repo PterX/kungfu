@@ -38,7 +38,7 @@ import {
   PriceTypeEnum,
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { Side } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { Side,MarginSideStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
@@ -138,14 +138,6 @@ const formState = ref(
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
 const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
 
-const contractSideTypes = [
-  SideEnum.GuaranteeStockBuy,
-  SideEnum.GuaranteeStockSell,
-  SideEnum.MarginTrade,
-  SideEnum.ShortSell,
-  SideEnum.RepayMargin,
-  SideEnum.RepayStock,
-];
 const autoFillInstrument = ref<boolean>(false);
 
 const formRef = ref();
@@ -201,7 +193,7 @@ const configSettings = computed(() => {
 
   const { side } = formState.value;
   if (isMarginMakeOrder.value) {
-    if (!contractSideTypes.includes(formState.value.side)) {
+    if (!MarginSideStatus.includes(formState.value.side)) {
       formState.value.side = SideEnum.GuaranteeStockBuy;
     }
   }
@@ -395,11 +387,11 @@ watch(
 
 watch(()=>isMarginMakeOrder.value,(newVal)=>{
   if (newVal) {
-    if (!contractSideTypes.includes(formState.value.side)) {
+    if (!MarginSideStatus.includes(formState.value.side)) {
         formState.value.side = SideEnum.GuaranteeStockBuy;
     }
   }else{
-    if (contractSideTypes.includes(formState.value.side)) {
+    if (MarginSideStatus.includes(formState.value.side)) {
         formState.value.side = SideEnum.Buy;
     }
   }

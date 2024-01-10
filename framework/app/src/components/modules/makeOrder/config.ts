@@ -5,7 +5,10 @@ import {
   PriceTypeEnum,
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { Side } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  Side,
+  MarginSideStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import {
   getAbleHedgeFlag,
@@ -66,6 +69,7 @@ export const getConfigSettings = ({
             key: 'side',
             name: t('tradingConfig.side'),
             type: 'marginSide',
+            customRadioList: MarginSideStatus,
             default: SideEnum.GuaranteeStockBuy,
             required: true,
           }

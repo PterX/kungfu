@@ -36,9 +36,11 @@ public:
 
   bool is_usable() override;
 
+  virtual void pre_setup();
+
   bool setup() override;
 
-  void step();
+  void step(uint32_t count = 0);
 
   void run();
 
@@ -223,8 +225,6 @@ protected:
   void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
                              uint64_t page_size = 0) const;
 
-  virtual void pre_setup();
-
   virtual void react() = 0;
 
   virtual void on_active() = 0;
@@ -247,6 +247,7 @@ private:
 
   volatile bool continual_ = true;
   volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
 

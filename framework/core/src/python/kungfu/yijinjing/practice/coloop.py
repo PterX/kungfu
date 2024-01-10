@@ -18,7 +18,6 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         self._current = None
         self._ctx = ctx
         self._hero = hero
-        self._hero.setup()
         asyncio.set_event_loop(self)
 
     def get_debug(self):
@@ -27,45 +26,77 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
     def time(self):
         return self._hero.now()
 
-    def run_forever(self):
+    def get_home_uid(self):
+        return self._hero.get_home_uid()
+
+    def get_home_uname(self):
+        return self._hero.get_home_uname()
+
+    def get_begin_time(self):
+        return self._hero.get_begin_time()
+
+    def get_end_time(self):
+        return self._hero.get_end_time()
+
+    def pre_setup(self):
+        self._hero.pre_setup()
+
+    def setup(self):
+        self._hero.setup()
+
+    def post_step(self):
+        ready = deque()
+        while self._immediate:
+            ready.append(self._immediate.popleft())
+
+        if self._scheduled:
+            scheduled = []
+            while self._scheduled:
+                handle = heapq.heappop(self._scheduled)
+                if handle._when < self._hero.now():
+                    handle._scheduled = False
+                    ready.append(handle)
+                else:
+                    heapq.heappush(scheduled, handle)
+            self._scheduled = scheduled
+
+        while ready:
+            self._current = ready.popleft()
+            if not self._current._cancelled:
+                self._current._run()
+            if self._current:
+                self._immediate.append(self._current)
+
+        if self._exception is not None:
+            raise self._exception
+
+    def run(self):
         self._running = True
         self._ctx.logger.info(
             "[{:08x}] {} running".format(self._hero.home.uid, self._hero.home.uname)
         )
-        while self._hero.live:
-            self._hero.step()
+        self.setup()
+        while self.is_live():
+            self.step()
+            self.post_step()
 
-            ready = deque()
-            while self._immediate:
-                ready.append(self._immediate.popleft())
-
-            if self._scheduled:
-                scheduled = []
-                while self._scheduled:
-                    handle = heapq.heappop(self._scheduled)
-                    if handle._when < self._hero.now():
-                        handle._scheduled = False
-                        ready.append(handle)
-                    else:
-                        heapq.heappush(scheduled, handle)
-                self._scheduled = scheduled
-
-            while ready:
-                self._current = ready.popleft()
-                if not self._current._cancelled:
-                    self._current._run()
-                if self._current:
-                    self._immediate.append(self._current)
-
-            if self._exception is not None:
-                raise self._exception
-        self._hero.on_exit()
+        self.on_exit()
         self._ctx.logger.info(
             "[{:08x}] {} done".format(self._hero.home.uid, self._hero.home.uname)
         )
 
+    def step(self, num=0):
+        self._hero.step(num)
+        self.post_step()
+
+    def on_exit(self):
+        self._hero.on_exit()
+
     def _timer_handle_cancelled(self, handle):
         pass
+
+    def is_live(self):
+        return self._hero.live
 
     def is_running(self):
         return self._hero.live

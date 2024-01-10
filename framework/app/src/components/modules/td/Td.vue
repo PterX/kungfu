@@ -626,7 +626,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
       </template>
       <a-table
         v-if="tdGroupDataLoaded"
-        :class="{ 'has-data': hasTableData, 'kf-ant-table': true }"
+        :class="{
+          'has-data': hasTableData,
+          'kf-ant-table': true,
+          'kf-ant-table-sorter': true,
+        }"
         :columns="columns"
         :data-source="tableDataResolved"
         size="small"
@@ -745,6 +749,21 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               "
             ></KfBlinkNum>
           </template>
+          <template v-else-if="column.dataIndex === 'total_asset'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="dealAssetPrice(getAssetsByKfConfig(record).total_asset)"
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="
+                dealAssetPrice(
+                  getAssetsByTdGroup(marginSupportTdMap, record).total_asset,
+                )
+              "
+            ></KfBlinkNum>
+          </template>
           <template v-else-if="column.dataIndex === 'margin'">
             <KfBlinkNum
               v-if="record.category === 'td'"
@@ -828,8 +847,8 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               {{
                 marginSupportTdMap[record.group] &&
                 getAssetsByKfConfig(record).collateral_ratio
-                  ? `${Math.floor(
-                      getAssetsByKfConfig(record).collateral_ratio * 100,
+                  ? `${(
+                      getAssetsByKfConfig(record).collateral_ratio * 100
                     ).kfToFixed(1)}%`
                   : '--'
               }}
@@ -853,28 +872,6 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
                   ? dealAssetPrice(
                       getAssetsByTdGroup(marginSupportTdMap, record)
                         .avail_margin,
-                    )
-                  : '--'
-              "
-            ></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'total_asset'">
-            <KfBlinkNum
-              v-if="record.category === 'td'"
-              mode="compare-zero"
-              :num="
-                marginSupportTdMap[record.group]
-                  ? dealAssetPrice(getAssetsByKfConfig(record).total_asset)
-                  : '--'
-              "
-            ></KfBlinkNum>
-            <KfBlinkNum
-              v-else-if="record.category === 'tdGroup'"
-              :num="
-                getTdGroupSupportMargin(record)
-                  ? dealAssetPrice(
-                      getAssetsByTdGroup(marginSupportTdMap, record)
-                        .total_asset,
                     )
                   : '--'
               "

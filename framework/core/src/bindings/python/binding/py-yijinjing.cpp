@@ -178,6 +178,7 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("msg_type", &event::msg_type)
       .def_property_readonly("data_length", &event::data_length)
       .def_property_readonly("data_as_bytes", &event::data_as_bytes)
+      .def_property_readonly("data_as_byte_array", &event::data_as_byte_array)
       .def_property_readonly("data_as_string", &event::data_as_string)
       .def("to_string", &event::to_string);
   boost::hana::for_each(AllDataTypes, [&](auto pair) {
@@ -242,18 +243,20 @@ void bind(pybind11::module &&m) {
       .def("get_notice", &observer::get_notice);
 
   py::class_<reader, reader_ptr>(m, "reader")
+      .def(py::init<bool, bool, bus_ptr>())
       .def(py::init<const reader &>())
       .def("subscribe", &reader::join)
       .def("current_frame", &reader::current_frame)
       .def("seek_to_time", &reader::seek_to_time)
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
-      .def("join", &reader::join)
+      .def("join", &reader::join, py::arg("location"), py::arg("dest_id"), py::arg("from_time"),
+           py::arg("page_size") = 0, py::arg("priority") = Priority::Low)
       .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
       .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
       .def("disjoin_channel", &reader::disjoin_channel);
 
-  py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
+  py::class_<bus, bus_ptr>(m, "bus").def(py::init<bool>()).def("on_load_page", &bus::on_load_page);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
   writer_class

@@ -119,8 +119,8 @@ const formState = ref(
     getConfigSettings({
       location: currentGlobalKfLocation.value,
       instrumentType: InstrumentTypeEnum.future,
-      isMarginMakeOrder:isMarginMakeOrder.value,
-      isSpecifyContract:isSpecifyContract.value
+      isMarginMakeOrder: isMarginMakeOrder.value,
+      isSpecifyContract: isSpecifyContract.value,
     }),
     {},
   ),
@@ -191,8 +191,8 @@ const configSettings = computed(() => {
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
-    isMarginMakeOrder:isMarginMakeOrder.value,
-    isSpecifyContract:isSpecifyContract.value,
+    isMarginMakeOrder: isMarginMakeOrder.value,
+    isSpecifyContract: isSpecifyContract.value,
     side,
     priceType: +formState.value.price_type,
     pricePrecision,
@@ -345,24 +345,23 @@ watch(
   },
 );
 
-watch(()=>isMarginMakeOrder.value,(newVal)=>{
-  if (newVal) {
-    if (!contractSideTypes.includes(formState.value.side)) {
+watch(
+  () => isMarginMakeOrder.value,
+  (newVal) => {
+    if (newVal) {
+      if (!contractSideTypes.includes(formState.value.side)) {
         formState.value.side = SideEnum.GuaranteeStockBuy;
-    }
-  }else{
-    if (contractSideTypes.includes(formState.value.side)) {
+      }
+    } else {
+      if (contractSideTypes.includes(formState.value.side)) {
         formState.value.side = SideEnum.Buy;
+      }
     }
-  }
-
-},
-{
-  immediate:true
-
-}
-
-)
+  },
+  {
+    immediate: true,
+  },
+);
 
 watch(
   () => formState.value.side,
@@ -474,9 +473,12 @@ watch(
   },
 );
 
-watch(()=>formState.value.account_id,(newVal)=>{
+watch(
+  () => formState.value.account_id,
+  (newVal) => {
     currentAccountId.value = newVal;
-})
+  },
+);
 
 onMounted(() => {
   if (currentGlobalKfLocation.value?.category === 'td') {

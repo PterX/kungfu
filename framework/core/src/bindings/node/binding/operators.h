@@ -380,11 +380,14 @@ private:
   Napi::ObjectReference &state_;
 };
 
-void initObjectReference(const Napi::CallbackInfo &info, Napi::ObjectReference &data);
+void InitObjectReference(const Napi::CallbackInfo &info, Napi::ObjectReference &data);
 
 void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, const std::string &name);
 
 void InitTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name);
+
+void RefreshTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name,
+                                  const yijinjing::cache::bank &state_bank);
 } // namespace kungfu::node::serialize
 
 #endif // KUNGFU_NODE_SERIALIZE_H

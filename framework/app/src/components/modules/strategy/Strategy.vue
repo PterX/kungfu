@@ -187,7 +187,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
         </KfDashboardItem>
       </template>
       <a-table
-        class="kf-ant-table kf-ant-table-sorter"
+        class="kf-ant-table"
         :columns="columns"
         :data-source="tableDataResolved"
         size="small"

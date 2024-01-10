@@ -831,8 +831,8 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               {{
                 marginSupportTdMap[record.group] &&
                 getAssetsByKfConfig(record).collateral_ratio
-                  ? `${Math.floor(
-                      getAssetsByKfConfig(record).collateral_ratio * 100,
+                  ? `${(
+                      getAssetsByKfConfig(record).collateral_ratio * 100
                     ).kfToFixed(1)}%`
                   : '--'
               }}

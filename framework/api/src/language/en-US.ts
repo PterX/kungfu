@@ -351,7 +351,7 @@ export default {
     ledger: 'ledger',
     archive: 'archive',
 
-    place_order: 'Place Order',
+    place_order: 'Place',
     order_trigger: 'Embedded orders',
     order_trigger_title: 'Confirmation of embedded orders',
     server_order_trigger_label: 'Server embedded order',
@@ -380,7 +380,7 @@ export default {
       '0 (price limit)/1 (market price)/2 (Shanghai Shenzhen optimal five level real-time transaction remaining cancellation)/3 (Shenzhen local optimal price declaration)/4 (Shanghai optimal five level real-time transaction remaining conversion to limit price, Shenzhen counterparty optimal price declaration)/5 (Shenzhen real-time transaction remaining cancellation)/6 (Shenzhen market price full transaction or cancellation)/7 (enhanced limit price order)/8 (bidding limit price order)/9 (bidding price order), number',
     volume_header_desc: 'Volume, number',
     limit_price_header_desc: 'Limit price, float',
-    apart_order: 'Apart Order',
+    apart_order: 'Split',
     reset_order: 'Reset',
     account: 'AccountId',
     instrument: 'Instrument',
@@ -788,7 +788,7 @@ export default {
     limit_price: 'limit_price A-B',
     volume: 'volume',
 
-    place_order: 'Place Order',
+    place_order: 'Place',
     reset_order: 'Reset',
     only_corresponding: 'Can Only corresponding',
   },
@@ -810,7 +810,7 @@ export default {
     unrestricted_shares: 'Unrestricted shares',
     restricted_shares: 'Restricted shares',
 
-    place_order: 'Place Order',
+    place_order: 'Place',
     reset_order: 'Resert',
     only_number: 'can only number',
   },

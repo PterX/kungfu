@@ -20,13 +20,12 @@ export const WRAPPER_COL = 14;
 export const getConfigSettings = ({
   location,
   instrumentType,
-  extConfigs,
+  isMarginMakeOrder,
+  isSpecifyContract,
   side,
   priceType,
   pricePrecision,
   step,
-  accountGroup,
-  accountId,
   sideList,
   offsetList,
 }: {
@@ -36,22 +35,15 @@ export const getConfigSettings = ({
     | KungfuApi.KfConfig
     | null;
   instrumentType?: InstrumentTypeEnum;
-  extConfigs?: KungfuApi.KfExtConfigs;
+  isMarginMakeOrder?: boolean;
+  isSpecifyContract?: boolean;
   side?: SideEnum;
   priceType?: PriceTypeEnum;
   pricePrecision?: number;
   step?: number;
-  accountGroup?: string;
-  accountId?: string;
   sideList?: string[];
   offsetList?: string[];
 }): KungfuApi.KfConfigItem[] => {
-  const supportMargin =
-    extConfigs?.td?.[accountGroup || location?.group || '']?.margin
-      ?.marginMakeOrder;
-  const SpecifyContract =
-    extConfigs?.td?.[accountGroup || location?.group || '']?.margin
-      ?.specifyContract;
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     location?.category === 'td'
       ? null
@@ -59,7 +51,6 @@ export const getConfigSettings = ({
           key: 'account_id',
           name: t('tradingConfig.account'),
           type: 'td',
-          default: accountId || '',
           required: true,
         },
     {
@@ -70,7 +61,7 @@ export const getConfigSettings = ({
     },
 
     ...[
-      supportMargin
+      isMarginMakeOrder
         ? {
             key: 'side',
             name: t('tradingConfig.side'),
@@ -88,20 +79,21 @@ export const getConfigSettings = ({
           },
     ],
     ...[
-      supportMargin &&
+      isMarginMakeOrder &&
       (side === SideEnum.RepayStock || side === SideEnum.RepayMargin)
         ? {
             key: 'contract_id',
             name: t('tradingConfig.specfy_contract'),
             type: 'contract',
             placeholder: t('tradingConfig.specfy_contract_placeholder'),
-            disabled: side === SideEnum.RepayMargin ? !SpecifyContract : false,
+            disabled:
+              side === SideEnum.RepayMargin ? !isSpecifyContract : false,
           }
         : null,
     ],
 
     ...(isShotable(instrumentType || InstrumentTypeEnum.unknown) &&
-    !supportMargin
+    !isMarginMakeOrder
       ? ([
           instrumentType === InstrumentTypeEnum.stockoption &&
           side === SideEnum.Exec

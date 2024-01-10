@@ -25,13 +25,13 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
 
     def time(self):
         return self._hero.now()
-    
+
     def get_home_uid(self):
         return self._hero.get_home_uid()
 
     def get_home_uname(self):
         return self._hero.get_home_uname()
-    
+
     def get_begin_time(self):
         return self._hero.get_begin_time()
 
@@ -40,7 +40,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
 
     def pre_setup(self):
         self._hero.pre_setup()
-    
+
     def setup(self):
         self._hero.setup()
 
@@ -79,7 +79,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         while self.is_live():
             self.step()
             self.post_step()
-            
+
         self.on_exit()
         self._ctx.logger.info(
             "[{:08x}] {} done".format(self._hero.home.uid, self._hero.home.uname)

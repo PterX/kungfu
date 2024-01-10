@@ -180,6 +180,7 @@ def run(
         else:
             run_forever(ctx, ctx.executor)
 
+
 @kfc.command(cls=PrioritizedCommandGroup, help_priority=-1)
 @kfc.pass_context()
 def service(ctx):

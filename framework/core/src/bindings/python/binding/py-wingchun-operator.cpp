@@ -84,18 +84,11 @@ void bind_operator(pybind11::module &m) {
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool>())
       .def_property_readonly("context", &op::Runner::get_context)
-      .def("set_begin_time", &op::Runner::set_begin_time)
-      .def("set_end_time", &op::Runner::set_end_time)
       .def("set_from_indexer", &op::Runner::set_from_indexer)
       .def("set_to_indexer", &op::Runner::set_to_indexer)
       .def("set_report", &op::Runner::set_report)
       .def("set_time_interval", &op::Runner::set_time_interval)
       .def("set_backtest_config", &op::Runner::set_backtest_config)
-      .def("now", &op::Runner::now)
-      .def("run", &op::Runner::run)
-      .def("setup", &op::Runner::setup)
-      .def("step", &op::Runner::step)
-      .def("on_exit", &op::Runner::on_exit)
       .def("add_operator", &op::Runner::add_operator);
 
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")

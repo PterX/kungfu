@@ -72,14 +72,15 @@ bool hero::setup() {
 
 void hero::pre_setup() {}
 
-void hero::step() {
+void hero::step(uint32_t count) {
   continual_ = false;
+  step_limit_ = count;
   events_.connect(cs_);
 }
 
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
-  SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  SPDLOG_DEBUG("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
   pre_setup();
   setup();
   SPDLOG_DEBUG("app setup done");
@@ -425,8 +426,9 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
+  uint32_t count = 0;
   deal_notice(bypass, true, sb);
-  while (live_ and reader_->data_available()) {
+  while (live_ and reader_->data_available() and (step_limit_ == 0 ? true : count < step_limit_)) {
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
     io_device_->get_bus()->set_trigger_frame(frame);
@@ -441,6 +443,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       on_frame();
       reader_->next();
       on_frame_done();
+      count++;
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;

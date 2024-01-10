@@ -71,9 +71,9 @@ bool hero::setup() {
 
 void hero::pre_setup() {}
 
-void hero::step(uint32_t count) {
+void hero::step(uint32_t step_limit) {
   continual_ = false;
-  step_limit_ = count;
+  step_limit_ = step_limit;
   events_.connect(cs_);
 }
 
@@ -425,9 +425,10 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
-  uint32_t count = 0;
   deal_notice(bypass, true, sb);
-  while (live_ and reader_->data_available() and (step_limit_ == 0 ? true : count < step_limit_)) {
+  for (std::size_t step_count = 0;                                                                   //
+       live_ and reader_->data_available() and (step_limit_ == 0 ? true : step_count < step_limit_); //
+       step_count++) {
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
     io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
@@ -442,7 +443,6 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       on_frame();
       reader_->next();
       on_frame_done();
-      count++;
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;

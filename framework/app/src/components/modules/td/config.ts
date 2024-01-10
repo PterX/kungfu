@@ -70,6 +70,15 @@ export const getColumns = (
         width: 110,
       },
       {
+        title: t('tdConfig.total_asset'),
+        dataIndex: 'total_asset',
+        align: 'right',
+        sorter: {
+          compare: marginSorter('total_asset'),
+        },
+        width: 140,
+      },
+      {
         title: t('tdConfig.used_margin'),
         dataIndex: 'margin',
         align: 'right',
@@ -120,15 +129,6 @@ export const getColumns = (
         align: 'right',
         sorter: {
           compare: marginSorter('avail_margin'),
-        },
-        width: 140,
-      },
-      {
-        title: t('tdConfig.total_asset'),
-        dataIndex: 'total_asset',
-        align: 'right',
-        sorter: {
-          compare: marginSorter('total_asset'),
         },
         width: 140,
       },

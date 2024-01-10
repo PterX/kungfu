@@ -24,7 +24,7 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
 
-constexpr uint32_t STEP_LIMIT = 1000;
+constexpr uint32_t STEP_LIMIT = 500;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 

@@ -237,6 +237,12 @@ constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(AlgoOrder)                                 // 214
 );
 
+constexpr auto TradingDataWithStatusTypes = boost::hana::make_map( //
+    TYPE_PAIR(Order),                                              // 202
+    TYPE_PAIR(OrderTrigger),                                       // 210
+    TYPE_PAIR(AlgoOrder)                                           // 214
+);
+
 constexpr auto MarketDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Quote),                                   //
     TYPE_PAIR(Tree),                                    //
@@ -269,6 +275,7 @@ const auto build_data_set = [](auto types) {
 
 const auto AllTypesTags = build_data_set(AllTypes);
 const auto TradingDataTags = build_data_set(TradingDataTypes);
+const auto TradingDataWithStatusTags = build_data_set(TradingDataWithStatusTypes);
 const auto ProfileDataTags = build_data_set(ProfileDataTypes);
 const auto StaticDataTags = build_data_set(StaticDataTypes);
 

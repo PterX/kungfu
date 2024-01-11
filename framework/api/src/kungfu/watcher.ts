@@ -55,7 +55,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     false;
 
   const millisecondsSleepAfterStep =
-    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 100;
+    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 25; // 40 frames per second
 
   kfLogger.info('bypassRestore', bypassRestore);
   kfLogger.info('bypassAccounting', bypassAccounting);

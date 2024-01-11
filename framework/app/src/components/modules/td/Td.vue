@@ -621,6 +621,17 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
         :row-class-name="dealRowClassName"
+        :customHeaderRow="
+          (_column, _index) => {
+            return {
+              style: {
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              },
+            };
+          }
+        "
         :custom-row="customRowResolved"
         :default-expand-all-rows="true"
         :empty-text="$t('empty_text')"
@@ -729,21 +740,6 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealAssetPrice(
                   getAssetsByTdGroup(marginSupportTdMap, record).market_value,
-                )
-              "
-            ></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'total_asset'">
-            <KfBlinkNum
-              v-if="record.category === 'td'"
-              mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).total_asset)"
-            ></KfBlinkNum>
-            <KfBlinkNum
-              v-else-if="record.category === 'tdGroup'"
-              :num="
-                dealAssetPrice(
-                  getAssetsByTdGroup(marginSupportTdMap, record).total_asset,
                 )
               "
             ></KfBlinkNum>

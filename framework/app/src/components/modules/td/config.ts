@@ -70,15 +70,6 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.total_asset'),
-        dataIndex: 'total_asset',
-        align: 'right',
-        sorter: {
-          compare: marginSorter('total_asset'),
-        },
-        width: 140,
-      },
-      {
         title: t('tdConfig.used_margin'),
         dataIndex: 'margin',
         align: 'right',
@@ -193,7 +184,6 @@ export const assetMarginDetailShowList = [
   { key: 'frozen_cash', label: t('tdConfig.frozen_funds') },
   { key: 'collateral_ratio', label: t('tdConfig.maintain_margin_ratio') },
   { key: 'avail_margin', label: t('tdConfig.avail_margin') },
-  { key: 'total_asset', label: t('tdConfig.total_asset') },
   { key: 'short_cash', label: t('tdConfig.short_sale_proceeds') },
   { key: 'total_debt', label: t('tdConfig.total_liabilities') },
   { key: 'net_assets', label: t('tdConfig.equity') },

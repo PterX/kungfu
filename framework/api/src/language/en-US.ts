@@ -352,7 +352,7 @@ export default {
     archive: 'archive',
 
     place_order: 'Place',
-    order_trigger: 'Embedded orders',
+    order_trigger: 'Embedded',
     order_trigger_title: 'Confirmation of embedded orders',
     server_order_trigger_label: 'Server embedded order',
     local_order_trigger_label: 'Local embedded order',

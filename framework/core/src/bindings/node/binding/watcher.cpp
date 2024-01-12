@@ -579,8 +579,6 @@ void Watcher::TryRefreshTradingData() {
 
   serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger", data_bank_);
   unfinished_trading_data_bank_ >> data_bank_;
-  SPDLOG_INFO("unfinished_trading_data_bank_ size {} data_bank_ {}", unfinished_trading_data_bank_.size(),
-              data_bank_.size());
 }
 
 void Watcher::SyncTradingData() {

@@ -105,9 +105,9 @@ void Runner::on_start() {
   pre_start();
   enable(*context_);
 
-  auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
+  bool resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
   auto start_events =
-      events_ | skip_until(events_ | filter([&](auto e) {
+      events_ | skip_until(events_ | filter([&, resume_policy_is_now](auto e) {
                              return resume_policy_is_now ? context_->is_started() and has_post_started_ : true;
                            }));
   start_events | is(Quote::tag) |

@@ -16,7 +16,7 @@ namespace py = pybind11;
 namespace kungfu::wingchun::pybind {
 void bind_service(pybind11::module &m) {
   py::class_<Ledger, apprentice, std::shared_ptr<Ledger>>(m, "Ledger")
-      .def(py::init<locator_ptr, mode, bool, const std::string &>())
+      .def(py::init<locator_ptr, std::string &, std::string &, mode, bool, const std::string &>())
       .def_property_readonly("io_device", &Ledger::get_io_device)
       .def_property_readonly("usable", &Ledger::is_usable)
       .def_property_readonly("bookkeeper", &Ledger::get_bookkeeper, py::return_value_policy::reference);

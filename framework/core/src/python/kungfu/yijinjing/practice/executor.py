@@ -34,6 +34,18 @@ yjj = kungfu.__binding__.yijinjing
 
 class ExecutorRegistry:
     def __init__(self, ctx):
+        ctx.locator = (
+            ctx.backtest_locator
+            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
+            else ctx.runtime_locator
+        )
+        ctx.location = yjj.location(
+            kfj.MODES[ctx.mode],
+            kfj.CATEGORIES[ctx.category],
+            ctx.group,
+            ctx.name,
+            ctx.locator,
+        )
         self.ctx = ctx
         self.executors = {
             "system": {"master": MasterLoader(ctx), "service": ServiceLoader(ctx)},
@@ -45,15 +57,6 @@ class ExecutorRegistry:
 
     def setup_log(self):
         ctx = self.ctx
-        ctx.location = yjj.location(
-            kfj.MODES[ctx.mode],
-            kfj.CATEGORIES[ctx.category],
-            ctx.group,
-            ctx.name,
-            ctx.backtest_locator
-            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
-            else ctx.runtime_locator,
-        )
         ctx.logger = find_logger(ctx.location, ctx.log_level)
 
     def load_extensions(self):
@@ -199,16 +202,24 @@ class ExtensionExecutorBuilder:
         return self.runners[self.ctx.category]()
 
     def get_market_data_vendor(self):
-        return BrokerVendor(self.ctx, self.loader, wc.MarketDataVendor)
+        return BrokerVendor(
+            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
+        )
 
     def get_trader_vendor(self):
-        return BrokerVendor(self.ctx, self.loader, wc.TraderVendor)
+        return BrokerVendor(
+            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
+        )
 
     def get_strategy_runner(self):
-        return StrategyRunner(self.ctx, self.loader)
+        return StrategyRunner(
+            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
+        )
 
     def get_operator_runner(self):
-        return OperatorRunner(self.ctx, self.loader)
+        return OperatorRunner(
+            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
+        )
 
 
 class Executor:
@@ -260,13 +271,6 @@ class MasterExecutor(Executor):
 
     def build_executor(self):
         ctx = self.ctx
-        ctx.location = yjj.location(
-            kfj.MODES[ctx.mode],
-            lf.enums.category.SYSTEM,
-            "master",
-            "master",
-            ctx.runtime_locator,
-        )
         ctx.logger = find_logger(ctx.location, ctx.log_level)
         return Master(ctx)
 
@@ -283,13 +287,6 @@ class ServiceExecutor(Executor):
 
     def build_executor(self, name, service_builder):
         ctx = self.ctx
-        ctx.location = yjj.location(
-            kfj.MODES[ctx.mode],
-            lf.enums.category.SYSTEM,
-            "service",
-            name,
-            ctx.runtime_locator,
-        )
         ctx.logger = find_logger(ctx.location, ctx.log_level)
         ctx.logger.info(
             f"starting service {name}, low_latency={ctx.low_latency}, arguments={ctx.arguments}, mode={ctx.mode}"
@@ -301,6 +298,8 @@ class ServiceExecutor(Executor):
             and service_builder.is_python_service
             else service_builder(
                 ctx.runtime_locator,
+                ctx.group,
+                ctx.name,
                 kfj.MODES[ctx.mode],
                 ctx.low_latency,
                 ctx.arguments or "{}",
@@ -333,33 +332,23 @@ class ExtensionExecutor(Executor):
 
 
 class BrokerVendor(ExtensionExecutor):
-    def __init__(self, ctx, loader, vendor_builder):
-        self.vendor_builder = vendor_builder
+    def __init__(self, ctx, loader, vendor):
+        ctx.broker_vendor = vendor
         super().__init__(ctx, loader)
 
     def build_executor(self, loader):
         ctx = self.ctx
-        location = yjj.location(
-            kfj.MODES[ctx.mode],
-            kfj.CATEGORIES[ctx.category],
-            ctx.group,
-            ctx.name,
-            ctx.runtime_locator,
-        )
 
         # let TD and MD start without package.json
         sys.path.insert(0, ctx.extension_path)
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
-        ctx.broker_vendor = self.vendor_builder(
-            ctx.runtime_locator, ctx.group, ctx.name, ctx.low_latency, ctx.arguments
-        )
         service_builder = getattr(module, ctx.category)
         self.ctx.logger.debug(f"loaded broker service builder")
         ctx.broker_service = service_builder(ctx.broker_vendor)
         self.ctx.logger.debug("set broker service for broker vendor")
         ctx.broker_vendor.set_service(ctx.broker_service)
-        self.ctx.logger.info(f"broker vendor {location.uname} ready to run")
+        self.ctx.logger.info(f"broker vendor {ctx.location.uname} ready to run")
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
@@ -369,7 +358,8 @@ class BrokerVendor(ExtensionExecutor):
 
 
 class StrategyRunner(ExtensionExecutor):
-    def __init__(self, ctx, loader):
+    def __init__(self, ctx, loader, strategy_runner):
+        ctx.strategy_runner = strategy_runner
         super().__init__(ctx, loader)
 
     def build_executor(self, loader):
@@ -379,16 +369,8 @@ class StrategyRunner(ExtensionExecutor):
             if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
             else ctx.runtime_locator
         )
-        ctx.location = yjj.location(
-            kfj.MODES[ctx.mode],
-            lf.enums.category.STRATEGY,
-            ctx.group,
-            ctx.name,
-            locator,
-        )
         os.environ["KF_STG_GROUP"] = ctx.group
         os.environ["KF_STG_NAME"] = ctx.name
-        ctx.strategy_runner = load_runner(ctx, locator)  # 先load runner才能识别出定制的Strategy
         if loader.config is None:
             load = False
             json_config = os.path.join(os.path.dirname(ctx.path), "package.json")
@@ -460,18 +442,12 @@ class StrategyRunner(ExtensionExecutor):
 
 
 class OperatorRunner(ExtensionExecutor):
-    def __init__(self, ctx, loader):
+    def __init__(self, ctx, loader, op_runner):
+        ctx.op_runner = op_runner
         super().__init__(ctx, loader)
 
     def build_executor(self, loader):
         ctx = self.ctx
-        ctx.location = yjj.location(
-            kfj.MODES[ctx.mode],
-            lf.enums.category.OPERATOR,
-            ctx.group,
-            ctx.name,
-            ctx.runtime_locator,
-        )
         os.environ["KF_OP_GROUP"] = ctx.group
         # TODO check extension.h for implementation details, how to deal with 1 runner : N operators?
         os.environ["KF_OP_NAME"] = ctx.name
@@ -501,7 +477,6 @@ class OperatorRunner(ExtensionExecutor):
             ctx.operator = load_module(
                 ctx, ctx.path, loader.config["kungfuConfig"]["key"], Operator
             )
-        ctx.op_runner = OpRunner(ctx, kfj.MODES[ctx.mode])
         if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST:
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             ctx.op_runner.set_begin_time(begin_time_stamp)
@@ -582,7 +557,7 @@ def load_runner(ctx, locator):
         sys.path.append(ctx.extension_path)
         module = importlib.import_module(ctx.vendor)
         runner_vendor = getattr(module, "Runner")
-        runner = runner_vendor(
+        return runner_vendor(
             locator,
             ctx.group,
             ctx.name,
@@ -590,9 +565,31 @@ def load_runner(ctx, locator):
             ctx.low_latency,
             ctx.arguments,
         )
-        return runner
     else:
-        return Runner(ctx, locator, kfj.MODES[ctx.mode])
+        if ctx.category == "strategy":
+            return Runner(ctx)
+        elif ctx.category == "operator":
+            return OpRunner(ctx)
+        elif ctx.category == "td":
+            return wc.TraderVendor(
+                locator,
+                ctx.group,
+                ctx.name,
+                kfj.MODES[ctx.mode],
+                ctx.low_latency,
+                ctx.arguments,
+            )
+        elif ctx.category == "md":
+            return wc.MarketDataVendor(
+                locator,
+                ctx.group,
+                ctx.name,
+                kfj.MODES[ctx.mode],
+                ctx.low_latency,
+                ctx.arguments,
+            )
+        else:
+            raise ValueError(f"invalid category {ctx.category}")
 
 
 def parse_begin_end(ctx):

@@ -1,6 +1,6 @@
 from kungfu.yijinjing import time as kft
 
-STEP_LIMIT = 500
+STEP_LIMIT = 0
 
 
 def run_forever(ctx, executor):

@@ -158,6 +158,7 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
+  yijinjing::cache::bank unfinished_trading_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
@@ -182,6 +183,13 @@ private:
   static constexpr auto is_trading_data = []() {
     return rx::filter([&](const event_ptr &event) {
       return kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end();
+    });
+  };
+
+  static constexpr auto is_trading_data_with_status = []() {
+    return rx::filter([&](const event_ptr &event) {
+      return kungfu::longfist::TradingDataWithStatusTags.find(event->msg_type()) !=
+             kungfu::longfist::TradingDataWithStatusTags.end();
     });
   };
 

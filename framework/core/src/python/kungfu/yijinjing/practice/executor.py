@@ -65,9 +65,7 @@ class ExecutorRegistry:
         ctx = self.ctx
         ctx.logger.debug(f"finding kungfu extension for {ctx.location}")
 
-        if ctx.arguments is None:
-            ctx.arguments = "{}"
-        elif ctx.arguments.endswith(".json"):
+        if ctx.arguments.endswith(".json"):
             json_path = ctx.arguments.replace("\\", "/")
             try:
                 with open(json_path, "r", encoding="utf-8") as file:
@@ -302,7 +300,7 @@ class ServiceExecutor(Executor):
                 ctx.name,
                 kfj.MODES[ctx.mode],
                 ctx.low_latency,
-                ctx.arguments or "{}",
+                ctx.arguments,
             )
         )
 

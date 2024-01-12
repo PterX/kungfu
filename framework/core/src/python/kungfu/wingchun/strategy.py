@@ -29,7 +29,7 @@ class Runner(wc.Runner):
             ctx.name,
             kfj.MODES[ctx.mode],
             ctx.low_latency,
-            ctx.arguments or "{}",
+            ctx.arguments,
         )
         self.ctx = ctx
 

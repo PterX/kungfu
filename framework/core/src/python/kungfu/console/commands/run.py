@@ -160,7 +160,7 @@ def run(
     ctx.name = name
     ctx.low_latency = low_latency
     ctx.path = reference
-    ctx.arguments = arguments
+    ctx.arguments = arguments or "{}"
     ctx.vendor = vendor
 
     registry = ExecutorRegistry(ctx)

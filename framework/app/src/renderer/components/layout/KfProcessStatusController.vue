@@ -415,6 +415,7 @@ onMounted(() => {
         justify-content: flex-start;
         align-items: center;
         margin-right: 8px;
+        word-break: break-all;
 
         .info-item {
           margin-right: 8px;
@@ -450,4 +451,3 @@ onMounted(() => {
   }
 }
 </style>
-@kungfu-trader/kungfu-js-api/utils/systemConfig

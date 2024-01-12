@@ -164,6 +164,12 @@ uint64_t reader::find_page_size(const data::location_ptr &location, uint32_t des
   auto page_id = page_ids.front();
   auto page = page::load_header_and_1st_frame_header(location, dest_id, page_id, false, true);
   auto page_size = page->get_page_size();
+  if (page_size == 0) {
+    const std::string msg = fmt::format("open a page never init page_header for {}", location->uname,
+                                        page::get_page_path(location, dest_id, page_id));
+    SPDLOG_ERROR(msg);
+    throw journal_error(msg);
+  }
   return page_size;
 }
 
@@ -172,7 +178,7 @@ bool reader::later::operator()(const journal *const lhs, const journal *const rh
     return const_cast<journal *>(lhs)->current_frame()->gen_time() >
            const_cast<journal *>(rhs)->current_frame()->gen_time();
   }
-  return lhs->priority_ > rhs->priority_;
+  return lhs->priority_ < rhs->priority_;
 }
 
 } // namespace kungfu::yijinjing::journal

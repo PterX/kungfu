@@ -91,6 +91,8 @@ public:
 
   bool req_order_trigger() override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger); }
 
+  bool req_contract() override { PYBIND11_OVERLOAD(bool, Trader, req_contract); }
+
   bool req_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_algo_order, event); }
 
   bool req_history_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_order, event); }

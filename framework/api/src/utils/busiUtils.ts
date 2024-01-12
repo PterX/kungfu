@@ -935,6 +935,7 @@ export const numberEnumSelectType: Record<
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
   side: Side,
+  marginSide: Side,
   priceType: PriceType,
   priceLevel: PriceLevel,
   instrumentType: InstrumentType,
@@ -954,6 +955,36 @@ export const KfConfigValueNumberType = [
   'float',
   'percent',
   ...Object.keys(numberEnumSelectType || {}),
+  ...Object.keys(numberEnumRadioType || {}),
+];
+
+export const FormItemNeedIcon = [
+  'str',
+  'password',
+  'int',
+  'float',
+  'percent',
+  'side',
+  'priceType',
+  'priceLevel',
+  'radio',
+  'checkbox',
+  'checkboxGroup',
+  'select',
+  'multiSelect',
+  'instrument',
+  'instruments',
+  'contract',
+  'td',
+  'tds',
+  'md',
+  'md&operator',
+  'operator',
+  'strategy',
+  'basket',
+  'bool',
+  ...Object.keys(numberEnumSelectType || {}),
+  ...Object.keys(stringEnumSelectType || {}),
   ...Object.keys(numberEnumRadioType || {}),
 ];
 

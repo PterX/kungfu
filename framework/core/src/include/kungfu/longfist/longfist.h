@@ -8,7 +8,7 @@
 #define KUNGFU_LONGFIST_H
 
 #include <kungfu/longfist/types.h>
-#include <unordered_set>
+#include <set>
 
 #define TYPE_PAIR(DataType) boost::hana::make_pair(HANA_STR(#DataType), boost::hana::type_c<types::DataType>)
 
@@ -17,6 +17,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(frame_header),                     // 0
     TYPE_PAIR(page_header),                      // 1
     TYPE_PAIR(Asset),                            // 101
+    TYPE_PAIR(Contract),                         // 102
     TYPE_PAIR(Position),                         // 103
     TYPE_PAIR(PositionEnd),                      // 104
     TYPE_PAIR(InstrumentFactor),                 // 105
@@ -48,6 +49,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(AssetSync),                        // 353
     TYPE_PAIR(PositionSync),                     // 354
     TYPE_PAIR(OrderTriggerRequest),              // 355
+    TYPE_PAIR(ContractRequest),                  // 356
     TYPE_PAIR(Quote),                            // 401
     TYPE_PAIR(Entrust),                          // 402
     TYPE_PAIR(Transaction),                      // 403
@@ -110,6 +112,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(frame_header),                                          // 0
     TYPE_PAIR(page_header),                                           // 1
     TYPE_PAIR(Asset),                                                 // 101
+    TYPE_PAIR(Contract),                                              // 102
     TYPE_PAIR(Position),                                              // 103
     TYPE_PAIR(PositionEnd),                                           // 104
     TYPE_PAIR(InstrumentFactor),                                      // 105
@@ -189,6 +192,7 @@ constexpr auto SessionDataTypes = boost::hana::make_map( //
 
 constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Asset),                                  // 101
+    TYPE_PAIR(Contract),                               // 102
     TYPE_PAIR(Position),                               // 103
     TYPE_PAIR(InstrumentFactor),                       // 105
     TYPE_PAIR(OrderInput),                             // 201
@@ -255,7 +259,7 @@ template <typename DataType> constexpr bool is_profile_data() { return is_in_typ
 template <typename DataType> constexpr bool is_market_data() { return is_in_types<DataType>(MarketDataTypes); };
 
 const auto build_data_set = [](auto types) {
-  std::unordered_set<int32_t> s;
+  std::set<int32_t> s;
   boost::hana::for_each(types, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     s.emplace(DataType::tag);

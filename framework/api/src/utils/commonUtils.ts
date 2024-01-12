@@ -688,6 +688,38 @@ export const loopToRunProcess = async <T>(
   return resList;
 };
 
+export async function parallelTaskScheduler<T>(
+  tasks: Array<() => Promise<T>>,
+  maxConcurrentTasks = 1,
+): Promise<(T | Error)[]> {
+  const results: (T | Error)[] = [];
+  const executing: Array<Promise<void>> = [];
+
+  for (const task of tasks) {
+    if (executing.length >= maxConcurrentTasks) {
+      await Promise.race(executing);
+    }
+
+    const p = (async () => {
+      try {
+        return await task();
+      } catch (err: unknown) {
+        return err as Error;
+      }
+    })();
+
+    const e = p.then((res) => {
+      results.push(res);
+      executing.splice(executing.indexOf(e), 1);
+    });
+
+    executing.push(e);
+  }
+  await Promise.all(executing);
+
+  return results;
+}
+
 export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   let timer; // for ui refresh
   return new Observable<boolean>((sub) => {
@@ -736,14 +768,15 @@ export const kfConfigItemsToProcessArgs = (
   );
 };
 
-export const buildTableColumnSorterWithStrike = <T>(
+export const buildTableColumnSorterWithStrike = <T, U = object>(
   type: 'num' | 'str',
-  dataIndex: keyof T,
+  dataIndex: keyof T | keyof U,
+  transform?: (data: T) => number | string | null,
 ) => {
   return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
     if (type === 'num') {
-      let aVal: unknown = a[dataIndex] ?? '--',
-        bVal: unknown = b[dataIndex] ?? '--';
+      let aVal = (transform ? transform(a) : a[dataIndex as keyof T]) ?? '--',
+        bVal = (transform ? transform(b) : b[dataIndex as keyof T]) ?? '--';
       if (sorterOrder === 'ascend') {
         aVal = aVal === '--' ? Infinity : aVal;
         bVal = bVal === '--' ? Infinity : bVal;
@@ -755,7 +788,11 @@ export const buildTableColumnSorterWithStrike = <T>(
       }
       return Number(aVal) - Number(bVal);
     } else {
-      return `${a[dataIndex] ?? ''}`.localeCompare(`${b[dataIndex] ?? ''}`);
+      return `${
+        (transform ? transform(a) : a[dataIndex as keyof T]) ?? ''
+      }`.localeCompare(
+        `${(transform ? transform(b) : b[dataIndex as keyof T]) ?? ''}`,
+      );
     }
   };
 };

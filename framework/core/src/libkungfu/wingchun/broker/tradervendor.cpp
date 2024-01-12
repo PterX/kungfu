@@ -97,7 +97,6 @@ void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(servic
 void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) |
       $$(order_service_.on_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
 
   // have to be in this position, only in react, the ResetBookRequest can be listened
@@ -122,6 +121,7 @@ void TraderVendor::on_start() {
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(OrderTriggerRequest::tag) | $$(service_->req_order_trigger());
+  events_ | is(ContractRequest::tag) | $$(service_->req_contract());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->on_asset_sync());

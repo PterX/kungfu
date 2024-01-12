@@ -24,7 +24,8 @@ using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
 
-Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
+Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
+               const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
       broker_client_(*this), bookkeeper_(*this, broker_client_, true) {

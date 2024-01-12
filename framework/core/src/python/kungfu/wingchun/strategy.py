@@ -21,15 +21,13 @@ yjj = kungfu.__binding__.yijinjing
 
 
 class Runner(wc.Runner):
-    def __init__(self, ctx, locator, mode):
-        if ctx.arguments is None:
-            ctx.arguments = "{}"
+    def __init__(self, ctx):
         wc.Runner.__init__(
             self,
-            locator,
+            ctx.locator,
             ctx.group,
             ctx.name,
-            mode,
+            kfj.MODES[ctx.mode],
             ctx.low_latency,
             ctx.arguments,
         )

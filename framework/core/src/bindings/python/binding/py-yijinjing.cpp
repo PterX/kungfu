@@ -389,7 +389,8 @@ void bind(pybind11::module &&m) {
       .def("deregister_app", &master::deregister_app);
 
   py::class_<apprentice, PyApprentice, apprentice_ptr>(m, "apprentice")
-      .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency") = false)
+      .def(py::init<location_ptr, bool, std::string>(), py::arg("home"), py::arg("low_latency") = false,
+           py::arg("arguments") = "{}")
       .def_property_readonly("io_device", &apprentice::get_io_device)
       .def_property_readonly("home", &apprentice::get_home)
       .def_property_readonly("live", &apprentice::is_live)

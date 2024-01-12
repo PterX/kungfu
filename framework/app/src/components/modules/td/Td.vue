@@ -621,6 +621,17 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
         :row-class-name="dealRowClassName"
+        :customHeaderRow="
+          (_column, _index) => {
+            return {
+              style: {
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              },
+            };
+          }
+        "
         :custom-row="customRowResolved"
         :default-expand-all-rows="true"
         :empty-text="$t('empty_text')"
@@ -729,21 +740,6 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealAssetPrice(
                   getAssetsByTdGroup(marginSupportTdMap, record).market_value,
-                )
-              "
-            ></KfBlinkNum>
-          </template>
-          <template v-else-if="column.dataIndex === 'total_asset'">
-            <KfBlinkNum
-              v-if="record.category === 'td'"
-              mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).total_asset)"
-            ></KfBlinkNum>
-            <KfBlinkNum
-              v-else-if="record.category === 'tdGroup'"
-              :num="
-                dealAssetPrice(
-                  getAssetsByTdGroup(marginSupportTdMap, record).total_asset,
                 )
               "
             ></KfBlinkNum>
@@ -1081,15 +1077,9 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
 <style lang="less">
 .kf-td__warp {
   height: 100%;
-  .has-data .ant-table-tbody > tr > td:first-child {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-  }
 
-  .has-data .ant-table-tbody > tr > td:first-child .ant-table-row-expand-icon {
-    flex-shrink: 0;
-    margin-right: 8px;
+  .has-data .ant-table-tbody > tr > td:first-child > div {
+    display: flow-root;
   }
 
   .td-name__warp {

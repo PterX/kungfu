@@ -563,7 +563,7 @@ void Watcher::TryRefreshTradingData() {
   hana::for_each(longfist::TradingDataWithStatusTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
-    auto target_map =
+    auto &target_map =
         const_cast<std::unordered_map<uint64_t, state<DataType>> &>(unfinished_trading_data_bank_[hana_type]);
 
     auto iter = target_map.begin();

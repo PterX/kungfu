@@ -15,11 +15,12 @@
 #define KUNGFU_EXTENSION(...) PYBIND11_MODULE(KUNGFU_MODULE_NAME, m)
 
 #define KUNGFU_DEFINE_SERVICE(ServiceType)                                                                             \
-  m.def("service", [&](kungfu::yijinjing::data::locator_ptr locator, kungfu::longfist::enums::mode m,                  \
-                       bool low_latency = false, const std::string &arguments = "") {                                  \
-    return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                          \
-        std::make_shared<ServiceType>(locator, m, low_latency, arguments));                                            \
-  })
+  m.def("service",                                                                                                     \
+        [&](kungfu::yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,           \
+            kungfu::longfist::enums::mode m, bool low_latency = false, const std::string &arguments = "{}") {          \
+          return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                    \
+              std::make_shared<ServiceType>(locator, group, name, m, low_latency, arguments));                         \
+        })
 
 #define KUNGFU_DEFINE_CACHE_TOOL(ToolType)                                                                             \
   m.def("tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,                   \

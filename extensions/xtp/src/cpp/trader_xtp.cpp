@@ -32,7 +32,6 @@ void TraderXTP::pre_start() {
 }
 
 void TraderXTP::on_start() {
-
   if (config_.client_id < 1 or config_.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
   }
@@ -52,6 +51,13 @@ void TraderXTP::on_start() {
     update_broker_state(BrokerState::LoginFailed);
     SPDLOG_ERROR("Login failed [{}]: {}", api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
   }
+
+  RiskSetting risk = get_home()->to<RiskSetting>();
+  risk.risk_name = "risk";
+  risk.risk_check = TRUE;
+  risk.self_deal_check_type = SelfDealCheckType::AccountInteractive;
+  on_risk_setting(risk);
+  get_public_writer()->write(now(), risk);
 }
 
 void TraderXTP::on_exit() {

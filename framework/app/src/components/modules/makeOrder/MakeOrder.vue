@@ -2,6 +2,7 @@
 import {
   computed,
   getCurrentInstance,
+  inject,
   nextTick,
   onMounted,
   ref,
@@ -17,6 +18,7 @@ import {
   confirmModal,
   messagePrompt,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
@@ -41,6 +43,10 @@ import {
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
+  Side,
+  MarginSideStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useInstruments,
@@ -49,7 +55,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   initFormStateByConfig,
-  getOffsetByOffsetFilter,
+  enableCustomRadioType,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
@@ -91,6 +97,8 @@ const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
+const MakeOrderInject = inject(BuiltinComponentInjectKeysMap.MakeOrder, {});
+
 const currentAccountId = ref<string>('');
 
 const isMarginMakeOrder = computed(() => {
@@ -129,14 +137,9 @@ const formState = ref(
   ),
 );
 
-const contractSideTypes = [
-  SideEnum.GuaranteeStockBuy,
-  SideEnum.GuaranteeStockSell,
-  SideEnum.MarginTrade,
-  SideEnum.ShortSell,
-  SideEnum.RepayMargin,
-  SideEnum.RepayStock,
-];
+const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
+const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+
 const autoFillInstrument = ref<boolean>(false);
 
 const formRef = ref();
@@ -212,6 +215,8 @@ const configSettings = computed(() => {
     priceType: +formState.value.price_type,
     pricePrecision,
     step,
+    sideList: sideList.value,
+    offsetList: offsetList.value,
   });
 });
 
@@ -391,6 +396,13 @@ watch(
   () => formState.value.instrument,
   (newVal) => {
     if (
+      !isMarginMakeOrder.value &&
+      'side' in formState.value &&
+      !sideList.value.includes(formState.value.side + '')
+    ) {
+      formState.value.side = +sideList.value[0];
+    }
+    if (
       !formState.value.account_id &&
       currentGlobalKfLocation.value?.category !== 'td' &&
       instrumentKeyAccountsMap.value[newVal] &&
@@ -441,11 +453,11 @@ watch(
   () => isMarginMakeOrder.value,
   (newVal) => {
     if (newVal) {
-      if (!contractSideTypes.includes(formState.value.side)) {
+      if (!MarginSideStatus.includes(formState.value.side)) {
         formState.value.side = SideEnum.GuaranteeStockBuy;
       }
     } else {
-      if (contractSideTypes.includes(formState.value.side)) {
+      if (MarginSideStatus.includes(formState.value.side)) {
         formState.value.side = SideEnum.Buy;
       }
     }

@@ -567,6 +567,44 @@ export const getPriceTypeConfig = (): Record<
     }, {});
 };
 
+export const getMarginSideConfig = (): Record<
+  string,
+  KungfuApi.KfTradeValueCommonData
+> => {
+  return {
+    [SideEnum.GuaranteeStockBuy]: {
+      name: t('tradingConfig.guarantee_stock_buy'),
+      color: 'red',
+      level: SideEnum.GuaranteeStockBuy,
+    },
+    [SideEnum.GuaranteeStockSell]: {
+      name: t('tradingConfig.guarantee_stock_sell'),
+      color: 'green',
+      level: SideEnum.GuaranteeStockSell,
+    },
+    [SideEnum.MarginTrade]: {
+      name: t('tradingConfig.margin_trade'),
+      color: 'red',
+      level: SideEnum.MarginTrade,
+    },
+    [SideEnum.ShortSell]: {
+      name: t('tradingConfig.short_sell'),
+      color: 'green',
+      level: SideEnum.ShortSell,
+    },
+    [SideEnum.RepayStock]: {
+      name: t('tradingConfig.repay_short'),
+      color: 'red',
+      level: SideEnum.RepayStock,
+    },
+    [SideEnum.RepayMargin]: {
+      name: t('tradingConfig.repay_margin'),
+      color: 'green',
+      level: SideEnum.RepayMargin,
+    },
+  };
+};
+
 export const getOffsetConfig = (): Record<
   PriceTypeEnum,
   KungfuApi.KfTradeValueCommonData
@@ -922,7 +960,6 @@ export const numberEnumRadioType: Record<
   string,
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
-  offset: getOffsetConfig(),
   hedgeFlag: HedgeFlag,
   direction: Direction,
   volumeCondition: VolumeCondition,
@@ -934,12 +971,19 @@ export const numberEnumSelectType: Record<
   string,
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
-  side: Side,
-  marginSide: Side,
   priceType: PriceType,
   priceLevel: PriceLevel,
   instrumentType: InstrumentType,
   underweightType: UnderweightType,
+};
+
+export const enableCustomRadioType: Record<
+  string,
+  Record<string, KungfuApi.KfTradeValueCommonData>
+> = {
+  side: Side,
+  marginSide: getMarginSideConfig(),
+  offset: getOffsetConfig(),
 };
 
 export const stringEnumSelectType: Record<
@@ -956,6 +1000,7 @@ export const KfConfigValueNumberType = [
   'percent',
   ...Object.keys(numberEnumSelectType || {}),
   ...Object.keys(numberEnumRadioType || {}),
+  ...Object.keys(enableCustomRadioType || {}),
 ];
 
 export const FormItemNeedIcon = [
@@ -986,6 +1031,7 @@ export const FormItemNeedIcon = [
   ...Object.keys(numberEnumSelectType || {}),
   ...Object.keys(stringEnumSelectType || {}),
   ...Object.keys(numberEnumRadioType || {}),
+  ...Object.keys(enableCustomRadioType || {}),
 ];
 
 export const KfConfigValueBooleanType = ['bool', 'checkbox'];

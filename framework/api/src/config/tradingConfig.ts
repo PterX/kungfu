@@ -346,6 +346,15 @@ export const OrderStatus: Record<
   },
 };
 
+export const MarginSideStatus = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayStock,
+  SideEnum.RepayMargin,
+];
+
 export const UnfinishedOrderStatus = [
   OrderStatusEnum.Submitted,
   OrderStatusEnum.Pending,

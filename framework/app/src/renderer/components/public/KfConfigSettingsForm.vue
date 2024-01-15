@@ -20,20 +20,20 @@ import {
   computed,
   nextTick,
   defineComponent,
-  inject,
 } from 'vue';
 import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
   KfCategory,
   BasketVolumeType,
   PriceLevel,
+  Offset,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
-import { omitObject } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   numberEnumRadioType,
   numberEnumSelectType,
+  enableCustomRadioType,
   stringEnumSelectType,
   KfConfigValueNumberType,
   KfConfigValueArrayType,
@@ -52,7 +52,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealPriceType,
-  dealSide,
   dealPriceLevel,
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
@@ -66,13 +65,11 @@ import {
 import dayjs, { Dayjs } from 'dayjs';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 import {
-  InstrumentTypeEnum,
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
   ContractTypeEnum,
   CloseOutFlagEnum,
-  OffsetEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -86,7 +83,6 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
-import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
 
@@ -187,15 +183,7 @@ const { isLanguageKeyAvailable } = useLanguage();
 const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
 const numberEnumRadioTypeResolved = ref({ ...numberEnumRadioType });
-const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
-const marginSideRadioList = [
-  SideEnum.GuaranteeStockBuy,
-  SideEnum.GuaranteeStockSell,
-  SideEnum.MarginTrade,
-  SideEnum.ShortSell,
-  SideEnum.RepayStock,
-  SideEnum.RepayMargin,
-];
+
 const customerFormItemTips = reactive<Record<string, string>>({});
 const instrumentKeys = ref<
   Record<string, 'instrument' | 'instruments' | 'instrumentsCsv'>
@@ -216,10 +204,10 @@ const OriContractList = ref<{ label: string; value: string }[]>([]);
 
 const contractList = ref<{ label: string; value: string }[]>([]);
 
-const configSettingFormInject = inject(
-  BuiltinComponentInjectKeysMap.ConfigSettingForm,
-  {},
-);
+// const configSettingFormInject = inject(
+//   BuiltinComponentInjectKeysMap.ConfigSettingForm,
+//   {},
+// );
 
 watch(
   () => props.configSettings,
@@ -349,57 +337,6 @@ watch(
     deep: true,
   },
 );
-
-if ('instrument' in formState.value) {
-  watch(
-    () => formState.value.instrument,
-    (newInstrument: string) => {
-      const isMargin = props.configSettings.some(
-        (item) => item.type === 'marginSide',
-      );
-      if (newInstrument) {
-        const instrumentResolved =
-          transformSearchInstrumentResultToInstrument(newInstrument);
-        if (instrumentResolved) {
-          const { instrumentType, exchangeId } = instrumentResolved;
-          if (instrumentType === InstrumentTypeEnum.stockoption) {
-            sideRadiosList.value = [
-              ...Object.keys(Side).slice(0, 2),
-              SideEnum.Exec + '',
-            ];
-          } else {
-            if (configSettingFormInject?.sideFilter) {
-              sideRadiosList.value =
-                configSettingFormInject.sideFilter?.(instrumentType);
-            } else {
-              sideRadiosList.value = Object.keys(Side).slice(0, 2);
-            }
-          }
-
-          if (
-            !isMargin &&
-            'side' in formState.value &&
-            !sideRadiosList.value.includes(`${formState.value.side}`)
-          ) {
-            formState.value.side = +sideRadiosList.value[0];
-          }
-
-          if (instrumentType === InstrumentTypeEnum.future) {
-            if (exchangeId === 'SHFE' || exchangeId === 'INE') {
-              numberEnumRadioTypeResolved.value['offset'] =
-                numberEnumRadioType['offset'];
-            } else {
-              numberEnumRadioTypeResolved.value['offset'] = omitObject(
-                numberEnumRadioType['offset'],
-                [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
-              );
-            }
-          }
-        }
-      }
-    },
-  );
-}
 
 function getInstrumentsSearchRelated(
   instrumentKeys: Record<
@@ -638,6 +575,26 @@ function getKfTradeValueName(
   key: number | string,
 ): string {
   return data[key].name;
+}
+
+function dealEnableCustomTypeList(type:string){
+  if(type === 'side'){
+    return Object.keys(enableCustomRadioType[type]).slice(0, 2);
+  }else {
+    return Object.keys(enableCustomRadioType[type])
+  }
+}
+
+function getCustomTradeValueName(
+  type:string,
+  key: number | string,
+): string {
+  if(type === 'side' || type === 'marginSide'){
+    return Side[key]?.name || ''
+}else if(type === 'offset'){
+  return Offset[key]?.name || ''
+}
+  return '';
 }
 
 function instrumentsCsvCallback(
@@ -1488,7 +1445,7 @@ defineExpose({
           @blur="numbersTyping[item.key] = false"
         ></a-input-number>
         <a-radio-group
-          v-else-if="item.type === 'side'"
+          v-else-if="enableCustomRadioType[item.type]"
           v-model:value="formState[item.key]"
           :name="item.key"
           :disabled="
@@ -1496,21 +1453,14 @@ defineExpose({
             item.disabled
           "
         >
-          <a-radio v-for="key in sideRadiosList" :key="key" :value="+key">
-            {{ dealSide(+key).name }}
-          </a-radio>
-        </a-radio-group>
-        <a-radio-group
-          v-else-if="item.type === 'marginSide'"
-          v-model:value="formState[item.key]"
-          :name="item.key"
-          :disabled="
-            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
-            item.disabled
-          "
-        >
-          <a-radio v-for="key in marginSideRadioList" :key="key" :value="+key">
-            {{ dealSide(+key).name }}
+          <a-radio
+            v-for="key in item.customRadioList ? item.customRadioList : dealEnableCustomTypeList(item.type)"
+            :key="key"
+            :value="+key"
+          >
+            {{
+              item.customRadioList ? getCustomTradeValueName(item.type,key) : getKfTradeValueName(enableCustomRadioType[item.type], key)
+            }}
           </a-radio>
         </a-radio-group>
         <a-select

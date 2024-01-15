@@ -108,7 +108,7 @@ interface BuiltinComponentPropsMap {
       strategyExtConfig: KungfuApi.KfStrategyExtConfig,
     ) => boolean;
   };
-  ConfigSettingForm?: {
+  MakeOrder?: {
     sideFilter?: (instrumentType: InstrumentTypeEnum) => string[];
   };
 }

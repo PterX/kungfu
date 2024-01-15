@@ -633,7 +633,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (enums::InstrumentType, instrument_type), // 合约类型
 
     (double, pre_close_price),      // 昨收价
-    (double, pre_settlement_price), // 昨日期权结算结价
+    (double, pre_settlement_price), // 昨日期权/期货结算结价
 
     (double, last_price), // 最新价
     (double, volume),     // 数量
@@ -650,7 +650,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (double, lower_limit_price), // 跌停板价
 
     (double, close_price),      // 收盘价
-    (double, settlement_price), // 期权结算价
+    (double, settlement_price), // 期权/期货结算价
     (double, iopv),             // 基金实时参考净值
 
     (double, total_bid_volume),  // 总委托买如量

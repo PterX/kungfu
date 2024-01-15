@@ -22,8 +22,7 @@ const promptQuestionForSelectTargetConfigItem = () => {
         return Object.values(kfGlobalSettings)
           .filter(
             (systemConfigItem: KfSystemConfig) =>
-              systemConfigItem.key !== 'code' &&
-              systemConfigItem.key !== 'trade',
+              systemConfigItem.key !== 'code',
           )
           .map((systemConfigItem: KfSystemConfig) => systemConfigItem.key);
       },
@@ -64,7 +63,9 @@ const getConfigTipsMap = (settings) => {
     const hasConfigProp = Object.prototype.hasOwnProperty.call(cur, 'config');
     return {
       ...pre,
-      [cur.key]: hasConfigProp ? getConfigTipsMap(cur.config) : cur.tip,
+      [cur.key]: hasConfigProp
+        ? getConfigTipsMap(cur.config)
+        : cur.tip && cur.tip.replace(/\.?\n/, '. '),
     };
   }, {});
 };

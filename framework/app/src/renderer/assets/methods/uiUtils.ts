@@ -321,26 +321,37 @@ export const useShortcuts = (shortcutsOption: {
 export function useStyle(styleString: string) {
   const key = Date.now();
   const styleSheet = document.styleSheets[0];
-  const styleIndex = styleSheet.cssRules.length;
   const uniqueClassName = `kf-keyboard-style-${key}`;
   const fullStyleStr = `.${uniqueClassName} ${styleString}`;
 
   if (styleSheet) {
     try {
-      styleSheet.insertRule(fullStyleStr, styleIndex);
+      styleSheet.insertRule(fullStyleStr, styleSheet.cssRules.length);
     } catch (error) {
       console.error(error);
     }
   }
 
+  const findRuleIndex = () => {
+    for (let i = 0; i < styleSheet.cssRules.length; i++) {
+      if (styleSheet.cssRules[i].cssText.startsWith(fullStyleStr)) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
   const addStyle = (element: Element) => {
     element.classList.add(uniqueClassName);
     return () => {
       element.classList.remove(uniqueClassName);
-      try {
-        styleSheet.deleteRule(styleIndex);
-      } catch (error) {
-        console.error(error);
+      const index = findRuleIndex();
+      if (index !== -1) {
+        try {
+          styleSheet.deleteRule(index);
+        } catch (error) {
+          console.error(error);
+        }
       }
     };
   };
@@ -350,10 +361,13 @@ export function useStyle(styleString: string) {
   };
 
   const cleanup = () => {
-    try {
-      styleSheet.deleteRule(styleIndex);
-    } catch (error) {
-      console.error(error);
+    const index = findRuleIndex();
+    if (index !== -1) {
+      try {
+        styleSheet.deleteRule(index);
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
@@ -417,6 +431,7 @@ export function useShortcutFocuseBoard() {
           const linkList = globalThis.KeyShortMap[keyShortStr];
           const pos = linkList.getPos();
           const boardContent = linkList.getValue(pos);
+          if (!boardContent) return;
           boardContent.classList.add('kf-highlight-outline');
           boardContent.focus();
           await setTimeout(() => {
@@ -570,8 +585,6 @@ export function useTabFocus(
     { immediate: true },
   );
 
-  onUnmounted(cleanupFocus);
-
   return { cleanupFocus, setupFocus };
 }
 
@@ -705,7 +718,7 @@ export function useKeyboardControllerStyle(
       board.removeEventListener('focusout', focusOutHandler);
     }
   }
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     document.removeEventListener('keydown', keyBoardFn);
     cleanup();
   });
@@ -1043,16 +1056,15 @@ export const openNewBrowserWindow = (
     const isMacOS = process.platform === 'darwin';
 
     win.on('ready-to-show', function () {
-      if (isMacOS) {
-        if (isParentFullScreen) {
-          win.setFullScreen(false);
-          win.setSize(1080, 766);
-          win.center();
-        }
+      if (isMacOS && isParentFullScreen) {
+        win.setFullScreen(false);
+        win.setSize(1080, 766);
         win.show();
+        win.center();
         win.focus();
       } else {
-        win && win.focus();
+        win.show();
+        win.focus();
       }
     });
 
@@ -1076,13 +1088,16 @@ export const openNewBrowserWindow = (
         win.setPosition(newX, newY);
         currentWindow.setSize(parentWidth, parentHeight);
         currentWindow.setPosition(parentX, parentY);
-
-        win.show();
       });
 
       if (win && !win.isDestroyed()) {
         currentWindow.on('resize', () => {
-          if (win.getSize()[0] === 300 && win.getSize()[1] === 30) {
+          if (
+            win &&
+            !win.isDestroyed() &&
+            win.getSize()[0] === 300 &&
+            win.getSize()[1] === 30
+          ) {
             const [parentX, parentY, parentWidth, parentHeight] = [
               currentWindow.getPosition()[0],
               currentWindow.getPosition()[1],
@@ -1094,12 +1109,9 @@ export const openNewBrowserWindow = (
             const newY = parentY + parentHeight - 30;
 
             win.setPosition(newX, newY);
-            win.show();
           }
         });
       }
-    } else {
-      win && win.show();
     }
 
     win.webContents.loadURL(modalPath);
@@ -2457,4 +2469,19 @@ export const useScrollerTableSearch = <T extends object>(
     getItemHtmlResult,
     switchSearchable,
   };
+};
+
+export const clearLocalStorageWithNewVersion = () => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
+  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
+    globalStorage.setItem('historicalUsedVersions', [
+      ...versions,
+      rootPackageJson.version,
+    ]);
+
+    if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
+      localStorage.clear();
+    }
+  }
 };

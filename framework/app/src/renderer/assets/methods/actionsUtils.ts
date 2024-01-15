@@ -12,6 +12,7 @@ import {
   kfRequestMarketData,
   getKungfuHistoryData,
   getNanoDateString,
+  isShowPosition,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
@@ -62,6 +63,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
+  getNaturalNumber,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -864,11 +866,15 @@ export const handleExportInstrumentWhitelists = async (): Promise<void> => {
 };
 
 export const showTradingDataDetail = <
-  T extends Record<string, string | number | bigint>,
+  T extends Record<string, KungfuApi.KfConfigValue>,
 >(
   item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
+  renameValues?: Record<
+    string,
+    (item: KungfuApi.KfConfigValue) => KungfuApi.KfConfigValue
+  >,
 ): Promise<boolean> => {
   const generateVnode = () => {
     const itemResolved = typeof item === 'function' ? item() : item;
@@ -887,12 +893,15 @@ export const showTradingDataDetail = <
         }
         return dataResolved[key] !== '';
       })
-      .map((key) =>
-        h('div', { class: 'trading-data-detail-row' }, [
+      .map((key) => {
+        const value = renameValues?.[key]
+          ? renameValues[key](dataResolved[key])
+          : dataResolved[key];
+        return h('div', { class: 'trading-data-detail-row' }, [
           h('span', { class: 'label' }, `${key}`),
-          h('span', { class: 'value' }, `${dataResolved[key]}`),
-        ]),
-      );
+          h('span', { class: 'value' }, `${value}`),
+        ]);
+      });
 
     return h(
       'div',
@@ -1488,11 +1497,7 @@ export const useQuote = (): {
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
-      return (
-        (quote.data_time > pos.update_time
-          ? quote.last_price
-          : Number(pos[lastPriceKey]) || quote.last_price) || 0
-      );
+      return quote.last_price || Number(pos[lastPriceKey]) || 0;
     }
     return Number(pos[lastPriceKey]) || 0;
   };
@@ -1668,7 +1673,7 @@ export const useDealInstruments = (): void => {
 };
 
 export const useActiveInstruments = () => {
-  const { instrumentsMap } = useGlobalStore();
+  const { instrumentsMap } = storeToRefs(useGlobalStore());
 
   const getInstrumentByIds = (
     instrumentId: string,
@@ -1676,8 +1681,7 @@ export const useActiveInstruments = () => {
     forceConvert = false,
   ) => {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved = instrumentsMap[ukey];
-
+    const instrumentResolved = instrumentsMap.value[ukey];
     if (instrumentResolved) {
       return instrumentResolved;
     } else {
@@ -2054,7 +2058,10 @@ export const useAssets = (): {
   getAssetsByKfConfig(
     kfLocation: KungfuApi.KfLocation | KungfuApi.KfConfig,
   ): KungfuApi.Asset;
-  getAssetsByTdGroup(tdGroup: KungfuApi.KfExtraLocation): KungfuApi.Asset;
+  getAssetsByTdGroup(
+    marginSupportTdMap: Record<string, boolean>,
+    tdGroup: KungfuApi.KfExtraLocation,
+  ): KungfuApi.Asset | Record<string, never>;
 } => {
   const { assets } = storeToRefs(useGlobalStore());
 
@@ -2066,22 +2073,38 @@ export const useAssets = (): {
   };
 
   const getAssetsByTdGroup = (
+    marginSupportTdMap: Record<string, boolean>,
     tdGroup: KungfuApi.KfExtraLocation,
-  ): KungfuApi.Asset => {
-    const children = (tdGroup.children || []) as KungfuApi.KfConfig[];
-    const assetsList = children
-      .map((item) => getAssetsByKfConfig(item))
-      .filter((item) => Object.keys(item).length);
-
-    return assetsList.reduce((allAssets, asset) => {
-      return {
-        ...allAssets,
-        unrealized_pnl: (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl,
-        market_value: (allAssets.market_value || 0) + asset.market_value,
-        margin: (allAssets.margin || 0) + asset.margin,
-        avail: (allAssets.avail || 0) + asset.avail,
-        avail_margin: (allAssets.avail_margin || 0) + asset.avail_margin,
-      };
+  ): KungfuApi.Asset | Record<string, never> => {
+    const children = (tdGroup?.children || []) as KungfuApi.KfConfig[];
+    const isSupportMargin = marginSupportTdMap[children[0]?.group || ''];
+    const isShowData = children.every(
+      (item) => marginSupportTdMap[item.group] === isSupportMargin,
+    );
+    if (!isShowData) {
+      return {};
+    }
+    return children.reduce((allAssets, item) => {
+      const asset = getAssetsByKfConfig(item);
+      if (Object.keys(asset).length === 0) return allAssets;
+      allAssets.unrealized_pnl =
+        (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl;
+      allAssets.market_value =
+        (allAssets.market_value || 0) + asset.market_value;
+      allAssets.margin = (allAssets.margin || 0) + asset.margin;
+      allAssets.avail = (allAssets.avail || 0) + asset.avail;
+      allAssets.avail_margin =
+        (allAssets.avail_margin || 0) + asset.avail_margin;
+      allAssets.net_assets = (allAssets.net_assets || 0) + asset.net_assets;
+      allAssets.long_total_debt =
+        (allAssets.long_total_debt || 0) + asset.long_total_debt;
+      allAssets.total_debt = (allAssets.total_debt || 0) + asset.total_debt;
+      allAssets.short_cash = (allAssets.short_cash || 0) + asset.short_cash;
+      allAssets.frozen_cash = (allAssets.frozen_cash || 0) + asset.frozen_cash;
+      allAssets.total_asset = (allAssets.total_asset || 0) + asset.total_asset;
+      allAssets.short_total_debt =
+        (allAssets.short_total_debt || 0) + asset.short_total_debt;
+      return allAssets;
     }, {} as KungfuApi.Asset);
   };
 
@@ -2450,8 +2473,88 @@ export const useCurrentPositionList = () => {
   };
 };
 
+export const useFormCurrentState = (
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  keys?: {
+    accountKey?: string;
+    instrumentKey?: string;
+  },
+) => {
+  const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
+    window.watcher,
+  );
+  const accountKey = keys?.accountKey || 'account_id';
+  const instrumentKey = keys?.instrumentKey || 'account_id';
+
+  const curInstrumentResolved = computed(() => {
+    const instrument = formState.value[instrumentKey];
+    return instrument
+      ? transformSearchInstrumentResultToInstrument(instrument)
+      : null;
+  });
+
+  const currentAccountLocation = computed(() => {
+    if (
+      currentGlobalKfLocation.value &&
+      currentGlobalKfLocation.value.category === 'td'
+    ) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value[accountKey]) {
+      const { source, id } = formState.value[accountKey].parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  return {
+    curInstrumentResolved,
+    currentAccountLocation,
+  };
+};
+
+export const getPosClosableVolumeByOffset = (
+  position: KungfuApi.Position,
+  offset: OffsetEnum,
+) => {
+  const {
+    instrument_type,
+    exchange_id,
+    volume,
+    yesterday_volume,
+    frozen_total,
+    frozen_yesterday,
+  } = position;
+  const today_volume = volume - yesterday_volume;
+  const frozen_today = frozen_total - frozen_yesterday;
+  const shotable_closable_yesterday = getNaturalNumber(
+    yesterday_volume - frozen_yesterday,
+  );
+  const closable_yesterday = getNaturalNumber(yesterday_volume - frozen_total);
+  const closable_today = getNaturalNumber(today_volume - frozen_today);
+  const closable_total = getNaturalNumber(volume - frozen_total);
+
+  if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
+    if (offset === OffsetEnum.CloseYest) {
+      return shotable_closable_yesterday;
+    } else if (offset === OffsetEnum.CloseToday) {
+      return closable_today;
+    } else {
+      return closable_total;
+    }
+  } else {
+    return closable_yesterday;
+  }
+};
+
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  isMarginMakeOrder: Ref<boolean>,
 ) => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
@@ -2478,6 +2581,9 @@ export const useMakeOrderInfo = (
   );
 
   const isAccountOrInstrumentConfirmed = computed(() => {
+    if (isMarginMakeOrder.value) {
+      return true;
+    }
     if (formState.value?.side === SideEnum.Buy) {
       return isCurrentCategoryIsTd.value ? true : !!formState.value.account_id;
     } else if (formState.value.side === SideEnum.Sell) {
@@ -2489,8 +2595,10 @@ export const useMakeOrderInfo = (
   });
 
   const showAmountOrPosition = computed(() => {
-    const { offset } = formState.value;
-
+    const { offset, side } = formState.value;
+    if (isMarginMakeOrder.value) {
+      return isShowPosition(side) ? 'position' : 'amount';
+    }
     return offset === OffsetEnum.Open ? 'amount' : 'position';
   });
 
@@ -2601,6 +2709,7 @@ export const useMakeOrderInfo = (
   });
 
   const currentPosition = computed(() => {
+    if (isMarginMakeOrder.value) return currentPositionWithLongDirection.value;
     if (currentFormDirection.value === DirectionEnum.Long) {
       return currentPositionWithLongDirection.value;
     } else if (currentFormDirection.value === DirectionEnum.Short) {
@@ -2612,6 +2721,28 @@ export const useMakeOrderInfo = (
 
   const currentAvailMoney = computed(() => {
     if (!currentAccountLocation.value) return '--';
+    if (isMarginMakeOrder.value) {
+      const { side } = formState.value;
+      if (side === SideEnum.GuaranteeStockBuy) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).gage_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).credit_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.RepayStock) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).buyredeliver_fund_available;
+
+        return dealKfPrice(avail);
+      }
+    }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
@@ -2621,30 +2752,17 @@ export const useMakeOrderInfo = (
   const currentAvailPosVolume = computed(() => {
     if (!instrumentResolved.value) return '--';
 
-    const { instrumentType, exchangeId } = instrumentResolved.value;
     const { offset } = formState.value;
 
     if (currentPosition.value) {
-      const { yesterday_volume, volume, frozen_total, frozen_yesterday } =
-        currentPosition.value;
-      const today_volume = volume - yesterday_volume;
-      const frozen_today = frozen_total - frozen_yesterday;
-      const shotable_closable_yesterday = yesterday_volume - frozen_yesterday;
-      const closable_yesterday = yesterday_volume - frozen_total;
-      const closable_today = today_volume - frozen_today;
-      const closable_total = volume - frozen_total;
-
-      if (isShotable(instrumentType) || isT0(instrumentType, exchangeId)) {
-        if (offset === OffsetEnum.CloseYest) {
-          return dealKfNumber(shotable_closable_yesterday) + '';
-        } else if (offset === OffsetEnum.CloseToday) {
-          return dealKfNumber(closable_today) + '';
-        } else {
-          return dealKfNumber(closable_total) + '';
-        }
-      } else {
-        return dealKfNumber(closable_yesterday) + '';
+      if (isMarginMakeOrder.value) {
+        return dealKfNumber(currentPosition.value.closable_volume);
       }
+      return (
+        dealKfNumber(
+          getPosClosableVolumeByOffset(currentPosition.value, offset),
+        ) + ''
+      );
     }
 
     return '0';
@@ -2718,6 +2836,11 @@ export const useMakeOrderInfo = (
     const { volume, offset } = formState.value;
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
+        if (isMarginMakeOrder.value) {
+          return dealKfNumber(
+            Number(currentAvailPosVolume.value) - Number(volume),
+          );
+        }
         if (offset === OffsetEnum.Open) {
           return dealKfNumber(
             Number(currentAvailPosVolume.value) + Number(volume),
@@ -2901,7 +3024,6 @@ export const useMakeOrderSubscribe = (
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerMakeOrder).orderInput,
             );
-
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;
@@ -2959,6 +3081,7 @@ export const useBasket = () => {
   function updateBasketData() {
     store.setBasketList();
 
+    basketList.value = store.basketList;
     return Promise.resolve();
   }
 

@@ -33,6 +33,8 @@ public:
 
   void on_exit() override;
 
+  bool is_reactable(const event_ptr &event) override;
+
 protected:
   void on_react() override;
 
@@ -58,6 +60,7 @@ private:
   tool::Report_ptr report_;
   int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
   std::string backtest_config_;
+  bool has_post_started_ = false;
 
   template <typename OnMethod = void (Operator::*)(Context_ptr &)> void invoke(OnMethod method) {
     auto context = std::dynamic_pointer_cast<Context>(context_);

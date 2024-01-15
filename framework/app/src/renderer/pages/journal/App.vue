@@ -34,8 +34,13 @@
               :custom-row="customRow"
               :default-expand-all-rows="true"
               :scroll="{ y: dashboardBodyHeight - 4 }"
-              :empty-text="$t('empty_text')"
             >
+              <template #emptyText>
+                <a-empty
+                  :image="simpleImage"
+                  :description="t('empty_text')"
+                ></a-empty>
+              </template>
               <template
                 #bodyCell="{
                   column,
@@ -46,14 +51,20 @@
                 }"
               >
                 <template v-if="column.dataIndex === 'sessionName'">
-                  <a-tag
-                    :color="dealCategory(record.category)?.color || 'default'"
-                  >
-                    {{ dealCategory(record.category)?.name }}
-                  </a-tag>
-                  {{
-                    record[column.dataIndex as keyof KungfuApi.SessionResolved]
-                  }}
+                  <div class="session-name__warp">
+                    <a-tag
+                      :color="dealCategory(record.category)?.color || 'default'"
+                    >
+                      {{ dealCategory(record.category)?.name }}
+                    </a-tag>
+                    <span>
+                      {{
+                        record[
+                          column.dataIndex as keyof KungfuApi.SessionResolved
+                        ]
+                      }}
+                    </span>
+                  </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'status'">
                   <span
@@ -82,7 +93,9 @@
             <a-tag :color="currentCategoryData?.color || 'default'">
               {{ currentCategoryData?.name }}
             </a-tag>
-            {{ currentSessionName }}
+            <span>
+              {{ currentSessionName }}
+            </span>
           </div>
           <TimeSlider
             v-if="currentSession"
@@ -157,16 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  onMounted,
-  ref,
-  computed,
-  getCurrentInstance,
-  watch,
-  onUnmounted,
-  ComputedRef,
-  watchEffect,
-} from 'vue';
+import { onMounted, ref, computed, watch, onUnmounted, ComputedRef } from 'vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
@@ -186,9 +190,12 @@ import {
   getYearMonthDay,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { dealCategory } from './utils';
+import { Empty } from 'ant-design-vue';
+
 import {
   UnorderedListOutlined,
   HistoryOutlined,
@@ -321,7 +328,7 @@ const { searchKeyword, tableData } =
     'name',
   ]);
 
-const app = getCurrentInstance();
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
 const menus = computed(() => [
   ...(isShowReplayAction.value
@@ -472,12 +479,6 @@ onMounted(async () => {
 
   setSessions();
   removeLoadingMask();
-  window.addEventListener('resize', () => {
-    app?.proxy &&
-      app?.proxy.$globalBus.next({
-        tag: 'resize',
-      } as KfEvent.ResizeEvent);
-  });
 });
 
 onUnmounted(() => {
@@ -541,7 +542,7 @@ const onJournalActionsData = (
 ) => {
   exportData(exportFileName.value, currentFrameList.value);
 };
-const dealLocation = () => {
+const dealLocation = async () => {
   const { value: currentSessionValue } = currentSession;
   if (!currentSessionValue) {
     messagePrompt().error(t('replay.please_select_session'));
@@ -557,6 +558,20 @@ const dealLocation = () => {
     location_uid,
     value: '',
   };
+
+  const { processStatusWithDetail } = await listProcessStatus();
+  const processId = getProcessIdByKfLocation({
+    category,
+    group,
+    name,
+    mode,
+  });
+
+  const processStatusDetail = processStatusWithDetail[processId];
+  if (!processStatusDetail) {
+    messagePrompt().error(t('replay.process_not_found'));
+    return;
+  }
 
   switch (category) {
     case 'operator':
@@ -679,6 +694,14 @@ function onEntryVisualization(visible: boolean) {
           margin: auto;
           padding-top: 8px;
           box-sizing: border-box;
+
+          .ant-empty {
+            height: auto;
+            margin-top: 48px;
+          }
+        }
+        .session-name__warp {
+          word-break: break-all;
         }
 
         .kf-journal-visualization {
@@ -701,8 +724,12 @@ function onEntryVisualization(visible: boolean) {
         justify-content: space-between;
 
         .kf-journal-bar-title {
+          max-width: 300px;
           font-size: 14px;
           margin-right: 16px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .kf-journal-time-slider {

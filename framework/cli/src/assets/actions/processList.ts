@@ -7,7 +7,6 @@ import {
   deleteNNFiles,
   getTaskListFromProcessStatusData,
   removeArchiveBeforeToday,
-  removeJournal,
   switchKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
@@ -49,10 +48,7 @@ import {
   startAllExtServices,
 } from '../methods/utils';
 import { dealProcessName } from '../methods/utils';
-import {
-  ARCHIVE_DIR,
-  KF_HOME,
-} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import { ARCHIVE_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { globalState } from './globalState';
 import {
   LifeCycleHook,
@@ -476,13 +472,13 @@ export const switchProcess = async (
   const status = proc.status !== '--';
   const startOrStop = status ? 'Stop' : 'Start';
   const { category, group, name, value, cwd, script } = proc;
-  const location = {
+  const masterLocation = buildMasterLocation();
+  const isTargetExtService = isExtService({
     category,
     group,
     name,
     mode: 'live',
-  };
-  const isTargetExtService = isExtService(location);
+  });
 
   const switchProcessExceptMaster = () => {
     if (!watcher) {
@@ -538,8 +534,8 @@ export const switchProcess = async (
 
   switch (category) {
     case 'system':
-      if (proc.processId === getProcessIdByKfLocation(location)) {
-        //开启，要归档, cli 需要clearjournal
+      if (proc.processId === getProcessIdByKfLocation(masterLocation)) {
+        //开启，要归档, cli 需要clear journal
         preSwitchMain(status, messageBoard, loading)
           .then(() => {
             loading.load(`${startOrStop} Master process`);
@@ -658,7 +654,6 @@ const switchMaster = async (status: boolean): Promise<void> => {
     await deleteNNFiles();
   } else {
     await deleteNNFiles();
-    await removeJournal(KF_HOME);
     await removeArchiveBeforeToday(ARCHIVE_DIR);
     await startMaster(false);
     await delayMilliSeconds(1000);

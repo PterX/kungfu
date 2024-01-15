@@ -23,5 +23,5 @@ export const InvalidFileNameReg =
 export const keyShortMap = {
   MakeOrder: 'CommandOrControl+Shift+1',
   FutureArbitrage: 'CommandOrControl+Shift+2',
-  BlockTrade: 'CommandOrControl+Shift+3',
+  BlockTrade: 'CommandOrControl+Shift+0',
 };

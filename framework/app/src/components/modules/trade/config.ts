@@ -1,5 +1,8 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  isTdStrategyCategory,
+  buildTableColumnSorterWithStrike,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -45,7 +48,7 @@ export const getColumns = (
         type: 'string',
         name: '',
         dataIndex: 'side',
-        width: 40,
+        width: 80,
       },
       {
         type: 'string',
@@ -75,8 +78,10 @@ export const getColumns = (
         dataIndex: 'latency_trade',
         width: 90,
         align: 'right',
-        sorter: (a: KungfuApi.TradeResolved, b: KungfuApi.TradeResolved) =>
-          +a.latency_trade - +b.latency_trade,
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.TradeResolved>(
+          'num',
+          'latency_trade',
+        ),
       },
       {
         name:

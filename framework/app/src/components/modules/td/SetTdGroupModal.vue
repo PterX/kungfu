@@ -74,6 +74,7 @@ function transformKfConfigToDataNode(
     title: target.name,
     category: target.category,
     group: target.group,
+    mode: target.mode,
     key: `${target.category}_${target.group}_${target.name}`,
   };
 }
@@ -156,7 +157,7 @@ getInstrumentTypeColor;
       @drop="handleDrop"
     >
       <template #title="{ dataRef }">
-        <div v-if="dataRef.category === 'td'">
+        <div v-if="dataRef.category === 'td'" class="set-td-name__warp">
           <a-tag
             class="kf-td-tree-tag"
             size="small"
@@ -166,7 +167,10 @@ getInstrumentTypeColor;
           </a-tag>
           {{ dataRef.name }}
         </div>
-        <div v-else-if="dataRef.category === 'tdGroup'">
+        <div
+          v-else-if="dataRef.category === 'tdGroup'"
+          class="set-td-name__warp"
+        >
           <a-tag size="small" color="#FAAD14">
             {{ $t('tdConfig.account_group') }}
           </a-tag>
@@ -180,6 +184,9 @@ getInstrumentTypeColor;
 .set-td-group-modal {
   .kf-td-tree-tag {
     display: inline-block;
+  }
+  .set-td-name__warp {
+    word-break: break-all;
   }
 }
 </style>

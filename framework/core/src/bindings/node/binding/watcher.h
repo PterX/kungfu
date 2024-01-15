@@ -91,8 +91,6 @@ public:
 
   Napi::Value IssueOrder(const Napi::CallbackInfo &info);
 
-  Napi::Value IssueBasketOrder(const Napi::CallbackInfo &info);
-
   Napi::Value IssueAlgoOrder(const Napi::CallbackInfo &info);
 
   Napi::Value IssueMark(const Napi::CallbackInfo &info);
@@ -118,6 +116,12 @@ public:
   void AfterMasterDown(const Napi::CallbackInfo &info);
 
   void RequestDeregister();
+
+  bool has_writer(uint32_t dest_id) const override;
+
+  yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const override;
+
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   const bool bypass_quote_;
@@ -281,7 +285,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
-    bookkeeper_.on_order_input(now(), dest, source, data);
+    bookkeeper_.on_order_input(now(), source, dest, data);
     state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
     data_bank_ << cache_state_order_input;
   }
@@ -294,26 +298,9 @@ private:
   }
 
   template <typename TradingData>
-  std::enable_if_t<std::is_same_v<TradingData, longfist::types::Basket>> UpdateBook(uint32_t source, uint32_t dest,
-                                                                                    const TradingData &data) {
-    state<kungfu::longfist::types::Basket> cache_state_basket(source, dest, now(), data);
-    data_bank_ << cache_state_basket;
-  }
-
-  template <typename TradingData>
-  std::enable_if_t<std::is_same_v<TradingData, longfist::types::BasketInstrument>>
-  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<kungfu::longfist::types::BasketInstrument> cache_state_basket_instrument(source, dest, now(), data);
-    data_bank_ << cache_state_basket_instrument;
-  }
-
-  template <typename TradingData>
   std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
                    not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
-                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::Basket> and
-                   not std::is_same_v<TradingData, longfist::types::BasketInstrument>>
+                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
 
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {
@@ -387,26 +374,6 @@ private:
       }
 
       throw Napi::Error::New(info.Env(), "Invalid instruction arguments length");
-    } catch (const std::exception &ex) {
-      throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
-    } catch (...) {
-      throw Napi::Error::New(info.Env(), "invalid instruction arguments");
-    }
-  }
-
-  template <typename Instruction>
-  Napi::Value InteractWithPublic(const Napi::CallbackInfo &info, const Napi::Object &instruction_object) {
-    try {
-
-      auto trigger_time = yijinjing::time::now_in_nano();
-      auto target_writer = get_writer(yijinjing::data::location::PUBLIC);
-      Instruction instruction = {};
-      serialize::JsGet{}(instruction_object, instruction);
-
-      target_writer->write(trigger_time, instruction);
-      UpdateBook(get_live_home_uid(), yijinjing::data::location::PUBLIC, instruction);
-      return Napi::Boolean::New(info.Env(), true);
-
     } catch (const std::exception &ex) {
       throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
     } catch (...) {

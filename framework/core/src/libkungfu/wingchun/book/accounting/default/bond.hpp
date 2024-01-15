@@ -17,20 +17,20 @@ public:
     }
 
     auto apply = [&](auto &position) {
-      auto cd_mr = get_instrument_conversion_margin_rate(book, position.source_id, position.direction,
-                                                         position.exchange_id, position.instrument_id);
+      auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction,
+                                                      position.exchange_id, position.instrument_id);
       if (!is_convertible_bond(input.instrument_id, input.exchange_id)) {
         StockAccountingMethod::apply_order_input(account_id, dest, book, input);
         return;
       }
 
-      if (input.side == Side::Sell && position.volume - position.frozen_total >= input.volume) {
+      if (input.side == Side::Sell) {
         position.frozen_total += input.volume;
-        position.frozen_yesterday = std::max(position.frozen_yesterday + input.volume, position.yesterday_volume);
+        position.frozen_yesterday += input.volume;
       }
       if (input.side == Side::Buy) {
-        book->asset.frozen_cash += input.volume * input.frozen_price * cd_mr.exchange_rate;
-        book->asset.avail -= input.volume * input.frozen_price * cd_mr.exchange_rate;
+        book->asset.frozen_cash += input.volume * input.frozen_price * stock_i_a.exchange_rate;
+        book->asset.avail -= input.volume * input.frozen_price * stock_i_a.exchange_rate;
       }
     };
 

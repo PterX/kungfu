@@ -22,6 +22,7 @@ import {
   CommissionMode,
   InstrumentMinOrderVolume,
   ExportTradingDataColumnsToFilter,
+  showVolumeSideTypes,
 } from '../config/tradingConfig';
 import {
   DirectionEnum,
@@ -1214,6 +1215,10 @@ export const isShotable = (instrumentType: InstrumentTypeEnum): boolean => {
     : false;
 };
 
+export const isShowPosition = (side: SideEnum): boolean => {
+  return showVolumeSideTypes.includes(side);
+};
+
 export const dealOrderTriggerStatus = (
   orderTriggerStatus: OrderTriggerStatusEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
@@ -1310,13 +1315,13 @@ export const dealByConfigItemType = (
   }
 };
 
-export const kfConfigItemsToArgsByPrimaryForShow = (
+export const kfConfigItemsToArgsByShowArgForShow = (
   settings: KungfuApi.KfConfigItem[],
   formState: Record<string, KungfuApi.KfConfigValue>,
 ): string => {
   const { isLanguageKeyAvailable } = useLanguage();
   return settings
-    .filter((item) => item.primary)
+    .filter((item) => item.showArg)
     .map((item) => ({
       label: isLanguageKeyAvailable(item.name) ? t(item.name) : item.name,
       value: dealByConfigItemType(item.type, formState[item.key], item.options),

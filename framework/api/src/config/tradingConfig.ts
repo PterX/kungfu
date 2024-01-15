@@ -23,7 +23,6 @@ import {
   AddOperatorTypeEnum,
   PriceLevelEnum,
   BasketVolumeTypeEnum,
-  BasketOrderStatusEnum,
   CurrencyEnum,
   OrderTriggerStatusEnum,
   FundTransEnum,
@@ -278,6 +277,15 @@ export const Side: Record<SideEnum, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.guarantee_stock_redeem'),
     color: 'green',
   },
+
+  [SideEnum.GuaranteeStockBuy]: {
+    name: t('tradingConfig.guarantee_stock_buy'),
+    color: 'red',
+  },
+  [SideEnum.GuaranteeStockSell]: {
+    name: t('tradingConfig.guarantee_stock_sell'),
+    color: 'green',
+  },
   [SideEnum.Unknown]: {
     name: t('tradingConfig.unknown'),
     color: 'default',
@@ -332,31 +340,9 @@ export const OrderStatus: Record<
     name: t('tradingConfig.pause'),
     color: 'default',
   },
-};
-
-export const BasketOrderStatus: Record<
-  BasketOrderStatusEnum,
-  KungfuApi.KfTradeValueCommonData
-> = {
-  [BasketOrderStatusEnum.Unknown]: {
-    name: t('tradingConfig.unknown'),
+  [OrderStatusEnum.PendingSettlement]: {
+    name: t('tradingConfig.pending_settlement'),
     color: 'default',
-  },
-  [BasketOrderStatusEnum.Pending]: {
-    name: t('tradingConfig.pending'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.PartialFilledNotActive]: {
-    name: t('tradingConfig.partial_filled_not_active'),
-    color: 'green',
-  },
-  [BasketOrderStatusEnum.PartialFilledActive]: {
-    name: t('tradingConfig.partial_filled_active'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.Filled]: {
-    name: t('tradingConfig.filled'),
-    color: 'green',
   },
 };
 
@@ -366,6 +352,7 @@ export const UnfinishedOrderStatus = [
   OrderStatusEnum.Submitted,
   OrderStatusEnum.PartialFilledActive,
   OrderStatusEnum.Cancelling,
+  OrderStatusEnum.PendingSettlement,
 ];
 
 export const NotTradeAllOrderStatus = [
@@ -672,6 +659,11 @@ export const ShotableInstrumentTypes = [
   InstrumentTypeEnum.cryptofuture,
   InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.multi,
+];
+
+export const showVolumeSideTypes = [
+  SideEnum.GuaranteeStockSell,
+  SideEnum.RepayMargin,
 ];
 
 export const T0InstrumentTypes = [

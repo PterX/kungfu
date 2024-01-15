@@ -18,7 +18,8 @@ using namespace kungfu::yijinjing::cache;
 // https://sqlite.org/limits.html
 // The maximum number of bytes in the text of an SQL statement is limited to SQLITE_MAX_SQL_LENGTH which defaults to
 // 1,000,000,000.
-#define DEFAULT_STORE_VOLUME_BY_INTERVAL 2000
+#define DEFAULT_STORE_VOLUME_BY_INTERVAL 1000
+#define STORE_INTERVAL 100
 
 namespace kungfu::yijinjing::cache {
 
@@ -86,8 +87,10 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
         continue;
       }
 
+      auto is_current_location = other_location->uid == location->uid;
+
       for (auto dest : location->locator->list_location_dest_by_db(other_location)) {
-        if (dest == location->uid) {
+        if (dest == location->uid or (is_current_location && dest == location::PUBLIC)) {
           try {
             ensure_cached_storage(other_location, dest);
             app_states_shift_.at(other_location->uid).restore_to(writer, dest);
@@ -232,7 +235,7 @@ void cached::run_store_workers() {
 
 void cached::do_store_states_feeds() {
   while (!m_quit_) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(STORE_INTERVAL));
     if (storage_pause_) {
       return;
     }
@@ -244,7 +247,7 @@ void cached::do_store_states_feeds() {
 
 void cached::do_store_profile_feeds() {
   while (!m_quit_) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(STORE_INTERVAL));
     if (storage_pause_) {
       return;
     }
@@ -376,7 +379,7 @@ int64_t cached::find_last_active_time(const location_ptr &location) {
 }
 
 void cached::update_session(const journal::frame_ptr &frame) {
-  if (bypass_cached_) {
+  if (bypass_cached_ or storage_pause_) {
     return;
   }
   session_builder_.update_session(frame);

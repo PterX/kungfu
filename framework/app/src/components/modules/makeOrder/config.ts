@@ -1,7 +1,6 @@
 import {
   HedgeFlagEnum,
   InstrumentTypeEnum,
-  KfCategoryTypes,
   OffsetEnum,
   PriceTypeEnum,
   SideEnum,
@@ -14,19 +13,37 @@ const { t } = VueI18n.global;
 export const LABEL_COL = 6;
 export const WRAPPER_COL = 14;
 
-export const getConfigSettings = (
-  category?: KfCategoryTypes,
-  instrumentTypeEnum?: InstrumentTypeEnum,
-  sideEnum?: SideEnum,
-  volume?: number,
-  apart?: boolean,
-  orderTriggerVisible?: boolean,
-  priceType?: PriceTypeEnum,
-  pricePrecision?: number,
-  step?: number,
-): KungfuApi.KfConfigItem[] => {
+export const getConfigSettings = ({
+  location,
+  instrumentType,
+  isMarginMakeOrder,
+  isSpecifyContract,
+  side,
+  volume,
+  apart,
+  orderTriggerVisible,
+  priceType,
+  pricePrecision,
+  step,
+}: {
+  location?:
+    | KungfuApi.KfLocation
+    | KungfuApi.KfLocationGroup
+    | KungfuApi.KfConfig
+    | null;
+  instrumentType?: InstrumentTypeEnum;
+  isMarginMakeOrder?: boolean;
+  isSpecifyContract?: boolean;
+  side?: SideEnum;
+  volume?: number;
+  apart?: boolean;
+  orderTriggerVisible?: boolean;
+  priceType?: PriceTypeEnum;
+  pricePrecision?: number;
+  step?: number;
+}): KungfuApi.KfConfigItem[] => {
   const defaultSettings: KungfuApi.KfConfigItem[] = [
-    category === 'td'
+    location?.category === 'td'
       ? null
       : {
           key: 'account_id',
@@ -40,30 +57,52 @@ export const getConfigSettings = (
       type: 'instrument',
       required: true,
     },
-    {
-      key: 'side',
-      name: t('tradingConfig.side'),
-      type: 'side',
-      default: SideEnum.Buy,
-      required: true,
-    },
-    {
-      key: 'offset',
-      name: t('tradingConfig.offset'),
-      type: 'offset',
-      default: OffsetEnum.Open,
-      required: true,
-      isHidden: !(
-        isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown) &&
-        !(
-          instrumentTypeEnum === InstrumentTypeEnum.stockoption &&
-          sideEnum === SideEnum.Exec
-        )
-      ),
-    },
-    ...(isShotable(instrumentTypeEnum || InstrumentTypeEnum.unknown)
+
+    ...[
+      isMarginMakeOrder
+        ? {
+            key: 'side',
+            name: t('tradingConfig.side'),
+            type: 'marginSide',
+            default: SideEnum.GuaranteeStockBuy,
+            required: true,
+          }
+        : {
+            key: 'side',
+            name: t('tradingConfig.side'),
+            type: 'side',
+            default: SideEnum.Buy,
+            required: true,
+          },
+    ],
+    ...[
+      isMarginMakeOrder &&
+      (side === SideEnum.RepayStock || side === SideEnum.RepayMargin)
+        ? {
+            key: 'contract_id',
+            name: t('tradingConfig.specfy_contract'),
+            type: 'contract',
+            placeholder: t('tradingConfig.specfy_contract_placeholder'),
+            disabled:
+              side === SideEnum.RepayMargin ? !isSpecifyContract : false,
+          }
+        : null,
+    ],
+
+    ...(isShotable(instrumentType || InstrumentTypeEnum.unknown) &&
+    !isMarginMakeOrder
       ? ([
-          instrumentTypeEnum === InstrumentTypeEnum.future && getAbleHedgeFlag()
+          instrumentType === InstrumentTypeEnum.stockoption &&
+          side === SideEnum.Exec
+            ? null
+            : {
+                key: 'offset',
+                name: t('tradingConfig.offset'),
+                type: 'offset',
+                default: OffsetEnum.Open,
+                required: true,
+              },
+          instrumentType === InstrumentTypeEnum.future && getAbleHedgeFlag()
             ? {
                 key: 'hedge_flag',
                 name: t('tradingConfig.hedge'),
@@ -116,17 +155,15 @@ export const getConfigSettings = (
             type: 'int',
             min: 1,
             max: volume,
-            default: isShotable(
-              instrumentTypeEnum || InstrumentTypeEnum.unknown,
-            )
+            default: isShotable(instrumentType || InstrumentTypeEnum.unknown)
               ? 1
               : 100,
             required: true,
           }
         : null,
       orderTriggerVisible &&
-      instrumentTypeEnum === InstrumentTypeEnum.future &&
-      sideEnum !== SideEnum.Exec
+      instrumentType === InstrumentTypeEnum.future &&
+      side !== SideEnum.Exec
         ? {
             key: 'order_trigger',
             name: t('tradingConfig.order_trigger'),

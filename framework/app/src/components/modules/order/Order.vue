@@ -90,13 +90,23 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
 const orders = ref<KungfuApi.OrderResolved[]>([]);
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.OrderResolved>(orders, [
-    'order_id',
-    'instrument_id',
-    'exchange_id',
-    'source_uname',
-    'dest_uname',
-  ]);
+  useTableSearchKeyword<KungfuApi.OrderResolved>(
+    orders,
+    [
+      'order_id',
+      'instrument_id',
+      'side',
+      'offset',
+      'status_uname',
+      'exchange_id',
+      'source_uname',
+      'dest_uname',
+    ],
+    {
+      side: (item) => dealSide(Number(item)).name,
+      offset: (item) => dealOffset(Number(item)).name,
+    },
+  );
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
@@ -498,10 +508,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(
-    row as KungfuApi.OrderResolved,
-    t('orderConfig.entrust'),
-  );
+  showTradingDataDetail(row, t('orderConfig.entrust'));
 }
 
 const adjustOrderConfig = reactive({
@@ -636,6 +643,7 @@ function handleClickAdjustOrderMask(): void {
         hedge_flag: +order.hedge_flag,
         is_swap: !!order.is_swap,
         parent_id: 0n,
+        contract_id: '',
       };
 
       return makeOrderByOrderInput(
@@ -699,7 +707,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
       <template #header>
         <KfDashboardItem>
           <a-checkbox v-model:checked="unfinishedOrder" size="small">
-            {{ $t('orderConfig.checkbox_text') }}
+            {{ $t('orderConfig.show_pending_orders') }}
           </a-checkbox>
         </KfDashboardItem>
         <KfDashboardItem>

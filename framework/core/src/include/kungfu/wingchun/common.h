@@ -154,6 +154,7 @@ inline bool is_final_status(const longfist::enums::OrderStatus &status) {
   case longfist::enums::OrderStatus::Unknown:
   case longfist::enums::OrderStatus::Cancelling:
   case longfist::enums::OrderStatus::Pause:
+  case longfist::enums::OrderStatus::PendingSettlement:
     return false;
   default:
     return true;
@@ -282,8 +283,18 @@ inline longfist::enums::InstrumentType get_instrument_type_by_exchange_hk(const 
       {89000, 89999, longfist::enums::InstrumentType::StockOption}, // 衍生權證
       {90000, 99999, longfist::enums::InstrumentType::Stock},       // 供日後使用
   };
-
-  int nId = std::stoi(instrument_id);
+  int nId = 0;
+  try {
+    nId = std::stoi(instrument_id);
+  } catch (const std::invalid_argument &ia) {
+    // Handle invalid_argument exception
+    SPDLOG_ERROR("Invalid argument: {}, instrument_id: {}", ia.what(), instrument_id);
+    return longfist::enums::InstrumentType::Unknown;
+  } catch (const std::out_of_range &oor) {
+    // Handle out_of_range exception
+    SPDLOG_ERROR("Out of range: {}, instrument_id: {}", oor.what(), instrument_id);
+    return longfist::enums::InstrumentType::Unknown;
+  }
 
   for (auto &iter : hk_code_type_def) {
     if (nId >= iter.beg && nId <= iter.end) {
@@ -456,6 +467,8 @@ inline std::string get_instrument_product(const char *instrument_id) {
   while (instrument_id[i] != 0) {
     if (instrument_id[i] < '0' || instrument_id[i] > '9') {
       product.push_back(std::toupper(instrument_id[i]));
+    } else {
+      break;
     }
     ++i;
   }
@@ -534,6 +547,12 @@ inline longfist::enums::Direction get_direction(longfist::enums::InstrumentType 
     return longfist::enums::Direction::Long;
   } else if (side == longfist::enums::Side::RepayStock) {
     return longfist::enums::Direction::Short;
+  } else if (side == longfist::enums::Side::StockRepayStock) {
+    return longfist::enums::Direction::Long;
+  } else if (side == longfist::enums::Side::GuaranteeStockBuy) {
+    return longfist::enums::Direction::Long;
+  } else if (side == longfist::enums::Side::GuaranteeStockSell) {
+    return longfist::enums::Direction::Long;
   }
 
   if (side == longfist::enums::Side::Exec) {
@@ -616,6 +635,7 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
 
   strcpy(order.instrument_id, input.instrument_id);
   strcpy(order.exchange_id, input.exchange_id);
+  strcpy(order.contract_id, input.contract_id);
 
   order.instrument_type = input.instrument_type;
 
@@ -644,6 +664,7 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
   strcpy(trade.instrument_id, order.instrument_id);
   strcpy(trade.exchange_id, order.exchange_id);
   strcpy(trade.external_order_id, order.external_order_id);
+  strcpy(trade.contract_id, order.contract_id);
   trade.instrument_type = order.instrument_type;
   trade.side = order.side;
   trade.offset = order.offset;
@@ -719,6 +740,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.order_id = algo_order_input.order_id;
   algo_order.begin_time = algo_order_input.begin_time;
   algo_order.end_time = algo_order_input.end_time;
+  algo_order.insert_time = algo_order_input.insert_time;
 
   strcpy(algo_order.instrument_id, algo_order_input.instrument_id);
   strcpy(algo_order.exchange_id, algo_order_input.exchange_id);
@@ -727,8 +749,12 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.side = algo_order_input.side;
   algo_order.offset = algo_order_input.offset;
   algo_order.price_type = algo_order_input.price_type;
+  algo_order.price_level = algo_order_input.price_level;
+  algo_order.price_offset = algo_order_input.price_offset;
+
   algo_order.volume = algo_order_input.volume;
   algo_order.volume_left = algo_order_input.volume;
+
   algo_order.basket_uid = algo_order_input.basket_uid;
 
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
@@ -767,6 +793,12 @@ typedef std::unordered_map<uint32_t, longfist::types::Basket> BasketMap;
 
 // key = hash_basket_instrument(basket_uid, exchange_id, instrument_id)
 typedef std::unordered_map<uint32_t, longfist::types::BasketInstrument> BasketInstrumentMap;
+
+// key = order_id
+typedef std::unordered_map<uint64_t, longfist::types::AlgoOrderInput> AlgoOrderInputMap;
+
+// key = order_id
+typedef std::unordered_map<uint64_t, longfist::types::AlgoOrder> AlgoOrderMap;
 
 } // namespace kungfu::wingchun::map
 

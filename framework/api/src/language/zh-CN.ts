@@ -128,6 +128,9 @@ export default {
     import_successed: '导入成功',
     import_failed: '导入失败',
     csv_format_error: 'csv 格式错误, 请检查后重试',
+    add_csv_tip_prefix: '注: csv填写规则如下, ',
+    add_csv_tip_required: '*为必填项',
+    add_csv_tip_suffix: ', 必填项未填会导致上传失败',
   },
 
   tradingConfig: {
@@ -201,6 +204,11 @@ export default {
     surplus_stock_transfer: '余券划转',
     guarantee_stock_transfer: '担保品转入',
     guarantee_stock_redeem: '担保品转出',
+    guarantee_stock_buy: '担保品买入',
+    guarantee_stock_sell: '担保品卖出',
+    specfy_contract: '指定合约',
+    repay: '偿还',
+    repaid: '已还',
 
     submitted: '已提交',
     cancelling: '待撤',
@@ -210,6 +218,7 @@ export default {
     partial_filled_active: '正在交易',
     lost: '丢失',
     pause: '暂停',
+    pending_settlement: '等待结算',
 
     long: '多',
     short: '空',
@@ -429,7 +438,7 @@ export default {
     time_condition: '触发时间',
     parked_type: '预埋方式',
 
-    checkbox_text: '未完成委托',
+    show_pending_orders: '只展示未完成委托',
     cancel_all: '全部撤单',
     cancel_order: '撤单',
     cancel_order_trigger: '预撤',
@@ -488,9 +497,10 @@ export default {
     state_status: '状态',
     process_status: '进程',
     unrealized_pnl: '浮动盈亏',
-    marked_value: '市值',
-    margin: '保证金',
-    avail_money: '可用资金',
+    market_value: '市值',
+    used_margin: '占用保证金',
+
+    avail_funds: '可用资金',
     avail_margin: '可用保证金',
     cash_debt: '融资负债',
     total_asset: '总资产',
@@ -507,6 +517,14 @@ export default {
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
     confirm_delete_group: '不会影响改账户组下账户进程, 确认是否删除',
+    frozen_funds: '冻结资金',
+    short_sale_proceeds: '融券卖出所得款项',
+    maintain_margin_ratio: '维持担保比例',
+    loanable_funds: '可用保证金',
+    total_liabilities: '总负债',
+    equity: '净资产',
+    total_borrowed_funds: '融资总负债',
+    total_short_liabilities: '融券总负债',
   },
 
   fundTrans: {
@@ -552,7 +570,7 @@ export default {
       '普通 python 策略选择 .py 文件, 加密 python 策略或 cpp 策略选择编译后的 .so 或 .pyd 文件',
     process_status: '进程',
     unrealized_pnl: '浮动盈亏',
-    marked_value: '市值',
+    market_value: '市值',
     actions: '操作',
     strategy_tip: '需保证该策略 ID 唯一',
 
@@ -817,7 +835,10 @@ export default {
     select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
+    bypass_archive_dev: '跳过归档 (开发者模式)',
+    bypass_archive_dev_desc:
+      '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用 journal 工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
@@ -861,6 +882,9 @@ export default {
     skip_confirm_make_order: '跳过下单确认弹窗',
     set_skip_confirm_make_order:
       '开启后, 手动下单时不再弹出二次确认弹窗, 直接执行下单操作',
+    skip_sync_position: '跳过每分钟一次的持仓同步',
+    set_skip_sync_position:
+      '开启后, 不再进行每分钟一次的持仓同步, 仅在启动交易账户时拉取最新持仓(每分钟一次的持仓同步有概率会因为在途成交回报问题导致持仓重复计算, 开启该选项后仅在功夫本地计算持仓, 但如果涉及功夫系统外委托对持仓造成的影响, 则不会更新到本地), 重启后生效',
 
     code_editor: '代码编辑器',
     tab_space_type: '缩进类别',
@@ -911,7 +935,7 @@ export default {
 
   validate: {
     no_special_characters: '不能含有特殊字符和中文',
-    single_characters: '必须包含数字和字母',
+    single_characters: '至少包含一个字母或数字',
     no_underline: '不能含有下划线',
     no_zero_number: '请输入非零数字',
     no_negative_number: '请输入非负数',
@@ -943,6 +967,7 @@ export default {
 
   logview: {
     scroll_to_bottom: '滚动到底部',
+    loading_data: '正在加载中...',
   },
 
   replay: {
@@ -1026,11 +1051,11 @@ export default {
   请输入文件夹路径: '请输入文件夹路径',
   请输入一个目录: '请输入一个目录',
 
-  可用仓位: '可用仓位',
-  可用资金: '可用资金',
-  交易金额: '交易金额',
-  保证金占用: '保证金占用',
-  保证金返还: '保证金返还',
-  剩余资金: '剩余资金',
-  剩余仓位: '剩余仓位',
+  可用仓位: '参考可用仓位',
+  可用资金: '参考可用资金',
+  交易金额: '参考交易金额',
+  保证金占用: '参考保证金占用',
+  保证金返还: '参考保证金返还',
+  剩余资金: '参考剩余资金',
+  剩余仓位: '参考剩余仓位',
 };

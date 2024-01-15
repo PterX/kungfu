@@ -8,7 +8,6 @@
 #define WINGCHUN_ACCOUNTING_FUTURE_H
 
 #include <kungfu/wingchun/book/accounting.h>
-#include <kungfu/wingchun/book/bookkeeper.h>
 
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
@@ -18,7 +17,7 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::wingchun::book {
 
-struct future_contract_multiplier_and_margin_ratio {
+struct future_instrument_attribute {
   int32_t contract_multiplier;
   double margin_ratio;
   double exchange_rate;
@@ -29,19 +28,19 @@ public:
   FutureAccountingMethod() = default;
 
   void apply_quote(Book_ptr &book, const Quote &quote) override {
-    auto apply = [&](auto &position) {
-      if (position.volume == 0) {
+    auto apply = [&](Position &position) {
+      if (position.volume <= 0) { // only calculate when greater than 0
         return;
       }
 
-      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                       position.exchange_id, position.instrument_id);
+      auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction,
+                                                        position.exchange_id, position.instrument_id);
 
       // 此处仅计算结算价，但需要根据实时行情变化
       if (is_valid_price(quote.settlement_price)) {
         auto margin_pre = position.margin;
-        position.margin = cm_mr.contract_multiplier * position.settlement_price * cm_mr.exchange_rate *
-                          position.volume * cm_mr.margin_ratio;
+        position.margin = future_i_a.contract_multiplier * position.settlement_price * future_i_a.exchange_rate *
+                          position.volume * future_i_a.margin_ratio;
 
         position.settlement_price = quote.settlement_price;
         book->asset.avail -= (position.direction == Direction::Long ? 1 : -1) * (position.margin - margin_pre);
@@ -52,7 +51,7 @@ public:
           double price_change = quote.last_price - position.last_price;
           position.last_price = quote.last_price;
           double market_value_change = (position.direction == Direction::Long ? 1 : -1) * price_change *
-                                       cm_mr.exchange_rate * position.volume * cm_mr.contract_multiplier;
+                                       future_i_a.exchange_rate * position.volume * future_i_a.contract_multiplier;
           book->asset.market_value += market_value_change;
         }
 
@@ -78,29 +77,22 @@ public:
     auto offset = get_offset(book, account_id, input);
 
     auto apply = [&](auto &position) {
-      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                       input.exchange_id, input.instrument_id);
+      auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, input.exchange_id,
+                                                        input.instrument_id);
 
       if (offset == Offset::Open) {
-        auto frozen_margin =
-            cm_mr.contract_multiplier * input.frozen_price * cm_mr.exchange_rate * input.volume * cm_mr.margin_ratio;
+        auto frozen_margin = future_i_a.contract_multiplier * input.frozen_price * future_i_a.exchange_rate *
+                             input.volume * future_i_a.margin_ratio;
 
         book->asset.avail -= frozen_margin;
         book->asset.frozen_cash += frozen_margin;
         book->asset.frozen_margin += frozen_margin;
+      } else {
+        position.frozen_total += input.volume;
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        position.frozen_total += input.volume;
-        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-          position.frozen_yesterday += input.volume;
-        } else {
-          position.frozen_yesterday = position.yesterday_volume;
-        }
-      }
-
-      if (offset == Offset::CloseToday) {
-        position.frozen_total += input.volume;
+        position.frozen_yesterday += input.volume;
       }
 
       update_position(book, position);
@@ -111,22 +103,18 @@ public:
   }
 
   void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
-      return;
-    }
-
-    if (dest == location::SYNC or dest == location::PUBLIC) {
+    if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
     }
 
     auto offset = get_offset(book, account_id, order);
     auto apply = [&](auto &position) {
-      auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                       order.exchange_id, order.instrument_id);
+      auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, order.exchange_id,
+                                                        order.instrument_id);
 
       if (offset == Offset::Open) {
-        auto frozen_margin = cm_mr.contract_multiplier * order.frozen_price * cm_mr.exchange_rate * order.volume_left *
-                             cm_mr.margin_ratio;
+        auto frozen_margin = future_i_a.contract_multiplier * order.frozen_price * future_i_a.exchange_rate *
+                             order.volume_left * future_i_a.margin_ratio;
 
         book->asset.avail += frozen_margin;
         book->asset.frozen_cash -= frozen_margin;
@@ -136,7 +124,6 @@ public:
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         position.frozen_yesterday = std::max(position.frozen_yesterday - order.volume_left, VOLUME_ZERO);
       }
 
@@ -148,7 +135,7 @@ public:
   }
 
   void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
 
@@ -172,8 +159,8 @@ public:
       return;
     }
 
-    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                     position.exchange_id, position.instrument_id);
+    auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction,
+                                                      position.exchange_id, position.instrument_id);
     uint32_t product_key = hash_product(position.exchange_id, get_instrument_product(position.instrument_id).c_str());
     double cost = 0;
 
@@ -184,7 +171,7 @@ public:
         cost = (position.last_price * position.yesterday_volume * commission.close_ratio) +
                (position.last_price * close_today_volume * commission.close_today_ratio);
 
-        cost = cost * cm_mr.contract_multiplier;
+        cost = cost * future_i_a.contract_multiplier;
       } else {
         // by volume calculate
         cost =
@@ -192,52 +179,72 @@ public:
       }
     }
 
-    auto multiplier = cm_mr.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
+    auto multiplier = future_i_a.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
     auto price_diff = position.last_price - position.avg_open_price;
     // 浮动盈亏
     position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
-    position.update_time = yijinjing::time::now_in_nano();
+  }
+
+  void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+                    Asset &asset, const Position &position) override {
+    auto future_i_a = get_future_instrument_attribute(instruments, instrument_factors, position.source_id,
+                                                      position.direction, position.exchange_id, position.instrument_id);
+
+    auto exchange_rate = future_i_a.exchange_rate;
+    auto contract_multiplier = future_i_a.contract_multiplier;
+    auto position_market_value = position.volume *
+                                 (position.last_price > 0 ? position.last_price : position.avg_open_price) *
+                                 exchange_rate * contract_multiplier;
+
+    if (position.direction == Direction::Long) {
+      asset.long_market_value += position_market_value;
+    } else {
+      asset.short_market_value += position_market_value;
+    }
+
+    asset.unrealized_pnl += position.unrealized_pnl * exchange_rate;
+    asset.market_value += position_market_value;
+    asset.dynamic_equity += position.margin + position.position_pnl * exchange_rate;
   }
 
 private:
   void apply_open(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
-    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                     trade.exchange_id, trade.instrument_id);
-    auto contract_multiplier = cm_mr.contract_multiplier;
-    auto margin_ratio_by_pos = cm_mr.margin_ratio;
-    auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * margin_ratio_by_pos;
+    auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
+                                                      trade.instrument_id);
+    auto contract_multiplier = future_i_a.contract_multiplier;
+    auto margin_ratio_by_pos = future_i_a.margin_ratio;
+    auto margin = contract_multiplier * trade.price * future_i_a.exchange_rate * trade.volume * margin_ratio_by_pos;
     position.margin += margin;
-    position.avg_open_price = (position.volume + trade.volume == 0)
-                                  ? 0
-                                  : (position.avg_open_price * position.volume + trade.price * trade.volume) /
-                                        double(position.volume + trade.volume);
+    if (position.volume + trade.volume > 0 && trade.price > 0) { // only calculate when greater than 0
+      position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
+                                double(position.volume + trade.volume);
+    }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
     update_position(book, position);
 
     if (is_local) {
-      auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * cm_mr.exchange_rate *
+      auto frozen_margin = contract_multiplier * book->get_frozen_price(trade.order_id) * future_i_a.exchange_rate *
                            trade.volume * margin_ratio_by_pos;
       book->asset.avail += frozen_margin;
       book->asset.frozen_cash -= frozen_margin;
       book->asset.frozen_margin -= frozen_margin;
     }
 
-    auto commission = calculate_commission(book, trade, position, 0) * cm_mr.exchange_rate;
+    auto commission = calculate_commission(book, trade, position, 0) * future_i_a.exchange_rate;
     book->asset.avail -= commission;
     book->asset.avail -= margin;
     book->asset.accumulated_fee += commission;
     book->asset.intraday_fee += commission;
-    // add asset_margin realtime calc, refer to Book::update(int64_t, AccountingMethodType)
     book->asset.margin += margin;
   }
 
   void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
-    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                     trade.exchange_id, trade.instrument_id);
-    auto contract_multiplier = cm_mr.contract_multiplier;
-    auto margin = contract_multiplier * trade.price * cm_mr.exchange_rate * trade.volume * cm_mr.margin_ratio;
+    auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
+                                                      trade.instrument_id);
+    auto contract_multiplier = future_i_a.contract_multiplier;
+    auto margin = contract_multiplier * trade.price * future_i_a.exchange_rate * trade.volume * future_i_a.margin_ratio;
     auto delta_margin = std::min(position.margin, margin);
     position.margin -= delta_margin;
     position.volume -= trade.volume;
@@ -245,8 +252,9 @@ private:
 
     if (is_local) {
       position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
-      if (trade.offset != Offset::CloseToday)
+      if (trade.offset != Offset::CloseToday) {
         position.frozen_yesterday = std::max(position.frozen_yesterday - trade.volume, VOLUME_ZERO);
+      }
     }
 
     auto close_today_volume = 0.0;
@@ -264,8 +272,8 @@ private:
     position.realized_pnl += realized_pnl;
     update_position(book, position);
 
-    auto commission = calculate_commission(book, trade, position, close_today_volume) * cm_mr.exchange_rate;
-    book->asset.realized_pnl += realized_pnl * cm_mr.exchange_rate;
+    auto commission = calculate_commission(book, trade, position, close_today_volume) * future_i_a.exchange_rate;
+    book->asset.realized_pnl += realized_pnl * future_i_a.exchange_rate;
     book->asset.avail += delta_margin;
     book->asset.avail -= commission;
     book->asset.accumulated_fee += commission;
@@ -310,10 +318,10 @@ private:
 
   static double calculate_commission(Book_ptr &book, const Trade &trade, const Position &position,
                                      double close_today_volume) {
-    auto cm_mr = get_instrument_contract_multiplier_and_margin_ratio(book, position.source_id, position.direction,
-                                                                     trade.exchange_id, trade.instrument_id);
+    auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
+                                                      trade.instrument_id);
 
-    auto contract_multiplier = cm_mr.contract_multiplier;
+    auto contract_multiplier = future_i_a.contract_multiplier;
     uint32_t product_key = hash_product(trade.exchange_id, get_instrument_product(trade.instrument_id).c_str());
     if (book->commissions.find(product_key) == book->commissions.end()) {
       SPDLOG_WARN("commission information missing for {}@{}", trade.instrument_id, trade.exchange_id);
@@ -322,7 +330,7 @@ private:
     const auto &commission = book->commissions.at(product_key);
     if (commission.mode == CommissionRateMode::ByAmount) {
       if (trade.offset == Offset::Open) {
-        return trade.price * cm_mr.exchange_rate * trade.volume * contract_multiplier * commission.open_ratio;
+        return trade.price * future_i_a.exchange_rate * trade.volume * contract_multiplier * commission.open_ratio;
       } else {
         auto volume_left = double(trade.volume) - close_today_volume;
         return (trade.price * volume_left * contract_multiplier * commission.close_ratio) +
@@ -338,32 +346,40 @@ private:
     }
   }
 
-  static future_contract_multiplier_and_margin_ratio
-  get_instrument_contract_multiplier_and_margin_ratio(Book_ptr &book, uint32_t account_id,
-                                                      longfist::enums::Direction direction, const char *exchange_id,
-                                                      const char *instrument_id) {
+  static future_instrument_attribute get_future_instrument_attribute(Book_ptr &book, uint32_t account_id,
+                                                                     longfist::enums::Direction direction,
+                                                                     const char *exchange_id,
+                                                                     const char *instrument_id) {
+    return get_future_instrument_attribute(book->instruments, book->instrument_factors, account_id, direction,
+                                           exchange_id, instrument_id);
+  }
+
+  static future_instrument_attribute get_future_instrument_attribute(
+      const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors, uint32_t account_id,
+      longfist::enums::Direction direction, const char *exchange_id, const char *instrument_id) {
+
     auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-    future_contract_multiplier_and_margin_ratio cm_mr = {};
-    if (book->instruments.find(hashed_instrument_key) == book->instruments.end()) {
+    future_instrument_attribute future_i_a = {};
+    if (instruments.find(hashed_instrument_key) == instruments.end()) {
       // TODO comment tempoorarly for backtest without commisions
       // SPDLOG_WARN("instrument information missing for {}@{}", instrument_id, exchange_id);
-      cm_mr.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
+      future_i_a.contract_multiplier = DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER;
     } else {
-      const auto &instrument = book->instruments.at(hashed_instrument_key);
-      cm_mr.contract_multiplier = instrument.contract_multiplier;
+      const auto &instrument = instruments.at(hashed_instrument_key);
+      future_i_a.contract_multiplier = instrument.contract_multiplier;
     }
 
     auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
-    if (book->instrument_factors.find(hashed_instrument_factor_key) == book->instrument_factors.end()) {
-      cm_mr.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
-      cm_mr.margin_ratio =
+    if (instrument_factors.find(hashed_instrument_factor_key) == instrument_factors.end()) {
+      future_i_a.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
+      future_i_a.margin_ratio =
           direction == Direction::Long ? DEFAULT_FUTURE_LONG_MARGIN_RATIO : DEFAULT_FUTURE_SHORT_MARGIN_RATIO;
     } else {
-      auto &factor = book->instrument_factors.at(hashed_instrument_factor_key);
-      cm_mr.margin_ratio = direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
-      cm_mr.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
+      auto &factor = instrument_factors.at(hashed_instrument_factor_key);
+      future_i_a.margin_ratio = direction == Direction::Long ? factor.long_margin_ratio : factor.short_margin_ratio;
+      future_i_a.exchange_rate = is_equal(factor.exchange_rate, 0.0) ? 1.0 : factor.exchange_rate;
     }
-    return cm_mr;
+    return future_i_a;
   }
 
   static bool able_long_short_position_merge(const char *exchange_id) {

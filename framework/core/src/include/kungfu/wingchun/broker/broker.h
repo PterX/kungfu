@@ -28,6 +28,8 @@ public:
 
   void on_exit() override;
 
+  bool is_reactable(const event_ptr &event) override;
+
 protected:
   virtual BrokerService_ptr get_service() = 0;
 
@@ -91,8 +93,10 @@ public:
   }
 
   template <typename DataType>
-  void try_write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
-    vendor_.try_write_to(now(), data, dest_id);
+  void try_write_to(
+      const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC,
+      const std::function<void()> &callback = []() {}) {
+    vendor_.try_write_to(now(), data, dest_id, callback);
   }
 
   template <typename DataType>
@@ -128,6 +132,8 @@ public:
   }
 
   virtual void on_arguments(const std::string &argument) {}
+
+  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
 protected:
   volatile BrokerState state_;

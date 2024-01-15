@@ -78,9 +78,9 @@ public:
 
   [[maybe_unused]] [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
-  bool has_writer(uint32_t dest_id) const;
+  virtual bool has_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+  [[nodiscard]] virtual yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
   bool has_band_writer(uint32_t dest_id) const;
 
@@ -124,6 +124,8 @@ public:
 
   virtual void on_exit();
 
+  virtual bool is_reactable(const event_ptr &event);
+
   void request_deregister() {
     continual_ = false;
     live_ = false;
@@ -136,6 +138,10 @@ public:
   yijinjing::data::location_ptr get_master_cmd_location() const;
 
   const rx::connectable_observable<event_ptr> &get_events() const;
+
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
@@ -222,6 +228,8 @@ protected:
 
   virtual void on_frame() = 0;
 
+  void on_frame_done();
+
 private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
@@ -231,6 +239,8 @@ private:
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+  std::set<uint32_t> disjoin_uids_ = {};
+  std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
 
   volatile bool continual_ = true;
   volatile bool live_ = false;

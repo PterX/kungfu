@@ -52,14 +52,23 @@ const { handleBodySizeChange } = useDashboardBodySize();
 const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.TradeResolved>(trades, [
-    'order_id',
-    'trade_id',
-    'instrument_id',
-    'exchange_id',
-    'source_uname',
-    'dest_uname',
-  ]);
+  useTableSearchKeyword<KungfuApi.TradeResolved>(
+    trades,
+    [
+      'order_id',
+      'trade_id',
+      'instrument_id',
+      'side',
+      'offset',
+      'exchange_id',
+      'source_uname',
+      'dest_uname',
+    ],
+    {
+      side: (item) => dealSide(Number(item)).name,
+      offset: (item) => dealOffset(Number(item)).name,
+    },
+  );
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 
@@ -218,7 +227,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(row as KungfuApi.TradeResolved, '成交');
+  showTradingDataDetail(row, '成交');
 }
 </script>
 <template>

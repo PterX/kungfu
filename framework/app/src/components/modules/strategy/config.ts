@@ -3,8 +3,12 @@ const { t } = VueI18n.global;
 
 export const getColumns = (
   sorter: (
-    dataIndex: string,
-  ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
+    dataIndex: keyof KungfuApi.KfConfig | keyof KungfuApi.Asset,
+  ) => (
+    a: KungfuApi.KfConfig,
+    b: KungfuApi.KfConfig,
+    sorterOrder: '' | 'ascend' | 'descend',
+  ) => number,
 ): AntTableColumns => [
   {
     title: t('strategyConfig.strategy_id'),
@@ -37,7 +41,7 @@ export const getColumns = (
     width: 110,
   },
   {
-    title: t('strategyConfig.marked_value'),
+    title: t('strategyConfig.market_value'),
     dataIndex: 'marketValue',
     align: 'right',
     sorter: {

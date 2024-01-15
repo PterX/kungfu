@@ -49,6 +49,27 @@ export enum InstrumentTypeEnum {
 }
 export type InstrumentTypes = keyof typeof InstrumentTypeEnum;
 
+export enum ContractTypeEnum {
+  CrdBuyContract, //融资合约
+  CrdSellContract, //融券合约
+  CrdBuyInterest, //融资利息
+  CrdSellFee, //融券费用
+  CapitalRightsCompensation, //资金权益补偿
+  ShareRightsCompensation, //股份权益补偿
+  OverdueInterest, //逾期罚息
+  BadDebtInterest, //坏账罚息
+  Capital0ccupationFee, //资金占用费
+  ManagementFee, //管理费
+}
+
+export type ContractTypes = keyof typeof ContractTypeEnum;
+
+export enum CloseOutFlagEnum {
+  NotCloseOut, //未了結
+  Closeout, //了結
+  InitNotc1o, //初始化未了結
+}
+
 export enum BasketVolumeTypeEnum {
   Unknown,
   Quantity,
@@ -73,6 +94,14 @@ export enum ETFTypeEnum {
   Unknown,
 }
 
+export enum ETFStatusEnum {
+  Forbid, // 不允许申购也不允许赎回
+  Allow, // 允许申购和赎回
+  PurchaseOnly, // 只允许申购
+  RedemptionOnly, // 只允许赎回
+  Unknown,
+}
+
 // ETF成分股信息,标志改成分股是否可以由现金替代
 export enum CashReplaceFlagEnum {
   UnReplace, // 不可替代
@@ -82,6 +111,8 @@ export enum CashReplaceFlagEnum {
   UnSSEMustReplace, // 非沪市必须现金替代
   UnSSESZEReplace, // 非沪深退补现金替代
   UnSSESZEMustReplace, // 非沪深必须现金替代
+  UnHKReplace, // 港市退补现金替代
+  UnHKMustReplace, // 港市必须现金替代
   Unknown,
 }
 
@@ -199,6 +230,8 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  GuaranteeStockBuy,
+  GuaranteeStockSell,
   Unknown = 99,
 }
 
@@ -228,17 +261,10 @@ export enum OrderStatusEnum {
   Lost,
   Cancelling,
   Pause,
+  PendingSettlement,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
-
-export enum BasketOrderStatusEnum {
-  Unknown,
-  Pending,
-  PartialFilledNotActive, // 部分成交已结束
-  PartialFilledActive, // 部分成交未结束
-  Filled,
-}
 
 export enum KfExtTypeEnum {
   Unknown = 'unknown',

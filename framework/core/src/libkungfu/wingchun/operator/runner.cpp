@@ -69,30 +69,32 @@ void Runner::on_start() {
 
   auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
   auto start_events =
-      events_ |
-      skip_until(events_ | filter([&](auto e) { return resume_policy_is_now ? context_->is_started() : true; }));
-  start_events | is_own<Quote>(context_->get_broker_client()) |
+      events_ | skip_until(events_ | filter([&](auto e) {
+                             return resume_policy_is_now ? context_->is_started() and has_post_started_ : true;
+                           }));
+  start_events | is(Quote::tag) |
       $$(invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Tree>(context_->get_broker_client()) |
+  start_events | is(Tree::tag) |
       $$(invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Entrust>(context_->get_broker_client()) |
+  start_events | is(Entrust::tag) |
       $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
-  start_events | is_own<Transaction>(context_->get_broker_client()) |
+  start_events | is(Transaction::tag) |
       $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
   start_events | is(SyntheticData::tag) |
       $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
                 event->dest()));
 
-  events_ | is_own<BrokerStateUpdate>(context_->get_broker_client()) |
+  events_ | is(BrokerStateUpdate::tag) |
       $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
-  events_ | is_own<OperatorStateUpdate>(context_->get_broker_client()) |
+  events_ | is(OperatorStateUpdate::tag) |
       $$(invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(),
                 get_location(event->source())));
-  events_ | is_own<Deregister>(context_->get_broker_client()) |
+  events_ | is(Deregister::tag) |
       $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));
+
   if (context_->is_started()) {
     post_start();
   } else {
@@ -112,10 +114,20 @@ void Runner::post_start() {
   if (not context_->is_started()) {
     return;
   }
+
   invoke(&Operator::post_start);
+  has_post_started_ = true;
 }
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
 void Runner::post_stop() { invoke(&Operator::post_stop); }
+
+bool Runner::is_reactable(const event_ptr &event) {
+  auto iter = map_is_own_event.find(event->msg_type());
+  if (iter != map_is_own_event.end()) {
+    return iter->second(context_->get_broker_client(), event);
+  }
+  return not is_custom_event(event);
+}
 } // namespace kungfu::wingchun::op

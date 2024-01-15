@@ -74,12 +74,20 @@ watch(
     :title="num"
     :key="num"
   >
+    <template v-if="$slots.prefix">
+      <slot name="prefix"></slot>
+    </template>
     <span>{{ num }}</span>
+    <template v-if="$slots.suffix">
+      <slot name="suffix"></slot>
+    </template>
   </div>
 </template>
 <style lang="less">
 .kf-blink-num {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -107,14 +115,6 @@ watch(
       color: @green-6;
       animation: nanoGreenColorBlink 0.7s 1;
     }
-  }
-
-  span {
-    vertical-align: middle;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    right: 8px;
   }
 }
 

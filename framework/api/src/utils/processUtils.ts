@@ -966,8 +966,18 @@ export function startArchiveMakeTask(
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
   const globalSetting = getKfGlobalSettingsValue();
-  const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
   const ProcessId = buildArchiveProcessId();
+  const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
+  const bypassArchiveDev = globalSetting?.system?.bypassArchiveDev ?? false;
+
+  if (bypassArchiveDev) {
+    cb?.('online');
+    return delayMilliSeconds(2000).then(() => {
+      cb?.('stopped');
+      kfLogger.info('Completely pass the archive for dev');
+    });
+  }
+
   return startProcessGetStatusUntilStop(
     {
       name: ProcessId,
@@ -1019,6 +1029,8 @@ export const startLedger = async (
       process.env.BY_PASS_REFRESHBOOK ??
       globalSetting?.performance?.bypassRefreshBook ??
       false;
+    const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;
+
     if (isReplay && replayConfig) {
       args = buildArgs({
         loglevel: replayConfig.log_level,
@@ -1032,10 +1044,16 @@ export const startLedger = async (
         args: `'{"bypass_refresh_book": ${bypassRefreshBook}}'`,
       });
     }
+
     await startProcess({
       name: ProcessId,
       args,
       force,
+      env: skipSyncPosition
+        ? {
+            KF_SKIP_SYNC_POSITION: 'true',
+          }
+        : {},
     });
   } catch (err: unknown) {
     kfLogger.error((<Error>err).message);
@@ -1659,10 +1677,25 @@ export const initClean = async (withApp: boolean, withPm2: boolean) => {
   }
 };
 
+function promiseWithTimeout<T>(
+  promise: Promise<T | T[]>,
+  ms = 15000,
+): Promise<T | T[]> {
+  return Promise.race([
+    promise,
+    new Promise<T | T[]>((_, reject) => {
+      setTimeout(() => {
+        reject(`${promise} Timed out in ${ms}ms.`);
+      }, ms);
+    }),
+  ]);
+}
+
 export function quitClean(): Promise<void> {
   //不需要加kill daemon
   return new Promise((resolve) => {
-    pm2Kill()
+    //防止pm2 kill失败, 导致kungfu无法退出
+    promiseWithTimeout(pm2Kill())
       .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
       .finally(() => {
         killExtra(false)

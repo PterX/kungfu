@@ -91,6 +91,8 @@ public:
 
   bool req_order_trigger() override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger); }
 
+  bool req_contract() override { PYBIND11_OVERLOAD(bool, Trader, req_contract); }
+
   bool req_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_algo_order, event); }
 
   bool req_history_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_order, event); }
@@ -126,6 +128,7 @@ void bind_broker(pybind11::module &m) {
       .def("add_timer", &MarketData::add_timer)
       .def("add_time_interval", &MarketData::add_time_interval)
       .def("clear_timer", &MarketData::clear_timer)
+      .def("request_deregister", &MarketData::request_deregister)
       .def("update_broker_state", &MarketData::update_broker_state)
       .def("subscribe", &MarketData::subscribe)
       .def("subscribe_all", &MarketData::subscribe_all)
@@ -166,6 +169,7 @@ void bind_broker(pybind11::module &m) {
       .def("add_timer", &Trader::add_timer)
       .def("add_time_interval", &Trader::add_time_interval)
       .def("clear_timer", &Trader::clear_timer)
+      .def("request_deregister", &Trader::request_deregister)
       .def("update_broker_state", &Trader::update_broker_state)
       .def("insert_order", &Trader::insert_order)
       .def("insert_block_order", &Trader::insert_block_order)

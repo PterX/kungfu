@@ -40,11 +40,14 @@ import {
   dealAssetPrice,
   getProcessIdByKfLocation,
   getConfigValue,
+  buildTableColumnSorterWithStrike,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getColumns, setStrategyConfig } from './config';
 import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { storeToRefs } from 'pinia';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -100,12 +103,17 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = getColumns((dataIndex) => {
-  return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
-    return (
-      (getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset] || 0) -
-      (getAssetsByKfConfig(b)[dataIndex as keyof KungfuApi.Asset] || 0)
-    );
-  };
+  return buildTableColumnSorterWithStrike<KungfuApi.KfConfig, KungfuApi.Asset>(
+    'num',
+    dataIndex,
+    (kfConfig: KungfuApi.KfConfig) => {
+      const { assets } = storeToRefs(useGlobalStore());
+      const processId = getProcessIdByKfLocation(kfConfig);
+      return assets.value[processId]
+        ? assets.value[processId][dataIndex]
+        : '--';
+    },
+  );
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>

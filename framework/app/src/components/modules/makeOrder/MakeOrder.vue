@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  getCurrentInstance,
+  nextTick,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -41,8 +48,8 @@ import {
   useTradeLimit,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
-  getOffsetByOffsetFilter,
   initFormStateByConfig,
+  getOffsetByOffsetFilter,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
@@ -54,6 +61,7 @@ import {
   dealVolumeByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { resolveTriggerOffset } from '../pos/utils';
 import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
@@ -65,23 +73,78 @@ import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/file
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
+const app = getCurrentInstance();
+const {
+  currentGlobalKfLocation,
+  currentCategoryData,
+  getCurrentGlobalKfLocationId,
+} = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
-  useGlobalStore(),
-);
+const {
+  instrumentKeyAccountsMap,
+  uiExtConfigs,
+  globalSetting,
+  instrumentsMap,
+} = storeToRefs(useGlobalStore());
 const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
+const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
+
+const currentAccountId = ref<string>('');
+
+const isMarginMakeOrder = computed(() => {
+  const accountId = currentAccountId.value;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
+  return (
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
+    false
+  );
+});
+
+const isSpecifyContract = computed(() => {
+  const accountId = currentAccountId.value;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
+  return (
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
+    false
+  );
+});
+
 const formState = ref(
-  initFormStateByConfig(getConfigSettings('td', InstrumentTypeEnum.future), {}),
+  initFormStateByConfig(
+    getConfigSettings({
+      location: currentGlobalKfLocation.value,
+      instrumentType: InstrumentTypeEnum.future,
+      isMarginMakeOrder: isMarginMakeOrder.value,
+      isSpecifyContract: isSpecifyContract.value,
+    }),
+    {},
+  ),
 );
+
+const contractSideTypes = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayMargin,
+  SideEnum.RepayStock,
+];
+const autoFillInstrument = ref<boolean>(false);
 
 const formRef = ref();
 const boardRef = ref();
 const makeOrderBtnId = `make-order-btn-${Date.now()}`;
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
-const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
+
 const { triggerOrderBook } = useTriggerMakeOrder();
 const {
   showAmountOrPosition,
@@ -96,14 +159,8 @@ const {
   currentAvailMoney,
   currentAvailPosVolume,
   isAccountOrInstrumentConfirmed,
-} = useMakeOrderInfo(formState);
+} = useMakeOrderInfo(formState, isMarginMakeOrder);
 useMakeOrderSubscribe(formState);
-
-const {
-  currentGlobalKfLocation,
-  currentCategoryData,
-  getCurrentGlobalKfLocationId,
-} = useCurrentGlobalKfLocation(window.watcher);
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 useKeyboardControllerStyle(
@@ -127,7 +184,7 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getConfigSettings();
+    return getConfigSettings({});
   }
 
   let step = 0.0001,
@@ -142,19 +199,20 @@ const configSettings = computed(() => {
     pricePrecision = price_precision;
   }
 
-  const { category } = currentGlobalKfLocation.value;
   const { side, apart_order, volume } = formState.value;
-  return getConfigSettings(
-    category,
-    makeOrderInstrumentType.value,
+  return getConfigSettings({
+    location: currentGlobalKfLocation.value,
+    instrumentType: makeOrderInstrumentType.value,
+    isMarginMakeOrder: isMarginMakeOrder.value,
+    isSpecifyContract: isSpecifyContract.value,
     side,
     volume,
-    apart_order,
-    orderTriggerVisible.value,
-    +formState.value.price_type,
+    apart: apart_order,
+    orderTriggerVisible: orderTriggerVisible.value,
+    priceType: +formState.value.price_type,
     pricePrecision,
     step,
-  );
+  });
 });
 
 const rules = computed(() => {
@@ -187,8 +245,16 @@ const makeOrderData = computed(() => {
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
 
-  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap } =
-    formState.value;
+  const {
+    limit_price,
+    volume,
+    price_type,
+    side,
+    offset,
+    hedge_flag,
+    is_swap,
+    contract_id,
+  } = formState.value;
 
   const makeOrderInput: KungfuApi.MakeOrderInput = {
     instrument_id: instrumentId,
@@ -202,6 +268,7 @@ const makeOrderData = computed(() => {
     hedge_flag: +(hedge_flag || 0),
     is_swap: !!is_swap,
     parent_id: 0n,
+    contract_id: contract_id || '',
   };
   return makeOrderInput;
 });
@@ -220,12 +287,30 @@ const getResolvedOffset = (
   side: SideEnum,
   instrumentType: InstrumentTypeEnum,
 ) => {
-  if (isShotable(instrumentType)) {
+  if (isShotable(instrumentType) || isMarginMakeOrder.value) {
     if (offset !== undefined) {
       return offset;
     }
   }
-  return side === 0 ? 0 : 1;
+  if (isMarginMakeOrder.value) {
+    if (
+      [
+        SideEnum.GuaranteeStockBuy,
+        SideEnum.MarginTrade,
+        SideEnum.RepayStock,
+      ].includes(side)
+    ) {
+      return 0;
+    } else {
+      return 1;
+    }
+  } else {
+    if (side === 0) {
+      return 0;
+    } else {
+      return 1;
+    }
+  }
 };
 
 const orderTriggerVisible = computed(() => {
@@ -314,6 +399,12 @@ watch(
       formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
     }
 
+    if (formState.value.contract_id && !autoFillInstrument.value) {
+      formState.value.contract_id = '';
+    } else {
+      autoFillInstrument.value = false;
+    }
+
     if (!instrumentResolved.value) {
       return;
     }
@@ -347,13 +438,100 @@ watch(
 );
 
 watch(
+  () => isMarginMakeOrder.value,
+  (newVal) => {
+    if (newVal) {
+      if (!contractSideTypes.includes(formState.value.side)) {
+        formState.value.side = SideEnum.GuaranteeStockBuy;
+      }
+    } else {
+      if (contractSideTypes.includes(formState.value.side)) {
+        formState.value.side = SideEnum.Buy;
+      }
+    }
+  },
+  {
+    immediate: true,
+  },
+);
+
+watch(
   () => formState.value.side,
   (newSide) => {
-    if (instrumentResolved.value) {
-      const offset = getOffsetBySide(newSide, instrumentResolved.value);
-      if (offset !== -1) {
-        formState.value.offset = offset;
+    if (isMarginMakeOrder.value) {
+      [
+        SideEnum.GuaranteeStockBuy,
+        SideEnum.MarginTrade,
+        SideEnum.ShortSell,
+      ].includes(formState.value.side)
+        ? (formState.value.offset = OffsetEnum.Open)
+        : (formState.value.offset = OffsetEnum.Close);
+      if (
+        formState.value.side !== SideEnum.RepayStock ||
+        formState.value.side !== SideEnum.RepayMargin
+      ) {
+        formState.value.contract_id = '';
       }
+
+      if (
+        !isSpecifyContract.value &&
+        formState.value.side === SideEnum.RepayMargin
+      ) {
+        formState.value.contract_id = '';
+      }
+    } else {
+      if (instrumentResolved.value) {
+        const { instrumentType } = instrumentResolved.value;
+
+        if (isShotable(instrumentType)) {
+          if (newSide === SideEnum.Sell) {
+            if (currentPositionWithLongDirection.value) {
+              formState.value.offset = currentPositionWithLongDirection.value
+                ? resolveTriggerOffset(currentPositionWithLongDirection.value)
+                : OffsetEnum.Open;
+            }
+          } else if (newSide === SideEnum.Buy) {
+            formState.value.offset = currentPositionWithShortDirection.value
+              ? resolveTriggerOffset(currentPositionWithShortDirection.value)
+              : OffsetEnum.Open;
+          }
+        } else {
+          formState.value.offset =
+            newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
+        }
+      }
+    }
+  },
+);
+
+watch(
+  () => formState.value.contract_id,
+  (newVal) => {
+    try {
+      if (newVal) {
+        const contractList = window.watcher.ledger.Contract.filter(
+          'contract_id',
+          newVal,
+        ).list();
+        if (contractList.length === 0) {
+          return;
+        }
+
+        const { instrument_id, exchange_id } = contractList[0];
+        const ukey = hashInstrumentUKey(instrument_id, exchange_id);
+        const instrumentResolved = instrumentsMap.value[ukey];
+        if (!instrumentResolved) {
+          return;
+        }
+
+        const instrumentStr = `${instrumentResolved.exchangeId}_${instrumentResolved.instrumentId}_${instrumentResolved.instrumentType}_${ukey}_${instrumentResolved.instrumentName}`;
+        if (formState.value.instrument !== instrumentStr) {
+          formState.value.instrument = instrumentStr;
+          autoFillInstrument.value = true;
+        }
+      }
+    } catch (error) {
+      console.error(error);
     }
   },
 );
@@ -386,9 +564,6 @@ watch(
       offset,
     });
   },
-  {
-    deep: true,
-  },
 );
 
 watch(
@@ -403,11 +578,19 @@ watch(
   },
 );
 
+watch(
+  () => formState.value.account_id,
+  (newVal) => {
+    currentAccountId.value = newVal;
+  },
+);
+
 onMounted(() => {
   if (currentGlobalKfLocation.value?.category === 'td') {
     formState.value.account_id = getIdByKfLocation(
       currentGlobalKfLocation.value,
     );
+    formState.value.offset = OffsetEnum.Open;
   } else {
     formState.value.account_id = '';
   }
@@ -433,8 +616,16 @@ function initOrderInputData(): Promise<KungfuApi.MakeOrderInput> {
   }
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
-  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap } =
-    formState.value;
+  const {
+    contract_id,
+    limit_price,
+    volume,
+    price_type,
+    side,
+    offset,
+    hedge_flag,
+    is_swap,
+  } = formState.value;
 
   const makeOrderInput: KungfuApi.MakeOrderInput = {
     instrument_id: instrumentId,
@@ -448,6 +639,7 @@ function initOrderInputData(): Promise<KungfuApi.MakeOrderInput> {
     hedge_flag: +(hedge_flag || 0),
     is_swap: !!is_swap,
     parent_id: 0n,
+    contract_id: contract_id || '',
   };
 
   return Promise.resolve(makeOrderInput);
@@ -709,20 +901,17 @@ async function handleMakeOrder(side?: SideEnum): Promise<void> {
         (makeOrderBtn as HTMLElement).focus();
       }
     }
+    app?.proxy?.$globalBus.next({
+      tag: 'main',
+      name: 'click:makeOrder',
+      orderInput: makeOrderInput,
+    });
   } catch (e) {
     if ((<Error>e).message) {
       error((<Error>e).message);
     }
   }
 }
-//TODO: 买卖双键
-// async function handleOpenOrder() {
-//   handleMakeOrder(SideEnum.Buy);
-// }
-
-// async function handleCloseOrder() {
-//   handleMakeOrder(SideEnum.Sell);
-// }
 
 async function handleOrderTriggerConfirm() {
   if (!currentGlobalKfLocation.value) return;
@@ -965,7 +1154,9 @@ watch(
               <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
-                    isShotable(instrumentResolved?.instrumentType)
+                    isMarginMakeOrder
+                      ? $t('交易金额')
+                      : isShotable(instrumentResolved?.instrumentType)
                       ? formState.offset === OffsetEnum.Open
                         ? t('保证金占用')
                         : t('保证金返还')

@@ -8,7 +8,6 @@
 #define WINGCHUN_ACCOUNTING_CRYPTO_H
 
 #include <kungfu/wingchun/book/accounting.h>
-#include <kungfu/wingchun/book/bookkeeper.h>
 
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
@@ -44,18 +43,21 @@ public:
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(book, order)) {
+    if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
     }
   }
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
-    if (not guard_trade_accounting(book, trade)) {
+    if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
   }
 
   virtual void update_position(Book_ptr &book, Position &position) override {}
+
+  void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+                    Asset &asset, const Position &position) override {}
 
 protected:
   std::unordered_map<uint64_t, double> commission_map_ = {};
@@ -64,9 +66,9 @@ protected:
 
   [[maybe_unused]] virtual void apply_sell(Book_ptr &book, const Trade &trade) {}
 
-  [[maybe_unused]] virtual double calculate_commission(const Trade &trade) { return trade.commission; }
+  [[maybe_unused]] double calculate_commission(const Trade &trade) { return trade.commission; }
 
-  [[maybe_unused]] virtual double calculate_tax(const Trade &trade) { return trade.tax; }
+  [[maybe_unused]] double calculate_tax(const Trade &trade) { return trade.tax; }
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_CRYPTO_H

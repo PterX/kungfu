@@ -10,6 +10,8 @@
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/time.h>
 
+#include <utility>
+
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
@@ -28,7 +30,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
                                  Report_ptr report, int64_t time_interval, std::string backtest_config)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_), matcher_(std::move(matcher)),
-      from_indexer_(from_indexer),
+      from_indexer_(std::move(from_indexer)),
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
       report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
@@ -39,14 +41,12 @@ void BacktestContext::on_start() {
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);
   }
-  events_ | is_own<Quote>(get_broker_client()) |
-      $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
-  events_ | is_own<Entrust>(get_broker_client()) |
+  events_ | is(Quote::tag) | $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
+  events_ | is(Entrust::tag) |
       $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>()););
-  events_ | is_own<Transaction>(get_broker_client()) |
+  events_ | is(Transaction::tag) |
       $$(matcher_->on_transaction(event->data<Transaction>()); report_->on_transaction(event->data<Transaction>()););
-  events_ | is_own<Tree>(get_broker_client()) |
-      $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
+  events_ | is(Tree::tag) | $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | is(OrderInput::tag) |
       $$(const auto &order_input = event->data<OrderInput>();
@@ -241,7 +241,8 @@ uint64_t BacktestContext::insert_block_message(const std::string &source, const 
 uint64_t BacktestContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                        const std::string &source, const std::string &account, double limit_price,
                                        int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                       bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                       bool is_swap, uint64_t block_id, uint64_t parent_id,
+                                       const std::string &contract_id) {
   auto insert_time = now();
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
   if (instrument_type == InstrumentType::Unknown) {
@@ -265,6 +266,7 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   input.hedge_flag = hedge_flag;
   input.block_id = block_id;
   input.is_swap = is_swap;
+  input.contract_id = contract_id.c_str();
   input.insert_time = insert_time;
   writer->write_raw_at_as(now(), now(), app_.get_home_uid(), td_dest, input.tag, reinterpret_cast<uintptr_t>(&input),
                           sizeof(input));
@@ -303,7 +305,7 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
     const std::string &source, const std::string &account, const std::vector<std::string> &instrument_ids,
     const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<int64_t> volumes,
     std::vector<PriceType> types, std::vector<Side> sides, std::vector<Offset> offsets,
-    std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
+    std::vector<HedgeFlag> hedge_flags, std::vector<bool> is_swaps, const std::vector<std::string> &contract_ids) {
   std::vector<uint64_t> order_ids{};
   bool flag = instrument_ids.size() == exchange_ids.size() and //
               instrument_ids.size() == limit_prices.size() and //
@@ -318,9 +320,9 @@ std::vector<uint64_t> BacktestContext::insert_batch_orders(
     return order_ids;
   }
   for (int i = 0; i < instrument_ids.size(); ++i) {
-    uint64_t order_id =
-        insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
-                     types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i), is_swaps.at(i));
+    uint64_t order_id = insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i),
+                                     volumes.at(i), types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i),
+                                     is_swaps.at(i), 0, 0, contract_ids.at(i));
     order_ids.push_back(order_id);
   }
   return order_ids;
@@ -330,9 +332,9 @@ std::vector<uint64_t> BacktestContext::insert_array_orders(const std::string &so
                                                            std::vector<OrderInput> &order_inputs) {
   std::vector<uint64_t> order_ids{};
   for (const OrderInput &input : order_inputs) {
-    uint64_t order_id =
-        insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price, input.volume,
-                     input.price_type, input.side, input.offset, input.hedge_flag, input.is_swap);
+    uint64_t order_id = insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price,
+                                     input.volume, input.price_type, input.side, input.offset, input.hedge_flag,
+                                     input.is_swap, 0, 0, input.contract_id);
     order_ids.push_back(order_id);
   }
   return order_ids;
@@ -342,16 +344,13 @@ uint64_t BacktestContext::insert_algo_order(const std::string &instrument_id, co
                                             const std::string &source, const std::string &account, int64_t begin_time,
                                             int64_t end_time, int64_t volume, PriceType type, Side side, Offset offset,
                                             const std::string &algo_type_id, const std::string &algo_id,
-                                            const std::string &args, bool is_local, uint32_t basket_uid) {
+                                            const std::string &args, bool is_local, uint32_t basket_uid,
+                                            longfist::enums::PriceLevel price_level, double price_offset) {
   return {};
 }
 
-uint64_t BacktestContext::update_algo_order(uint64_t origin_order_id, const std::string &instrument_id,
-                                            const std::string &exchange_id, const std::string &source,
-                                            const std::string &account, int64_t begin_time, int64_t end_time,
-                                            int64_t volume, PriceType type, Side side, Offset offset,
-                                            const std::string &algo_type_id, const std::string &algo_id,
-                                            const std::string &args, bool is_local, uint32_t basket_uid) {
+uint64_t BacktestContext::update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
+                                                   const std::string &account, int64_t volume) {
   return {};
 }
 

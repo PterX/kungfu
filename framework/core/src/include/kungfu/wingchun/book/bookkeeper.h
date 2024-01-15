@@ -18,8 +18,6 @@ typedef std::unordered_map<uint32_t, Book_ptr> BookMap;
 
 typedef std::unordered_map<uint32_t, kungfu::state<longfist::types::Quote>> QuoteStateMap;
 
-typedef std::unordered_map<longfist::enums::InstrumentType, AccountingMethod_ptr> AccountingMethodMap;
-
 class BookListener {
 public:
   virtual void on_position_sync_reset(const Book &old_book, const Book &new_book){};
@@ -48,6 +46,9 @@ public:
 
   void on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const longfist::types::OrderInput &input);
 
+  void on_algo_order_input(int64_t update_time, uint32_t source, uint32_t dest,
+                           const longfist::types::AlgoOrderInput &input);
+
   void restore(const yijinjing::cache::bank &state_bank);
 
   void guard_positions();
@@ -66,13 +67,7 @@ public:
 
   void try_update_position_end(const longfist::types::PositionEnd &position_end);
 
-  longfist::enums::AccountingMethodType get_accounting_method_type() { return account_method_type_; }
-
   [[nodiscard]] const StaticData &get_static_data() const { return static_data_; }
-
-  [[nodiscard]] bool is_sync_asset() const;
-
-  [[nodiscard]] bool is_sync_position() const;
 
   std::mutex &get_update_book_mutex();
 
@@ -103,7 +98,25 @@ public:
       auto direction = get_direction(data.instrument_type, data.side, data.offset);
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
       book->replace(data);
-      book->update(update_time, account_method_type_);
+      book->update(update_time);
+    };
+    apply_and_update(account_id);
+    if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
+      apply_and_update(dest);
+    }
+  }
+
+  template <typename TradingData> void update_book(const event_ptr &event) {
+    update_book(event->gen_time(), event->source(), event->dest(), event->data<TradingData>());
+  }
+
+  template <typename TradingData>
+  void update_book(int64_t update_time, uint32_t account_id, uint32_t dest, const TradingData &data) {
+    std::lock_guard<std::mutex> lock(update_book_mutex_);
+    auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
+      auto book = get_book(book_uid);
+      book->add_source_id(account_id);
+      book->replace(data);
     };
     apply_and_update(account_id);
     if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
@@ -143,8 +156,6 @@ private:
   AccountingMethodMap accounting_methods_ = {};
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
-  bool sync_asset_{};
-  bool sync_position_{};
   std::unordered_map<uint32_t, bool> ready_tds_{};
 
   Book_ptr make_book(uint32_t location_uid);

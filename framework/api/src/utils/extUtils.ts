@@ -208,6 +208,7 @@ export const getKfExtensionConfigByCategory = (
                   fundTrans: extOriginConfig[category]?.fund_trans || {},
                   showAssetMargin:
                     extOriginConfig[category]?.show_asset_margin || false,
+                  margin: extOriginConfig[category]?.margin || {},
                 },
               };
             } else if (category === 'md') {
@@ -366,21 +367,31 @@ export const getKfExtensionLanguage = async () => {
       const langData =
         typeof config.language === 'object' ? config.language : defaultLangData;
 
-      const extNames = {
-        'zh-CN': langData['zh-CN'][config.key] ?? config.name,
-        'en-US':
-          langData['en-US'][config.key] ??
-          (config.key[0].toUpperCase() + config.key.slice(1)).replace(
-            /(?<!^)([A-Z])(?![A-Z])/g,
-            ' $1',
-          ),
+      const resolveExtName = (langName: 'zh-CN' | 'en-US') => {
+        const nameKeys = config.name.split('.');
+        if (nameKeys.length === 2) {
+          const [extKey, nameKey] = nameKeys;
+          if (extKey === config.key) {
+            if (typeof langData[langName][nameKey] === 'string')
+              return langData[langName][nameKey];
+          }
+        }
+
+        const defaultName =
+          langName === 'zh-CN'
+            ? config.name
+            : (config.key[0].toUpperCase() + config.key.slice(1)).replace(
+                /(?<!^)([A-Z])(?![A-Z])/g,
+                ' $1',
+              );
+        return langData[langName][config.key] ?? defaultName;
       };
 
       Object.keys(langData).forEach((langName) => {
         languageMap[langName] = {
           ...(languageMap[langName] || {}),
           [config.key]: langData[langName],
-          [config.name]: extNames[langName] ?? config.name,
+          [config.name]: resolveExtName(langName as 'zh-CN' | 'en-US'),
         };
       });
     }

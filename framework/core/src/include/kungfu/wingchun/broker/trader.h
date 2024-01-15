@@ -298,13 +298,13 @@ public:
 
   virtual bool req_order_trigger() { return true; }
 
+  virtual bool req_contract() { return true; }
+
   virtual bool req_algo_order(const event_ptr &event) { return true; }
 
   virtual bool req_history_order(const event_ptr &event) { return true; }
 
   virtual bool req_history_trade(const event_ptr &event) { return true; }
-
-  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
   virtual void on_band(const event_ptr &event) {}
 

@@ -67,7 +67,6 @@ import {
   parseTaskSettingsFromEnv,
   deepClone,
   initFormTimePicker,
-  concatPrimaryKey,
   dealMillionSencond2NanoSecond,
   dealDateDayOrMonth,
 } from './commonUtils';
@@ -909,14 +908,14 @@ export const getCombineValueByPrimaryKeys = (
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return concatPrimaryKey(
-    [
-      extraValue || '',
-      ...primaryKeys.map((key) =>
-        replaceNonAlphaNumericWithSpace(formState[key]),
-      ),
-    ].filter((item) => item !== ''),
-  );
+  return [
+    extraValue || '',
+    ...primaryKeys.map((key) =>
+      replaceNonAlphaNumericWithSpace(formState[key]),
+    ),
+  ]
+    .filter((item) => item !== '')
+    .join('-');
 };
 
 export const numberEnumRadioType: Record<
@@ -936,6 +935,7 @@ export const numberEnumSelectType: Record<
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
   side: Side,
+  marginSide: Side,
   priceType: PriceType,
   priceLevel: PriceLevel,
   instrumentType: InstrumentType,
@@ -955,6 +955,36 @@ export const KfConfigValueNumberType = [
   'float',
   'percent',
   ...Object.keys(numberEnumSelectType || {}),
+  ...Object.keys(numberEnumRadioType || {}),
+];
+
+export const FormItemNeedIcon = [
+  'str',
+  'password',
+  'int',
+  'float',
+  'percent',
+  'side',
+  'priceType',
+  'priceLevel',
+  'radio',
+  'checkbox',
+  'checkboxGroup',
+  'select',
+  'multiSelect',
+  'instrument',
+  'instruments',
+  'contract',
+  'td',
+  'tds',
+  'md',
+  'md&operator',
+  'operator',
+  'strategy',
+  'basket',
+  'bool',
+  ...Object.keys(numberEnumSelectType || {}),
+  ...Object.keys(stringEnumSelectType || {}),
   ...Object.keys(numberEnumRadioType || {}),
 ];
 

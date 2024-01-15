@@ -47,7 +47,6 @@ declare namespace KungfuApi {
     KfExhibitConfigTypes,
     BasketVolumeTypeEnum,
     PriceLevelEnum,
-    BasketOrderStatusEnum,
     SessionStatusEnum,
     CurrencyEnum,
     OrderTriggerTypeEnum,
@@ -59,6 +58,8 @@ declare namespace KungfuApi {
     ETFTypeEnum,
     CashReplaceFlagEnum,
     BasketTypeEnum,
+    ContractTypeEnum,
+    CloseOutFlagEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -123,6 +124,7 @@ declare namespace KungfuApi {
     | 'percent'
     | 'error'
     | 'side' // select - number
+    | 'marginSide' // select - number
     | 'offset' // select - number
     | 'direction' // select - number
     | 'priceType' // select - number
@@ -144,7 +146,8 @@ declare namespace KungfuApi {
     | 'instrumentsCsv'
     | 'csvTable'
     | 'basket'
-    | 'checkboxGroup';
+    | 'checkboxGroup'
+    | 'contract';
 
   export type KfConfigValue =
     | string
@@ -188,6 +191,8 @@ declare namespace KungfuApi {
     columns?: KfConfigItem[];
     errMsg?: string;
     tip?: string;
+    showTipWithIcon?: boolean;
+    toolTipPlacement?: 'top' | 'bottom' | 'left' | 'right';
     default?: KfConfigValue;
     required?: boolean;
     max?: number;
@@ -199,6 +204,7 @@ declare namespace KungfuApi {
     options?: KfSelectOption[];
     data?: KfSelectOption[];
     headers?: KfConfigItemHeader[];
+    extraHeadersTip?: string;
     template?: KfConfigItemTemplate[];
     search?: KfConfigItemSearch;
     importMode?: 'reset' | 'add';
@@ -207,6 +213,7 @@ declare namespace KungfuApi {
     isHidden?: boolean;
 
     maxlength?: number;
+    showArg?: boolean; // 交易任务是否显示参数
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -241,6 +248,11 @@ declare namespace KungfuApi {
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
         show_asset_margin?: boolean;
+        margin?: {
+          showMargin?: boolean;
+          marginMakeOrder?: boolean;
+          specifyContract?: boolean;
+        };
       };
       md?: {
         type?: TdMdExtTypes[] | TdMdExtTypes;
@@ -386,6 +398,11 @@ declare namespace KungfuApi {
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
     showAssetMargin?: boolean;
+    margin?: {
+      showMargin?: boolean;
+      marginMakeOrder?: boolean;
+      specifyContract?: boolean;
+    };
   }
 
   export interface KfMdExtConfig extends KfExtConfigBase<'md'> {
@@ -478,9 +495,9 @@ declare namespace KungfuApi {
   >;
 
   export type KfExtLanguages = {
-    'zh-CN': Record<string, Record<string, string>>;
-    'en-US': Record<string, Record<string, string>>;
-    [langName: string]: Record<string, Record<string, string>>;
+    'zh-CN': Record<string, string | Record<string, string>>;
+    'en-US': Record<string, string | Record<string, string>>;
+    [langName: string]: Record<string, string | Record<string, string>>;
   };
 
   export interface SetKfConfigPayload {
@@ -504,6 +521,7 @@ declare namespace KungfuApi {
     hedge_flag: HedgeFlagEnum;
     is_swap: boolean;
     parent_id: bigint;
+    contract_id: string;
   }
   export type MakeOrderTriggerInput = MakeOrderInput;
 
@@ -558,12 +576,15 @@ declare namespace KungfuApi {
   export interface BasketStore {
     getAllBasket(): Basket[] | false;
     setAllBasket(baskets: Basket[]): boolean;
+    setBasket(basket: Basket): boolean;
+    setBaskets(baskets: Basket[]): boolean;
   }
 
   export interface BasketInstrumentStore {
     getAllBasketInstrument(): BasketInstrument[] | false;
     setAllBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     setBasketInstrument(basketInstrument: BasketInstrument): boolean;
+    setBasketInstruments(basketInstruments: BasketInstrument[]): boolean;
     removeAllBasketInstruments(): boolean;
     removeAllBasketInstrumentsByBasket(basketId: number): boolean;
   }
@@ -609,7 +630,7 @@ declare namespace KungfuApi {
     short_margin: number; //融券占用保证金
     margin: number; //总占用保证金
 
-    cash_debt: number; //融资负债
+    cash_debt: number; //融资欠款 (不含利息和费用)
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
@@ -619,6 +640,15 @@ declare namespace KungfuApi {
 
     credit: number; //信贷额度
     collateral_ratio: number; //担保比例
+
+    total_debt: number; //总负债
+    net_assets: number; //净资产
+    long_total_debt: number; //融资总负债（融资欠款+利息+费用）
+    short_total_debt: number; //融券总负债 （融券市值+利息+费用）
+    gage_buy_fund_available: number; //担保品买入可用资金 = 可用资金 - 融券所得
+    credit_buy_fund_available: number; //融资买券可用资金 = 可用保证金
+    buyredeliver_fund_available: number; //买券还券可用资金 = 可用资金
+    directrepay_fund_available: number; //现金还款可用资金 = 担保品买入可用资金
   }
 
   export interface Instrument {
@@ -630,7 +660,7 @@ declare namespace KungfuApi {
 
     contract_multiplier: number; //合约乘数
     price_tick: number; //最小变动价位
-    quantity_unit: number; //最小变动价位
+    quantity_unit: number; //最小数量单位
 
     open_date: string; //上市日
     create_date: string; //创建日
@@ -728,6 +758,8 @@ declare namespace KungfuApi {
     instrument_id: string; //合约代码
     exchange_id: string; //交易所代码
     instrument_type: InstrumentTypeEnum; //合约类型
+
+    contract_id: string; //合约唯一标识
 
     limit_price: number; //价格
     frozen_price: number; //冻结价格
@@ -905,7 +937,7 @@ declare namespace KungfuApi {
     price_offset: number; // 价格偏移
     volume: bigint;
     volume_left: bigint;
-    status: BasketOrderStatusEnum;
+    status: OrderStatusEnum;
 
     source_id: number; // 下单方
     dest_id: number;
@@ -925,6 +957,7 @@ declare namespace KungfuApi {
 
   export interface AlgoOrderInput {
     order_id: bigint;
+    origin_order_id: bigint;
     insert_time: bigint;
     begin_time: bigint;
     end_time: bigint;
@@ -933,9 +966,13 @@ declare namespace KungfuApi {
     exchange_id: string;
     instrument_type: InstrumentTypeEnum;
 
+    basket_uid: number; // basket订单的id
+
     side: SideEnum;
     offset: OffsetEnum;
     price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
     volume: bigint;
 
     algo_type_id: string; // 算法类型
@@ -943,6 +980,23 @@ declare namespace KungfuApi {
 
     args: string; // 自定义参数json的形式
     is_local: boolean; // 是否为一个本地算法单
+  }
+
+  export interface Contract {
+    instrument_id: string; // 标的
+    exchange_id: string; // 交易所id
+    contract_id: string; // 合约id
+    holder_uid: number; // 账户id
+    contract_type: ContractTypeEnum; // 合约类型
+    instrument_type: InstrumentTypeEnum; // 标的类型
+    opening_date: string; // 开仓日期
+    repayment_amt: bigint; // 已偿还金额（融资）
+    total_liability_amt: bigint; // 合约总欠款（融资）
+    repayment_qty: bigint; // 已偿还数量（融券）
+    total_liability_qty: bigint; // 合约总欠券 （融券）
+    unsettled_interest: bigint; // 未结利息罚息 未结利息+未结罚息
+    expiration_date: string; // 归还截止日期
+    close_out_flag: CloseOutFlagEnum; // 合约了结状态
   }
 
   export interface AlgoOrder {
@@ -957,9 +1011,13 @@ declare namespace KungfuApi {
     exchange_id: string; // 交易所代码
     instrument_type: InstrumentTypeEnum;
 
+    basket_uid: number; // basket订单的id
+
     side: SideEnum;
     offset: OffsetEnum;
     price_type: PriceTypeEnum;
+    price_level: PriceLevelEnum;
+    price_offset: number; // 价格偏移
 
     volume: bigint; // 目标量
     volume_left: bigint; // 剩余数量
@@ -969,6 +1027,9 @@ declare namespace KungfuApi {
 
     status: OrderStatusEnum; // 订单状态
     error_msg: string; // 错误信息
+
+    source: number; // 下单方
+    dest: number;
   }
 
   export interface AlgoOrderAction {
@@ -1198,6 +1259,7 @@ declare namespace KungfuApi {
     max_redemption_volume: bigint; // 赎回上限
     min_volume: bigint; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
+    etf_status: ETFStatus; // etf状态
   }
 
   export interface BasketResolved extends Basket {
@@ -1227,6 +1289,7 @@ declare namespace KungfuApi {
     todayVolume?: string;
     yesterdayVolume?: string;
     posVolume?: string;
+    lastPrice?: number;
   }
 
   export interface BasketInstrumentForOrder extends BasketInstrumentResolved {
@@ -1310,6 +1373,7 @@ declare namespace KungfuApi {
       instrumentId: string,
     ): boolean;
     requestPosition(): boolean;
+    requestContract(): boolean;
     cancelOrder(
       orderAction: OrderAction,
       tdLocation: KfLocation,

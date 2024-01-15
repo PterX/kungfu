@@ -89,6 +89,9 @@ export const useLogInit = (
   const scrollerTableRef = ref();
   const scrollToBottomChecked = ref<boolean>(false);
   const isLoading = ref<boolean>(false);
+  let loadingTimeoutId: NodeJS.Timeout | null = null;
+  let insertTimerId: NodeJS.Timeout | null = null;
+  const INSERT_LINES = 1000;
 
   const scrollToBottom = () => {
     if (scrollToBottomChecked.value) {
@@ -96,11 +99,19 @@ export const useLogInit = (
     }
   };
 
+  const updateLoading = () => {
+    isLoading.value = true;
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+    }
+    loadingTimeoutId = setTimeout(() => {
+      isLoading.value = false;
+    }, 1000);
+  };
+
   const startTailLog = (logPath: string) => {
     ensureFileSync(logPath);
-    let lastLineReceivedAt = Date.now();
 
-    isLoading.value = true;
     LogTail && LogTail.unwatch();
     LogTail = new Tail(logPath, {
       follow: true,
@@ -108,37 +119,57 @@ export const useLogInit = (
       useWatchFile: os.platform() === 'win32',
     });
 
-    let markId: number = +new Date();
+    let markId: number = Date.now();
+    const remineLogQueue: KungfuApi.KfLogData[] = [];
+
     LogTail.on('line', (line: string) => {
-      lastLineReceivedAt = Date.now();
-      logList.insert({
-        id: markId++,
-        message: preDealLogMessage(line),
-      });
-      scrollToBottom();
+      const logData = { id: ++markId, message: preDealLogMessage(line) };
+      if (logList.list.length < nLines) {
+        updateLoading();
+        logList.insert(logData);
+        scrollToBottom();
+      } else {
+        remineLogQueue.push(logData);
+      }
     });
+
+    insertTimerId = setInterval(() => {
+      if (logList.list.length < nLines) {
+        return;
+      }
+      const newList = remineLogQueue.splice(0, INSERT_LINES);
+      const length = newList.length;
+      if (length > 0) {
+        updateLoading();
+        logList.list.splice(0, length);
+        logList.list = logList.list.concat(newList);
+        scrollToBottom();
+      } else {
+        return;
+      }
+    }, 200);
 
     LogTail.on('error', (err: Error) => {
       error(err.message);
     });
 
     LogTail.watch();
-    const timeoutId = setInterval(checkLoadingStatus, 1000); // 每1秒检查一次
-
-    function checkLoadingStatus() {
-      if (Date.now() - lastLineReceivedAt > 1000) {
-        // 1秒没有接收到新行
-        isLoading.value = false;
-        clearInterval(timeoutId);
-      }
-    }
   };
-
   const clearLogState = () => {
-    logList.list = [];
-    LogTail?.unwatch();
-    LogTail = null;
+    if (insertTimerId) {
+      clearInterval(insertTimerId);
+      insertTimerId = null;
+    }
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+      loadingTimeoutId = null;
+    }
     isLoading.value = false;
+    logList.list = [];
+    if (LogTail) {
+      LogTail.unwatch();
+      LogTail = null;
+    }
   };
 
   return {

@@ -423,24 +423,6 @@ export const initFormTimePicker = (initValue?: string | string[]) => {
   return null;
 };
 
-export const concatPrimaryKey = (arr: string[]) => {
-  if (arr.length === 0) return '';
-
-  let result = arr[0];
-
-  if (arr.length > 1) {
-    result += '_' + arr[1];
-  }
-
-  if (arr.length > 2) {
-    for (let i = 2; i < arr.length; i++) {
-      result += '-' + arr[i];
-    }
-  }
-
-  return result;
-};
-
 export const getPrimaryKeyFromKfConfigItem = (
   settings: KungfuApi.KfConfigItem[],
 ): KungfuApi.KfConfigItem[] => {
@@ -706,6 +688,38 @@ export const loopToRunProcess = async <T>(
   return resList;
 };
 
+export async function parallelTaskScheduler<T>(
+  tasks: Array<() => Promise<T>>,
+  maxConcurrentTasks = 1,
+): Promise<(T | Error)[]> {
+  const results: (T | Error)[] = [];
+  const executing: Array<Promise<void>> = [];
+
+  for (const task of tasks) {
+    if (executing.length >= maxConcurrentTasks) {
+      await Promise.race(executing);
+    }
+
+    const p = (async () => {
+      try {
+        return await task();
+      } catch (err: unknown) {
+        return err as Error;
+      }
+    })();
+
+    const e = p.then((res) => {
+      results.push(res);
+      executing.splice(executing.indexOf(e), 1);
+    });
+
+    executing.push(e);
+  }
+  await Promise.all(executing);
+
+  return results;
+}
+
 export const buildIfWatcherLiveObservable = (watcher: KungfuApi.Watcher) => {
   let timer; // for ui refresh
   return new Observable<boolean>((sub) => {
@@ -954,6 +968,7 @@ export class LinkedList<T> {
   }
 
   getValue(node: LinkedNode<T>) {
+    if (!node) return null;
     return node.value;
   }
 
@@ -1007,3 +1022,50 @@ export class LinkedList<T> {
     this.nodeMap.clear();
   }
 }
+
+export const buildTableColumnSorterWithStrike = <T, U = object>(
+  type: 'num' | 'str',
+  dataIndex: keyof T | keyof U,
+  transform?: (data: T) => number | string | null,
+) => {
+  return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
+    if (type === 'num') {
+      let aVal = (transform ? transform(a) : a[dataIndex as keyof T]) ?? '--',
+        bVal = (transform ? transform(b) : b[dataIndex as keyof T]) ?? '--';
+      if (sorterOrder === 'ascend') {
+        aVal = aVal === '--' ? Infinity : aVal;
+        bVal = bVal === '--' ? Infinity : bVal;
+      } else if (sorterOrder === 'descend') {
+        aVal = aVal === '--' ? -Infinity : aVal;
+        bVal = bVal === '--' ? -Infinity : bVal;
+      } else {
+        return 0;
+      }
+      return Number(aVal) - Number(bVal);
+    } else {
+      return `${
+        (transform ? transform(a) : a[dataIndex as keyof T]) ?? ''
+      }`.localeCompare(
+        `${(transform ? transform(b) : b[dataIndex as keyof T]) ?? ''}`,
+      );
+    }
+  };
+};
+
+export const getNaturalNumber = <T extends number | bigint>(num: T): T => {
+  if (typeof num === 'bigint') {
+    return num > 0n ? num : (0n as T);
+  }
+
+  return num > 0 ? num : (0 as T);
+};
+
+export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
+  const strKeys = keys.map((key) => key.toString());
+  return Object.keys(obj)
+    .filter((key) => !strKeys.includes(key))
+    .reduce((result, key) => {
+      result[key] = obj[key];
+      return result;
+    }, {});
+};

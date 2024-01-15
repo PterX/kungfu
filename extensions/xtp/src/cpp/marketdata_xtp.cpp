@@ -62,7 +62,8 @@ void MarketDataXTP::on_start() {
   auto protocol_type = get_xtp_protocol_type(config.protocol);
   std::string runtime_folder = get_runtime_folder();
   SPDLOG_INFO("Connecting XTP MD for {} at {}://{}:{}", account_id, config.protocol, md_ip, config.md_port);
-  api_ = XTP::API::QuoteApi::CreateQuoteApi(config.client_id, runtime_folder.c_str());
+  api_ =
+      XTP::API::QuoteApi::CreateQuoteApi(config.client_id, runtime_folder.c_str(), XTP_LOG_LEVEL::XTP_LOG_LEVEL_INFO);
   if (config.protocol == "udp") {
     api_->SetUDPBufferSize(config.buffer_size);
   }
@@ -108,11 +109,8 @@ bool MarketDataXTP::subscribe(const std::vector<std::string> &instruments, const
   int size = instruments.size();
   std::vector<char *> insts;
   insts.reserve(size);
-  //  for (auto &s : instruments) {
-  //    insts.push_back((char *)&s[0]);
-  //  }
   std::transform(instruments.begin(), instruments.end(), std::back_inserter(insts),
-                 [](auto &s) { return (char *)std::addressof(s); });
+                 [](auto &s) { return const_cast<char *>(s.c_str()); });
   XTP_EXCHANGE_TYPE exchange;
   to_xtp_exchange(exchange, exchange_id.c_str());
   int level1_result = api_->SubscribeMarketData(insts.data(), size, exchange);
@@ -140,12 +138,18 @@ void MarketDataXTP::OnDisconnected(int reason) {
 }
 
 void MarketDataXTP::OnSubMarketData(XTPST *ticker, XTPRI *error_info, bool is_last) {
+  if (nullptr != ticker) {
+    SPDLOG_DEBUG("XTPST: {}, is_last: {}", to_string(*ticker), is_last);
+  }
   if (error_info != nullptr && error_info->error_id != 0) {
     SPDLOG_ERROR("failed to subscribe level 1, [{}] {}", error_info->error_id, error_info->error_msg);
   }
 }
 
 void MarketDataXTP::OnSubTickByTick(XTPST *ticker, XTPRI *error_info, bool is_last) {
+  if (nullptr != ticker) {
+    SPDLOG_DEBUG("XTPST: {}, is_last: {}", to_string(*ticker), is_last);
+  }
   if (error_info != nullptr && error_info->error_id != 0) {
     SPDLOG_ERROR("failed to subscribe level 2, [{}] {}", error_info->error_id, error_info->error_msg);
   }

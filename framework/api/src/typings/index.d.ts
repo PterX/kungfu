@@ -1034,11 +1034,11 @@ declare namespace KungfuApi {
     contract_type: ContractTypeEnum; // 合约类型
     instrument_type: InstrumentTypeEnum; // 标的类型
     opening_date: string; // 开仓日期
-    repayment_amt: bigint; // 已偿还金额（融资）
-    total_liability_amt: bigint; // 合约总欠款（融资）
-    repayment_qty: bigint; // 已偿还数量（融券）
-    total_liability_qty: bigint; // 合约总欠券 （融券）
-    unsettled_interest: bigint; // 未结利息罚息 未结利息+未结罚息
+    repayment_amt: number; // 已偿还金额（融资）
+    total_liability_amt: number; // 合约总欠款（融资）
+    repayment_qty: number; // 已偿还数量（融券）
+    total_liability_qty: number; // 合约总欠券 （融券）
+    unsettled_interest: number; // 未结利息罚息 未结利息+未结罚息
     expiration_date: string; // 归还截止日期
     close_out_flag: CloseOutFlagEnum; // 合约了结状态
   }

@@ -165,8 +165,8 @@ KF_DEFINE_PACK_TYPE(                                         //
     (double, total_liability_amt), // 融资总金额
     (double, unsettled_interest),  // 未结利息罚息
 
-    (int64_t, repayment_qty),       // 已偿还数量(融券)
-    (int64_t, total_liability_qty), // 融券总数量
+    (double, repayment_qty),       // 已偿还数量(融券)
+    (double, total_liability_qty), // 融券总数量
     (uint32_t, holder_uid));
 
 KF_DEFINE_PACK_TYPE(                                                                                 //
@@ -655,7 +655,7 @@ KF_DEFINE_PACK_TYPE(                                         //
 
     (double, total_bid_volume),  // 总委托买如量
     (double, total_ask_volume),  // 总委托卖出量
-    (int64_t, total_trades_num), // 总成交笔数
+    (int64_t, total_trade_num), // 总成交笔数
 
     (kungfu::array<double, 10>, bid_price),  // 申买价
     (kungfu::array<double, 10>, ask_price),  // 申卖价

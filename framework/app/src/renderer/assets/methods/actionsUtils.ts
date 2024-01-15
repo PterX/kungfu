@@ -2756,7 +2756,7 @@ export const useMakeOrderInfo = (
 
     if (currentPosition.value) {
       if (isMarginMakeOrder.value) {
-        return dealKfNumber(currentPosition.value.closable_volume);
+        return dealKfNumber(currentPosition.value.closable_volume) + '';
       }
       return (
         dealKfNumber(

@@ -43,7 +43,6 @@ import {
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  Side,
   MarginSideStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
@@ -353,36 +352,36 @@ const orderTriggerVisible = computed(() => {
   }
 });
 
-const getOffsetBySide = (
-  side: SideEnum,
-  instrumentResolved: KungfuApi.InstrumentResolved,
-) => {
-  const { instrumentType } = instrumentResolved;
+// const getOffsetBySide = (
+//   side: SideEnum,
+//   instrumentResolved: KungfuApi.InstrumentResolved,
+// ) => {
+//   const { instrumentType } = instrumentResolved;
 
-  const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
-    return pos.yesterday_volume
-      ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
-      : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
-  };
+  // const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
+  //   return pos.yesterday_volume
+  //     ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
+  //     : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
+  // };
 
-  if (isShotable(instrumentType)) {
-    if (side === SideEnum.Sell) {
-      if (currentPositionWithLongDirection.value) {
-        return currentPositionWithLongDirection.value
-          ? resolveOffsetByPosition(currentPositionWithLongDirection.value)
-          : OffsetEnum.Open;
-      }
-    } else if (side === SideEnum.Buy) {
-      return currentPositionWithShortDirection.value
-        ? resolveOffsetByPosition(currentPositionWithShortDirection.value)
-        : OffsetEnum.Open;
-    }
-  } else {
-    return side === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
-  }
+//   if (isShotable(instrumentType)) {
+//     if (side === SideEnum.Sell) {
+//       if (currentPositionWithLongDirection.value) {
+//         return currentPositionWithLongDirection.value
+//           ? resolveOffsetByPosition(currentPositionWithLongDirection.value)
+//           : OffsetEnum.Open;
+//       }
+//     } else if (side === SideEnum.Buy) {
+//       return currentPositionWithShortDirection.value
+//         ? resolveOffsetByPosition(currentPositionWithShortDirection.value)
+//         : OffsetEnum.Open;
+//     }
+//   } else {
+//     return side === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
+//   }
 
-  return -1;
-};
+//   return -1;
+// };
 
 watch(
   () => currentGlobalKfLocation.value,
@@ -424,13 +423,13 @@ watch(
       return;
     }
 
-    const offset = getOffsetBySide(
-      formState.value.side,
-      instrumentResolved.value,
-    );
-    if (offset !== -1) {
-      formState.value.offset = offset;
-    }
+    // const offset = getOffsetBySide(
+    //   formState.value.side,
+    //   instrumentResolved.value,
+    // );
+    // if (offset !== -1) {
+    //   formState.value.offset = offset;
+    // }
 
     if (formState.value.apart_order) {
       formState.value.every_volume = isShotable(

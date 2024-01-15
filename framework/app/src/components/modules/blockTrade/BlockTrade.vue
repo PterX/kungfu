@@ -66,9 +66,6 @@ useKeyboardControllerStyle(
   formRef,
 );
 
-let pricePrecision = 0;
-let step = 1;
-
 const getResolvedOffset = (
   offset: OffsetEnum,
   side: SideEnum,

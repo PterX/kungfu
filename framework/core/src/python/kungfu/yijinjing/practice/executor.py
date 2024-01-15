@@ -600,10 +600,9 @@ def load_md_vendor(ctx):
 
 
 def load_service_vendor(ctx):
-    if ctx.vendor is not None:
-        module = importlib.import_module(ctx.vendor)
-        service_vendor_builder = getattr(module, "service")
-        return service_vendor_builder
+    module = importlib.import_module(ctx.vendor or ctx.name)
+    service_vendor_builder = getattr(module, "service")
+    return service_vendor_builder
 
 
 def parse_begin_end(ctx):

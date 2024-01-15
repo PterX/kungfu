@@ -203,6 +203,9 @@ const configSettings = computed(() => {
   }
 
   const { side, apart_order, volume } = formState.value;
+  if (MakeOrderInject?.sideFilter) {
+    sideList.value = MakeOrderInject.sideFilter(makeOrderInstrumentType.value);
+  }
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,

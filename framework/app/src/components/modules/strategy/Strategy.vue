@@ -38,7 +38,7 @@ import {
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  dealAssetPrice,
+  dealKfPrice,
   getProcessIdByKfLocation,
   getConfigValue,
   buildTableColumnSorterWithStrike,
@@ -266,12 +266,12 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'unrealizedPnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).unrealized_pnl)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).unrealized_pnl)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'marketValue'">
             <KfBlinkNum
-              :num="dealAssetPrice(getAssetsByKfConfig(record).market_value)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).market_value)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">

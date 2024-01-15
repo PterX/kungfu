@@ -201,7 +201,7 @@ lower_limit_price
 iopv
 total_bid_volume
 total_ask_volume
-total_trades_num
+total_trade_num
 bid_price
 ask_price
 bid_volume

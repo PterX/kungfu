@@ -18,7 +18,10 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import { categoryRegisterConfig, getColumns } from './config';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfVolume,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealDirection,
   dealCurrency,
@@ -321,36 +324,30 @@ function handleShowTradingDataDetail({
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'static_yesterday'">
-            <KfBlinkNum
-              :num="Number(item.static_yesterday).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.static_yesterday"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'open_volume'">
-            <KfBlinkNum
-              :num="Number(item.open_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.open_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'close_volume'">
             <KfBlinkNum
               :num="
-                Number(
+                dealKfVolume(
                   item.open_volume + item.static_yesterday - item.volume,
-                ).kfToFixed(0)
+                )
               "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">
-            <KfBlinkNum
-              :num="Number(item.yesterday_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.yesterday_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="Number(item.volume - item.yesterday_volume).kfToFixed(0)"
+              :num="dealKfVolume(item.volume - item.yesterday_volume)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
-            <KfBlinkNum :num="Number(item.volume).kfToFixed(0)"></KfBlinkNum>
+            <KfBlinkNum :num="item.volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
             <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>

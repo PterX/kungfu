@@ -12,9 +12,21 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::broker {
 
-void OrderTriggerService::on_order_trigger_input(const event_ptr &event) { get_service().insert_order_trigger(event); }
+void OrderTriggerService::on_order_trigger_input(const event_ptr &event) {
+  auto risk_uid = get_service().get_risk_uid();
+  if (risk_uid != 0 and event->initial_source() != risk_uid) {
+    SPDLOG_DEBUG("risk_uid: {}, initial_source: {}", risk_uid, event->initial_source());
+    return;
+  }
+  get_service().insert_order_trigger(event);
+}
 
 void OrderTriggerService::on_order_trigger_action(const event_ptr &event) {
+  auto risk_uid = get_service().get_risk_uid();
+  if (risk_uid != 0 and event->initial_source() != risk_uid) {
+    SPDLOG_DEBUG("risk_uid: {}, initial_source: {}", risk_uid, event->initial_source());
+    return;
+  }
   get_service().cancel_order_trigger(event);
   const auto &order_trigger_action = event->data<OrderTriggerAction>();
   state<OrderTriggerAction> order_trigger_action_state(event->source(), event->dest(), event->gen_time(),

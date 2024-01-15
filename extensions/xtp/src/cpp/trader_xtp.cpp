@@ -32,7 +32,6 @@ void TraderXTP::pre_start() {
 }
 
 void TraderXTP::on_start() {
-
   if (config_.client_id < 1 or config_.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
   }

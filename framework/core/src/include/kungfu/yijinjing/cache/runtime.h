@@ -60,6 +60,15 @@ public:
     });
   }
 
+  uint32_t size() {
+    uint32_t size = 0;
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      size += state_map_[type].size();
+    });
+    return size;
+  }
+
   template <typename DataType>
   const std::unordered_map<uint64_t, state<DataType>> &operator[](const boost::hana::basic_type<DataType> &type) const {
     return state_map_[type];

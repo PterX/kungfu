@@ -112,15 +112,6 @@ page_ptr page::load_header_and_1st_frame_header(const data::location_ptr &locati
     SPDLOG_WARN("open a page never loaded : {}", path);
   }
 
-  if (header->version != __JOURNAL_VERSION__) {
-    uint32_t v = header->version;
-    throw journal_error(fmt::format("{} version mismatch, required {}, found {}", path, __JOURNAL_VERSION__, v));
-  }
-  if (header->page_header_length != sizeof(page_header)) {
-    uint32_t l = header->page_header_length;
-    throw journal_error(fmt::format("{} header length mismatch, required {}, found {}", path, sizeof(page_header), l));
-  }
-
   return std::shared_ptr<page>(new page(location, dest_id, page_id, sliced_page_size, lazy, is_writing, address));
 }
 
@@ -141,7 +132,8 @@ uint32_t page::find_page_id(const data::location_ptr &location, uint32_t dest_id
     auto loaded_page = page::load_header_and_1st_frame_header(location, dest_id, page_ids[i], false, true);
     const auto &loaded_page_header = loaded_page->header_;
     if (loaded_page_header->last_frame_position != 0 &&
-        loaded_page_header->status != longfist::enums::PageStatus::PreOpen && loaded_page->begin_time() < time) {
+        loaded_page_header->status != longfist::enums::PageStatus::PreOpen &&
+        loaded_page_header->version == __JOURNAL_VERSION__ && loaded_page->begin_time() < time) {
       return page_ids[i];
     }
   }

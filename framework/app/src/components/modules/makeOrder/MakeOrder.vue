@@ -87,31 +87,54 @@ const {
 const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
-const formState = ref(
-  initFormStateByConfig(
-    getConfigSettings(
-      currentGlobalKfLocation.value,
-      InstrumentTypeEnum.future,
-      extConfigs.value,
-    ),
-    {},
-  ),
-);
-const autoFillInstrument = ref<boolean>(false);
+
+const currentAccountId = ref<string>('');
 
 const isMarginMakeOrder = computed(() => {
+  const accountId = currentAccountId.value;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.marginMakeOrder || false
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
+    false
   );
 });
 
 const isSpecifyContract = computed(() => {
+  const accountId = currentAccountId.value;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.specifyContract || false
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
+    false
   );
 });
+
+const formState = ref(
+  initFormStateByConfig(
+    getConfigSettings({
+      location: currentGlobalKfLocation.value,
+      instrumentType: InstrumentTypeEnum.future,
+      isMarginMakeOrder: isMarginMakeOrder.value,
+      isSpecifyContract: isSpecifyContract.value,
+    }),
+    {},
+  ),
+);
+
+const contractSideTypes = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayMargin,
+  SideEnum.RepayStock,
+];
+const autoFillInstrument = ref<boolean>(false);
 
 const formRef = ref();
 const { subscribeAllInstrumentByAppStates } = useInstruments();
@@ -149,7 +172,7 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getConfigSettings();
+    return getConfigSettings({});
   }
 
   let step = 0.0001,
@@ -165,15 +188,16 @@ const configSettings = computed(() => {
   }
 
   const { side } = formState.value;
-  return getConfigSettings(
-    currentGlobalKfLocation.value,
-    makeOrderInstrumentType.value,
-    extConfigs.value,
+  return getConfigSettings({
+    location: currentGlobalKfLocation.value,
+    instrumentType: makeOrderInstrumentType.value,
+    isMarginMakeOrder: isMarginMakeOrder.value,
+    isSpecifyContract: isSpecifyContract.value,
     side,
-    +formState.value.price_type,
+    priceType: +formState.value.price_type,
     pricePrecision,
     step,
-  );
+  });
 });
 
 const rules = computed(() => {
@@ -323,21 +347,17 @@ watch(
 
 watch(
   () => isMarginMakeOrder.value,
-  () => {
-    nextTick().then(() => {
-      formRef.value.clearValidate();
-      formState.value = initFormStateByConfig(
-        getConfigSettings(
-          currentGlobalKfLocation.value,
-          InstrumentTypeEnum.future,
-          extConfigs.value,
-        ),
-        {},
-      );
-      formState.value.offset = OffsetEnum.Open;
-    });
+  (newVal) => {
+    if (newVal) {
+      if (!contractSideTypes.includes(formState.value.side)) {
+        formState.value.side = SideEnum.GuaranteeStockBuy;
+      }
+    } else {
+      if (contractSideTypes.includes(formState.value.side)) {
+        formState.value.side = SideEnum.Buy;
+      }
+    }
   },
-
   {
     immediate: true,
   },
@@ -347,11 +367,6 @@ watch(
   () => formState.value.side,
   (newSide) => {
     if (isMarginMakeOrder.value) {
-      if (newSide === SideEnum.Buy) {
-        formState.value.side = SideEnum.GuaranteeStockBuy;
-      } else if (newSide === SideEnum.Sell) {
-        formState.value.side = SideEnum.GuaranteeStockSell;
-      }
       [
         SideEnum.GuaranteeStockBuy,
         SideEnum.MarginTrade,
@@ -455,6 +470,13 @@ watch(
       });
       configSettings.value.splice(limitPriceIndex, 1);
     }
+  },
+);
+
+watch(
+  () => formState.value.account_id,
+  (newVal) => {
+    currentAccountId.value = newVal;
   },
 );
 

@@ -107,13 +107,9 @@ public:
 };
 
 void bind_broker(pybind11::module &m) {
-  py::class_<BrokerVendor, PyBrokerVendor, std::shared_ptr<BrokerVendor>>(m, "BrokerVendor")
-      .def(py::init<location_ptr, bool, const std::string &>())
-      .def_property_readonly("home", &BrokerVendor::get_home)
-      .def("set_begin_time", &BrokerVendor::set_begin_time)
-      .def("set_end_time", &BrokerVendor::set_end_time)
-      .def("get_location", &BrokerVendor::get_location)
-      .def("run", &BrokerVendor::run);
+  py::class_<BrokerVendor, PyBrokerVendor, kungfu::yijinjing::practice::apprentice, std::shared_ptr<BrokerVendor>>(
+      m, "BrokerVendor")
+      .def(py::init<location_ptr, bool, const std::string &>());
 
   py::class_<MarketData, PyMarketData, std::shared_ptr<MarketData>>(m, "MarketData")
       .def(py::init<BrokerVendor &>())
@@ -187,12 +183,12 @@ void bind_broker(pybind11::module &m) {
       .def("get_vendor", &Trader::get_vendor);
 
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def(py::init<locator_ptr, const std::string &, const std::string &, mode, bool, const std::string &>())
       .def("set_service", &MarketDataVendor::set_service)
       .def("get_arguments", &MarketDataVendor::get_arguments);
 
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def(py::init<locator_ptr, const std::string &, const std::string &, mode, bool, const std::string &>())
       .def("set_service", &TraderVendor::set_service)
       .def("get_arguments", &TraderVendor::get_arguments);
 }

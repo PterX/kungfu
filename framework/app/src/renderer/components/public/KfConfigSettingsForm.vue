@@ -330,6 +330,9 @@ if ('instrument' in formState.value) {
   watch(
     () => formState.value.instrument,
     (newInstrument: string) => {
+      const isMargin = props.configSettings.some(
+        (item) => item.type === 'marginSide',
+      );
       if (newInstrument) {
         const instrumentResolved =
           transformSearchInstrumentResultToInstrument(newInstrument);
@@ -350,6 +353,7 @@ if ('instrument' in formState.value) {
           }
 
           if (
+            !isMargin &&
             'side' in formState.value &&
             !sideRadiosList.value.includes(`${formState.value.side}`)
           ) {

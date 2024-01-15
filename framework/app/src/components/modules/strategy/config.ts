@@ -21,7 +21,7 @@ export const getColumns = (
     title: t('remarks'),
     dataIndex: 'remarks',
     align: 'left',
-    width: 80,
+    width: 120,
     fixed: 'left',
   },
   {

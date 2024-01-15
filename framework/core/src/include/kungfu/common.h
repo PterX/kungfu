@@ -415,6 +415,8 @@ struct event {
 
   [[nodiscard]] virtual const char *data_as_bytes() const = 0;
 
+  [[nodiscard]] virtual std::vector<uint8_t> data_as_byte_array() const = 0;
+
   [[nodiscard]] virtual std::string data_as_string() const = 0;
 
   [[nodiscard]] virtual std::string to_string() const = 0;

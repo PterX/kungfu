@@ -707,7 +707,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
       <template #header>
         <KfDashboardItem>
           <a-checkbox v-model:checked="unfinishedOrder" size="small">
-            {{ $t('orderConfig.show_pending_orders') }}
+            {{ $t('orderConfig.show_unfinished_orders') }}
           </a-checkbox>
         </KfDashboardItem>
         <KfDashboardItem>

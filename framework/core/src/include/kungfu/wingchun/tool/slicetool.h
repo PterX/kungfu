@@ -16,7 +16,7 @@ class SliceTool {
 
 public:
   SliceTool(longfist::enums::category category, std::string group, std::string name, SliceIndexer_ptr indexer,
-            bool overwrite = true, std::string arguments = "");
+            bool overwrite = true, std::string arguments = "{}");
 
   virtual ~SliceTool() = default;
 

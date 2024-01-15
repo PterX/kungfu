@@ -7,6 +7,7 @@ type RegisterReturnType = ClearRegister | false;
 
 export enum LifeCycleKeys {
   BeforeAppMount = 'beforeAppMount',
+  AppMounted = 'AppMounted',
   BeforeStopAllProcesses = 'beforeStopAllProcesses',
 }
 

@@ -13,6 +13,8 @@
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
+#include <kungfu/yijinjing/nanomsg/webserver.h>
+
 
 #ifndef KUNGFU_SETUP_LOG
 #define KUNGFU_SETUP_LOG() kungfu::yijinjing::log::copy_log_settings(get_home(), get_home()->name)
@@ -166,6 +168,12 @@ public:
     });
   };
 
+  void create_server(const std::string url, const std::string& path, bool is_text_mode, const size_t max_num_connections = 0);
+
+  bool is_server_exist();
+
+  kungfu::yijinjing::webserver::server_ptr &get_server();
+
 protected:
   int64_t begin_time_;
   int64_t end_time_;
@@ -228,6 +236,8 @@ protected:
   virtual void on_frame() = 0;
 
 private:
+  kungfu::yijinjing::webserver::server_ptr server_;
+
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;
@@ -242,7 +252,7 @@ private:
 
   void produce(const rx::subscriber<event_ptr> &sb);
 
-  bool drain(const rx::subscriber<event_ptr> &sb);
+  virtual bool drain(const rx::subscriber<event_ptr> &sb);
 
   void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 

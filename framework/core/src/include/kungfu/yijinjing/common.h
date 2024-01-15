@@ -102,11 +102,26 @@ public:
 
   [[nodiscard]] std::string get_root() const { return root_.string(); }
 
+  [[nodiscard]] virtual uint32_t source_ip() { return 0; }
+
+  [[nodiscard]] virtual uint32_t dest_ip() { return 0; }
+
   bool operator==(const locator &another) const;
 
 private:
   std::filesystem::path root_;
   longfist::enums::mode dir_mode_;
+};
+
+class remote_locator : public locator {
+public:
+  remote_locator(uint32_t source_ip, uint32_t dest_ip);
+  uint32_t source_ip() { return source_ip_; };
+  uint32_t dest_ip() { return dest_ip_; };
+
+private:
+  uint32_t source_ip_;
+  uint32_t dest_ip_;
 };
 
 struct location : public std::enable_shared_from_this<location>, public longfist::types::Location {

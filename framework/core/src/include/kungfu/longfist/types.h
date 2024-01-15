@@ -69,6 +69,10 @@ KF_DEFINE_PACK_TYPE(                                           //
     (uint32_t, source),                                        //
     /** dest of this frame */                                  //
     (uint32_t, dest),                                          //
+    /** source_ip of this frame */                             //
+    (uint32_t, source_ip),                                     //
+    /** dest_ip of this frame */                               //
+    (uint32_t, dest_ip),                                       //
     /** json or raw struct */                                  //
     (enums::FrameDataType, data_type),                         //
     /** the real writer of this frame */                       //

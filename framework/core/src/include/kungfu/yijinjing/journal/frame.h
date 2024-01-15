@@ -88,6 +88,10 @@ private:
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
 
+  void set_source_ip(uint32_t source_ip) { header_->source_ip = source_ip; }
+
+  void set_dest_ip(uint32_t dest_ip) { header_->dest_ip = dest_ip; }
+
   void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
 
   void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }

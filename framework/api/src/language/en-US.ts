@@ -441,7 +441,7 @@ export default {
     min: 'min',
     volume: 'volume',
 
-    show_pending_orders: 'Only show pending orders',
+    show_unfinished_orders: 'Unfinished orders',
     cancel_all: 'All cancellations',
     cancel_order: 'Cancel order',
     cancel_order_trigger: 'Embedded cancellation',

@@ -895,14 +895,19 @@ async function handleMakeOrder(side?: SideEnum): Promise<void> {
           volumeList.push(remainder);
         }
         await handleApartedConfirm(volumeList);
+        const makeOrderBtn = document.getElementById(makeOrderBtnId);
+        if (makeOrderBtn) {
+        (makeOrderBtn as HTMLElement).focus();
+      }
         return;
       }
     }
     const makeOrderInputs = await confirmApartCloseToOpen(makeOrderInput);
     for (let orderInput of makeOrderInputs) {
-      const makeOrderBtn = document.getElementById(makeOrderBtnId);
+      
 
       const tdProcessId = await confirmOrderPlace(orderInput);
+      const makeOrderBtn = document.getElementById(makeOrderBtnId);
       if (!tdProcessId) {
         if (makeOrderBtn) {
           (makeOrderBtn as HTMLElement).focus();
@@ -910,7 +915,6 @@ async function handleMakeOrder(side?: SideEnum): Promise<void> {
         continue;
       }
       await placeOrder(orderInput, currentGlobalKfLocation.value, tdProcessId);
-      //聚焦下单按钮
       if (makeOrderBtn) {
         (makeOrderBtn as HTMLElement).focus();
       }

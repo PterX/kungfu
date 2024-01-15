@@ -42,9 +42,7 @@ import {
   PriceTypeEnum,
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import {
-  MarginSideStatus,
-} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { MarginSideStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
@@ -358,11 +356,11 @@ const orderTriggerVisible = computed(() => {
 // ) => {
 //   const { instrumentType } = instrumentResolved;
 
-  // const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
-  //   return pos.yesterday_volume
-  //     ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
-  //     : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
-  // };
+// const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
+//   return pos.yesterday_volume
+//     ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
+//     : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
+// };
 
 //   if (isShotable(instrumentType)) {
 //     if (side === SideEnum.Sell) {
@@ -897,15 +895,13 @@ async function handleMakeOrder(side?: SideEnum): Promise<void> {
         await handleApartedConfirm(volumeList);
         const makeOrderBtn = document.getElementById(makeOrderBtnId);
         if (makeOrderBtn) {
-        (makeOrderBtn as HTMLElement).focus();
-      }
+          (makeOrderBtn as HTMLElement).focus();
+        }
         return;
       }
     }
     const makeOrderInputs = await confirmApartCloseToOpen(makeOrderInput);
     for (let orderInput of makeOrderInputs) {
-      
-
       const tdProcessId = await confirmOrderPlace(orderInput);
       const makeOrderBtn = document.getElementById(makeOrderBtnId);
       if (!tdProcessId) {

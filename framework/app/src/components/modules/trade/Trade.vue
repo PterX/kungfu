@@ -14,13 +14,15 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
+
 import {
   DownloadOutlined,
   LoadingOutlined,
   CalendarOutlined,
   PieChartOutlined,
 } from '@ant-design/icons-vue';
+import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 import {
   computed,
@@ -31,11 +33,11 @@ import {
   toRaw,
   watch,
 } from 'vue';
-import { getColumns } from './config';
 import {
   dealTrade,
   getKungfuHistoryData,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { getColumns } from './config';
 import type { Dayjs } from 'dayjs';
 import {
   showTradingDataDetail,
@@ -221,13 +223,10 @@ watch(historyDate, async (newDate) => {
     });
 });
 
-function handleShowTradingDataDetail({
-  row,
-}: {
-  event: MouseEvent;
-  row: KungfuApi.TradingDataItem;
-}) {
-  showTradingDataDetail(row, '成交');
+function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
+  const { originData } = args;
+  if (!originData) return;
+  showTradingDataDetail(originData as KungfuApi.TradeResolved, '成交');
 }
 </script>
 <template>
@@ -283,43 +282,12 @@ function handleShowTradingDataDetail({
           </a-button>
         </KfDashboardItem>
       </template>
-      <KfTradingDataTable
+      <KfCanvasTradingDataTable
+        ref="canvasRef"
         :columns="columns"
         :data-source="tableData"
-        key-field="trade_id"
-        @rightClickRow="handleShowTradingDataDetail"
-      >
-        <template
-          #default="{
-            item,
-            column,
-          }: {
-            item: KungfuApi.TradeResolved,
-            column: KfTradingDataTableHeaderConfig,
-          }"
-        >
-          <template v-if="column.dataIndex === 'side'">
-            <span :class="`color-${dealSide(item.side).color}`">
-              {{ dealSide(item.side).name }}
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'offset'">
-            <span :class="`color-${dealOffset(item.offset).color}`">
-              {{ dealOffset(item.offset).name }}
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'source_uname'">
-            <span :class="[`color-${item.source_resolved_data.color}`]">
-              {{ item.source_uname }}
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'dest_uname'">
-            <span :class="[`color-${item.dest_resolved_data.color}`]">
-              {{ item.dest_uname }}
-            </span>
-          </template>
-        </template>
-      </KfTradingDataTable>
+        @right-click-row="handleShowTradingDataDetail"
+      />
     </KfDashboard>
     <TradeStatisticModal
       v-if="statisticModalVisible"

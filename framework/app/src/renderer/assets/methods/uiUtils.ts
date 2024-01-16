@@ -117,33 +117,38 @@ import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 
 const globalStorage = getGlobalStorage();
 
-export const loadCustomFont = () => {
+export const getCustomFont = async (): Promise<string> => {
   const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));
-  if (!fse.existsSync(fontsDir)) return Promise.resolve();
+  if (!fse.existsSync(fontsDir)) return '';
 
-  return fse.readdir(fontsDir).then((fontFiles) => {
-    return Promise.all(
-      fontFiles.map((fontFileName) => {
-        const fontName = fontFileName.split('.')[0];
-        const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
+  const fontFiles = await fse.readdir(fontsDir);
+  const loadedFonts: string[] = [];
 
-        if (fse.existsSync(fontFullPath)) {
-          return fsPromise.readFile(fontFullPath).then((fontBuffer) => {
-            const font = new FontFace(fontName, fontBuffer);
-            return font.load().then(() => {
-              document.fonts.add(font);
-              return fontName;
-            });
-          });
-        }
+  await Promise.all(
+    fontFiles.map(async (fontFileName) => {
+      const fontName = fontFileName.split('.')[0];
+      const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
 
-        return Promise.resolve('');
-      }),
-    ).then((fontNames) => {
-      const newLoadedFont = fontNames.filter((item) => !!item).join(', ');
-      document.body.style.fontFamily = `${newLoadedFont}, monospace, sans-serif`;
-    });
-  });
+      if (fse.existsSync(fontFullPath)) {
+        const fontBuffer = await fsPromise.readFile(fontFullPath);
+        const font = new FontFace(fontName, fontBuffer);
+        await font.load();
+        document.fonts.add(font);
+        loadedFonts.push(fontName);
+      }
+    }),
+  );
+
+  return loadedFonts.length > 0
+    ? `${loadedFonts.join(', ')}, monospace, sans-serif`
+    : '';
+};
+
+export const loadCustomFont = async () => {
+  const loadedFont = await getCustomFont();
+  if (loadedFont) {
+    document.body.style.fontFamily = loadedFont;
+  }
 };
 
 export const mergeExtLanguages = async () => {

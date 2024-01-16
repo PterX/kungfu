@@ -146,6 +146,13 @@ export const resolveAccountId = (
   };
 };
 
+export const getAccountIdStyle = (name: string): string => {
+  if (name.includes(`${t('手动')}`)) {
+    return 'orange';
+  }
+  return '#ffffffd9';
+};
+
 export const resolveClientId = (
   watcher: KungfuApi.Watcher | null,
   dest: number,

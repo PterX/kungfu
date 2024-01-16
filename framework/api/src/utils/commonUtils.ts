@@ -798,3 +798,28 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
       return result;
     }, {});
 };
+
+export const sorter = (
+  a,
+  b,
+  sorterOrder: 'asc' | 'desc' | 'normal',
+): 0 | 1 | -1 => {
+  if (sorterOrder === 'asc') {
+    a = a === '--' ? Infinity : a;
+    b = b === '--' ? Infinity : b;
+    if (typeof a === 'string' && typeof b === 'string') {
+      return Math.sign(a.localeCompare(b)) as 0 | 1 | -1;
+    }
+
+    return Math.sign(Number(a) - Number(b)) as 0 | 1 | -1;
+  } else if (sorterOrder === 'desc') {
+    a = a === '--' ? -Infinity : a;
+    b = b === '--' ? -Infinity : b;
+    if (typeof a === 'string' && typeof b === 'string') {
+      return Math.sign(b.localeCompare(a)) as 0 | 1 | -1;
+    }
+    return Math.sign(Number(b) - Number(a)) as 0 | 1 | -1;
+  } else {
+    return 0;
+  }
+};

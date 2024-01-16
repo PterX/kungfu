@@ -346,6 +346,29 @@ export const OrderStatus: Record<
   },
 };
 
+export const getOrderStatusStyle = (name: string) => {
+  switch (name) {
+    case t('tradingConfig.unknown'):
+    case t('tradingConfig.submitted'):
+    case t('tradingConfig.pending'):
+    case t('tradingConfig.cancelling'):
+    case t('tradingConfig.cancelled'):
+      return 'default';
+    case t('tradingConfig.error'):
+      return 'red';
+    case t('tradingConfig.filled'):
+    case t('tradingConfig.partial_filled_not_active'):
+      return 'green';
+    case t('tradingConfig.partial_filled_active'):
+    case t('tradingConfig.lost'):
+    case t('tradingConfig.pause'):
+    case t('tradingConfig.pending_settlement'):
+      return 'default';
+    default:
+      return 'red';
+  }
+};
+
 export const UnfinishedOrderStatus = [
   OrderStatusEnum.Submitted,
   OrderStatusEnum.Pending,

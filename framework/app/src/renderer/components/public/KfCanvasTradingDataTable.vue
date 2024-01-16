@@ -1,0 +1,329 @@
+<template>
+        <div ref="listTableRef" style="width: 100%; height: 100%"></div>
+</template>
+
+<script setup lang="ts">
+import {  onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
+import {getCustomFont} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils'
+import {VTable,resgisterVTableIconsAndEditers,ICustomActionOption} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable'
+
+
+if(!globalThis.hasRegisterVTableIconsAndEditers){
+  resgisterVTableIconsAndEditers();
+}
+
+const app = getCurrentInstance();
+let widthMode:'adaptive'| 'autoWidth' | 'standard' = 'standard';
+let columnResizeMode:'all' | 'body' | 'header' | 'none' = 'none';
+let font:string = '';
+const ColumnCustomMap = ref<Record<string,{customLayout:VTable.TYPES.ICustomLayoutFuc}>>({});
+
+type TableDataItem =
+  | KungfuApi.TradingDataItem
+  | KungfuApi.Frame
+  | KungfuApi.Session;
+
+const props = withDefaults(
+  defineProps<{
+    columns: VTable.ColumnsDefine;
+    dataSource: TableDataItem[];
+    customLayout?:Record<string,ICustomActionOption[]>;
+    widthMode?: 'adaptive'| 'autoWidth' | 'standard';
+    columnResizeMode?:'all' | 'body' | 'header' | 'none';
+    optionItems?: VTable.ListTableConstructorOptions;
+    event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
+    ScrollableContianerWidth?: number;
+  }>(),
+  {
+    columns: () => [],
+    optionItems: () => ({}),
+    dataSource: () => [],
+    event: () => ({}),
+  },
+);
+
+defineEmits<{
+  (e:'clickCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['click_cell']): void;
+  (e:'dblclickCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['dblclick_cell']): void;
+  (e:'rightClickRow', data:VTable.TYPES.TableEventHandlersEventArgumentMap['contextmenu_cell']): void;
+  (e:'mouseenterTable', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseenter_table']): void;
+  (e:'mouseleaveTable', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseleave_table']): void;
+  (e:'mouseenterCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseenter_cell']): void;
+  (e:'mouseleaveCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseleave_cell']): void;
+  (e:'mousemoveCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mousemove_cell']): void;
+  (e:'mousedownCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mousedown_cell']): void;
+  (e:'mouseupCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseup_cell']): void;
+  (e:'keydown', data:VTable.TYPES.TableEventHandlersEventArgumentMap['keydown']): void;
+  (e:'scroll', data:VTable.TYPES.TableEventHandlersEventArgumentMap['scroll']): void;
+}>();
+
+
+const defaultTheme:VTable.TYPES.ITableThemeDefine={
+  columnResize: {
+    lineColor: 'transparent',
+        bgColor: 'transparent',
+        lineWidth: 0,
+        labelColor: 'transparent',
+        labelFontSize: 0,
+        labelFontFamily:'Monospace, sans-serif',
+        labelBackgroundFill: 'transparent',
+    },
+    underlayBackgroundColor:'transparent',
+      bodyStyle: {
+        bgColor:'transparent',
+        autoWrapText:true,
+      },
+      headerStyle:{
+        bgColor:'#1d1d1d',
+        borderLineDash:[1,1],
+        borderLineWidth:1,
+        borderColor:'#141414',
+        color:'#ffffffd9',
+        hover:{
+          cellBgColor:'#333',
+          inlineColumnBgColor:'transparent',
+        },
+        cursor:'pointer',
+      },
+      defaultStyle:{
+            borderLineWidth:0,
+            bgColor: 'transparent',
+            color:'#ffffffd9',
+            fontSize:12,
+            autoWrapText:true,
+            hover:{
+          inlineRowBgColor: '#333',
+        },
+        fontFamily:'Monospace, sans-serif'
+          },
+          tooltipStyle:{
+            bgColor:'#333',
+            color:'#ffffffd9',
+            fontSize:12,
+            fontFamily:'Monospace, sans-serif',
+            padding:[4,4,4,4]
+          },
+          scrollStyle: {
+        scrollSliderColor:'#555',
+      },
+
+    };
+    
+const defaultOptionItems= ref<VTable.ListTableConstructorOptions>({
+    theme:defaultTheme,
+    hover:{
+    highlightMode:'row',
+   },
+   select:{
+    disableSelect:true,
+   },
+   defaultRowHeight:28,
+   columnResizeMode,
+   widthMode,
+   limitMaxAutoWidth:240,
+  //  autoFillHeight:true,
+  //  frozenColCount: 1,
+  //  rightFrozenColCount: 1,
+  tooltip:{
+    isShowOverflowTextTooltip:true}
+});
+const listTableRef = ref();
+const option = computed<VTable.ListTableConstructorOptions>(
+  () => {
+    return {
+      columns: props.columns,
+      ...defaultOptionItems.value,
+        ...props.optionItems,
+
+    };
+});
+    let listTable:VTable.ListTable | null = null;
+
+const contianerWidth = ref<number>(10);
+
+const initCustomLayoutOptions = ()=>{
+  const customLayoutOption = props.customLayout || {};
+  Object.keys(customLayoutOption).forEach((key) => {
+    if(!customLayoutOption[key]) return;
+    ColumnCustomMap.value[key] = {
+      customLayout:(args:VTable.TYPES.CustomRenderFunctionArg )=>{
+        const {table, row, col, rect} = args;
+        const {height, width} = rect || table.getCellRect(col, row);
+        const record = table.getRecordByCell(col, row);
+
+        const container = new VTable.CustomLayout.Group({
+          height,
+          width,
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems:'center',
+          flexWrap:'nowrap',
+          alignContent:'center'
+        });
+      let obj;
+      for(obj of customLayoutOption[key]){
+        const {type,dealValue, ...rest} = obj;
+        if(type === 'text'){
+          try {
+            const text = (dealValue && typeof dealValue === 'function')? dealValue(record):dealValue;
+            if(text){
+            const customLayout = new VTable.CustomLayout.Text({...rest,text});
+        container.add(customLayout);
+          }
+          } catch (error) {
+            console.log(error);
+          }
+        }else if(type === 'image'){
+          try {
+            const image = (dealValue && typeof dealValue === 'function')? dealValue(record):dealValue;
+            if(image){
+            const customLayout = new VTable.CustomLayout.Image({...rest,image});
+        container.add(customLayout);
+          }
+          } catch (error) {
+            console.log(error);
+          }
+
+        }
+      }
+
+        return {
+          rootContainer: container,
+          renderDefault: false,
+        };
+      }
+    }
+  });
+  option.value.columns?.forEach((column) => {
+    if(column.field && typeof column.field === 'string' && ColumnCustomMap.value[column.field]){
+      column.customLayout = ColumnCustomMap.value[column.field].customLayout;
+    }
+  });
+}
+
+onMounted(async() => {
+   font =await getCustomFont();
+   if (font) {
+  if (defaultTheme.defaultStyle) {
+    defaultTheme.defaultStyle.fontFamily = font;
+  }
+  if (defaultTheme.columnResize) {
+    defaultTheme.columnResize.labelFontFamily = font;
+  }
+  if (defaultTheme.tooltipStyle) {
+    defaultTheme.tooltipStyle.fontFamily = font;
+  }
+}
+  initCustomLayoutOptions()
+  widthMode = props.widthMode || 'standard';
+  columnResizeMode = props.columnResizeMode || 'none';
+  defaultOptionItems.value.widthMode = widthMode;
+  defaultOptionItems.value.columnResizeMode = columnResizeMode;
+  console.log('columnResizeMode',columnResizeMode,option.value);
+  if(listTableRef.value){
+    listTable = new VTable.ListTable(listTableRef.value, option.value as VTable.ListTableConstructorOptions);
+  }
+
+const rowList = listTable?.getAllColumnHeaderCells();
+if(rowList && rowList[0]){
+
+  contianerWidth.value = rowList[0].reduce((pre,cur) => {
+    return pre + Number(cur?.cellRange?.width);
+  },0);
+  // listTable.on('mouseenter_cell', (args) => {
+  //   console.log('mouseenter_cell',args);
+  //   if(!listTable) return;
+  //       const { col, row } = args;
+  //         // const rect = listTable.getVisibleCellRangeRelativeRect({ col, row });
+  //         listTable.showTooltip(col, row, {
+  //           content: listTable.getCellValue(col,row),
+  //           style: {
+  //             bgColor: 'black',
+  //             color: 'white',
+  //             arrowMark: true,
+  //           },
+  //         });
+        
+  //   });
+
+}
+    registerEvent();
+    new ResizeObserver(entries => {
+      if(!listTable) return;
+      const {width} = entries[0].contentRect;
+      const defaultWidth = props.ScrollableContianerWidth || contianerWidth.value;
+      if(!defaultWidth) return;
+      if(width < defaultWidth && listTable.widthMode === 'standard') {
+  listTable.widthMode = widthMode;
+  listTable.renderWithRecreateCells()
+
+        
+      } else if(width >= defaultWidth && listTable.widthMode !== 'standard') {
+
+  listTable.widthMode = 'standard';
+  listTable.renderWithRecreateCells()
+
+
+      }
+    }).observe(listTableRef.value.parentNode as HTMLElement);
+})
+const getListTable = () => {
+  return listTable;
+};
+
+defineExpose(
+  {
+    getListTable,
+  }
+
+)
+
+
+watch(()=>props.dataSource, (tabledata) => {
+
+     if(listTable) {
+        listTable.setRecords(tabledata);
+     }
+    
+    
+}, { immediate: true })
+
+
+const registerEvent = () => {
+  if (!listTable) return;
+
+  const eventMap = {
+    click_cell: 'clickCell',
+    dblclick_cell: 'dblclickCell',
+    contextmenu_cell: 'rightClickRow',
+    mouseenter_table: 'mouseenterTable',
+    mouseleave_table: 'mouseleaveTable',
+    mouseenter_cell: 'mouseenterCell',
+    mouseleave_cell: 'mouseleaveCell',
+    mousemove_cell: 'mousemoveCell',
+    mousedown_cell: 'mousedownCell',
+    mouseup_cell: 'mouseupCell',
+    keydown: 'keydown',
+    scroll: 'scroll',
+  };
+
+  Object.entries(eventMap).forEach(([event, emitEvent]) => {
+    listTable?.on(event as keyof VTable.TYPES.TableEventHandlersEventArgumentMap, (e) => {
+      app && app.emit(emitEvent, e);
+    });
+  });
+
+  if(props.event) {
+        Object.keys(props.event).forEach((key) => {
+            listTable?.on(key as keyof typeof props.event, props.event[key] as unknown as VTable.TYPES.TableEventListener<keyof typeof props.event>);
+        });
+    }
+};
+
+</script>
+
+<style>
+.DD{
+  background-color: #b6afaf;
+}
+</style>

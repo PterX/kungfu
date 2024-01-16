@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
 import {
   useModalVisible,
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import {
+  dealOffset,
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import { OrderStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -11,10 +15,6 @@ import {
   dealKfPrice,
   dealKfVolume,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import {
-  dealOffset,
-  dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';
@@ -153,10 +153,8 @@ const priceVolumeStats = computed(() => {
   const priceVolumeDataResolved: Array<{
     id: string;
     instrumentId_exchangeId: string;
-    sideName: string;
-    sideColor: KungfuApi.AntInKungfuColorTypes;
-    offsetName: string;
-    offsetColor: KungfuApi.AntInKungfuColorTypes;
+    side: number;
+    offset: number;
     mean: string;
     min: string;
     max: string;
@@ -179,15 +177,11 @@ const priceVolumeStats = computed(() => {
         priceVolumeData[id].volumeTraded.reduce((a, b) => a + b),
       );
       const range = priceStats.range();
-      const sideReolved = dealSide(+side);
-      const offsetResolved = dealOffset(+offset);
       return {
         id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        sideName: sideReolved.name,
-        sideColor: sideReolved.color || 'default',
-        offsetName: offsetResolved.name,
-        offsetColor: offsetResolved.color || 'default',
+        side: +side,
+        offset: +offset,
         mean: dealKfPrice(priceSum / volumeSum, price_precision),
         min: dealKfPrice(range[0], price_precision),
         max: dealKfPrice(range[1], price_precision),
@@ -201,15 +195,14 @@ const priceVolumeStats = computed(() => {
   return priceVolumeDataResolved;
 });
 
-const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
-  'instrumentId_exchangeId',
-  'sideName',
-  'offsetName',
-  'mean',
-  'min',
-  'max',
-  'volume',
-]);
+const { searchKeyword, tableData } = useTableSearchKeyword(
+  priceVolumeStats,
+  ['instrumentId_exchangeId', 'mean', 'min', 'side', 'offset', 'max', 'volume'],
+  {
+    side: (item) => dealSide(Number(item)).name,
+    offset: (item) => dealOffset(Number(item)).name,
+  },
+);
 </script>
 <template>
   <a-modal
@@ -244,25 +237,11 @@ const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
         />
       </div>
       <div class="table" style="height: 260px">
-        <KfTradingDataTable
-          v-if="priceVolumeStats"
-          key-field="id"
-          :data-source="tableData"
+        <KfCanvasTradingDataTable
+          columnResizeMode="all"
           :columns="statisColums"
-        >
-          <template #default="{ column, item }">
-            <template v-if="column.dataIndex === 'sideName'">
-              <span :class="`color-${item.sideColor}`">
-                {{ item.sideName }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'offsetName'">
-              <span :class="`color-${item.offsetColor}`">
-                {{ item.offsetName }}
-              </span>
-            </template>
-          </template>
-        </KfTradingDataTable>
+          :data-source="tableData"
+        />
       </div>
     </a-row>
 

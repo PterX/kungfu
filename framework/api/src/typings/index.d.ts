@@ -15,6 +15,11 @@ declare module 'tasklist' {
   export = tasklist;
 }
 
+declare module '*.svg' {
+  const content: string;
+  export default content;
+}
+
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,

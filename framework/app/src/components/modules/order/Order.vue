@@ -21,13 +21,18 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
-import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
+
 import {
   DownloadOutlined,
   LoadingOutlined,
   CalendarOutlined,
   PieChartOutlined,
 } from '@ant-design/icons-vue';
+import {
+  VTable,
+  ICustomActionOption,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 import {
   computed,
@@ -125,6 +130,140 @@ const orderCurrentOrderTriggers = ref<
   Record<string, KungfuApi.OrderTriggerResolved[]>
 >({});
 
+// const column1: VTable.ColumnsDefine = [
+//   {
+//     field: 'update_time_resolved',
+//     title: t('orderConfig.update_time'),
+//     width: !!historyDate.value ? 160 : 120,
+//     sort: sorter,
+//   },
+//   {
+//     field: 'instrument_id',
+//     title: t('orderConfig.instrument_id'),
+//     sort: sorter,
+//     width: 120,
+//     maxWidth: 80,
+//   },
+//   {
+//     field: 'side',
+//     title: '',
+//     width: 80,
+//     minWidth: 50,
+//     style: {
+//       color: (args) => {
+//         return dealSide(args.dataValue).color as string;
+//       },
+//     },
+//     fieldFormat: (args) => {
+//       return dealSide(args.side).name;
+//     },
+//   },
+//   {
+//     field: 'offset',
+//     title: '',
+//     width: 50,
+//     minWidth: 50,
+//     style: {
+//       color: (args) => {
+//         return dealOffset(args.dataValue).color as string;
+//       },
+//     },
+//     fieldFormat: (args) => {
+//       return dealOffset(args.offset).name;
+//     },
+//   },
+//   {
+//     title: t('orderConfig.limit_price'),
+//     field: 'limit_price_resolved',
+//     width: 120,
+//     style: {
+//       textAlign: 'right',
+//     },
+//     headerStyle: {
+//       textAlign: 'right',
+//     },
+//     sort: sorter,
+//   },
+//   {
+//     field: 'volume_left',
+//     title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
+//     width: 120,
+//     sort: sorter,
+//     fieldFormat: (args) => {
+//       return `${args.volume - args.volume_left} / ${args.volume}`;
+//     },
+//   },
+//   {
+//     field: 'avg_price_resolved',
+//     title: t('orderConfig.avg_price'),
+//     width: 120,
+//     style: {
+//       textAlign: 'right',
+//     },
+//     headerStyle: {
+//       textAlign: 'right',
+//     },
+
+//     sort: sorter,
+//   },
+//   {
+//     field: 'status_uname',
+//     title: t('orderConfig.order_status'),
+//     width: 120,
+//     style: {
+//       color: (args) => {
+//         return getOrderStatusStyle(args.dataValue);
+//       },
+//     },
+//     fieldFormat: (args) => {
+//       return args.status_uname;
+//     },
+//   },
+//   {
+//     field: 'latency_system',
+//     title: t('orderConfig.latency_system'),
+//     width: 120,
+//     sort: sorter,
+//   },
+//   {
+//     field: 'latency_network',
+//     title: t('orderConfig.latency_network'),
+//     width: 120,
+//     sort: sorter,
+//   },
+//   ...(isTdStrategyCategory(currentGlobalKfLocation.value?.category)?[
+//     {
+//       field: 'source_uname',
+//       title: t('orderConfig.source_uname'),
+//       width: 120,
+//       style: {
+//         color: (args) => {
+//           return getAccountIdStyle(args.dataValue);
+//         },
+//       }
+//     }]:
+//   [
+//     {
+//       field: 'dest_uname',
+//       title: t('orderConfig.dest_uname'),
+//       width: 100,
+//       style: {
+//         color: (args) => {
+//           return getAccountIdStyle(args.dataValue);
+//         },
+//       }
+//     }]),
+//   ...(!!historyDate.value
+//     ? []
+//     : [
+//         {
+//           field: 'actions',
+//           title: '',
+//           width: 120,
+//         },
+//       ]),
+// ];
+
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
     return getColumns(
@@ -140,6 +279,51 @@ const columns = computed(() => {
 
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
+
+const customLayout: Record<string, ICustomActionOption[]> = {
+  actions: [
+    {
+      type: 'text',
+      dealValue: (record) =>
+        !isFinishedOrderStatus(record?.status)
+          ? t('orderConfig.cancel_order')
+          : '',
+      fontSize: 12,
+      fill: 'red',
+      boundsPadding: [7, 10, 5, 10],
+      cursor: 'pointer',
+      key: 'cancel_order',
+    },
+    {
+      type: 'text',
+      dealValue: (record) =>
+        !isFinishedOrderStatus(record?.status) &&
+        cancelOrderTriggerBtnVisible.value &&
+        isOrderTriggerHasSubmitted(record?.order_id)
+          ? t('orderConfig.cancel_order_trigger')
+          : '',
+      fontSize: 12,
+      fill: 'yellow',
+      boundsPadding: [7, 10, 5, 10],
+      cursor: 'pointer',
+      key: 'cancel_order_trigger_revoke',
+    },
+    {
+      type: 'text',
+      dealValue: (record) =>
+        !isFinishedOrderStatus(record?.status) &&
+        cancelOrderTriggerBtnVisible.value &&
+        !isOrderTriggerHasSubmitted(record.order_id)
+          ? t('orderConfig.cancel_order_trigger')
+          : '',
+      fontSize: 12,
+      fill: '#ffffffd9',
+      boundsPadding: [7, 10, 5, 10],
+      cursor: 'pointer',
+      key: 'cancel_order_trigger',
+    },
+  ],
+};
 
 onMounted(() => {
   if (app?.proxy) {
@@ -407,7 +591,7 @@ function handleCancelAllOrders(): void {
 }
 
 function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
-  const cancelOrderTrigger = isOrderTriggerHasSubmitted(order.order_id);
+  const cancelOrderTrigger = !isOrderTriggerHasSubmitted(order.order_id);
   if (cancelOrderTrigger) {
     if (!currentGlobalKfLocation.value || !window.watcher) {
       error();
@@ -466,12 +650,12 @@ function handleInsertOrderTrigger(order: KungfuApi.OrderResolved): void {
 
 function isOrderTriggerHasSubmitted(orderId: bigint) {
   const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
-  if (!orderTriggers || orderTriggers.length === 0) return true;
+  if (!orderTriggers || orderTriggers.length === 0) return false;
   const submittedOrderTrigger = orderTriggers.filter(
     (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Submitted,
   );
-  if (submittedOrderTrigger.length > 0) return false;
-  return true;
+  if (submittedOrderTrigger.length > 0) return true;
+  return false;
 }
 
 function isOrderTriggerHasPending(orderId: bigint) {
@@ -503,13 +687,39 @@ function getTargetCancelOrders(): KungfuApi.Order[] {
   );
 }
 
-function handleShowTradingDataDetail({
-  row,
-}: {
-  event: MouseEvent;
-  row: KungfuApi.TradingDataItem;
-}) {
-  showTradingDataDetail(row, t('orderConfig.entrust'));
+function handleClickCell(args: VTable.MousePointerCellEvent) {
+  if (args.field === 'actions') {
+    if (args.target?.attribute?.key === 'cancel_order') {
+      handleCancelOrder(args.originData);
+    } else if (
+      args.target?.attribute?.key === 'cancel_order_trigger' ||
+      args.target?.attribute?.key === 'cancel_order_trigger_revoke'
+    ) {
+      handleInsertOrderTrigger(args.originData);
+    }
+  }
+  if (args.field === 'limit_price_resolved') {
+    handleAdjustOrder({
+      event: args.event as MouseEvent,
+      field: args.field,
+      originData: args.originData,
+      cellRange: args.cellRange as unknown as {
+        bounds: { x1: number; y1: number; x2: number; y2: number };
+      },
+    });
+  }
+  if (args.value === t('orderConfig.cancel_order')) {
+    handleCancelOrder(args.originData);
+  }
+}
+
+function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
+  const { originData } = args;
+  if (!originData) return;
+  showTradingDataDetail(
+    originData as KungfuApi.OrderResolved,
+    t('orderConfig.entrust'),
+  );
 }
 
 const adjustOrderConfig = reactive({
@@ -527,23 +737,30 @@ const adjustOrderForm = ref<{
 });
 const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
 const tableRef = ref();
+const canvasRef = ref();
 const adjustNumberInputRef = ref();
 const adjustPriceTick = ref<number>();
 
 function handleAdjustOrder(data: {
   event: MouseEvent;
-  row: KungfuApi.TradingDataItem;
-  column: KfTradingDataTableHeaderConfig;
+  row?: KungfuApi.TradingDataItem;
+  column?: KfTradingDataTableHeaderConfig;
+  field?: string;
+  originData?: KungfuApi.TradingDataItem;
+  cellRange?: { bounds: { x1: number; y1: number; x2: number; y2: number } };
 }): void {
-  const { event, row, column } = data;
-  const order = row as KungfuApi.OrderResolved;
+  const { event, row, column, field, originData, cellRange } = data;
+  if (!row && !originData) {
+    return;
+  }
+  const order = (row || originData) as KungfuApi.OrderResolved;
   let target = event.target as HTMLElement | null;
 
-  if (column.dataIndex !== 'limit_price_resolved') {
+  if (
+    column?.dataIndex !== 'limit_price_resolved' &&
+    field !== 'limit_price_resolved'
+  ) {
     return;
-    // if (column.dataIndex !== 'volume_left') {
-    //   return;
-    // }
   }
 
   if (!currentGlobalKfLocation.value || !window.watcher) {
@@ -562,21 +779,30 @@ function handleAdjustOrder(data: {
       target = target.parentNode as HTMLElement;
     }
     adjustOrderMaskVisible.value = true;
-    const rectData = target.getBoundingClientRect();
-    const tableRectData = tableRef.value.getBoundingClientRect();
-    const deltaTop = rectData.top - tableRectData.top;
-    adjustOrderConfig.clientWidth = target.clientWidth;
-    adjustOrderConfig.clientHeight = target.clientHeight;
-    adjustOrderConfig.offsetTop = deltaTop; //header height
-
-    if (column.dataIndex === 'limit_price_resolved') {
-      adjustOrderConfig.offsetLeft = target.offsetLeft;
+    if (cellRange) {
+      const rectData = cellRange.bounds;
+      adjustOrderConfig.clientWidth = rectData.x2 - rectData.x1;
+      adjustOrderConfig.clientHeight = rectData.y2 - rectData.y1;
+      adjustOrderConfig.offsetTop = rectData.y1;
+      adjustOrderConfig.offsetLeft = rectData.x1;
     } else {
-      adjustOrderConfig.offsetLeft = target.offsetLeft - target.clientWidth;
+      const rectData = target.getBoundingClientRect();
+      const tableRectData = tableRef.value.getBoundingClientRect();
+      const deltaTop = rectData.top - tableRectData.top;
+      adjustOrderConfig.clientWidth = target.clientWidth;
+      adjustOrderConfig.clientHeight = target.clientHeight;
+      adjustOrderConfig.offsetTop = deltaTop;
+      if (
+        column?.dataIndex === 'limit_price_resolved' ||
+        field === 'limit_price_resolved'
+      ) {
+        adjustOrderConfig.offsetLeft = target.offsetLeft;
+      } else {
+        adjustOrderConfig.offsetLeft = target.offsetLeft - target.clientWidth;
+      }
     }
 
     adjustOrderForm.value.price = order.limit_price;
-    // adjustOrderForm.value.volume = +Number(order.volume_left);
     adjustOrder.value = order;
 
     const { price_tick } = getPriceTickAndPrecision(
@@ -788,87 +1014,14 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             ></a-input-number>
           </div>
         </div>
-        <KfTradingDataTable
+        <KfCanvasTradingDataTable
+          ref="canvasRef"
           :columns="columns"
           :data-source="tableData"
-          key-field="uid_key"
-          @clickCell="handleAdjustOrder"
-          @rightClickRow="handleShowTradingDataDetail"
-        >
-          <template
-            #default="{
-              item,
-              column,
-            }: {
-              item: KungfuApi.OrderResolved,
-              column: KfTradingDataTableHeaderConfig,
-            }"
-          >
-            <template v-if="column.dataIndex === 'side'">
-              <span :class="`color-${dealSide(item.side).color}`">
-                {{ dealSide(item.side).name }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'offset'">
-              <span :class="`color-${dealOffset(item.offset).color}`">
-                {{ dealOffset(item.offset).name }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'volume_left'">
-              <span
-                style="float: right"
-                :title="`${dealKfVolume(item.volume - item.volume_left)} / ${
-                  item.volume
-                }`"
-              >
-                {{
-                  `${dealKfVolume(item.volume - item.volume_left)} / ${
-                    item.volume
-                  }`
-                }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'status_uname'">
-              <span :class="`color-${item.status_color}`">
-                {{ item.status_uname }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'source_uname'">
-              <span :class="[`color-${item.source_resolved_data.color}`]">
-                {{ item.source_uname }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'dest_uname'">
-              <span :class="[`color-${item.dest_resolved_data.color}`]">
-                {{ item.dest_uname }}
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'actions'">
-              <span
-                v-if="!isFinishedOrderStatus(item.status)"
-                class="color-red"
-                style="margin-right: 8px; margin-left: 2px"
-                @click="handleCancelOrder(item)"
-              >
-                {{ $t('orderConfig.cancel_order') }}
-              </span>
-              <span
-                v-if="
-                  !isFinishedOrderStatus(item.status) &&
-                  cancelOrderTriggerBtnVisible
-                "
-                :class="{
-                  'color-default': isOrderTriggerHasSubmitted(item.order_id),
-                  'color-yellow': !isOrderTriggerHasSubmitted(item.order_id),
-                }"
-                @click="handleInsertOrderTrigger(item)"
-              >
-                {{ $t('orderConfig.cancel_order_trigger') }}
-              </span>
-              <LoadingOutlined v-if="isOrderTriggerHasPending(item.order_id)" />
-            </template>
-          </template>
-        </KfTradingDataTable>
+          :custom-layout="customLayout"
+          @click-cell="handleClickCell"
+          @right-click-row="handleShowTradingDataDetail"
+        />
       </div>
     </KfDashboard>
     <StatisticModal

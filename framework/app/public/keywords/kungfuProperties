@@ -5,10 +5,10 @@ instrument_factors
 static_data
 baskets
 basket_instruments
-home
 state
 runtime_folder
 config
+home
 orders
 order_actions
 trades
@@ -30,6 +30,7 @@ dest
 msg_type
 data_length
 data_as_bytes
+data_as_byte_array
 data_as_string
 frame_length
 publisher
@@ -198,6 +199,9 @@ low_price
 upper_limit_price
 lower_limit_price
 iopv
+total_bid_volume
+total_ask_volume
+total_trade_num
 bid_price
 ask_price
 bid_volume
@@ -210,9 +214,7 @@ ask_no
 exec_type
 trade_num
 bid_weighted_avg_price
-total_bid_volume
 ask_weighted_avg_price
-total_ask_volume
 bid_depth
 ask_depth
 key

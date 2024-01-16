@@ -174,6 +174,10 @@ struct nanomsg_json : event {
 
   [[nodiscard]] const char *data_as_bytes() const override { return msg_.c_str(); }
 
+  [[nodiscard]] std::vector<uint8_t> data_as_byte_array() const override {
+    return {data_as_bytes(), data_as_bytes() + data_length()};
+  }
+
   [[nodiscard]] std::string data_as_string() const override { return binding_["data"].dump(); }
 
   [[nodiscard]] std::string to_string() const override { return msg_; }

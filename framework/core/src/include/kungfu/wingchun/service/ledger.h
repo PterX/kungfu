@@ -21,8 +21,8 @@ class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
 
 public:
-  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency,
-                  const std::string &arguments);
+  explicit Ledger(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
+                  longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
   ~Ledger() override = default;
 

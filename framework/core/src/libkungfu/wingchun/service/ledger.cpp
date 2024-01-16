@@ -24,7 +24,8 @@ using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
 
-Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
+Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
+               const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
       broker_client_(*this), bookkeeper_(*this, broker_client_, true) {
@@ -115,7 +116,7 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   subscribe_positions(book->long_positions);
   subscribe_positions(book->short_positions);
   broker_client_.try_renew(trigger_time, md_location);
-  book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  book->update(trigger_time);
 }
 
 OrderStat &Ledger::ensure_order_stat(uint64_t order_id, const event_ptr &event) {
@@ -272,7 +273,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     tmp_books_.erase(strategy_uid);
   }
 
-  strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  strategy_book->update(trigger_time);
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {

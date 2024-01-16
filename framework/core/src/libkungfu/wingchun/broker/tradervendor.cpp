@@ -85,10 +85,9 @@ void TraderWriterHook::guard_asset(const Asset &const_asset) {
 
 // ====================== TraderVendor start ======================
 
-TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
-                           const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
-                   arguments),
+TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, mode m,
+                           bool low_latency, const std::string &arguments)
+    : BrokerVendor(location::make_shared(m, category::TD, group, name, std::move(locator)), low_latency, arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
       hook_(std::make_shared<TraderWriterHook>(*this)) {}
 

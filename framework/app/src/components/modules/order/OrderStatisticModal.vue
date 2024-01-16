@@ -7,7 +7,10 @@ import {
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import { OrderStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealAssetPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfVolume,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
   dealSide,
@@ -135,7 +138,7 @@ const priceVolumeStats = computed(() => {
         }
 
         priceVolumeData[id].price.push(order.limit_price);
-        priceVolumeData[id].volume.push(+Number(order.volume));
+        priceVolumeData[id].volume.push(order.volume);
         priceVolumeData[id].volumeTraded.push(
           +Number(order.volume - order.volume_left),
         );
@@ -169,9 +172,11 @@ const priceVolumeStats = computed(() => {
       const priceSum = priceVolumeData[id].priceByVolume.reduce(
         (a, b) => a + b,
       );
-      const volumeSum = priceVolumeData[id].volume.reduce((a, b) => a + b);
-      const volumeTradedSum = priceVolumeData[id].volumeTraded.reduce(
-        (a, b) => a + b,
+      const volumeSum = dealKfVolume(
+        priceVolumeData[id].volume.reduce((a, b) => a + b),
+      );
+      const volumeTradedSum = dealKfVolume(
+        priceVolumeData[id].volumeTraded.reduce((a, b) => a + b),
       );
       const range = priceStats.range();
       const sideReolved = dealSide(+side);
@@ -183,9 +188,9 @@ const priceVolumeStats = computed(() => {
         sideColor: sideReolved.color || 'default',
         offsetName: offsetResolved.name,
         offsetColor: offsetResolved.color || 'default',
-        mean: dealAssetPrice(Number(priceSum / volumeSum), price_precision),
-        min: dealAssetPrice(range[0], price_precision),
-        max: dealAssetPrice(range[1], price_precision),
+        mean: dealKfPrice(priceSum / volumeSum, price_precision),
+        min: dealKfPrice(range[0], price_precision),
+        max: dealKfPrice(range[1], price_precision),
         volume: `${volumeTradedSum} / ${volumeSum}`,
       };
     })

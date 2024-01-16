@@ -26,7 +26,6 @@ void resource_manager::do_management() {
     app_.get_bus()->wait();
     app_.preload_next_page();
     app_.release_page();
-    app_.get_bus()->consume();
     if (m_quit_) {
       break;
     }

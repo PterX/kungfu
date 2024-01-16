@@ -18,6 +18,7 @@ using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -72,14 +73,15 @@ bool hero::setup() {
 
 void hero::pre_setup() {}
 
-void hero::step() {
+void hero::step(uint32_t step_limit) {
   continual_ = false;
+  step_limit_ = step_limit;
   events_.connect(cs_);
 }
 
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
-  SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  SPDLOG_DEBUG("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
   pre_setup();
   setup();
   SPDLOG_DEBUG("app setup done");
@@ -420,7 +422,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   if (notice.length() > 2) {
     //SPDLOG_DEBUG("on_next");
     const auto frame = std::make_shared<nanomsg_json>(notice);
-    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    io_device_->get_bus()->set_trigger_frame(frame);
     sb.on_next(frame);
   } else if (notify) {
     //SPDLOG_DEBUG("on_notify");
@@ -431,29 +433,26 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_notice(bypass, true, sb);
-  if (is_server_exist()) {
-    for (auto socks_ : server_->websockets_) {
-      for (auto stream_ : socks_.second->streams_) {
-        if (!stream_.second->data_received_.empty()) {
-          for (auto data_ : stream_.second->data_received_) {
-            const frame_ptr frame = reader_->current_frame();
-            SPDLOG_DEBUG("data:{} frame_id:{}",data_,reader_->current_frame_id());
-            io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
-            if (frame->gen_time() <= end_time_) {
-              int64_t frame_time = frame->gen_time();
-              if (frame_time > now_) {
-                now_ = frame_time;
-              }
-              if (is_reactable(frame)) {
-                sb.on_next(frame);
-              }
-              on_frame();
-              reader_->next();
-            }
-            stream_.second->data_received_.clear();
-          }
-        }
+  for (std::size_t step_count = 0;                                                                   //
+       live_ and reader_->data_available() and (step_limit_ == 0 ? true : step_count < step_limit_); //
+       step_count++) {
+    deal_notice(io_device_->is_lazy(), false, sb);
+    const frame_ptr frame = reader_->current_frame();
+    io_device_->get_bus()->set_trigger_frame(frame);
+    if (frame->gen_time() <= end_time_) {
+      int64_t frame_time = frame->gen_time();
+      if (frame_time > now_) {
+        now_ = frame_time;
       }
+      if (is_reactable(frame)) {
+        sb.on_next(frame);
+      }
+      on_frame();
+      reader_->next();
+      on_frame_done();
+    } else {
+      SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
+      return false;
     }
   }
     while (live_ and reader_->data_available()) {
@@ -510,5 +509,33 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool hero::is_server_exist() { return static_cast<bool>(server_); }
 
   kungfu::yijinjing::webserver::server_ptr &hero::get_server() { return server_; }
+
+void hero::disjoin(uint32_t location_uid) { disjoin_uids_.insert(location_uid); }
+
+void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
+  disjoin_channels_.insert({location_uid, dest_id});
+}
+
+void hero::on_frame_done() {
+  /**
+   * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
+   * 1. It may release current reading journal, causing segmentation violation or memory crash,
+   * 2. It may change reader_->current_ to another journal, leading to reader->next() in wrong journal,
+   * 3. It poses a risk of processing the current frame multiple times.
+   * Consequently, reader_->disjoin  should only be invoked after events_ stream over,
+   * specifically when the current frame dealt over and reader_->next() called.
+   */
+
+  for (uint32_t uid : disjoin_uids_) {
+    reader_->disjoin(uid);
+  }
+  for (auto &pair : disjoin_channels_) {
+    if (has_location(pair.first)) {
+      reader_->disjoin(get_location(pair.first), pair.second);
+    }
+  }
+  disjoin_uids_.clear();
+  disjoin_channels_.clear();
+}
 
 } // namespace kungfu::yijinjing::practice

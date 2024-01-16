@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-
 import {
   dealCurrency,
   dealDirection,
@@ -29,10 +27,16 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfVolume,
+  getIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { useExtConfigsRelated } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+
 import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
@@ -77,10 +81,17 @@ const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.PositionResolved
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
+const { extConfigs } = useExtConfigsRelated();
 
 const lastPriceSorter = (a: KungfuApi.Position, b: KungfuApi.Position) => {
   return getPositionLastPrice(a) - getPositionLastPrice(b);
 };
+const holderLocation = ref<KungfuApi.KfLocation | null>(null);
+const isMarginMakeOrder = computed(() => {
+  const group = holderLocation.value?.group;
+  if (!group) return false;
+  return extConfigs.value?.td?.[group]?.margin?.marginMakeOrder || false;
+});
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -150,6 +161,12 @@ onMounted(() => {
             );
           }),
         );
+
+        if (pos.value.length > 0) {
+          holderLocation.value = window.watcher.getLocation(
+            pos.value[0].holder_uid,
+          );
+        }
       },
     );
 
@@ -184,7 +201,13 @@ function handleClickRow(data: {
 
   const offset = resolveTriggerOffset(row);
   const extraOrderInput: ExtraOrderInput = {
-    side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
+    side: isMarginMakeOrder.value
+      ? row.direction === 0
+        ? SideEnum.GuaranteeStockSell
+        : SideEnum.RepayStock
+      : row.direction === 0
+      ? SideEnum.Sell
+      : SideEnum.Buy,
     offset,
     volume: getPosClosableVolumeByOffset(row, offset),
     price: getPositionLastPrice(row) || row.avg_open_price || 0,
@@ -293,32 +316,24 @@ function handleShowTradingDataDetail({
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'static_yesterday'">
-            <KfBlinkNum
-              :num="Number(item.static_yesterday).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.static_yesterday"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'open_volume'">
-            <KfBlinkNum
-              :num="Number(item.open_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.open_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'close_volume'">
-            <KfBlinkNum
-              :num="Number(item.close_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.close_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">
-            <KfBlinkNum
-              :num="Number(item.yesterday_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.yesterday_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="Number(item.volume - item.yesterday_volume).kfToFixed(0)"
+              :num="dealKfVolume(item.volume - item.yesterday_volume)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
-            <KfBlinkNum :num="Number(item.volume).kfToFixed(0)"></KfBlinkNum>
+            <KfBlinkNum :num="item.volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
             <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>

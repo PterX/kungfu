@@ -63,7 +63,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
-  getNaturalNumber,
+  dealKfVolume,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -2058,7 +2058,10 @@ export const useAssets = (): {
   getAssetsByKfConfig(
     kfLocation: KungfuApi.KfLocation | KungfuApi.KfConfig,
   ): KungfuApi.Asset;
-  getAssetsByTdGroup(tdGroup: KungfuApi.KfExtraLocation): KungfuApi.Asset;
+  getAssetsByTdGroup(
+    marginSupportTdMap: Record<string, boolean>,
+    tdGroup: KungfuApi.KfExtraLocation,
+  ): KungfuApi.Asset | Record<string, never>;
 } => {
   const { assets } = storeToRefs(useGlobalStore());
 
@@ -2070,22 +2073,38 @@ export const useAssets = (): {
   };
 
   const getAssetsByTdGroup = (
+    marginSupportTdMap: Record<string, boolean>,
     tdGroup: KungfuApi.KfExtraLocation,
-  ): KungfuApi.Asset => {
-    const children = (tdGroup.children || []) as KungfuApi.KfConfig[];
-    const assetsList = children
-      .map((item) => getAssetsByKfConfig(item))
-      .filter((item) => Object.keys(item).length);
-
-    return assetsList.reduce((allAssets, asset) => {
-      return {
-        ...allAssets,
-        unrealized_pnl: (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl,
-        market_value: (allAssets.market_value || 0) + asset.market_value,
-        margin: (allAssets.margin || 0) + asset.margin,
-        avail: (allAssets.avail || 0) + asset.avail,
-        avail_margin: (allAssets.avail_margin || 0) + asset.avail_margin,
-      };
+  ): KungfuApi.Asset | Record<string, never> => {
+    const children = (tdGroup?.children || []) as KungfuApi.KfConfig[];
+    const isSupportMargin = marginSupportTdMap[children[0]?.group || ''];
+    const isShowData = children.every(
+      (item) => marginSupportTdMap[item.group] === isSupportMargin,
+    );
+    if (!isShowData) {
+      return {};
+    }
+    return children.reduce((allAssets, item) => {
+      const asset = getAssetsByKfConfig(item);
+      if (Object.keys(asset).length === 0) return allAssets;
+      allAssets.unrealized_pnl =
+        (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl;
+      allAssets.market_value =
+        (allAssets.market_value || 0) + asset.market_value;
+      allAssets.margin = (allAssets.margin || 0) + asset.margin;
+      allAssets.avail = (allAssets.avail || 0) + asset.avail;
+      allAssets.avail_margin =
+        (allAssets.avail_margin || 0) + asset.avail_margin;
+      allAssets.net_assets = (allAssets.net_assets || 0) + asset.net_assets;
+      allAssets.long_total_debt =
+        (allAssets.long_total_debt || 0) + asset.long_total_debt;
+      allAssets.total_debt = (allAssets.total_debt || 0) + asset.total_debt;
+      allAssets.short_cash = (allAssets.short_cash || 0) + asset.short_cash;
+      allAssets.frozen_cash = (allAssets.frozen_cash || 0) + asset.frozen_cash;
+      allAssets.total_asset = (allAssets.total_asset || 0) + asset.total_asset;
+      allAssets.short_total_debt =
+        (allAssets.short_total_debt || 0) + asset.short_total_debt;
+      return allAssets;
     }, {} as KungfuApi.Asset);
   };
 
@@ -2513,12 +2532,12 @@ export const getPosClosableVolumeByOffset = (
   } = position;
   const today_volume = volume - yesterday_volume;
   const frozen_today = frozen_total - frozen_yesterday;
-  const shotable_closable_yesterday = getNaturalNumber(
+  const shotable_closable_yesterday = dealKfVolume(
     yesterday_volume - frozen_yesterday,
   );
-  const closable_yesterday = getNaturalNumber(yesterday_volume - frozen_total);
-  const closable_today = getNaturalNumber(today_volume - frozen_today);
-  const closable_total = getNaturalNumber(volume - frozen_total);
+  const closable_yesterday = dealKfVolume(yesterday_volume - frozen_total);
+  const closable_today = dealKfVolume(today_volume - frozen_today);
+  const closable_total = dealKfVolume(volume - frozen_total);
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2739,11 +2758,7 @@ export const useMakeOrderInfo = (
       if (isMarginMakeOrder.value) {
         return dealKfNumber(currentPosition.value.closable_volume);
       }
-      return (
-        dealKfNumber(
-          getPosClosableVolumeByOffset(currentPosition.value, offset),
-        ) + ''
-      );
+      return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
 
     return '0';
@@ -2818,16 +2833,16 @@ export const useMakeOrderInfo = (
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
         if (isMarginMakeOrder.value) {
-          return dealKfNumber(
+          return dealKfVolume(
             Number(currentAvailPosVolume.value) - Number(volume),
           );
         }
         if (offset === OffsetEnum.Open) {
-          return dealKfNumber(
+          return dealKfVolume(
             Number(currentAvailPosVolume.value) + Number(volume),
           );
         } else {
-          return dealKfNumber(
+          return dealKfVolume(
             Number(currentAvailPosVolume.value) - Number(volume),
           );
         }
@@ -3008,7 +3023,7 @@ export const useMakeOrderSubscribe = (
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;
-            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.volume = +volume;
             formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
@@ -3034,7 +3049,7 @@ export const useMakeOrderSubscribe = (
             if (!!price && !Number.isNaN(price) && +price !== 0) {
               formState.value.limit_price = +Number(price).kfToFixed(4);
             }
-            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.volume = volume;
             formState.value.side = +side;
           }
         },

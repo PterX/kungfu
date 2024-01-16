@@ -226,8 +226,8 @@ class TraderVendor : public BrokerVendor {
   friend class Trader;
 
 public:
-  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
-               const std::string &arguments = {});
+  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, longfist::enums::mode m,
+               bool low_latency, const std::string &arguments = "{}");
 
   void set_service(Trader_ptr service);
 

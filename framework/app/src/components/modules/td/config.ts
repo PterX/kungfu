@@ -169,11 +169,11 @@ export const getColumns = (
       },
     ]);
 
-export const getAssetDetailShowList = (supportMargin: boolean) =>
+export const getAssetDetailShowList = () =>
   [
     { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
     {
-      key: supportMargin ? 'total_asset' : 'market_value',
+      key: 'market_value',
       label: t('tdConfig.market_value'),
     },
     { key: 'margin', label: t('tdConfig.used_margin') },

@@ -22,7 +22,7 @@ yjj = kungfu.__binding__.yijinjing
 
 class OpRunner(wc.OpRunner):
     def __init__(self, ctx):
-        wc.Runner.__init__(
+        wc.OpRunner.__init__(
             self,
             ctx.locator,
             ctx.group,

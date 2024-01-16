@@ -565,7 +565,7 @@ async function handleApartOrder(): Promise<void> {
     if (isContinue !== null && !isContinue) return;
 
     isShowConfirmModal.value = true;
-    curOrderVolume.value = Number(makeOrderInput.volume);
+    curOrderVolume.value = makeOrderInput.volume;
     curOrderType.value = makeOrderInput.instrument_type;
   } catch (e) {
     if ((<Error>e).message) {

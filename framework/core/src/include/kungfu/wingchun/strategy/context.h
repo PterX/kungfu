@@ -154,7 +154,7 @@ public:
    */
   virtual uint64_t insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                 const std::string &source, const std::string &account, double limit_price,
-                                int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                double volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                 longfist::enums::Offset offset,
                                 longfist::enums::HedgeFlag hedge_flag = longfist::enums::HedgeFlag::Speculation,
                                 bool is_swap = false, uint64_t block_id = 0, uint64_t parent_id = 0,
@@ -192,7 +192,7 @@ public:
    */
   virtual uint64_t
   insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id, const std::string &source,
-                       const std::string &account, double limit_price, int64_t volume, longfist::enums::PriceType type,
+                       const std::string &account, double limit_price, double volume, longfist::enums::PriceType type,
                        longfist::enums::Side side, longfist::enums::Offset offset,
                        longfist::enums::OrderTriggerType trigger_type = longfist::enums::OrderTriggerType::ParkedOrder,
                        double stop_price = 0,
@@ -217,7 +217,7 @@ public:
   virtual std::vector<uint64_t>
   insert_batch_orders(const std::string &source, const std::string &account,
                       const std::vector<std::string> &instrument_ids, const std::vector<std::string> &exchange_ids,
-                      std::vector<double> limit_prices, std::vector<int64_t> volumes,
+                      std::vector<double> limit_prices, std::vector<double> volumes,
                       std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
                       std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
                       std::vector<bool> is_swaps, const std::vector<std::string> &contract_ids = {}) = 0;
@@ -251,7 +251,7 @@ public:
    */
   virtual uint64_t insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
                                      const std::string &source, const std::string &account, int64_t begin_time,
-                                     int64_t end_time, int64_t volume, longfist::enums::PriceType type,
+                                     int64_t end_time, double volume, longfist::enums::PriceType type,
                                      longfist::enums::Side side, longfist::enums::Offset offset,
                                      const std::string &algo_type_id, const std::string &algo_id,
                                      const std::string &args, bool is_local = false, uint32_t basket_uid = 0,
@@ -266,7 +266,7 @@ public:
    * @return order_id
    */
   virtual uint64_t update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
-                                            const std::string &account, int64_t volume) = 0;
+                                            const std::string &account, double volume) = 0;
 
   /**
    * Cancel order.

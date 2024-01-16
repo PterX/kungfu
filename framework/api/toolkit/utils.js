@@ -267,6 +267,7 @@ exports.buildDevArgv = (distDir, distName) => {
     mode: 'development',
     distDir: distDir,
     distName: distName,
+    enableThreadLoader: true,
   };
 };
 

@@ -63,7 +63,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
-  getNaturalNumber,
+  dealKfVolume,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -2532,12 +2532,12 @@ export const getPosClosableVolumeByOffset = (
   } = position;
   const today_volume = volume - yesterday_volume;
   const frozen_today = frozen_total - frozen_yesterday;
-  const shotable_closable_yesterday = getNaturalNumber(
+  const shotable_closable_yesterday = dealKfVolume(
     yesterday_volume - frozen_yesterday,
   );
-  const closable_yesterday = getNaturalNumber(yesterday_volume - frozen_total);
-  const closable_today = getNaturalNumber(today_volume - frozen_today);
-  const closable_total = getNaturalNumber(volume - frozen_total);
+  const closable_yesterday = dealKfVolume(yesterday_volume - frozen_total);
+  const closable_today = dealKfVolume(today_volume - frozen_today);
+  const closable_total = dealKfVolume(volume - frozen_total);
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2758,11 +2758,7 @@ export const useMakeOrderInfo = (
       if (isMarginMakeOrder.value) {
         return dealKfNumber(currentPosition.value.closable_volume);
       }
-      return (
-        dealKfNumber(
-          getPosClosableVolumeByOffset(currentPosition.value, offset),
-        ) + ''
-      );
+      return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
 
     return '0';
@@ -2837,16 +2833,16 @@ export const useMakeOrderInfo = (
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
         if (isMarginMakeOrder.value) {
-          return dealKfNumber(
+          return dealKfVolume(
             Number(currentAvailPosVolume.value) - Number(volume),
           );
         }
         if (offset === OffsetEnum.Open) {
-          return dealKfNumber(
+          return dealKfVolume(
             Number(currentAvailPosVolume.value) + Number(volume),
           );
         } else {
-          return dealKfNumber(
+          return dealKfVolume(
             Number(currentAvailPosVolume.value) - Number(volume),
           );
         }
@@ -3027,7 +3023,7 @@ export const useMakeOrderSubscribe = (
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
             formState.value.side = +side;
-            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.volume = +volume;
             formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
@@ -3053,7 +3049,7 @@ export const useMakeOrderSubscribe = (
             if (!!price && !Number.isNaN(price) && +price !== 0) {
               formState.value.limit_price = +Number(price).kfToFixed(4);
             }
-            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.volume = volume;
             formState.value.side = +side;
           }
         },

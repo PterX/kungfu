@@ -40,13 +40,13 @@ import {
 } from '../typings/enums';
 import VueI18n, { useLanguage } from '../language';
 import {
-  dealAssetPrice,
   dealKfPrice,
   dealLocationUID,
   setTimerPromiseTask,
   getIdByKfLocation,
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
+  dealKfVolume,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -550,7 +550,7 @@ export const kfMakeOrder = (
     block_id: BigInt(0),
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
-    volume: BigInt(makeOrderInput.volume),
+    volume: makeOrderInput.volume,
     insert_time: now,
   };
 
@@ -587,7 +587,7 @@ export const kfOrderTrigger = (
     ...longfist.types.OrderTriggerInput(),
     ...makeOrderTriggerInput,
     limit_price: makeOrderTriggerInput.limit_price || 0,
-    volume: BigInt(makeOrderTriggerInput.volume),
+    volume: makeOrderTriggerInput.volume,
     insert_time: now,
     trigger_type: OrderTriggerTypeEnum.ParkedOrder,
   };
@@ -653,7 +653,7 @@ export const kfMakeBlockOrder = async (
     block_id,
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
-    volume: BigInt(makeOrderInput.volume),
+    volume: makeOrderInput.volume,
     insert_time: now,
   };
 
@@ -968,6 +968,8 @@ export const dealOrder = (
   const statusData = dealOrderStatus(order.status, order.error_msg);
   return {
     ...order,
+    volume: dealKfVolume(order.volume),
+    volume_left: dealKfVolume(order.volume_left),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -999,6 +1001,7 @@ export const dealOrderTrigger = (
   const statusData = dealOrderTriggerStatus(order.status);
   return {
     ...order,
+    volume: dealKfVolume(order.volume),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -1041,6 +1044,7 @@ export const dealTrade = (
   };
   return {
     ...trade,
+    volume: dealKfVolume(trade.volume),
     source: trade.source,
     dest: trade.dest,
     uid_key: trade.uid_key,
@@ -1056,13 +1060,11 @@ export const dealTrade = (
   };
 };
 
-export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
+export const getPosClosableVolume = (position: KungfuApi.Position): number => {
   return isShotable(position.instrument_type) ||
     isT0(position.instrument_type, position.exchange_id)
-    ? BigInt(Math.max(+Number(position.volume - position.frozen_total), 0))
-    : BigInt(
-        Math.max(+Number(position.yesterday_volume - position.frozen_total), 0),
-      );
+    ? Math.max(+Number(position.volume - position.frozen_total), 0)
+    : Math.max(+Number(position.yesterday_volume - position.frozen_total), 0);
 };
 
 export const dealPosition = (
@@ -1091,14 +1093,18 @@ export const dealPosition = (
     last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
     avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
     unrealized_pnl_resolved: pos.avg_open_price
-      ? dealAssetPrice(pos.unrealized_pnl, pricePrecision)
+      ? dealKfPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
-    open_volume: pos.open_volume ?? 0,
-    static_yesterday: pos.static_yesterday ?? 0,
-    close_volume:
-      Number(pos.open_volume) +
-        Number(pos.static_yesterday) -
-        Number(pos.volume) || 0,
+
+    volume: dealKfVolume(pos.volume), // 数量
+    yesterday_volume: dealKfVolume(pos.yesterday_volume), // 昨仓数量
+    frozen_total: dealKfVolume(pos.frozen_total), // 冻结数量
+    frozen_yesterday: dealKfVolume(pos.frozen_yesterday), // 冻结昨仓
+    static_yesterday: dealKfVolume(pos.static_yesterday), // 固定昨仓数量
+    open_volume: dealKfVolume(pos.open_volume), // 今开数量
+    close_volume: dealKfVolume(
+      pos.open_volume + pos.static_yesterday - pos.volume,
+    ),
   };
 };
 
@@ -1356,7 +1362,7 @@ export const dealOrderInputItem = (
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
     } else if (key === 'limit_price') {
       orderInputResolved[key] = {
-        name: dealAssetPrice(inputData[key], price_precision),
+        name: dealKfPrice(inputData[key], price_precision),
         color: 'default',
       };
     } else {

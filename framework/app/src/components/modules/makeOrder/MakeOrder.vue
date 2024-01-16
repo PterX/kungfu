@@ -943,7 +943,9 @@ function closeModalConditions(
     return { result: false };
   }
 
-  const positionVolumeResolved = positionVolume * (closeRange / 100);
+  const positionVolumeResolved = dealKfVolume(
+    positionVolume * (closeRange / 100),
+  );
 
   if (makeOrderInput.volume === positionVolumeResolved) {
     return {

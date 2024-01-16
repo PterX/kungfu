@@ -46,7 +46,7 @@ import {
   getIdByKfLocation,
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
-  dealKfVolume,
+  dealKfDecimal,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -968,8 +968,8 @@ export const dealOrder = (
   const statusData = dealOrderStatus(order.status, order.error_msg);
   return {
     ...order,
-    volume: dealKfVolume(order.volume),
-    volume_left: dealKfVolume(order.volume_left),
+    volume: dealKfDecimal(order.volume),
+    volume_left: dealKfDecimal(order.volume_left),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -1001,7 +1001,7 @@ export const dealOrderTrigger = (
   const statusData = dealOrderTriggerStatus(order.status);
   return {
     ...order,
-    volume: dealKfVolume(order.volume),
+    volume: dealKfDecimal(order.volume),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -1044,7 +1044,7 @@ export const dealTrade = (
   };
   return {
     ...trade,
-    volume: dealKfVolume(trade.volume),
+    volume: dealKfDecimal(trade.volume),
     source: trade.source,
     dest: trade.dest,
     uid_key: trade.uid_key,
@@ -1064,11 +1064,11 @@ export const getPosClosableVolume = (position: KungfuApi.Position): number => {
   return isShotable(position.instrument_type) ||
     isT0(position.instrument_type, position.exchange_id)
     ? Math.max(
-        dealKfVolume(+Number(position.volume - position.frozen_total)),
+        dealKfDecimal(+Number(position.volume - position.frozen_total)),
         0,
       )
     : Math.max(
-        dealKfVolume(
+        dealKfDecimal(
           +Number(position.yesterday_volume - position.frozen_total),
         ),
         0,
@@ -1103,14 +1103,25 @@ export const dealPosition = (
     unrealized_pnl_resolved: pos.avg_open_price
       ? dealKfPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
-
-    volume: dealKfVolume(pos.volume), // 数量
-    yesterday_volume: dealKfVolume(pos.yesterday_volume), // 昨仓数量
-    frozen_total: dealKfVolume(pos.frozen_total), // 冻结数量
-    frozen_yesterday: dealKfVolume(pos.frozen_yesterday), // 冻结昨仓
-    static_yesterday: dealKfVolume(pos.static_yesterday), // 固定昨仓数量
-    open_volume: dealKfVolume(pos.open_volume), // 今开数量
-    close_volume: dealKfVolume(
+    avg_open_price: dealKfDecimal(pos.avg_open_price, pricePrecision),
+    close_pnl: dealKfDecimal(pos.close_pnl, pricePrecision),
+    position_cost_price: dealKfDecimal(pos.position_cost_price, pricePrecision),
+    position_pnl: dealKfDecimal(pos.position_pnl, pricePrecision),
+    pre_close_price: dealKfDecimal(pos.pre_close_price, pricePrecision),
+    pre_settlement_price: dealKfDecimal(
+      pos.pre_settlement_price,
+      pricePrecision,
+    ),
+    realized_pnl: dealKfDecimal(pos.realized_pnl, pricePrecision),
+    settlement_price: dealKfDecimal(pos.settlement_price, pricePrecision),
+    unrealized_pnl: dealKfDecimal(pos.unrealized_pnl, pricePrecision),
+    volume: dealKfDecimal(pos.volume), // 数量
+    yesterday_volume: dealKfDecimal(pos.yesterday_volume), // 昨仓数量
+    frozen_total: dealKfDecimal(pos.frozen_total), // 冻结数量
+    frozen_yesterday: dealKfDecimal(pos.frozen_yesterday), // 冻结昨仓
+    static_yesterday: dealKfDecimal(pos.static_yesterday), // 固定昨仓数量
+    open_volume: dealKfDecimal(pos.open_volume), // 今开数量
+    close_volume: dealKfDecimal(
       pos.open_volume + pos.static_yesterday - pos.volume,
     ),
   };
@@ -1392,7 +1403,7 @@ export const dealVolumeByInstrumentType = (
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
   return (
-    Math.floor(dealKfVolume(orderVolume / minOrderVolume)) * minOrderVolume
+    Math.floor(dealKfDecimal(orderVolume / minOrderVolume)) * minOrderVolume
   );
 };
 

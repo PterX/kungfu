@@ -9,7 +9,7 @@ import { Stats } from 'fast-stats';
 import { OrderStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   dealKfPrice,
-  dealKfVolume,
+  dealKfDecimal,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -51,7 +51,7 @@ const cancelRatioMean = computed(() => {
       );
     })
     .map((item) => {
-      return dealKfVolume(+Number(item.volume_left) / +Number(item.volume));
+      return dealKfDecimal(+Number(item.volume_left) / +Number(item.volume));
     });
 
   if (!cancelRatioBuckets.length) {
@@ -140,10 +140,10 @@ const priceVolumeStats = computed(() => {
         priceVolumeData[id].price.push(order.limit_price);
         priceVolumeData[id].volume.push(order.volume);
         priceVolumeData[id].volumeTraded.push(
-          dealKfVolume(+Number(order.volume - order.volume_left)),
+          dealKfDecimal(+Number(order.volume - order.volume_left)),
         );
         priceVolumeData[id].priceByVolume.push(
-          dealKfVolume(+Number(order.volume) * order.limit_price),
+          dealKfDecimal(+Number(order.volume) * order.limit_price),
         );
         return priceVolumeData;
       },
@@ -172,10 +172,10 @@ const priceVolumeStats = computed(() => {
       const priceSum = priceVolumeData[id].priceByVolume.reduce(
         (a, b) => a + b,
       );
-      const volumeSum = dealKfVolume(
+      const volumeSum = dealKfDecimal(
         priceVolumeData[id].volume.reduce((a, b) => a + b),
       );
-      const volumeTradedSum = dealKfVolume(
+      const volumeTradedSum = dealKfDecimal(
         priceVolumeData[id].volumeTraded.reduce((a, b) => a + b),
       );
       const range = priceStats.range();

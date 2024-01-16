@@ -230,7 +230,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
       return position
-        .nofilter('volume', BigInt(0))
+        .nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)
         .sort(positionSortKey)
         .reverse()

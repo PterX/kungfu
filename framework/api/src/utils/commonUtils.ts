@@ -43,8 +43,8 @@ export const dealKfNumber = (
   return Number(preNumber) || 0;
 };
 
-export const dealKfVolume = (originNum: number): number => {
-  return parseFloat(Number(originNum).toFixed(12));
+export const dealKfDecimal = (originNum: number, precision = 12): number => {
+  return parseFloat(Number(originNum).toFixed(precision));
 };
 
 export const dealKfPrice = (

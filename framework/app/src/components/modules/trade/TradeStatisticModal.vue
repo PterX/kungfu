@@ -8,7 +8,7 @@ import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import {
   dealKfPrice,
-  dealKfVolume,
+  dealKfDecimal,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -113,10 +113,10 @@ const priceVolumeStats = computed(() => {
         exchangeId,
       );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
-      const priceSum = dealKfVolume(
+      const priceSum = dealKfDecimal(
         priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
       );
-      const volumeSum = dealKfVolume(
+      const volumeSum = dealKfDecimal(
         priceVolumeData[id].volume.reduce((a, b) => a + b),
       );
       const range = priceStats.range();

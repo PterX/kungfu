@@ -948,7 +948,7 @@ export const getOrderLatencyDataByOrderStat = (
   return {
     latency_system: latencyData.latencySystem,
     latency_network: latencyData.latencyNetwork,
-    avg_price: latencyData.avg_price,
+    avg_price: dealKfDecimal(latencyData.avg_price, price_precision),
     avg_price_resolved: dealKfPrice(latencyData.avg_price, price_precision),
   };
 };
@@ -982,6 +982,8 @@ export const dealOrder = (
     update_time_resolved: dealKfTime(order.update_time, isHistory),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
+    limit_price: dealKfDecimal(order.limit_price, pricePrecision),
+    frozen_price: dealKfDecimal(order.frozen_price, pricePrecision),
   };
 };
 

@@ -1063,8 +1063,16 @@ export const dealTrade = (
 export const getPosClosableVolume = (position: KungfuApi.Position): number => {
   return isShotable(position.instrument_type) ||
     isT0(position.instrument_type, position.exchange_id)
-    ? Math.max(+Number(position.volume - position.frozen_total), 0)
-    : Math.max(+Number(position.yesterday_volume - position.frozen_total), 0);
+    ? Math.max(
+        dealKfVolume(+Number(position.volume - position.frozen_total)),
+        0,
+      )
+    : Math.max(
+        dealKfVolume(
+          +Number(position.yesterday_volume - position.frozen_total),
+        ),
+        0,
+      );
 };
 
 export const dealPosition = (
@@ -1383,7 +1391,9 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-  return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
+  return (
+    Math.floor(dealKfVolume(orderVolume / minOrderVolume)) * minOrderVolume
+  );
 };
 
 export const buildTradingDataHeaders = (

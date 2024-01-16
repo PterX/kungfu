@@ -3,6 +3,7 @@ import {
   messagePrompt,
   useModalVisible,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { dealKfVolume } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ref, toRefs, computed, getCurrentInstance } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -30,7 +31,9 @@ defineEmits<{
 }>();
 
 const orderNumber = computed(() => {
-  return volume.value ? Math.floor(+curOrderVolume.value / +volume.value) : 0;
+  return volume.value
+    ? Math.floor(dealKfVolume(+curOrderVolume.value / +volume.value))
+    : 0;
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
@@ -51,7 +54,7 @@ function handleConfirm() {
     error(t('tradingConfig.no_empty'));
     return;
   }
-  const remainder: number = curOrderVolume.value % +volume.value; // 剩余数量
+  const remainder: number = dealKfVolume(curOrderVolume.value % +volume.value); // 剩余数量
   const volumeList: number[] = new Array(+orderNumber.value).fill(
     +volume.value,
   );

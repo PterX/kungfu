@@ -2530,7 +2530,7 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = volume - yesterday_volume;
+  const today_volume = dealKfVolume(volume - yesterday_volume);
   const frozen_today = frozen_total - frozen_yesterday;
   const shotable_closable_yesterday = dealKfVolume(
     yesterday_volume - frozen_yesterday,

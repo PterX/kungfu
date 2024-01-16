@@ -51,7 +51,7 @@ const cancelRatioMean = computed(() => {
       );
     })
     .map((item) => {
-      return +Number(item.volume_left) / +Number(item.volume);
+      return dealKfVolume(+Number(item.volume_left) / +Number(item.volume));
     });
 
   if (!cancelRatioBuckets.length) {
@@ -140,10 +140,10 @@ const priceVolumeStats = computed(() => {
         priceVolumeData[id].price.push(order.limit_price);
         priceVolumeData[id].volume.push(order.volume);
         priceVolumeData[id].volumeTraded.push(
-          +Number(order.volume - order.volume_left),
+          dealKfVolume(+Number(order.volume - order.volume_left)),
         );
         priceVolumeData[id].priceByVolume.push(
-          +Number(order.volume) * order.limit_price,
+          dealKfVolume(+Number(order.volume) * order.limit_price),
         );
         return priceVolumeData;
       },

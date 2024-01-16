@@ -113,8 +113,8 @@ const priceVolumeStats = computed(() => {
         exchangeId,
       );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
-      const priceSum = priceVolumeData[id].priceByVolume.reduce(
-        (a, b) => a + b,
+      const priceSum = dealKfVolume(
+        priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
       );
       const volumeSum = dealKfVolume(
         priceVolumeData[id].volume.reduce((a, b) => a + b),

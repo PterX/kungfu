@@ -729,7 +729,7 @@ async function confirmApartCloseToOpen(
       return [makeOrderInput];
 
     if (volume > closableVolume) {
-      const openVolume = dealKfVolume(volume - Number(closableVolume));
+      const openVolume = dealKfVolume(Number(volume) - Number(closableVolume));
       const firstOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         volume: Number(closableVolume),
@@ -737,7 +737,7 @@ async function confirmApartCloseToOpen(
       const secondOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         offset: OffsetEnum.Open,
-        volume: dealKfVolume(volume - Number(closableVolume)),
+        volume: dealKfVolume(Number(volume) - Number(closableVolume)),
       };
       const flag = await confirmContinueOrderModal(
         t('tradingConfig.close_apart_open_modal', {

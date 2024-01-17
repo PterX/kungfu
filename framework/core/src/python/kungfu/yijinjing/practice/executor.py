@@ -164,7 +164,7 @@ class ServiceLoader(dict):
         self["ledger"] = ServiceExecutor(self.ctx, "ledger", wc.Ledger)
 
     def load_service(self, ctx):
-        self[ctx.name] = ServiceExecutor(ctx, ctx.name, load_service_vendor(ctx))
+        self[ctx.name] = ServiceExecutor(ctx, ctx.name, load_service_vendor_builder(ctx))
 
 
 class ExtensionLoader:
@@ -599,7 +599,7 @@ def load_md_vendor(ctx):
     )
 
 
-def load_service_vendor(ctx):
+def load_service_vendor_builder(ctx):
     module = importlib.import_module(ctx.vendor or ctx.name)
     service_vendor_builder = getattr(module, "service")
     return service_vendor_builder

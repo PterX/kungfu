@@ -42,18 +42,13 @@ void Ledger::on_start() {
   broker_client_.on_start(events_);
   bookkeeper_.on_start(events_);
   bookkeeper_.guard_positions();
-  for (auto &pair : get_state_bank()[boost::hana::type_c<RiskSetting>]) {
-    on_risk_setting(pair.second.data);
-  }
-
-  auto risk_events = events_ | filter([&](auto e) { return check_risk(e); });
-  risk_events | is(OrderInput::tag) | $$(update_order_stat(event, event->data<OrderInput>()));
 
   events_ | is(BrokerStateUpdate::tag) |
       $$(update_app_state_map(event->source(), event->data<BrokerStateUpdate>(), broker_states_));
   events_ | is(OperatorStateUpdate::tag) |
       $$(update_app_state_map(event->source(), event->data<OperatorStateUpdate>(), operator_states_));
   events_ | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
+  events_ | is(OrderInput::tag) | $$(update_order_stat(event, event->data<OrderInput>()));
   events_ | is(Order::tag) | $$(update_order_stat(event, event->data<Order>()));
   events_ | is(Trade::tag) | $$(update_order_stat(event, event->data<Trade>()));
   events_ | is(Channel::tag) | $$(inspect_channel(event->gen_time(), event->data<Channel>()));
@@ -65,7 +60,6 @@ void Ledger::on_start() {
   events_ | is(AssetRequest::tag) | $$(write_book_reset(event->gen_time(), event->source()));
   events_ | is(PositionRequest::tag) | $$(write_strategy_data(event->gen_time(), event->source()));
   events_ | is(PositionEnd::tag) | $$(update_account_book(event->gen_time(), event->data<PositionEnd>().holder_uid));
-  events_ | is(RiskSetting::tag) | $$(on_risk_setting(event->data<RiskSetting>()));
 
   if (sync_asset_) {
     add_time_interval(time_unit::NANOSECONDS_PER_MINUTE,
@@ -218,7 +212,11 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
   auto is_from_account = source_location->category == category::TD;
 
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_join(channel.source_id, channel.dest_id, trigger_time);
+    if (not(source_location->category == category::SYSTEM and source_location->group == "service" and
+            get_location(channel.dest_id)->category == category::TD)) {
+      SPDLOG_INFO("join source: {} , dest: {}", source_location->uname, get_location(channel.dest_id)->uname);
+      reader_join(channel.source_id, channel.dest_id, trigger_time);
+    }
   }
   if (channel.dest_id == get_live_home_uid() and has_writer(channel.source_id) and is_from_account) {
     write_book_reset(trigger_time, channel.source_id);
@@ -348,23 +346,6 @@ void Ledger::request_position_sync(int64_t trigger_time) {
       get_writer(asset.holder_uid)->mark(trigger_time, PositionSync::tag);
     }
   }
-}
-
-void Ledger::on_risk_setting(const longfist::types::RiskSetting &risk_setting) {
-  uint32_t risk_uid =
-      location(get_home()->mode, category::SYSTEM, "service", risk_setting.risk_name, get_home()->locator).location_uid;
-  risk_setting_.insert_or_assign(risk_setting.location_uid, std::pair{risk_uid, risk_setting.risk_check});
-}
-
-bool Ledger::check_risk(const event_ptr &event) {
-  auto iter = risk_setting_.find(event->dest());
-  if (iter == risk_setting_.end()) {
-    return true;
-  }
-  if (iter->second.second) {
-    return event->initial_source() == iter->second.first;
-  }
-  return true;
 }
 
 } // namespace kungfu::wingchun::service

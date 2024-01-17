@@ -63,7 +63,7 @@ public:
 
   [[nodiscard]] nlohmann::json get_kungfu_config() const;
 
-  [[nodiscard]] std::string get_risk_setting() const;
+  [[nodiscard]] longfist::types::RiskSetting get_risk_setting() const;
 
   [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 

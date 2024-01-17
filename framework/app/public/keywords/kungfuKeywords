@@ -225,6 +225,7 @@ frame_count
 info_a
 info_b
 info_c
+risk_name
 risk_check
 self_deal_check_type
 open_ratio
@@ -367,6 +368,7 @@ get_vendor
 on_recover
 on_time_key_value
 on_custom_event
+on_risk_setting
 get_asset_writer
 get_position_writer
 has_order
@@ -569,6 +571,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

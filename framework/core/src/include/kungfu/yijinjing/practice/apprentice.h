@@ -73,25 +73,33 @@ public:
 
   void clear_timer(int32_t timer_id);
 
-  template <typename DataType>
-  void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC) {
+  template <typename DataType> void write_to(int64_t trigger_time, const DataType &data, uint32_t dest_id) {
     get_writer(dest_id)->write(trigger_time, data);
   }
 
   template <typename DataType>
+  void write_raw_to(int64_t trigger_time, int32_t msg_type, const DataType &data, uint32_t length, uint32_t dest_id) {
+    get_writer(dest_id)->write_raw(trigger_time, msg_type, reinterpret_cast<uintptr_t>(&data), length);
+  }
+
+  template <typename DataType>
+  void write_as(int64_t trigger_time, const DataType &data, uint32_t source_id, uint32_t dest_id) {
+    get_writer(dest_id)->write_as(trigger_time, data, source_id, dest_id);
+  }
+
+  template <typename DataType>
   void try_write_to(
-      int64_t trigger_time, const DataType &data, uint32_t dest_id = data::location::PUBLIC,
-      const std::function<void()> &callback = []() {}) {
+      int64_t trigger_time, const DataType &data, uint32_t dest_id, const std::function<void()> &callback = []() {}) {
     if (has_writer(dest_id)) {
-      get_writer(dest_id)->write(trigger_time, data);
+      write_to(trigger_time, data, dest_id);
       callback();
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
         return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
-          rx::$([&, data, dest_id, callback](const event_ptr &event) {
-            write_to(now(), data, dest_id);
+          rx::$([&, trigger_time, data, dest_id, callback](const event_ptr &event) {
+            write_to(trigger_time, data, dest_id);
             callback();
           });
       try_write_dest_ids_.emplace(dest_id);
@@ -99,17 +107,40 @@ public:
   }
 
   template <typename DataType>
-  void try_write_raw_to(int64_t trigger_time, int32_t msg_type, const DataType &data, uint32_t length,
-                        uint32_t dest_id = data::location::PUBLIC) {
+  void try_write_raw_to(
+      int64_t trigger_time, int32_t msg_type, const DataType &data, uint32_t length, uint32_t dest_id,
+      const std::function<void()> &callback = []() {}) {
     if (has_writer(dest_id)) {
-      get_writer(dest_id)->write_raw(trigger_time, msg_type, reinterpret_cast<uintptr_t>(&data), length);
+      write_raw_to(trigger_time, msg_type, data, length, dest_id);
+      callback();
     } else {
       events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
         const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
         return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
       }) | rx::first() |
-          rx::$([&, msg_type, data, length, dest_id](const event_ptr &event) {
-            get_writer(dest_id)->write_raw(now(), msg_type, reinterpret_cast<uintptr_t>(&data), length);
+          rx::$([&, trigger_time, msg_type, data, length, dest_id](const event_ptr &event) {
+            write_raw_to(trigger_time, msg_type, data, length, dest_id);
+            callback();
+          });
+      try_write_dest_ids_.emplace(dest_id);
+    }
+  }
+
+  template <typename DataType>
+  void try_write_as(
+      int64_t trigger_time, const DataType &data, uint32_t source_id, uint32_t dest_id,
+      const std::function<void()> &callback = []() {}) {
+    if (has_writer(dest_id)) {
+      write_as(trigger_time, data, source_id, dest_id);
+      callback();
+    } else {
+      events_ | rx::is(longfist::types::Channel::tag) | rx::filter([&, dest_id](const event_ptr &event) {
+        const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
+        return channel.source_id == get_live_home_uid() and channel.dest_id == dest_id;
+      }) | rx::first() |
+          rx::$([&, trigger_time, data, source_id, dest_id](const event_ptr &event) {
+            write_as(trigger_time, data, source_id, dest_id);
+            callback();
           });
       try_write_dest_ids_.emplace(dest_id);
     }

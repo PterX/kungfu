@@ -386,6 +386,7 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
     do {
       live_ = drain(sb) && live_;
       on_active();
+      cleanup_reader_disjoin(); // subclass may call disjoin in on_active
     } while (continual_ and live_);
   } catch (...) {
     live_ = false;
@@ -409,6 +410,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
   now_ = time::now_in_nano();
   if (notice.length() > 2) {
     sb.on_next(std::make_shared<nanomsg_json>(notice));
+    cleanup_reader_disjoin(); // socket frame may call disjoin
   } else if (notify) {
     on_notify();
   }
@@ -430,7 +432,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       }
       on_frame();
       reader_->next();
-      on_frame_done();
+      cleanup_reader_disjoin();
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
@@ -462,7 +464,7 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   disjoin_channels_.insert({location_uid, dest_id});
 }
 
-void hero::on_frame_done() {
+void hero::cleanup_reader_disjoin() {
   /**
    * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
    * 1. It may release current reading journal, causing segmentation violation or memory crash,

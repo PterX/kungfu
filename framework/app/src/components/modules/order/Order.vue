@@ -3,7 +3,7 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   delayMilliSeconds,
-  dealKfDecimal,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -817,12 +817,12 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span
                 style="float: right"
-                :title="`${dealKfDecimal(item.volume - item.volume_left)} / ${
-                  item.volume
-                }`"
+                :title="`${dealKfDecimalPersion(
+                  item.volume - item.volume_left,
+                )} / ${item.volume}`"
               >
                 {{
-                  `${dealKfDecimal(item.volume - item.volume_left)} / ${
+                  `${dealKfDecimalPersion(item.volume - item.volume_left)} / ${
                     item.volume
                   }`
                 }}

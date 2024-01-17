@@ -394,6 +394,7 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
     do {
       live_ = drain(sb) && live_;
       on_active();
+      cleanup_reader_disjoin(); // subclass may call disjoin in on_active
     } while (continual_ and live_);
   } catch (...) {
     live_ = false;
@@ -419,6 +420,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
     const auto frame = std::make_shared<nanomsg_json>(notice);
     io_device_->get_bus()->set_trigger_frame(frame);
     sb.on_next(frame);
+    cleanup_reader_disjoin(); // socket frame may call disjoin
   } else if (notify) {
     on_notify();
   }
@@ -428,7 +430,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_notice(bypass, true, sb);
   for (std::size_t step_count = 0;                                                                   //
-       live_ and reader_->data_available() and (step_limit_ == 0 ? true : step_count < step_limit_); //
+       live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); //
        step_count++) {
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
@@ -443,7 +445,7 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       }
       on_frame();
       reader_->next();
-      on_frame_done();
+      cleanup_reader_disjoin();
     } else {
       SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
@@ -475,7 +477,7 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   disjoin_channels_.insert({location_uid, dest_id});
 }
 
-void hero::on_frame_done() {
+void hero::cleanup_reader_disjoin() {
   /**
    * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
    * 1. It may release current reading journal, causing segmentation violation or memory crash,

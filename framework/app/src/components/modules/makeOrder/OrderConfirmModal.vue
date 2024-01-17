@@ -3,7 +3,7 @@ import {
   messagePrompt,
   useModalVisible,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { dealKfDecimal } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfDecimalPersion } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ref, toRefs, computed, getCurrentInstance } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -32,7 +32,7 @@ defineEmits<{
 
 const orderNumber = computed(() => {
   return volume.value
-    ? Math.floor(dealKfDecimal(+curOrderVolume.value / +volume.value))
+    ? Math.floor(dealKfDecimalPersion(curOrderVolume.value / volume.value))
     : 0;
 });
 
@@ -54,10 +54,10 @@ function handleConfirm() {
     error(t('tradingConfig.no_empty'));
     return;
   }
-  const remainder: number = dealKfDecimal(curOrderVolume.value % +volume.value); // 剩余数量
-  const volumeList: number[] = new Array(+orderNumber.value).fill(
-    +volume.value,
-  );
+  const remainder: number = dealKfDecimalPersion(
+    curOrderVolume.value % volume.value,
+  ); // 剩余数量
+  const volumeList: number[] = new Array(+orderNumber.value).fill(volume.value);
 
   if (remainder !== 0) {
     volumeList.push(remainder);

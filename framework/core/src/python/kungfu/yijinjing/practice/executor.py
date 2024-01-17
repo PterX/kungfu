@@ -54,14 +54,14 @@ class ExecutorRegistry:
             "strategy": {"default": ExtensionLoader(self.ctx, None, None)},
             "operator": {},
         }
+        self.setup_log()
 
     def setup_log(self):
         ctx = self.ctx
         ctx.logger = find_logger(ctx.location, ctx.log_level)
+        ctx.logger.info(f"{ctx.location}")
 
     def load_extensions(self):
-        self.setup_log()
-
         ctx = self.ctx
         ctx.logger.debug(f"finding kungfu extension for {ctx.location}")
 
@@ -77,6 +77,8 @@ class ExecutorRegistry:
 
         if ctx.extension_path:
             deque(map(self.register_extensions, ctx.extension_path.split(path.pathsep)))
+            sys.path.append(ctx.extension_path)
+            site.setup(ctx.extension_path)
         elif ctx.path:
             self.read_config(os.path.dirname(ctx.path))
 
@@ -162,11 +164,9 @@ class ServiceLoader(dict):
         self["ledger"] = ServiceExecutor(self.ctx, "ledger", wc.Ledger)
 
     def load_service(self, ctx):
-        sys.path.append(ctx.extension_path)
-        site.setup(ctx.extension_path)
-        module = importlib.import_module(ctx.vendor or ctx.name)
-        service_builder = getattr(module, "service")
-        self[ctx.name] = ServiceExecutor(ctx, ctx.name, service_builder)
+        self[ctx.name] = ServiceExecutor(
+            ctx, ctx.name, load_service_vendor_builder(ctx)
+        )
 
 
 class ExtensionLoader:
@@ -200,24 +200,16 @@ class ExtensionExecutorBuilder:
         return self.runners[self.ctx.category]()
 
     def get_market_data_vendor(self):
-        return BrokerVendor(
-            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
-        )
+        return BrokerVendor(self.ctx, self.loader, load_md_vendor(self.ctx))
 
     def get_trader_vendor(self):
-        return BrokerVendor(
-            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
-        )
+        return BrokerVendor(self.ctx, self.loader, load_td_vendor(self.ctx))
 
     def get_strategy_runner(self):
-        return StrategyRunner(
-            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
-        )
+        return StrategyRunner(self.ctx, self.loader, load_strategy_runner(self.ctx))
 
     def get_operator_runner(self):
-        return OperatorRunner(
-            self.ctx, self.loader, load_runner(self.ctx, self.ctx.locator)
-        )
+        return OperatorRunner(self.ctx, self.loader, load_operator_runner(self.ctx))
 
 
 class Executor:
@@ -268,9 +260,7 @@ class MasterExecutor(Executor):
         return self
 
     def build_executor(self):
-        ctx = self.ctx
-        ctx.logger = find_logger(ctx.location, ctx.log_level)
-        return Master(ctx)
+        return Master(self.ctx)
 
 
 class ServiceExecutor(Executor):
@@ -280,21 +270,19 @@ class ServiceExecutor(Executor):
         self.service_builder = service_builder
 
     def __call__(self, mode, low_latency):
-        self._executor = self.build_executor(self.name, self.service_builder)
+        self._executor = self.build_executor()
         return self
 
-    def build_executor(self, name, service_builder):
+    def build_executor(self):
         ctx = self.ctx
-        ctx.logger = find_logger(ctx.location, ctx.log_level)
         ctx.logger.info(
-            f"starting service {name}, low_latency={ctx.low_latency}, arguments={ctx.arguments}, mode={ctx.mode}"
+            f"starting service {self.name}, low_latency={ctx.low_latency}, arguments={ctx.arguments}, mode={ctx.mode}"
         )
-
         service = (
-            service_builder(ctx)
-            if "is_python_service" in dir(service_builder)
-            and service_builder.is_python_service
-            else service_builder(
+            self.service_builder(ctx)
+            if "is_python_service" in dir(self.service_builder)
+            and self.service_builder.is_python_service
+            else self.service_builder(
                 ctx.runtime_locator,
                 ctx.group,
                 ctx.name,
@@ -303,7 +291,6 @@ class ServiceExecutor(Executor):
                 ctx.arguments,
             )
         )
-
         if kfj.MODES[ctx.mode] == lf.enums.mode.REPLAY:
             begin_time_stamp, end_time_stamp = parse_begin_end(ctx)
             service.set_begin_time(begin_time_stamp)
@@ -550,13 +537,12 @@ def try_load_cpp_module(ctx, path, key, cls, cls_name):
         return cls(ctx)
 
 
-def load_runner(ctx, locator):
+def load_strategy_runner(ctx):
     if ctx.vendor is not None:
-        sys.path.append(ctx.extension_path)
         module = importlib.import_module(ctx.vendor)
         runner_vendor = getattr(module, "Runner")
         return runner_vendor(
-            locator,
+            ctx.locator,
             ctx.group,
             ctx.name,
             kfj.MODES[ctx.mode],
@@ -564,30 +550,61 @@ def load_runner(ctx, locator):
             ctx.arguments,
         )
     else:
-        if ctx.category == "strategy":
-            return Runner(ctx)
-        elif ctx.category == "operator":
-            return OpRunner(ctx)
-        elif ctx.category == "td":
-            return wc.TraderVendor(
-                locator,
-                ctx.group,
-                ctx.name,
-                kfj.MODES[ctx.mode],
-                ctx.low_latency,
-                ctx.arguments,
-            )
-        elif ctx.category == "md":
-            return wc.MarketDataVendor(
-                locator,
-                ctx.group,
-                ctx.name,
-                kfj.MODES[ctx.mode],
-                ctx.low_latency,
-                ctx.arguments,
-            )
-        else:
-            raise ValueError(f"invalid category {ctx.category}")
+        return Runner(ctx)
+
+
+def load_operator_runner(ctx):
+    if ctx.vendor is not None:
+        module = importlib.import_module(ctx.vendor)
+        runner_vendor = getattr(module, "Runner")
+        return runner_vendor(
+            ctx.locator,
+            ctx.group,
+            ctx.name,
+            kfj.MODES[ctx.mode],
+            ctx.low_latency,
+            ctx.arguments,
+        )
+    else:
+        return OpRunner(ctx)
+
+
+def load_td_vendor(ctx):
+    td_vendor_builder = wc.TraderVendor
+    if ctx.vendor is not None:
+        module = importlib.import_module(ctx.vendor)
+        td_vendor_builder = getattr(module, "Vendor")
+
+    return td_vendor_builder(
+        ctx.locator,
+        ctx.group,
+        ctx.name,
+        kfj.MODES[ctx.mode],
+        ctx.low_latency,
+        ctx.arguments,
+    )
+
+
+def load_md_vendor(ctx):
+    md_vendor_builder = wc.MarketDataVendor
+    if ctx.vendor is not None:
+        module = importlib.import_module(ctx.vendor)
+        md_vendor_builder = getattr(module, "Vendor")
+
+    return md_vendor_builder(
+        ctx.locator,
+        ctx.group,
+        ctx.name,
+        kfj.MODES[ctx.mode],
+        ctx.low_latency,
+        ctx.arguments,
+    )
+
+
+def load_service_vendor_builder(ctx):
+    module = importlib.import_module(ctx.vendor or ctx.name)
+    service_vendor_builder = getattr(module, "service")
+    return service_vendor_builder
 
 
 def parse_begin_end(ctx):

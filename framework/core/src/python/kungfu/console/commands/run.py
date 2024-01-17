@@ -181,7 +181,7 @@ def run(
         ctx.executor = registry[category][group][name](mode, low_latency)
 
     if ctx.executor is not None:
-        if not low_latency:
+        if not low_latency and kfj.MODES[ctx.mode] != lf.enums.mode.BACKTEST:
             ctx.logger.debug("by step mode")
             run_by_step(ctx, ctx.executor)
         else:

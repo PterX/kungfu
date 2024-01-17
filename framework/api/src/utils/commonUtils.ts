@@ -29,7 +29,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
-): string | number | bigint => {
+): string | number => {
   if (
     preNumber === undefined ||
     preNumber === null ||
@@ -43,7 +43,10 @@ export const dealKfNumber = (
   return Number(preNumber) || 0;
 };
 
-export const dealKfDecimal = (originNum: number, precision = 12): number => {
+export const dealKfDecimalPersion = (
+  originNum: number,
+  precision = 12,
+): number => {
   return parseFloat(Number(originNum).toFixed(precision));
 };
 

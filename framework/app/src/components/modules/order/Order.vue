@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  delayMilliSeconds,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -636,7 +637,7 @@ function handleClickAdjustOrderMask(): void {
         instrument_type: order.instrument_type,
         exchange_id: order.exchange_id,
         limit_price: +adjustOrderForm.value.price,
-        volume: Number(order.volume_left),
+        volume: order.volume_left,
         price_type: +order.price_type,
         side: +order.side,
         offset: +order.offset,
@@ -707,7 +708,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
       <template #header>
         <KfDashboardItem>
           <a-checkbox v-model:checked="unfinishedOrder" size="small">
-            {{ $t('orderConfig.show_pending_orders') }}
+            {{ $t('orderConfig.show_unfinished_orders') }}
           </a-checkbox>
         </KfDashboardItem>
         <KfDashboardItem>
@@ -816,9 +817,15 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span
                 style="float: right"
-                :title="`${item.volume - item.volume_left} / ${item.volume}`"
+                :title="`${dealKfDecimalPersion(
+                  item.volume - item.volume_left,
+                )} / ${item.volume}`"
               >
-                {{ `${item.volume - item.volume_left} / ${item.volume}` }}
+                {{
+                  `${dealKfDecimalPersion(item.volume - item.volume_left)} / ${
+                    item.volume
+                  }`
+                }}
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'status_uname'">

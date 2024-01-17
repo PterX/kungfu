@@ -440,7 +440,7 @@ export default {
     time_condition: '触发时间',
     parked_type: '预埋方式',
 
-    show_pending_orders: '只展示未完成委托',
+    show_unfinished_orders: '未完成委托',
     cancel_all: '全部撤单',
     cancel_order: '撤单',
     cancel_order_trigger: '预撤',

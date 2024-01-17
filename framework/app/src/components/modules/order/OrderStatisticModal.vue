@@ -7,7 +7,10 @@ import {
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import { OrderStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealAssetPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfDecimalPersion,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
   dealSide,
@@ -48,7 +51,7 @@ const cancelRatioMean = computed(() => {
       );
     })
     .map((item) => {
-      return +Number(item.volume_left) / +Number(item.volume);
+      return dealKfDecimalPersion(item.volume_left / item.volume);
     });
 
   if (!cancelRatioBuckets.length) {
@@ -135,12 +138,12 @@ const priceVolumeStats = computed(() => {
         }
 
         priceVolumeData[id].price.push(order.limit_price);
-        priceVolumeData[id].volume.push(+Number(order.volume));
+        priceVolumeData[id].volume.push(order.volume);
         priceVolumeData[id].volumeTraded.push(
-          +Number(order.volume - order.volume_left),
+          dealKfDecimalPersion(order.volume - order.volume_left),
         );
         priceVolumeData[id].priceByVolume.push(
-          +Number(order.volume) * order.limit_price,
+          dealKfDecimalPersion(order.volume * order.limit_price),
         );
         return priceVolumeData;
       },
@@ -169,9 +172,11 @@ const priceVolumeStats = computed(() => {
       const priceSum = priceVolumeData[id].priceByVolume.reduce(
         (a, b) => a + b,
       );
-      const volumeSum = priceVolumeData[id].volume.reduce((a, b) => a + b);
-      const volumeTradedSum = priceVolumeData[id].volumeTraded.reduce(
-        (a, b) => a + b,
+      const volumeSum = dealKfDecimalPersion(
+        priceVolumeData[id].volume.reduce((a, b) => a + b),
+      );
+      const volumeTradedSum = dealKfDecimalPersion(
+        priceVolumeData[id].volumeTraded.reduce((a, b) => a + b),
       );
       const range = priceStats.range();
       const sideReolved = dealSide(+side);
@@ -183,9 +188,9 @@ const priceVolumeStats = computed(() => {
         sideColor: sideReolved.color || 'default',
         offsetName: offsetResolved.name,
         offsetColor: offsetResolved.color || 'default',
-        mean: dealAssetPrice(Number(priceSum / volumeSum), price_precision),
-        min: dealAssetPrice(range[0], price_precision),
-        max: dealAssetPrice(range[1], price_precision),
+        mean: dealKfPrice(priceSum / volumeSum, price_precision),
+        min: dealKfPrice(range[0], price_precision),
+        max: dealKfPrice(range[1], price_precision),
         volume: `${volumeTradedSum} / ${volumeSum}`,
       };
     })

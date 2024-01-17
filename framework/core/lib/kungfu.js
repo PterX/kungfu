@@ -91,7 +91,7 @@ module.exports = function () {
       bypassTradingData = false,
       refreshTradingDataBeforeSync = false,
       bypassRefreshBook = false,
-      millisecondsSleepAfterStep = 200,
+      millisecondsSleepAfterStep = 50,
     ) {
       return new binding.Watcher(
         home,

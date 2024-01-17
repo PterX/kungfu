@@ -91,13 +91,13 @@ nlohmann::json BrokerService::get_kungfu_config() const {
   return nlohmann::json::parse("{}");
 }
 
-std::string BrokerService::get_risk_setting() const {
+RiskSetting BrokerService::get_risk_setting() const {
   auto &risk_setting_map = get_state_bank()[boost::hana::type_c<RiskSetting>];
   if (risk_setting_map.find(get_live_home_uid()) == risk_setting_map.end()) {
-    return "{}";
+    return get_home()->to<RiskSetting>();
   }
   auto &risk_setting_obj = risk_setting_map.at(get_live_home_uid());
-  return risk_setting_obj.data.to_string();
+  return risk_setting_obj.data;
 }
 
 std::string BrokerService::get_runtime_folder() {

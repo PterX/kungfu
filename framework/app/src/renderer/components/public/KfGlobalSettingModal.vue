@@ -182,6 +182,7 @@ function handleAddCommission() {
               ></KfConfigSettingsForm>
             </a-tab-pane>
             <a-tab-pane
+              class="commission"
               key="comission"
               :tab="$t('globalSettingConfig.comission')"
             >
@@ -202,92 +203,96 @@ function handleAddCommission() {
                   {{ $t('globalSettingConfig.save_comission') }}
                 </a-button>
               </div>
-              <div
-                v-for="(item, index) in tableData"
-                :key="index"
-                class="commission-setting-row"
-              >
-                <div class="commission-setting-item">
-                  <a-input
-                    class="value product-id"
-                    v-model:value="item.data.product_id"
-                    :placeholder="$t('globalSettingConfig.varieties')"
-                  ></a-input>
-                </div>
-                <div class="commission-setting-item">
-                  <a-select
-                    class="value exchange-id"
-                    v-model:value="item.data.exchange_id"
-                    :placeholder="$t('globalSettingConfig.exchange_id')"
-                  >
-                    <a-select-option
-                      v-for="key in Object.keys(ExchangeIds)"
-                      :key="key"
-                      :value="key"
+              <div class="commission-setting">
+                <div
+                  v-for="(item, index) in tableData"
+                  :key="index"
+                  class="commission-setting-row"
+                >
+                  <div class="commission-setting-item">
+                    <a-input
+                      class="value product-id"
+                      v-model:value="item.data.product_id"
+                      :placeholder="$t('globalSettingConfig.varieties')"
+                    ></a-input>
+                  </div>
+                  <div class="commission-setting-item">
+                    <a-select
+                      class="value exchange-id"
+                      v-model:value="item.data.exchange_id"
+                      :placeholder="$t('globalSettingConfig.exchange_id')"
                     >
-                      {{ ExchangeIds[key].name }}
-                    </a-select-option>
-                  </a-select>
-                </div>
-                <div class="commission-setting-item">
-                  <a-select class="value" v-model:value="item.data.mode">
-                    <a-select-option
-                      v-for="key in Object.keys(CommissionMode)"
-                      :key="key"
-                      :value="+key"
-                    >
-                      {{ dealCommissionMode(+key).name }}
-                    </a-select-option>
-                  </a-select>
-                </div>
-                <div class="commission-setting-item">
-                  <span class="label">
-                    {{ $t('globalSettingConfig.open') }}
-                  </span>
-                  <a-input-number
-                    class="value"
-                    :precision="8"
-                    step="0.00000001"
-                    v-model:value="item.data.open_ratio"
-                  ></a-input-number>
-                </div>
-                <div class="commission-setting-item">
-                  <span class="label">
-                    {{ $t('globalSettingConfig.close_yesterday') }}
-                  </span>
-                  <a-input-number
-                    class="value"
-                    :precision="8"
-                    step="0.00000001"
-                    v-model:value="item.data.close_ratio"
-                  ></a-input-number>
-                </div>
-                <div class="commission-setting-item">
-                  <span class="label">
-                    {{ $t('globalSettingConfig.close_today') }}
-                  </span>
-                  <a-input-number
-                    class="value"
-                    :precision="8"
-                    step="0.00000001"
-                    v-model:value="item.data.close_today_ratio"
-                  ></a-input-number>
-                </div>
-                <div class="commission-setting-item">
-                  <span class="label">{{ $t('globalSettingConfig.min') }}</span>
-                  <a-input-number
-                    class="value"
-                    :precision="8"
-                    step="0.00000001"
-                    v-model:value="item.data.min_commission"
-                  ></a-input-number>
-                </div>
-                <div class="commission-setting-item">
-                  <DeleteOutlined
-                    class="kf-hover"
-                    style="font-size: 14px"
-                    @click="handleRemoveCommission(item.data)"
-                  />
+                      <a-select-option
+                        v-for="key in Object.keys(ExchangeIds)"
+                        :key="key"
+                        :value="key"
+                      >
+                        {{ ExchangeIds[key].name }}
+                      </a-select-option>
+                    </a-select>
+                  </div>
+                  <div class="commission-setting-item">
+                    <a-select class="value" v-model:value="item.data.mode">
+                      <a-select-option
+                        v-for="key in Object.keys(CommissionMode)"
+                        :key="key"
+                        :value="+key"
+                      >
+                        {{ dealCommissionMode(+key).name }}
+                      </a-select-option>
+                    </a-select>
+                  </div>
+                  <div class="commission-setting-item">
+                    <span class="label">
+                      {{ $t('globalSettingConfig.open') }}
+                    </span>
+                    <a-input-number
+                      class="value"
+                      :precision="8"
+                      step="0.00000001"
+                      v-model:value="item.data.open_ratio"
+                    ></a-input-number>
+                  </div>
+                  <div class="commission-setting-item">
+                    <span class="label">
+                      {{ $t('globalSettingConfig.close_yesterday') }}
+                    </span>
+                    <a-input-number
+                      class="value"
+                      :precision="8"
+                      step="0.00000001"
+                      v-model:value="item.data.close_ratio"
+                    ></a-input-number>
+                  </div>
+                  <div class="commission-setting-item">
+                    <span class="label">
+                      {{ $t('globalSettingConfig.close_today') }}
+                    </span>
+                    <a-input-number
+                      class="value"
+                      :precision="8"
+                      step="0.00000001"
+                      v-model:value="item.data.close_today_ratio"
+                    ></a-input-number>
+                  </div>
+                  <div class="commission-setting-item">
+                    <span class="label">
+                      {{ $t('globalSettingConfig.min') }}
+                    </span>
+                    <a-input-number
+                      class="value"
+                      :precision="8"
+                      step="0.00000001"
+                      v-model:value="item.data.min_commission"
+                    ></a-input-number>
+                  </div>
+                  <div class="commission-setting-item">
+                    <DeleteOutlined
+                      class="kf-hover"
+                      style="font-size: 14px"
+                      @click="handleRemoveCommission(item.data)"
+                    />
+                  </div>
                 </div>
               </div>
             </a-tab-pane>
@@ -319,51 +324,64 @@ function handleAddCommission() {
         padding-left: 28px;
         box-sizing: border-box;
 
-        .search-input {
-          display: flex;
-          text-align: center;
-          margin-bottom: 24px;
-          justify-content: center;
-          align-items: center;
-
-          .ant-input-group-wrapper.ant-input-search {
-            margin-right: 30px;
-            .ant-btn-lg {
-              height: 32px !important;
-              width: 32px !important;
-            }
-          }
-        }
-
         .ant-form-item-label > label,
         .global-setting-item .label {
           font-size: 14px;
         }
 
-        .commission-setting-row {
+        &.commission {
+          max-height: 680px;
           display: flex;
-          justify-content: space-around;
-          margin-bottom: 16px;
+          flex-direction: column;
 
-          .commission-setting-item {
-            flex: 1;
-            padding-right: 16px;
-            box-sizing: border-box;
+          .search-input {
             display: flex;
-            justify-content: space-between;
+            text-align: center;
+            margin-bottom: 24px;
+            justify-content: center;
             align-items: center;
 
-            .label {
-              padding-right: 8px;
-            }
-
-            .value {
-              &.product-id {
-                width: 80px;
+            .ant-input-group-wrapper.ant-input-search {
+              margin-right: 30px;
+              .ant-btn-lg {
+                height: 32px !important;
+                width: 32px !important;
               }
+            }
+          }
 
-              &.exchange-id {
-                width: 80px;
+          .commission-setting {
+            flex: 1;
+            width: 100%;
+            overflow: auto;
+
+            .commission-setting-row {
+              width: fit-content;
+              display: flex;
+              justify-content: space-around;
+              margin-bottom: 16px;
+
+              .commission-setting-item {
+                flex: 1;
+                padding-right: 16px;
+                box-sizing: border-box;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .label {
+                  padding-right: 8px;
+                }
+
+                .value {
+                  &.product-id {
+                    width: 80px;
+                  }
+
+                  &.exchange-id {
+                    width: 80px;
+                  }
+                }
               }
             }
           }

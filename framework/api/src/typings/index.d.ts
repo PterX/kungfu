@@ -768,8 +768,8 @@ declare namespace KungfuApi {
     limit_price: number; //价格
     frozen_price: number; //冻结价格, 市价单冻结价格为0
 
-    volume: bigint; //数量
-    volume_left: bigint; //剩余数量
+    volume: number; //数量
+    volume_left: number; //剩余数量
 
     tax: number; //税
     commission: number; //手续费
@@ -825,7 +825,7 @@ declare namespace KungfuApi {
     limit_price: number; //价格
     frozen_price: number; //冻结价格
 
-    volume: bigint; //数量
+    volume: number; //数量
 
     is_swap: boolean;
     side: SideEnum; //买卖方向
@@ -866,7 +866,7 @@ declare namespace KungfuApi {
 
     limit_price: number; //价格
     frozen_price: number; //冻结价格, 市价单冻结价格为0
-    volume: bigint; //数量
+    volume: number; //数量
     stop_price: number; // 条件触发价格
 
     status: OrderTriggerStatusEnum; // 触发器状态
@@ -919,7 +919,7 @@ declare namespace KungfuApi {
 
     limit_price: number; //价格
     frozen_price: number; //冻结价格, 市价单冻结价格为0
-    volume: bigint; //数量
+    volume: number; //数量
     stop_price: number; // 条件触发价格
 
     is_swap: boolean; // 互换单
@@ -1034,7 +1034,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
-    volume: bigint;
+    volume: number;
 
     algo_type_id: string; // 算法类型
     algo_id: string; // 算法id
@@ -1051,11 +1051,11 @@ declare namespace KungfuApi {
     contract_type: ContractTypeEnum; // 合约类型
     instrument_type: InstrumentTypeEnum; // 标的类型
     opening_date: string; // 开仓日期
-    repayment_amt: bigint; // 已偿还金额（融资）
-    total_liability_amt: bigint; // 合约总欠款（融资）
-    repayment_qty: bigint; // 已偿还数量（融券）
-    total_liability_qty: bigint; // 合约总欠券 （融券）
-    unsettled_interest: bigint; // 未结利息罚息 未结利息+未结罚息
+    repayment_amt: number; // 已偿还金额（融资）
+    total_liability_amt: number; // 合约总欠款（融资）
+    repayment_qty: number; // 已偿还数量（融券）
+    total_liability_qty: number; // 合约总欠券 （融券）
+    unsettled_interest: number; // 未结利息罚息 未结利息+未结罚息
     expiration_date: string; // 归还截止日期
     close_out_flag: CloseOutFlagEnum; // 合约了结状态
   }
@@ -1080,8 +1080,8 @@ declare namespace KungfuApi {
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
 
-    volume: bigint; // 目标量
-    volume_left: bigint; // 剩余数量
+    volume: number; // 目标量
+    volume_left: number; // 剩余数量
 
     algo_type_id: string; // 算法类型
     algo_id: string; // 算法id
@@ -1129,12 +1129,12 @@ declare namespace KungfuApi {
 
     direction: DirectionEnum; //持仓方向
 
-    volume: bigint; //数量
-    static_yesterday: bigint; // 固定昨仓数量
-    open_volume: bigint; // 今开数量
-    yesterday_volume: bigint; //昨仓数量
-    frozen_total: bigint; //冻结数量
-    frozen_yesterday: bigint; //冻结昨仓
+    volume: number; //数量
+    static_yesterday: number; // 固定昨仓数量
+    open_volume: number; // 今开数量
+    yesterday_volume: number; //昨仓数量
+    frozen_total: number; //冻结数量
+    frozen_yesterday: number; //冻结昨仓
 
     last_price: number; //最新价
     avg_open_price: number; //开仓均价
@@ -1154,7 +1154,7 @@ declare namespace KungfuApi {
 
   export interface PositionResolved extends Position {
     currency: CurrencyEnum;
-    closable_volume: bigint;
+    closable_volume: number;
     account_id_resolved: string;
     instrument_id_resolved: string;
     price_precision?: number;
@@ -1175,7 +1175,7 @@ declare namespace KungfuApi {
     pre_close_price: number; //昨收价
     pre_settlement_price: number; //昨结价
     last_price: number; //最新价
-    volume: bigint; //数量
+    volume: number; //数量
     turnover: number; //成交金额
     pre_open_interest: number; //昨持仓量
     open_interest: number; //持仓量
@@ -1190,8 +1190,8 @@ declare namespace KungfuApi {
 
     bid_price: number[]; //申买价
     ask_price: number[]; //申卖价
-    bid_volume: bigint[]; //申买量
-    ask_volume: bigint[]; //申卖量
+    bid_volume: number[]; //申买量
+    ask_volume: number[]; //申卖量
     trading_phase_code: string; //标的状态
   }
 
@@ -1212,8 +1212,8 @@ declare namespace KungfuApi {
     hedge_flag: HedgeFlagEnum; //投机套保标识
 
     price: number; //成交价格
-    volume: bigint; //成交量
-    close_today_volume: bigint; //平今日仓量(期货)
+    volume: number; //成交量
+    close_today_volume: number; //平今日仓量(期货)
 
     tax: number; //税
     commission: number; //手续费
@@ -1316,9 +1316,9 @@ declare namespace KungfuApi {
     etf_value: number; // 基金份额净值
     cash_difference: number; // 现金差额
     max_cash_ratio: number; // 现金替代比例上限
-    max_purchase_volume: bigint; // 申购上限
-    max_redemption_volume: bigint; // 赎回上限
-    min_volume: bigint; // 最小申赎单位
+    max_purchase_volume: number; // 申购上限
+    max_redemption_volume: number; // 赎回上限
+    min_volume: number; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
     etf_status: ETFStatus; // etf状态
   }
@@ -1335,7 +1335,7 @@ declare namespace KungfuApi {
     exchange_id: string;
     instrument_type: InstrumentTypeEnum;
     direction: DirectionEnum;
-    volume: bigint; // 数量
+    volume: number; // 数量
     rate: number; // 比例
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率

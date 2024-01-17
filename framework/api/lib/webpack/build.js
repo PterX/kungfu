@@ -70,6 +70,7 @@ const run = (distDir, distName = 'api') => {
       mode: 'production',
       distDir: distDir,
       distName: distName,
+      enableThreadLoader: false,
     };
 
     const jsApiConfig = require('./webpack.api.config');

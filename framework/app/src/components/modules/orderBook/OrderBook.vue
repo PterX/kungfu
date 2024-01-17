@@ -3,6 +3,7 @@ import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
   dealKfPrice,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -103,7 +104,7 @@ function handleTriggerBuyOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Buy,
     price,
-    volume: BigInt(volume),
+    volume: volume,
   });
 }
 
@@ -118,7 +119,7 @@ function handleTriggerSellOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Sell,
     price,
-    volume: BigInt(volume),
+    volume: volume,
   });
 }
 
@@ -138,11 +139,21 @@ function dealQuoteAskPidPrices(
 
       if (price_tick !== 0) {
         return quoteData[`${type}_price`].reduce((pre, cur, index) => {
-          if (index === 0 || toLedgalPriceVolume(cur)) {
-            pre.push(toLedgalPriceVolume(cur));
+          if (
+            index === 0 ||
+            dealKfDecimalPersion(toLedgalPriceVolume(cur), target_price_tick)
+          ) {
+            pre.push(
+              dealKfDecimalPersion(toLedgalPriceVolume(cur), target_price_tick),
+            );
           } else {
             const prePrice = pre[index - 1];
-            pre.push(toLedgalPriceVolume(prePrice + target_price_tick));
+            pre.push(
+              dealKfDecimalPersion(
+                toLedgalPriceVolume(prePrice + target_price_tick),
+              ),
+              target_price_tick,
+            );
           }
 
           return pre;

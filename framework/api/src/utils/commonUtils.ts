@@ -29,7 +29,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
-): string | number | bigint => {
+): string | number => {
   if (
     preNumber === undefined ||
     preNumber === null ||
@@ -42,30 +42,25 @@ export const dealKfNumber = (
 
   return Number(preNumber) || 0;
 };
-export const dealAssetPrice = (
-  preNumber: bigint | number | undefined | unknown,
-  pricePrecision?: number,
-): string => {
-  const afterNumber = dealKfNumber(preNumber);
 
-  if (afterNumber === '--') {
-    return afterNumber;
-  }
-
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
+export const dealKfDecimalPersion = (
+  originNum: number,
+  precision = 12,
+): number => {
+  return parseFloat(Number(originNum).toFixed(precision));
 };
 
 export const dealKfPrice = (
-  preNumber: bigint | number | undefined | null | unknown,
+  originNum: bigint | number | undefined | null | unknown,
   pricePrecision?: number,
 ): string => {
-  const afterNumber = dealKfNumber(preNumber);
+  const resolvedNum = dealKfNumber(originNum);
 
-  if (afterNumber === '--') {
-    return afterNumber;
+  if (resolvedNum === '--') {
+    return resolvedNum;
   }
 
-  return Number(afterNumber).kfToFixed(pricePrecision ?? 4);
+  return Number(resolvedNum).kfToFixed(pricePrecision ?? 4);
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {
@@ -795,14 +790,6 @@ export const buildTableColumnSorterWithStrike = <T, U = object>(
       );
     }
   };
-};
-
-export const getNaturalNumber = <T extends number | bigint>(num: T): T => {
-  if (typeof num === 'bigint') {
-    return num > 0n ? num : (0n as T);
-  }
-
-  return num > 0 ? num : (0 as T);
 };
 
 export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {

@@ -399,4 +399,5 @@ bool Bookkeeper::is_ready_td(uint32_t location_uid) {
   }
   return ready_tds_.try_emplace(location_uid, false).first->second;
 }
+
 } // namespace kungfu::wingchun::book

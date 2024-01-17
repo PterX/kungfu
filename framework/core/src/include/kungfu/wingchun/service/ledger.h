@@ -42,7 +42,6 @@ private:
   OperatorStateMap operator_states_ = {};
   bool sync_asset_ = false;
   bool sync_position_ = false;
-  std::unordered_map<uint32_t, std::pair<uint32_t, bool>> risk_setting_ = {};
 
   static bool bypass_refresh_book();
 
@@ -122,10 +121,6 @@ private:
     book->apply_position_for(data, apply);
     write_to(trigger_time, book->asset, book_uid);
   }
-
-  void on_risk_setting(const longfist::types::RiskSetting &risk_setting);
-
-  bool check_risk(const kungfu::event_ptr &event);
 };
 } // namespace kungfu::wingchun::service
 

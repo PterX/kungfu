@@ -429,7 +429,7 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_notice(bypass, true, sb);
-  for (std::size_t step_count = 0;                                                                   //
+  for (std::size_t step_count = 0;                                                             //
        live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); //
        step_count++) {
     deal_notice(io_device_->is_lazy(), false, sb);

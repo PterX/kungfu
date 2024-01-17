@@ -63,7 +63,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
-  dealKfVolume,
+  dealKfDecimal,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -2530,14 +2530,14 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = volume - yesterday_volume;
+  const today_volume = dealKfDecimal(volume - yesterday_volume);
   const frozen_today = frozen_total - frozen_yesterday;
-  const shotable_closable_yesterday = dealKfVolume(
+  const shotable_closable_yesterday = dealKfDecimal(
     yesterday_volume - frozen_yesterday,
   );
-  const closable_yesterday = dealKfVolume(yesterday_volume - frozen_total);
-  const closable_today = dealKfVolume(today_volume - frozen_today);
-  const closable_total = dealKfVolume(volume - frozen_total);
+  const closable_yesterday = dealKfDecimal(yesterday_volume - frozen_total);
+  const closable_today = dealKfDecimal(today_volume - frozen_today);
+  const closable_total = dealKfDecimal(volume - frozen_total);
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2804,7 +2804,7 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return dealTradeAmount((currentPrice.value ?? 0) * volume);
+    return dealTradeAmount(dealKfDecimal((currentPrice.value ?? 0) * volume));
   });
 
   const currentResidueMoney = computed(() => {
@@ -2833,16 +2833,16 @@ export const useMakeOrderInfo = (
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
         if (isMarginMakeOrder.value) {
-          return dealKfVolume(
+          return dealKfDecimal(
             Number(currentAvailPosVolume.value) - Number(volume),
           );
         }
         if (offset === OffsetEnum.Open) {
-          return dealKfVolume(
+          return dealKfDecimal(
             Number(currentAvailPosVolume.value) + Number(volume),
           );
         } else {
-          return dealKfVolume(
+          return dealKfDecimal(
             Number(currentAvailPosVolume.value) - Number(volume),
           );
         }

@@ -48,6 +48,7 @@ import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  dealKfDecimal,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
@@ -728,7 +729,7 @@ async function confirmApartCloseToOpen(
       return [makeOrderInput];
 
     if (volume > closableVolume) {
-      const openVolume = volume - Number(closableVolume);
+      const openVolume = dealKfDecimal(Number(volume) - Number(closableVolume));
       const firstOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         volume: Number(closableVolume),
@@ -736,7 +737,7 @@ async function confirmApartCloseToOpen(
       const secondOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         offset: OffsetEnum.Open,
-        volume: volume - Number(closableVolume),
+        volume: dealKfDecimal(Number(volume) - Number(closableVolume)),
       };
       const flag = await confirmContinueOrderModal(
         t('tradingConfig.close_apart_open_modal', {
@@ -942,7 +943,9 @@ function closeModalConditions(
     return { result: false };
   }
 
-  const positionVolumeResolved = positionVolume * (closeRange / 100);
+  const positionVolumeResolved = dealKfDecimal(
+    positionVolume * (closeRange / 100),
+  );
 
   if (makeOrderInput.volume === positionVolumeResolved) {
     return {

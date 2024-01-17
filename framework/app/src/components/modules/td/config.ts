@@ -9,7 +9,7 @@ const { t } = VueI18n.global;
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
   sorter: (
-    dataIndex: string,
+    dataIndex: keyof KungfuApi.Asset,
   ) => (
     a: KungfuApi.KfConfig,
     b: KungfuApi.KfConfig,
@@ -53,7 +53,7 @@ export const getColumns = (
       },
       {
         title: t('tdConfig.unrealized_pnl'),
-        dataIndex: 'unrealizedPnl',
+        dataIndex: 'unrealized_pnl',
         align: 'right',
         sorter: {
           compare: sorter('unrealized_pnl'),
@@ -62,7 +62,7 @@ export const getColumns = (
       },
       {
         title: t('tdConfig.market_value'),
-        dataIndex: 'marketValue',
+        dataIndex: 'market_value',
         align: 'right',
         sorter: {
           compare: sorter('market_value'),
@@ -89,28 +89,28 @@ export const getColumns = (
       },
       {
         title: t('tdConfig.frozen_funds'),
-        dataIndex: 'frozen_funds',
+        dataIndex: 'frozen_cash',
         align: 'right',
         sorter: {
-          compare: sorter('frozen_funds'),
+          compare: sorter('frozen_cash'),
         },
         width: 110,
       },
       {
         title: t('tdConfig.short_sale_proceeds'),
-        dataIndex: 'short_sale_proceeds',
+        dataIndex: 'short_cash',
         align: 'right',
         sorter: {
-          compare: sorter('short_sale_proceeds'),
+          compare: sorter('short_cash'),
         },
         width: 160,
       },
       {
         title: t('tdConfig.maintain_margin_ratio'),
-        dataIndex: 'maintain_margin_ratio',
+        dataIndex: 'collateral_ratio',
         align: 'right',
         sorter: {
-          compare: sorter('maintain_margin_ratio'),
+          compare: sorter('collateral_ratio'),
         },
         width: 110,
       },
@@ -125,37 +125,37 @@ export const getColumns = (
       },
       {
         title: t('tdConfig.total_liabilities'),
-        dataIndex: 'total_liabilities',
+        dataIndex: 'total_debt',
         align: 'right',
         sorter: {
-          compare: sorter('total_liabilities'),
+          compare: sorter('total_debt'),
         },
         width: 140,
       },
       {
         title: t('tdConfig.equity'),
-        dataIndex: 'equity',
+        dataIndex: 'net_assets',
         align: 'right',
         sorter: {
-          compare: sorter('equity'),
+          compare: sorter('net_assets'),
         },
         width: 140,
       },
       {
         title: t('tdConfig.total_borrowed_funds'),
-        dataIndex: 'total_borrowed_funds',
+        dataIndex: 'long_total_debt',
         align: 'right',
         sorter: {
-          compare: sorter('total_borrowed_funds'),
+          compare: sorter('long_total_debt'),
         },
         width: 140,
       },
       {
         title: t('tdConfig.total_short_liabilities'),
-        dataIndex: 'total_short_liabilities',
+        dataIndex: 'short_total_debt',
         align: 'right',
         sorter: {
-          compare: sorter('total_short_liabilities'),
+          compare: sorter('short_total_debt'),
         },
         width: 140,
       },
@@ -230,7 +230,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
       return position
-        .nofilter('volume', BigInt(0))
+        .nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)
         .sort(positionSortKey)
         .reverse()

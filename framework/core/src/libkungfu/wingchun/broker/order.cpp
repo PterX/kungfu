@@ -16,19 +16,7 @@ void OrderService::on_order_input(const event_ptr &event) {
   auto &order_input = event->data<OrderInput>();
   auto risk_uid = get_service().get_risk_uid();
   if (risk_uid != 0 and event->initial_source() != risk_uid) {
-    auto dest = event->dest();
-    if (not vendor_.has_writer(dest)) {
-      SPDLOG_ERROR("no writer for {}", vendor_.get_location_uname(dest));
-      return;
-    }
-
-    auto writer = vendor_.get_writer(dest);
-    auto &order = writer->open_data<Order>();
-    order_from_input(order_input, order);
-    std::string error_msg = "Risk uid not match";
-    strncpy(order.error_msg, error_msg.c_str(), ERROR_MSG_LEN);
-    order.status = OrderStatus::Error;
-    writer->close_data();
+    SPDLOG_DEBUG("risk_uid: {}, initial_source: {}", risk_uid, event->initial_source());
     return;
   }
 
@@ -48,8 +36,13 @@ void OrderService::on_order_input(const event_ptr &event) {
 }
 
 void OrderService::on_order_action(const event_ptr &event) {
-  get_service().cancel_order(event);
   const auto &order_action = event->data<OrderAction>();
+  auto risk_uid = get_service().get_risk_uid();
+  if (risk_uid != 0 and event->initial_source() != risk_uid) {
+    SPDLOG_DEBUG("risk_uid: {}, initial_source: {}", risk_uid, event->initial_source());
+    return;
+  }
+  get_service().cancel_order(event);
   // source is cancel strategy, dest is TD, so swap source and dest
   order_actions_.insert_or_assign(order_action.order_action_id,
                                   state<OrderAction>{event->dest(), event->source(), event->gen_time(), order_action});

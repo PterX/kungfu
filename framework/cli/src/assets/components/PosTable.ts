@@ -1,7 +1,7 @@
 import { DirectionEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   dealKfPrice,
-  dealKfDecimal,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import colors from 'colors';
@@ -50,9 +50,9 @@ export class PosTable extends Table {
         [
           p.instrument_id_resolved,
           direction,
-          Number(p.yesterday_volume),
-          Number(dealKfDecimal(p.volume - p.yesterday_volume)),
-          Number(p.volume),
+          p.yesterday_volume,
+          dealKfDecimalPersion(p.volume - p.yesterday_volume),
+          p.volume,
           dealKfPrice(p.avg_open_price),
           dealKfPrice(p.last_price),
           colorNum(dealKfPrice(p.unrealized_pnl)),

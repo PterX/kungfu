@@ -90,7 +90,7 @@ const { globalSetting } = storeToRefs(useGlobalStore());
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
-    instrument_id_resolved: [
+    instrument_id: [
       {
         type: 'text',
         dealValue: (record) => {

@@ -1,18 +1,30 @@
 <template>
-        <div ref="listTableRef" style="width: 100%; height: 100%"></div>
+        <div ref="listTableRef" style="width: 100%;height: 28px;"></div>
+        <a-empty
+        v-if="showEmpty"
+        ref="emptyRef"
+                  :image="simpleImage"
+                  :description="t('empty_text')"
+                ></a-empty>
 </template>
 
 <script setup lang="ts">
 import {  onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
+import { Empty } from 'ant-design-vue';
 import {getCustomFont} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils'
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
 import {VTable,resgisterVTableIconsAndEditers,ICustomActionOption} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable'
 
+const { t } = VueI18n.global;
 
 if(!globalThis.hasRegisterVTableIconsAndEditers){
   resgisterVTableIconsAndEditers();
 }
 
 const app = getCurrentInstance();
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
+const showEmpty = ref<boolean>(false);
 let widthMode:'adaptive'| 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode:'all' | 'body' | 'header' | 'none' = 'none';
 let font:string = '';
@@ -105,6 +117,7 @@ const defaultTheme:VTable.TYPES.ITableThemeDefine={
           },
           scrollStyle: {
         scrollSliderColor:'#555',
+        visible:'none',
       },
 
     };
@@ -128,6 +141,7 @@ const defaultOptionItems= ref<VTable.ListTableConstructorOptions>({
     isShowOverflowTextTooltip:true}
 });
 const listTableRef = ref();
+const emptyRef = ref();
 const option = computed<VTable.ListTableConstructorOptions>(
   () => {
     return {
@@ -202,6 +216,7 @@ const initCustomLayoutOptions = ()=>{
 }
 
 onMounted(async() => {
+  console.log('props.dataSource.length',!props.dataSource.length)
    font =await getCustomFont();
    if (font) {
   if (defaultTheme.defaultStyle) {
@@ -230,21 +245,6 @@ if(rowList && rowList[0]){
   contianerWidth.value = rowList[0].reduce((pre,cur) => {
     return pre + Number(cur?.cellRange?.width);
   },0);
-  // listTable.on('mouseenter_cell', (args) => {
-  //   console.log('mouseenter_cell',args);
-  //   if(!listTable) return;
-  //       const { col, row } = args;
-  //         // const rect = listTable.getVisibleCellRangeRelativeRect({ col, row });
-  //         listTable.showTooltip(col, row, {
-  //           content: listTable.getCellValue(col,row),
-  //           style: {
-  //             bgColor: 'black',
-  //             color: 'white',
-  //             arrowMark: true,
-  //           },
-  //         });
-        
-  //   });
 
 }
     registerEvent();
@@ -253,14 +253,14 @@ if(rowList && rowList[0]){
       const {width} = entries[0].contentRect;
       const defaultWidth = props.ScrollableContianerWidth || contianerWidth.value;
       if(!defaultWidth) return;
-      if(width < defaultWidth && listTable.widthMode === 'standard') {
+      if(width < defaultWidth && listTable.widthMode === 'adaptive') {
   listTable.widthMode = widthMode;
   listTable.renderWithRecreateCells()
 
         
-      } else if(width >= defaultWidth && listTable.widthMode !== 'standard') {
+      } else if(width >= defaultWidth && listTable.widthMode !== 'adaptive') {
 
-  listTable.widthMode = 'standard';
+  listTable.widthMode = 'adaptive';
   listTable.renderWithRecreateCells()
 
 
@@ -281,9 +281,29 @@ defineExpose(
 
 watch(()=>props.dataSource, (tabledata) => {
 
+
+
+
      if(listTable) {
-        listTable.setRecords(tabledata);
+        if(tabledata.length === 0){
+  listTableRef.value.style.height = `28px`;
+  if(defaultTheme.scrollStyle && defaultTheme.scrollStyle.visible !== 'none'){
+    defaultTheme.scrollStyle.visible = 'none';
+    listTable.updateTheme(defaultTheme);
+  }
+  showEmpty.value = true;
+
+}else{
+  listTableRef.value.style.height = `100%`;
+  if(defaultTheme.scrollStyle && defaultTheme.scrollStyle.visible !== 'focus'){
+    defaultTheme.scrollStyle.visible = 'focus';
+    listTable.updateTheme(defaultTheme);
+  }
+  showEmpty.value = false;
+}
+listTable.setRecords(tabledata);
      }
+
     
     
 }, { immediate: true })

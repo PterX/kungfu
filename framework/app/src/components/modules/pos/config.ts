@@ -170,7 +170,7 @@ export const getColumns = (
       {
         field: 'avg_open_price_resolved',
         title: t('posGlobalConfig.avg_open_price'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -182,7 +182,7 @@ export const getColumns = (
       {
         field: 'last_price_resolved',
         title: t('posGlobalConfig.last_price'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -200,7 +200,7 @@ export const getColumns = (
       {
         field: 'unrealized_pnl_resolved',
         title: t('posGlobalConfig.unrealized_pnl'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
           color: (args) => {

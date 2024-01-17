@@ -113,13 +113,13 @@ export const getColumns = (
       {
         field: 'latency_system',
         title: t('orderConfig.latency_system'),
-        width: 90,
+        width: 110,
         sort: sorter,
       },
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
-        width: 90,
+        width: 110,
         sort: sorter,
       },
       ...(isTdStrategyCategory(kfLocation.category)

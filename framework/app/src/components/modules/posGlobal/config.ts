@@ -20,7 +20,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'instrument_id',
     title: t('posGlobalConfig.instrument_id'),
-    width: 260,
+    width: 140,
     sort: sorter,
   },
   {

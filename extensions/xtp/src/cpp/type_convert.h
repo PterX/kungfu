@@ -5,6 +5,7 @@
 #ifndef KUNGFU_XTP_EXT_TYPE_CONVERT_H
 #define KUNGFU_XTP_EXT_TYPE_CONVERT_H
 
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -219,9 +220,11 @@ inline void from_xtp(const XTPMarketDataStruct &ori, Quote &des) {
   des.lower_limit_price = ori.lower_limit_price;
 
   memcpy(des.ask_price, ori.ask, sizeof(des.ask_price));
-  memcpy(des.ask_volume, ori.ask_qty, sizeof(des.ask_price));
   memcpy(des.bid_price, ori.bid, sizeof(des.ask_price));
-  memcpy(des.bid_volume, ori.bid_qty, sizeof(des.ask_price));
+  for (std::size_t i = 0; i < 10; i++) {
+    des.ask_volume[i] = ori.ask_qty[i];
+    des.bid_volume[i] = ori.bid_qty[i];
+  }
 }
 
 inline void to_xtp(XTPOrderInsertInfo &des, const OrderInput &ori) {

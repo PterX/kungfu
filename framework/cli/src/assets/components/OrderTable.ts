@@ -12,6 +12,7 @@ import {
   dealOffset,
   dealOrderStatus,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { dealKfDecimal } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { WellFinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 export class OrderTable extends Table {
@@ -94,7 +95,9 @@ export class OrderTable extends Table {
           side,
           offset,
           order.limit_price,
-          `${order.volume - order.volume_left}/${order.volume}`,
+          `${dealKfDecimal(order.volume - order.volume_left)}/${dealKfDecimal(
+            order.volume,
+          )}`,
           orderStatus,
           last,
           order.latency_system,

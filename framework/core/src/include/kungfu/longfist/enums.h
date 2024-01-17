@@ -74,7 +74,7 @@ inline mode get_mode_by_name(const std::string &name) {
   return mode::LIVE;
 }
 
-enum class category : int8_t { MD, TD, STRATEGY, SYSTEM, OPERATOR };
+enum class category : int8_t { MD, TD, STRATEGY, OPERATOR, SYSTEM };
 
 KF_JSON_SERIALIZE_ENUM(category, {
                                      {category::MD, "MD"},

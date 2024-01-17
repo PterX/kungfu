@@ -302,6 +302,22 @@ declare namespace KungfuApi {
     };
   }
 
+  export interface FactorItem {
+    id: string;
+    name: string;
+    description: string;
+    pythonPath: string;
+    scriptPath: string;
+    module_name: string;
+  }
+
+  export interface KfExtOriginFactorConfig
+    extends KfExtOriginBaseConfig<KfExtTypeEnum.Factor> {
+    config?: {
+      factors?: FactorItem[];
+    };
+  }
+
   export interface KfExtOriginServiceConfig
     extends KfExtOriginBaseConfig<KfExtTypeEnum.Service> {
     config?: {
@@ -379,6 +395,7 @@ declare namespace KungfuApi {
     | KfExtOriginBrokerConfig
     | KfExtOriginTaskConfig
     | KfExtOriginOperatorConfig
+    | KfExtOriginFactorConfig
     | KfExtOriginServiceConfig
     | KfExtOriginMatcherConfig
     | KfExtOriginIndexerConfig

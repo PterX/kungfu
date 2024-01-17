@@ -271,6 +271,7 @@ export enum KfExtTypeEnum {
   Broker = 'broker',
   Task = 'task',
   Operator = 'operator',
+  Factor = 'factor',
   Service = 'service',
   UI = 'ui',
   Matcher = 'matcher',

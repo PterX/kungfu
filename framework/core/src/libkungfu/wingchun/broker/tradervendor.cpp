@@ -129,7 +129,7 @@ void TraderVendor::on_start() {
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
-  service_->on_risk_setting();
+  service_->on_risk_setting(RiskSetting{service_->get_risk_setting()});
   service_->recover();
   on_recover();
   service_->on_start();

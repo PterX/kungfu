@@ -38,7 +38,7 @@ void JsPublishState::operator()(Napi::Object object) {
       object.Set("dest", Napi::Number::New(state_.Env(), 0));
       object.Set("ts", Napi::BigInt::New(state_.Env(), now));
       state_.Get(type_name).ToObject().Set(uid_key, object);
-      app_.write_to(0, data);
+      app_.write_to(0, data, location::PUBLIC);
     }
   });
 }

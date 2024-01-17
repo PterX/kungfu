@@ -157,6 +157,7 @@ private:
   std::vector<BookListener_ptr> book_listeners_ = {};
   BookMap books_replica_ = {}; // 暂存从location::SYNC传来的asset和position信息
   std::unordered_map<uint32_t, bool> ready_tds_{};
+  std::unordered_map<uint32_t, std::pair<uint32_t, bool>> risk_setting_ = {};
 
   Book_ptr make_book(uint32_t location_uid);
 
@@ -185,6 +186,10 @@ private:
   bool is_td(uint32_t location_uid);
 
   bool is_ready_td(uint32_t location_uid);
+
+  void on_risk_setting(const longfist::types::RiskSetting &risk_setting);
+
+  bool check_risk(const kungfu::event_ptr &event);
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_BOOKKEEPER_H

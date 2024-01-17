@@ -312,7 +312,7 @@ public:
 
   virtual bool on_strategy_exit(const event_ptr &event) { return true; }
 
-  void on_risk_setting();
+  void on_risk_setting(const longfist::types::RiskSetting &risk_setting);
 
   [[maybe_unused]] [[nodiscard]] const std::string &get_account_id() const;
 

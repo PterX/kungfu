@@ -119,10 +119,7 @@ onMounted(() => {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
         setTimeout(() => {
-          const positions = watcher.ledger.Position.nofilter(
-            'volume',
-            BigInt(0),
-          )
+          const positions = watcher.ledger.Position.nofilter('volume', 0)
             .filter('ledger_category', LedgerCategoryEnum.td)
             .list();
 

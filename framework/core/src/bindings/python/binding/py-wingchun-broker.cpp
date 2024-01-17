@@ -148,6 +148,7 @@ void bind_broker(pybind11::module &m) {
       .def("on_recover", &Trader::on_recover)
       .def("on_time_key_value", &Trader::on_time_key_value)
       .def("on_custom_event", &Trader::on_custom_event)
+      .def("on_risk_setting", &Trader::on_risk_setting)
       .def("now", &Trader::now)
       .def("get_writer", &Trader::get_writer)
       .def("has_writer", &Trader::has_writer)

@@ -44,10 +44,12 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   static_data_.on_start(events);
   restore(app_.get_state_bank());
 
+  auto risk_events = events | filter([&](auto e) { return check_risk(e); });
+  risk_events | is(OrderInput::tag) |
+      $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
+
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
-  events | is(OrderInput::tag) |
-      $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
   events | is(AlgoOrderInput::tag) |
@@ -62,6 +64,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
   events | is(Register::tag) | $$(on_register(event->data<Register>()));
   events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
+  events | is(RiskSetting::tag) | $$(on_risk_setting(event->data<RiskSetting>()));
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
@@ -168,6 +171,10 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto dest_book = get_book(algo_order_state.dest);
     dest_book->replace(algo_order_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<RiskSetting>]) {
+    on_risk_setting(pair.second.data);
   }
 }
 
@@ -398,5 +405,23 @@ bool Bookkeeper::is_ready_td(uint32_t location_uid) {
     return true;
   }
   return ready_tds_.try_emplace(location_uid, false).first->second;
+}
+
+void Bookkeeper::on_risk_setting(const longfist::types::RiskSetting &risk_setting) {
+  uint32_t risk_uid =
+      location(app_.get_home()->mode, category::SYSTEM, "service", risk_setting.risk_name, app_.get_home()->locator)
+          .location_uid;
+  risk_setting_.insert_or_assign(risk_setting.location_uid, std::pair{risk_uid, risk_setting.risk_check});
+}
+
+bool Bookkeeper::check_risk(const event_ptr &event) {
+  auto iter = risk_setting_.find(event->dest());
+  if (iter == risk_setting_.end()) {
+    return true;
+  }
+  if (iter->second.second) {
+    return event->initial_source() == iter->second.first;
+  }
+  return true;
 }
 } // namespace kungfu::wingchun::book

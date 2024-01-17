@@ -32,7 +32,6 @@ void TraderXTP::pre_start() {
 }
 
 void TraderXTP::on_start() {
-
   if (config_.client_id < 1 or config_.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
   }
@@ -200,7 +199,7 @@ bool TraderXTP::custom_OnOrderEvent(const XTPOrderInfo &order_info, const XTPRI 
 
   auto &order_state = get_order(kf_order_id);
   if (not is_final_status(order_state.data.status) or order_state.data.status == OrderStatus::Lost) {
-    from_xtp(order_info, order_state.data);
+    from_xtp_no_price_type(order_info, order_state.data);
     order_state.data.update_time = yijinjing::time::now_in_nano();
     if (error_info.error_id != 0) {
       order_state.data.error_id = error_info.error_id;

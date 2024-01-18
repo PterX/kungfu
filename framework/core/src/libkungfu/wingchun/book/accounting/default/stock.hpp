@@ -218,7 +218,7 @@ protected:
     }
 
     position.yesterday_volume = std::max(position.yesterday_volume - trade.volume, VOLUME_ZERO);
-    position.volume = position.volume - trade.volume;
+    position.volume = std::max(position.volume - trade.volume, VOLUME_ZERO);
     double realized_pnl = (trade.price - position.avg_open_price) * trade.volume;
     position.realized_pnl += realized_pnl;
     update_position(book, position);

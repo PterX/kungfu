@@ -20,7 +20,7 @@ import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/component
 import { categoryRegisterConfig, getColumns } from './config';
 import {
   dealKfPrice,
-  dealKfDecimalPersion,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealDirection,
@@ -171,14 +171,14 @@ function buildGlobalPositions(
         static_yesterday,
         open_volume,
       } = prePosStat;
-      posStat[id].yesterday_volume = dealKfDecimalPersion(
+      posStat[id].yesterday_volume = dealKfDecimalPrecision(
         yesterday_volume + pos.yesterday_volume,
       );
-      posStat[id].volume = dealKfDecimalPersion(volume + pos.volume);
-      posStat[id].static_yesterday = dealKfDecimalPersion(
+      posStat[id].volume = dealKfDecimalPrecision(volume + pos.volume);
+      posStat[id].static_yesterday = dealKfDecimalPrecision(
         static_yesterday + pos.static_yesterday,
       );
-      posStat[id].open_volume = dealKfDecimalPersion(
+      posStat[id].open_volume = dealKfDecimalPrecision(
         open_volume + pos.open_volume,
       );
       posStat[id].avg_open_price = +dealKfPrice(
@@ -336,7 +336,7 @@ function handleShowTradingDataDetail({
           <template v-else-if="column.dataIndex === 'close_volume'">
             <KfBlinkNum
               :num="
-                dealKfDecimalPersion(
+                dealKfDecimalPrecision(
                   item.open_volume + item.static_yesterday - item.volume,
                 )
               "
@@ -347,7 +347,7 @@ function handleShowTradingDataDetail({
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="dealKfDecimalPersion(item.volume - item.yesterday_volume)"
+              :num="dealKfDecimalPrecision(item.volume - item.yesterday_volume)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">

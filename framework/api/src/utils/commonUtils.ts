@@ -43,7 +43,7 @@ export const dealKfNumber = (
   return Number(preNumber) || 0;
 };
 
-export const dealKfDecimalPersion = (
+export const dealKfDecimalPrecision = (
   originNum: number,
   precision = 12,
 ): number => {

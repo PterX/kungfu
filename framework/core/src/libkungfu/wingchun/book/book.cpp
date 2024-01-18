@@ -25,8 +25,8 @@ Book::Book(const CommissionMap &commissions_ref, const InstrumentMap &instrument
       accounting_methods(accounting_methods_ref), home(home_location) {}
 
 double Book::get_frozen_price(uint64_t order_id) {
-  if (orders.find(order_id) != orders.end()) {
-    return orders.at(order_id).frozen_price;
+  if (order_inputs.find(order_id) != order_inputs.end()) {
+    return order_inputs.at(order_id).frozen_price;
   }
   return 0;
 }

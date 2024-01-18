@@ -568,7 +568,7 @@ const dealLocation = async () => {
   });
 
   const processStatusDetail = processStatusWithDetail[processId];
-  if (!processStatusDetail) {
+  if (!processStatusDetail && name === 'strategy' && group !== 'default') {
     messagePrompt().error(t('replay.process_not_found'));
     return;
   }

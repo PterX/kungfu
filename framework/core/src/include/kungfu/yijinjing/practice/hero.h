@@ -231,7 +231,7 @@ protected:
 
   virtual void on_frame() = 0;
 
-  void on_frame_done();
+  void cleanup_reader_disjoin();
 
 private:
   yijinjing::io_device_ptr io_device_;

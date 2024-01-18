@@ -6,7 +6,7 @@ import {
   DirectionEnum,
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealKfDecimalPersion } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 interface AccountingUsage {
   intrumentType: InstrumentTypeEnum;
@@ -73,7 +73,7 @@ function calcTradeAmountWithNoting(
   instrumentForAccounting: KungfuApi.InstrumentForAccounting,
 ) {
   const { price, volume } = instrumentForAccounting;
-  return dealKfDecimalPersion(price * volume);
+  return dealKfDecimalPrecision(price * volume);
 }
 
 class DefaultAccountingUsage extends BaseAccountingUsage {
@@ -101,7 +101,7 @@ function calcTradeAmountForMain(
       ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio', 1)
       : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio', 1);
 
-  return dealKfDecimalPersion(
+  return dealKfDecimalPrecision(
     price *
       volume *
       marginRatio *
@@ -190,7 +190,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
       instrumentFactor || {};
 
     if (direction === DirectionEnum.Long) {
-      return dealKfDecimalPersion(
+      return dealKfDecimalPrecision(
         price *
           volume *
           getInstrumentDefaultValue(
@@ -201,7 +201,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
           getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
       );
     } else if (direction === DirectionEnum.Short) {
-      return dealKfDecimalPersion(
+      return dealKfDecimalPrecision(
         price *
           volume *
           getInstrumentDefaultValue(
@@ -237,7 +237,7 @@ class RepoAccountingUsage extends BaseAccountingUsage {
     );
 
     const { exchange_rate } = instrumentFactor || {};
-    return dealKfDecimalPersion(
+    return dealKfDecimalPrecision(
       volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
     );
   }

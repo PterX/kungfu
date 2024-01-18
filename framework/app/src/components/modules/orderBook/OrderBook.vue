@@ -3,7 +3,7 @@ import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
   dealKfPrice,
-  dealKfDecimalPersion,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -141,15 +141,18 @@ function dealQuoteAskPidPrices(
         return quoteData[`${type}_price`].reduce((pre, cur, index) => {
           if (
             index === 0 ||
-            dealKfDecimalPersion(toLedgalPriceVolume(cur), target_price_tick)
+            dealKfDecimalPrecision(toLedgalPriceVolume(cur), target_price_tick)
           ) {
             pre.push(
-              dealKfDecimalPersion(toLedgalPriceVolume(cur), target_price_tick),
+              dealKfDecimalPrecision(
+                toLedgalPriceVolume(cur),
+                target_price_tick,
+              ),
             );
           } else {
             const prePrice = pre[index - 1];
             pre.push(
-              dealKfDecimalPersion(
+              dealKfDecimalPrecision(
                 toLedgalPriceVolume(prePrice + target_price_tick),
               ),
               target_price_tick,

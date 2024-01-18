@@ -254,7 +254,7 @@ const customRowResolved = (
   ];
   const assetGetter = () =>
     allAssetDetailList.reduce((assetDetails, assetInfo) => {
-      assetDetails[assetInfo.label] = dealAssetPrice(
+      assetDetails[assetInfo.key] = dealAssetPrice(
         getAssetsByKfConfig(record)[assetInfo.key],
       );
       return assetDetails;
@@ -264,7 +264,7 @@ const customRowResolved = (
     onMousedown: (event: MouseEvent) => {
       if (event.button === 2) {
         showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], {
-          [t('tdConfig.maintain_margin_ratio')]: (str) => {
+          collateral_ratio: (str) => {
             if (str === '--') {
               return str;
             } else {
@@ -765,7 +765,8 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'collateral_ratio'">
             <span v-if="record.category === 'td'">
               {{
-                getAssetsByKfConfig(record).collateral_ratio
+                getAssetsByKfConfig(record).collateral_ratio ||
+                getAssetsByKfConfig(record).collateral_ratio === 0
                   ? `${(
                       getAssetsByKfConfig(record).collateral_ratio * 100
                     ).kfToFixed(1)}%`

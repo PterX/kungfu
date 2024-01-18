@@ -664,14 +664,12 @@ def parse_begin_end(ctx):
 
 
 def parse_from_to_indexer(ctx, begin, end):
-    from_indexer = wc.SliceIndexer(begin, end)
-    to_indexer = wc.SliceIndexer(begin, end)
-    if ctx.from_indexer:
-        from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
+    if ctx.from_indexer and not isinstance(ctx.from_indexer, wc.SliceIndexer):
+        ctx.from_indexer = SliceIndexer(ctx, begin, end, ctx.from_indexer)
         # from_indexer = wc.DayIndexer(begin, end)
-    if ctx.to_indexer:
-        to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
-    return from_indexer, to_indexer
+    if ctx.to_indexer and not isinstance(ctx.to_indexer, wc.SliceIndexer):
+        ctx.to_indexer = SliceIndexer(ctx, begin, end, ctx.to_indexer)
+    return ctx.from_indexer, ctx.to_indexer
 
 
 def parse_backtest_config(ctx):
@@ -683,4 +681,5 @@ def parse_backtest_config(ctx):
             backtest_config = f.read()
     # json format check.
     json.loads(backtest_config)
-    return backtest_config
+    ctx.backtest_config = backtest_config
+    return ctx.backtest_config

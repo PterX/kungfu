@@ -617,6 +617,12 @@ export const openNewBrowserWindow = (
     if (isMacOS) {
       win.on('minimize', (event) => {
         event.preventDefault();
+        const a = currentWindow.getPosition();
+        const b = currentWindow.getBounds();
+        //获取父窗口的位置和大小
+
+        console.log('minimize', a, b);
+
         const [parentX, parentY, parentWidth, parentHeight] = [
           currentWindow.getPosition()[0],
           currentWindow.getPosition()[1],
@@ -625,7 +631,7 @@ export const openNewBrowserWindow = (
         ];
 
         const newX = parentX + parentWidth - 300;
-        const newY = parentY + parentHeight - 30;
+        const newY = parentY + parentHeight - 50;
         win.setSize(300, 30);
         win.setPosition(newX, newY);
         currentWindow.setSize(parentWidth, parentHeight);
@@ -638,7 +644,7 @@ export const openNewBrowserWindow = (
             win &&
             !win.isDestroyed() &&
             win.getSize()[0] === 300 &&
-            win.getSize()[1] === 30
+            win.getSize()[1] === 50
           ) {
             const [parentX, parentY, parentWidth, parentHeight] = [
               currentWindow.getPosition()[0],
@@ -648,7 +654,7 @@ export const openNewBrowserWindow = (
             ];
 
             const newX = parentX + parentWidth - 300;
-            const newY = parentY + parentHeight - 30;
+            const newY = parentY + parentHeight - 50;
 
             win.setPosition(newX, newY);
           }

@@ -359,7 +359,7 @@ function handleConfirmBatchOrderTrigger(
         volume: +volume,
         price_type: +price_type,
         side: +side,
-        offset: getResolvedOffset(offset, +side, instrumentType),
+        offset: getResolvedOffset(+offset, +side, instrumentType),
       };
 
       return orderTriggerInput;

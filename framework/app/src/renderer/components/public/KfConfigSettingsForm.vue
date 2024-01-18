@@ -1048,7 +1048,7 @@ function disabledEndTime(
     return hours;
   };
 
-  const disabledMinutes = (selectedHour) => {
+  const disabledMinutes = (selectedHour: number) => {
     const minutes: number[] = [];
 
     if (
@@ -1215,7 +1215,10 @@ function handleAddItemIntoTableRows(item: KungfuApi.KfConfigItem) {
   }
 }
 
-function handleRemoveItemIntoTableRows(item, index) {
+function handleRemoveItemIntoTableRows(
+  item: KungfuApi.KfConfigItem,
+  index: number,
+) {
   const targetState = formState.value[item.key];
   if (targetState instanceof Array) {
     targetState.splice(index, 1);

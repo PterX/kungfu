@@ -2059,7 +2059,6 @@ export const useAssets = (): {
     kfLocation: KungfuApi.KfLocation | KungfuApi.KfConfig,
   ): KungfuApi.Asset;
   getAssetsByTdGroup(
-    marginSupportTdMap: Record<string, boolean>,
     tdGroup: KungfuApi.KfExtraLocation,
   ): KungfuApi.Asset | Record<string, never>;
 } => {
@@ -2073,17 +2072,9 @@ export const useAssets = (): {
   };
 
   const getAssetsByTdGroup = (
-    marginSupportTdMap: Record<string, boolean>,
     tdGroup: KungfuApi.KfExtraLocation,
   ): KungfuApi.Asset | Record<string, never> => {
     const children = (tdGroup?.children || []) as KungfuApi.KfConfig[];
-    const isSupportMargin = marginSupportTdMap[children[0]?.group || ''];
-    const isShowData = children.every(
-      (item) => marginSupportTdMap[item.group] === isSupportMargin,
-    );
-    if (!isShowData) {
-      return {};
-    }
     return children.reduce((allAssets, item) => {
       const asset = getAssetsByKfConfig(item);
       if (Object.keys(asset).length === 0) return allAssets;
@@ -2756,7 +2747,7 @@ export const useMakeOrderInfo = (
 
     if (currentPosition.value) {
       if (isMarginMakeOrder.value) {
-        return dealKfNumber(currentPosition.value.closable_volume);
+        return dealKfNumber(currentPosition.value.closable_volume) + '';
       }
       return (
         dealKfNumber(

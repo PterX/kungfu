@@ -25,7 +25,7 @@
             </template>
             <a-table
               class="kf-ant-table"
-              style="height: 100%"
+              style="height: 100% !important"
               :columns="columns"
               :data-source="tableData"
               :pagination="false"

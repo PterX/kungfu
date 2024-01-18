@@ -3,7 +3,7 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   delayMilliSeconds,
-  dealKfVolume,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,

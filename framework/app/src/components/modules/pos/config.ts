@@ -3,6 +3,7 @@ import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   sorter,
   dealKfPrice,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
@@ -62,9 +63,6 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        fieldFormat: (args) => {
-          return Number(args.static_yesterday || 0).kfToFixed(0);
-        },
         sort: sorter,
       },
       {
@@ -76,9 +74,6 @@ export const getColumns = (
         },
         headerStyle: {
           textAlign: 'right',
-        },
-        fieldFormat: (args) => {
-          return Number(args.open_volume || 0).kfToFixed(0);
         },
         sort: sorter,
       },
@@ -92,9 +87,6 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        fieldFormat: (args) => {
-          return Number(args.close_volume || 0).kfToFixed(0);
-        },
         sort: sorter,
       },
       {
@@ -106,9 +98,6 @@ export const getColumns = (
         },
         headerStyle: {
           textAlign: 'right',
-        },
-        fieldFormat: (args) => {
-          return Number(args.yesterday_volume || 0).kfToFixed(0);
         },
         sort: sorter,
       },
@@ -123,7 +112,7 @@ export const getColumns = (
           textAlign: 'right',
         },
         fieldFormat: (args) => {
-          return Number(args.volume - args.yesterday_volume || 0).kfToFixed(0);
+          return dealKfDecimalPersion(args.volume - args.yesterday_volume);
         },
         sort: sorter,
       },
@@ -136,9 +125,6 @@ export const getColumns = (
         },
         headerStyle: {
           textAlign: 'right',
-        },
-        fieldFormat: (args) => {
-          return Number(args.volume || 0).kfToFixed(0);
         },
         sort: sorter,
       },

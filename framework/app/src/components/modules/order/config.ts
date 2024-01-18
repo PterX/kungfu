@@ -4,6 +4,7 @@ import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfi
 import {
   isTdStrategyCategory,
   sorter,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import {
@@ -79,7 +80,9 @@ export const getColumns = (
         width: 120,
         sort: sorter,
         fieldFormat: (args) => {
-          return `${args.volume - args.volume_left} / ${args.volume}`;
+          return `${dealKfDecimalPersion(args.volume - args.volume_left)} / ${
+            args.volume
+          }`;
         },
       },
       {

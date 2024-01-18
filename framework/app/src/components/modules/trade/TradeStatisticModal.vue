@@ -10,7 +10,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfPrice,dealKfDecimalPersion } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';
@@ -108,10 +108,10 @@ const priceVolumeStats = computed(() => {
         exchangeId,
       );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
-      const priceSum = priceVolumeData[id].priceByVolume.reduce(
-        (a, b) => a + b,
+      const priceSum = dealKfDecimalPersion(
+        priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
       );
-      const volumeSum = dealKfVolume(
+      const volumeSum = dealKfDecimalPersion(
         priceVolumeData[id].volume.reduce((a, b) => a + b),
       );
       const range = priceStats.range();

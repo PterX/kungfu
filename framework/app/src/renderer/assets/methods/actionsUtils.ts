@@ -63,7 +63,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
-  dealKfVolume,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -1516,7 +1516,9 @@ export const useQuote = (): {
       return '--';
     }
 
-    const percent = (last_price - pre_close_price) / pre_close_price;
+    const percent = dealKfDecimalPersion(
+      (last_price - pre_close_price) / pre_close_price,
+    );
     if (percent === Infinity) {
       return '--';
     }
@@ -2530,14 +2532,16 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = volume - yesterday_volume;
+  const today_volume = dealKfDecimalPersion(volume - yesterday_volume);
   const frozen_today = frozen_total - frozen_yesterday;
-  const shotable_closable_yesterday = dealKfVolume(
+  const shotable_closable_yesterday = dealKfDecimalPersion(
     yesterday_volume - frozen_yesterday,
   );
-  const closable_yesterday = dealKfVolume(yesterday_volume - frozen_total);
-  const closable_today = dealKfVolume(today_volume - frozen_today);
-  const closable_total = dealKfVolume(volume - frozen_total);
+  const closable_yesterday = dealKfDecimalPersion(
+    yesterday_volume - frozen_total,
+  );
+  const closable_today = dealKfDecimalPersion(today_volume - frozen_today);
+  const closable_total = dealKfDecimalPersion(volume - frozen_total);
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2756,7 +2760,7 @@ export const useMakeOrderInfo = (
 
     if (currentPosition.value) {
       if (isMarginMakeOrder.value) {
-        return dealKfNumber(currentPosition.value.closable_volume);
+        return dealKfNumber(currentPosition.value.closable_volume) + '';
       }
       return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
@@ -2804,7 +2808,9 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return dealTradeAmount((currentPrice.value ?? 0) * volume);
+    return dealTradeAmount(
+      dealKfDecimalPersion((currentPrice.value ?? 0) * volume),
+    );
   });
 
   const currentResidueMoney = computed(() => {
@@ -2833,17 +2839,17 @@ export const useMakeOrderInfo = (
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
         if (isMarginMakeOrder.value) {
-          return dealKfVolume(
-            Number(currentAvailPosVolume.value) - Number(volume),
+          return dealKfDecimalPersion(
+            Number(currentAvailPosVolume.value) - volume,
           );
         }
         if (offset === OffsetEnum.Open) {
-          return dealKfVolume(
-            Number(currentAvailPosVolume.value) + Number(volume),
+          return dealKfDecimalPersion(
+            Number(currentAvailPosVolume.value) + volume,
           );
         } else {
-          return dealKfVolume(
-            Number(currentAvailPosVolume.value) - Number(volume),
+          return dealKfDecimalPersion(
+            Number(currentAvailPosVolume.value) - volume,
           );
         }
       } else {
@@ -3000,9 +3006,9 @@ export const useMakeOrderSubscribe = (
             const uid = hashInstrumentUKey(instrumentId, exchangeId);
             const quote: KungfuApi.Quote = window.watcher.ledger.Quote[uid];
 
-            let dealPrice = price;
+            let dealPrice: number = price;
             if (quote) {
-              if (Number(dealPrice) !== quote.last_price) {
+              if (dealPrice !== quote.last_price) {
                 dealPrice = closestNumber(
                   price,
                   quote.ask_price
@@ -3024,7 +3030,7 @@ export const useMakeOrderSubscribe = (
             formState.value.offset = +offset;
             formState.value.side = +side;
             formState.value.volume = +volume;
-            formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
+            formState.value.limit_price = dealPrice.kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
@@ -3047,7 +3053,7 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(price) && +price !== 0) {
-              formState.value.limit_price = +Number(price).kfToFixed(4);
+              formState.value.limit_price = price.kfToFixed(4);
             }
             formState.value.volume = volume;
             formState.value.side = +side;

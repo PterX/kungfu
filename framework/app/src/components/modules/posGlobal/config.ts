@@ -3,6 +3,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import {
   sorter,
   dealKfPrice,
+  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
@@ -49,9 +50,6 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    fieldFormat: (args) => {
-      return Number(args.static_yesterday || 0).kfToFixed(0);
-    },
     sort: sorter,
   },
   {
@@ -63,9 +61,6 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     },
     headerStyle: {
       textAlign: 'right',
-    },
-    fieldFormat: (args) => {
-      return Number(args.open_volume || 0).kfToFixed(0);
     },
     sort: sorter,
   },
@@ -79,9 +74,6 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    fieldFormat: (args) => {
-      return Number(args.close_volume || 0).kfToFixed(0);
-    },
     sort: sorter,
   },
   {
@@ -93,9 +85,6 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     },
     headerStyle: {
       textAlign: 'right',
-    },
-    fieldFormat: (args) => {
-      return Number(args.yesterday_volume || 0).kfToFixed(0);
     },
     sort: sorter,
   },
@@ -110,7 +99,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
       textAlign: 'right',
     },
     fieldFormat: (args) => {
-      return Number(args.volume - args.yesterday_volume || 0).kfToFixed(0);
+      return dealKfDecimalPersion(args.volume - args.yesterday_volume);
     },
     sort: sorter,
   },
@@ -123,9 +112,6 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     },
     headerStyle: {
       textAlign: 'right',
-    },
-    fieldFormat: (args) => {
-      return Number(args.volume || 0).kfToFixed(0);
     },
     sort: sorter,
   },
@@ -210,7 +196,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
       const { group, name, direction } =
         kfLocation as KungfuApi.KfExtraLocation;
       return position
-        .nofilter('volume', BigInt(0))
+        .nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)
         .filter('exchange_id', group)
         .filter('instrument_id', name)

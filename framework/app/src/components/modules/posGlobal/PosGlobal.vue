@@ -5,10 +5,6 @@ import {
   useTriggerMakeOrder,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
-  dealKfPrice,
-  dealKfVolume,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import {
   VTable,
   ICustomActionOption,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
@@ -26,7 +22,13 @@ import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/publi
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
 import { categoryRegisterConfig, getColumns } from './config';
-import { dealCurrency } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  dealKfPrice,
+  dealKfDecimalPersion,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealCurrency,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   LedgerCategoryEnum,
   SideEnum,
@@ -94,7 +96,7 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
       {
         type: 'text',
         dealValue: (record) => {
-          return `${record.instrument_id}${ExchangeIds[record.exchange_id]}}`;
+          return `${record.instrument_id}${ExchangeIds[record.exchange_id]?.name}`;
         },
         fontSize: 12,
         fill: '#ffffffd9',
@@ -147,10 +149,7 @@ onMounted(() => {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
         setTimeout(() => {
-          const positions = watcher.ledger.Position.nofilter(
-            'volume',
-            BigInt(0),
-          )
+          const positions = watcher.ledger.Position.nofilter('volume', 0)
             .filter('ledger_category', LedgerCategoryEnum.td)
             .list();
 
@@ -202,14 +201,16 @@ function buildGlobalPositions(
         static_yesterday,
         open_volume,
       } = prePosStat;
-      posStat[id].yesterday_volume = dealKfVolume(
+      posStat[id].yesterday_volume = dealKfDecimalPersion(
         yesterday_volume + pos.yesterday_volume,
       );
-      posStat[id].volume = dealKfVolume(volume + pos.volume);
-      posStat[id].static_yesterday = dealKfVolume(
+      posStat[id].volume = dealKfDecimalPersion(volume + pos.volume);
+      posStat[id].static_yesterday = dealKfDecimalPersion(
         static_yesterday + pos.static_yesterday,
       );
-      posStat[id].open_volume = dealKfVolume(open_volume + pos.open_volume);
+      posStat[id].open_volume = dealKfDecimalPersion(
+        open_volume + pos.open_volume,
+      );
       posStat[id].avg_open_price = +dealKfPrice(
         (avg_open_price * volume + pos.avg_open_price * pos.volume) /
           (volume + pos.volume),

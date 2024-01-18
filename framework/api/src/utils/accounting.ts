@@ -6,6 +6,7 @@ import {
   DirectionEnum,
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { dealKfDecimalPersion } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 interface AccountingUsage {
   intrumentType: InstrumentTypeEnum;
@@ -72,7 +73,7 @@ function calcTradeAmountWithNoting(
   instrumentForAccounting: KungfuApi.InstrumentForAccounting,
 ) {
   const { price, volume } = instrumentForAccounting;
-  return price * volume;
+  return dealKfDecimalPersion(price * volume);
 }
 
 class DefaultAccountingUsage extends BaseAccountingUsage {
@@ -100,11 +101,11 @@ function calcTradeAmountForMain(
       ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio', 1)
       : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio', 1);
 
-  return (
+  return dealKfDecimalPersion(
     price *
-    volume *
-    marginRatio *
-    getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+      volume *
+      marginRatio *
+      getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
   );
 }
 
@@ -189,20 +190,26 @@ class FutureAccountingUsage extends BaseAccountingUsage {
       instrumentFactor || {};
 
     if (direction === DirectionEnum.Long) {
-      return (
+      return dealKfDecimalPersion(
         price *
-        volume *
-        getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier') *
-        getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio') *
-        getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+          volume *
+          getInstrumentDefaultValue(
+            contract_multiplier,
+            'contract_multiplier',
+          ) *
+          getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio') *
+          getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
       );
     } else if (direction === DirectionEnum.Short) {
-      return (
+      return dealKfDecimalPersion(
         price *
-        volume *
-        getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier') *
-        getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio') *
-        getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+          volume *
+          getInstrumentDefaultValue(
+            contract_multiplier,
+            'contract_multiplier',
+          ) *
+          getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio') *
+          getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
       );
     }
 
@@ -230,7 +237,9 @@ class RepoAccountingUsage extends BaseAccountingUsage {
     );
 
     const { exchange_rate } = instrumentFactor || {};
-    return volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate');
+    return dealKfDecimalPersion(
+      volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
+    );
   }
 }
 

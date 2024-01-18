@@ -1690,7 +1690,7 @@ declare namespace KungfuApi {
   }
 
   export interface BoardStyle {
-    flex: string;
+    flex?: string;
     height?: string;
   }
 }

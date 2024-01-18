@@ -8,7 +8,7 @@ import kungfu
 import os
 import sys
 
-from kungfu.console.utils import import_force
+from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants

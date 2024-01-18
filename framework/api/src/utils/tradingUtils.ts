@@ -46,7 +46,7 @@ import {
   getIdByKfLocation,
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
-  dealKfDecimalPersion,
+  dealKfDecimalPrecision,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -948,7 +948,7 @@ export const getOrderLatencyDataByOrderStat = (
   return {
     latency_system: latencyData.latencySystem,
     latency_network: latencyData.latencyNetwork,
-    avg_price: dealKfDecimalPersion(latencyData.avg_price, price_precision),
+    avg_price: dealKfDecimalPrecision(latencyData.avg_price, price_precision),
     avg_price_resolved: dealKfPrice(latencyData.avg_price, price_precision),
   };
 };
@@ -968,8 +968,8 @@ export const dealOrder = (
   const statusData = dealOrderStatus(order.status, order.error_msg);
   return {
     ...order,
-    volume: dealKfDecimalPersion(order.volume),
-    volume_left: dealKfDecimalPersion(order.volume_left),
+    volume: dealKfDecimalPrecision(order.volume),
+    volume_left: dealKfDecimalPrecision(order.volume_left),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -982,8 +982,8 @@ export const dealOrder = (
     update_time_resolved: dealKfTime(order.update_time, isHistory),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
-    limit_price: dealKfDecimalPersion(order.limit_price, pricePrecision),
-    frozen_price: dealKfDecimalPersion(order.frozen_price, pricePrecision),
+    limit_price: dealKfDecimalPrecision(order.limit_price, pricePrecision),
+    frozen_price: dealKfDecimalPrecision(order.frozen_price, pricePrecision),
   };
 };
 
@@ -1003,7 +1003,7 @@ export const dealOrderTrigger = (
   const statusData = dealOrderTriggerStatus(order.status);
   return {
     ...order,
-    volume: dealKfDecimalPersion(order.volume),
+    volume: dealKfDecimalPrecision(order.volume),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -1046,7 +1046,7 @@ export const dealTrade = (
   };
   return {
     ...trade,
-    volume: dealKfDecimalPersion(trade.volume),
+    volume: dealKfDecimalPrecision(trade.volume),
     source: trade.source,
     dest: trade.dest,
     uid_key: trade.uid_key,
@@ -1065,9 +1065,14 @@ export const dealTrade = (
 export const getPosClosableVolume = (position: KungfuApi.Position): number => {
   return isShotable(position.instrument_type) ||
     isT0(position.instrument_type, position.exchange_id)
-    ? Math.max(dealKfDecimalPersion(position.volume - position.frozen_total), 0)
+    ? Math.max(
+        dealKfDecimalPrecision(position.volume - position.frozen_total),
+        0,
+      )
     : Math.max(
-        dealKfDecimalPersion(position.yesterday_volume - position.frozen_total),
+        dealKfDecimalPrecision(
+          position.yesterday_volume - position.frozen_total,
+        ),
         0,
       );
 };
@@ -1100,31 +1105,34 @@ export const dealPosition = (
     unrealized_pnl_resolved: pos.avg_open_price
       ? dealKfPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
-    avg_open_price: dealKfDecimalPersion(pos.avg_open_price, pricePrecision),
-    close_pnl: dealKfDecimalPersion(pos.close_pnl, pricePrecision),
-    position_cost_price: dealKfDecimalPersion(
+    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price, pricePrecision),
+    close_pnl: dealKfDecimalPrecision(pos.close_pnl, pricePrecision),
+    position_cost_price: dealKfDecimalPrecision(
       pos.position_cost_price,
       pricePrecision,
     ),
-    position_pnl: dealKfDecimalPersion(pos.position_pnl, pricePrecision),
-    pre_close_price: dealKfDecimalPersion(pos.pre_close_price, pricePrecision),
-    pre_settlement_price: dealKfDecimalPersion(
+    position_pnl: dealKfDecimalPrecision(pos.position_pnl, pricePrecision),
+    pre_close_price: dealKfDecimalPrecision(
+      pos.pre_close_price,
+      pricePrecision,
+    ),
+    pre_settlement_price: dealKfDecimalPrecision(
       pos.pre_settlement_price,
       pricePrecision,
     ),
-    realized_pnl: dealKfDecimalPersion(pos.realized_pnl, pricePrecision),
-    settlement_price: dealKfDecimalPersion(
+    realized_pnl: dealKfDecimalPrecision(pos.realized_pnl, pricePrecision),
+    settlement_price: dealKfDecimalPrecision(
       pos.settlement_price,
       pricePrecision,
     ),
-    unrealized_pnl: dealKfDecimalPersion(pos.unrealized_pnl, pricePrecision),
-    volume: dealKfDecimalPersion(pos.volume), // 数量
-    yesterday_volume: dealKfDecimalPersion(pos.yesterday_volume), // 昨仓数量
-    frozen_total: dealKfDecimalPersion(pos.frozen_total), // 冻结数量
-    frozen_yesterday: dealKfDecimalPersion(pos.frozen_yesterday), // 冻结昨仓
-    static_yesterday: dealKfDecimalPersion(pos.static_yesterday), // 固定昨仓数量
-    open_volume: dealKfDecimalPersion(pos.open_volume), // 今开数量
-    close_volume: dealKfDecimalPersion(
+    unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl, pricePrecision),
+    volume: dealKfDecimalPrecision(pos.volume), // 数量
+    yesterday_volume: dealKfDecimalPrecision(pos.yesterday_volume), // 昨仓数量
+    frozen_total: dealKfDecimalPrecision(pos.frozen_total), // 冻结数量
+    frozen_yesterday: dealKfDecimalPrecision(pos.frozen_yesterday), // 冻结昨仓
+    static_yesterday: dealKfDecimalPrecision(pos.static_yesterday), // 固定昨仓数量
+    open_volume: dealKfDecimalPrecision(pos.open_volume), // 今开数量
+    close_volume: dealKfDecimalPrecision(
       pos.open_volume + pos.static_yesterday - pos.volume,
     ),
   };
@@ -1406,7 +1414,7 @@ export const dealVolumeByInstrumentType = (
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
   return (
-    Math.floor(dealKfDecimalPersion(orderVolume / minOrderVolume)) *
+    Math.floor(dealKfDecimalPrecision(orderVolume / minOrderVolume)) *
     minOrderVolume
   );
 };

@@ -158,38 +158,10 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
     stat.total_price += data.price * double(data.volume);
     stat.total_volume += double(data.volume);
     if (stat.total_volume > 0) {
-      stat.avg_price =
-          translate_by_price_tick(data.exchange_id, data.instrument_id, stat.total_price / stat.total_volume);
+      stat.avg_price = stat.total_price / stat.total_volume;
     }
     write_to(event->gen_time(), stat, event->source());
   }
-}
-
-double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
-  auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-  auto instruments = bookkeeper_.get_static_data().get_instruments();
-  if (instruments.find(hashed_instrument_key) != instruments.end()) {
-    double price_tick = instruments[hashed_instrument_key].price_tick;
-    if (is_valid_price(price_tick)) {
-      if (price_tick >= 1) {
-        price_tick = 1;
-      }
-
-      int num = 1 / price_tick;
-      int digits = 0;
-      while (num != 0) {
-        num /= 10;
-        digits++;
-      }
-
-      double price_tick = 1.0 / pow(10, digits);
-      uint64_t tick = 1 / price_tick;
-      uint64_t uPrice = (uint64_t)((std::abs(price) + price_tick * 0.5) * tick);
-      return (double)uPrice / tick;
-    }
-  }
-
-  return int64_t(price * DEFAULT_AVG_VALID_VALUE) / DEFAULT_AVG_VALID_VALUE;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {

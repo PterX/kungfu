@@ -660,6 +660,7 @@ export const openNewBrowserWindow = (
     if (isMacOS) {
       win.on('minimize', (event) => {
         event.preventDefault();
+
         const [parentX, parentY, parentWidth, parentHeight] = [
           currentWindow.getPosition()[0],
           currentWindow.getPosition()[1],

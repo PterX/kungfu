@@ -29,7 +29,7 @@ import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import {
   dealKfPrice,
-  dealKfDecimalPersion,
+  dealKfDecimalPrecision,
   getIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
@@ -329,7 +329,7 @@ function handleShowTradingDataDetail({
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="dealKfDecimalPersion(item.volume - item.yesterday_volume)"
+              :num="dealKfDecimalPrecision(item.volume - item.yesterday_volume)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">

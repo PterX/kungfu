@@ -161,6 +161,12 @@ const mainStatusWell = computed(() => {
   return masterIsLive && ledgerIsLive;
 });
 
+const getContainer = () => {
+  const el = document.querySelector('.kf-layout > section');
+
+  return el;
+};
+
 function handleOpenProcessControllerBoard(): void {
   processControllerBoardVisible.value = true;
 }
@@ -225,6 +231,7 @@ onMounted(() => {
       :width="650"
       class="kf-process-status-controller-board__warp"
       :title="$t('baseConfig.control_center')"
+      :get-container="getContainer"
       placement="right"
     >
       <div

@@ -439,11 +439,7 @@ export function useShortcutFocuseBoard() {
           }, 300);
 
           const keyUpHandler = (e: KeyboardEvent) => {
-            if (
-              e.ctrlKey === false ||
-              e.metaKey === false ||
-              e.shiftKey === false
-            ) {
+            if (!((e.ctrlKey || e.metaKey) && e.shiftKey)) {
               linkList.moveRestToHead(pos);
               linkList.resetPos();
               document.removeEventListener('keyup', keyUpHandler);

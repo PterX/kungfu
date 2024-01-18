@@ -11,14 +11,12 @@ import {
   removeLoadingMask,
   useScrollerTableSearch,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import LogList from './LogList.vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { shell } from '@electron/remote';
-import {
-  useLogInit,
-  dealLogMessage,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
+import { useLogInit } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/logUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -100,27 +98,11 @@ const {
 onMounted(() => {
   removeLoadingMask();
   resetLog();
-  scrollerTableRef.value?.$el.addEventListener('scroll', scrollHeader);
 });
 
 onUnmounted(() => {
   clearLogState();
 });
-
-let timer;
-const scrollHeader = (e) => {
-  if (timer) clearTimeout(timer);
-  if (e?.detail === 'handle') return;
-
-  //数据量大时快速滚动会导致加载dom不准确，需要手动触发一次滚动事件进行渲染
-  timer = setTimeout(() => {
-    scrollerTableRef.value.$refs.scroller.$_scrollDirty = false;
-    scrollerTableRef.value.$refs.scroller.$_lastUpdateScrollPosition -=
-      DEFAULT_MIN_ITEM_SIZE;
-    const newEvent = new CustomEvent('scroll', { detail: 'handle' });
-    scrollerTableRef.value?.$el.dispatchEvent(newEvent);
-  }, DEFAULT_UPDATE_INTERVAL * 2);
-};
 
 function handleRemoveLog(): Promise<void> {
   ensureFileSync(logPath);
@@ -242,42 +224,13 @@ const updateInterval = computed(() => {
             </KfDashboardItem>
           </template>
 
-          <DynamicScroller
-            id="kf-log-table"
+          <LogList
             ref="scrollerTableRef"
-            class="kf-table"
-            :items="logList.list"
+            :log-list="logList.list"
+            :item-formatter="(item) => getItemHtmlResult(item, 'message')"
             :update-interval="updateInterval"
             :min-item-size="DEFAULT_MIN_ITEM_SIZE"
-            :simple-array="true"
-          >
-            <template
-              #default="{
-                item,
-                index,
-                active,
-              }: {
-                item: KungfuApi.KfLogData,
-                index: number,
-                active: boolean,
-              }"
-            >
-              <DynamicScrollerItem
-                :item="item"
-                :key="item.id"
-                :active="active"
-                :size-dependencies="[item.message]"
-                :data-index="index"
-                :data-active="active"
-              >
-                <div
-                  :id="`kf-log-item-${item.id}`"
-                  class="kf-log-line"
-                  v-html="dealLogMessage(getItemHtmlResult(item, 'message'))"
-                ></div>
-              </DynamicScrollerItem>
-            </template>
-          </DynamicScroller>
+          ></LogList>
         </KfDashboard>
       </div>
     </a-layout>
@@ -328,56 +281,6 @@ const updateInterval = computed(() => {
 
   .replay_title {
     font-size: 12px;
-  }
-
-  .kf-log-line {
-    text-align: left;
-    font-size: 14px;
-    user-select: text;
-    padding-bottom: 4px;
-    line-height: 1.5;
-    word-break: break-all;
-
-    .error {
-      color: lighten(@red2-base, 10%);
-      font-weight: bold;
-    }
-
-    .debug {
-      color: @blue-6;
-      font-weight: bold;
-    }
-
-    .info {
-      color: @green2-base;
-      font-weight: bold;
-    }
-
-    .warning {
-      color: @orange-6;
-      font-weight: bold;
-    }
-
-    .trace {
-      color: @cyan-6;
-      font-weight: bold;
-    }
-
-    .critical {
-      color: lighten(@red2-base, 10%);
-      font-weight: bold;
-    }
-
-    .search-keyword {
-      background: fade(@white, 70%);
-      color: #000;
-      font-weight: normal;
-
-      &.current-search-pointer {
-        background: @primary-color;
-        color: #fff;
-      }
-    }
   }
 }
 </style>

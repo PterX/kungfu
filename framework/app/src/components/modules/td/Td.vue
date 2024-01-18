@@ -801,21 +801,14 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="
-                marginSupportTdMap[record.group]
-                  ? dealKfPrice(getAssetsByKfConfig(record).frozen_cash)
-                  : '--'
-              "
+              :num="dealKfPrice(getAssetsByKfConfig(record).frozen_cash)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
               :num="
-                getTdGroupSupportMargin(record)
-                  ? dealKfPrice(
-                      getAssetsByTdGroup(marginSupportTdMap, record)
-                        .frozen_cash,
-                    )
-                  : '--'
+                dealKfPrice(
+                  getAssetsByTdGroup(marginSupportTdMap, record).frozen_cash,
+                )
               "
             ></KfBlinkNum>
           </template>

@@ -14,7 +14,6 @@ const { getKungfuBuildInfo, isProduction } = toolkit.utils;
 const { gitCommitVersion, pyVersion, buildTimeStamp } = getKungfuBuildInfo();
 
 const webpackConfig = (argv) => {
-  argv.enableThreadLoader = true;
   return merge(toolkit.webpack.makeConfig(argv), {
     externals: getWebpackExternals(),
     entry: {

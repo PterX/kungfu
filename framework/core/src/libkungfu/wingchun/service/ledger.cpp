@@ -212,7 +212,11 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
   auto is_from_account = source_location->category == category::TD;
 
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_join(channel.source_id, channel.dest_id, trigger_time);
+    if (not(source_location->category == category::SYSTEM and source_location->group == "service" and
+            get_location(channel.dest_id)->category == category::TD)) {
+      SPDLOG_INFO("join source: {} , dest: {}", source_location->uname, get_location(channel.dest_id)->uname);
+      reader_join(channel.source_id, channel.dest_id, trigger_time);
+    }
   }
   if (channel.dest_id == get_live_home_uid() and has_writer(channel.source_id) and is_from_account) {
     write_book_reset(trigger_time, channel.source_id);

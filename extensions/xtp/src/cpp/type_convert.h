@@ -273,6 +273,23 @@ inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
   des.external_order_id, std::to_string(ori.order_xtp_id).c_str();
 }
 
+inline void from_xtp_no_price_type(const XTPOrderInfo &ori, Order &des) {
+  des.instrument_id = ori.ticker;
+  from_xtp(ori.market, des.exchange_id);
+  des.volume = ori.quantity;
+  des.volume_left = ori.quantity - ori.qty_traded;
+  des.limit_price = ori.price;
+  from_xtp(ori.order_status, des.status);
+  from_xtp(ori.side, des.side);
+  set_offset(des);
+  des.instrument_type = get_instrument_type(des.exchange_id, des.instrument_id);
+  if (ori.update_time > 0) {
+    des.update_time = nsec_from_xtp_timestamp(ori.update_time);
+  }
+  std::string str_external_order_id = std::to_string(ori.order_xtp_id);
+  des.external_order_id = str_external_order_id.c_str();
+}
+
 inline void from_xtp(const XTPTradeReport &ori, Trade &des) {
   des.instrument_id = ori.ticker;
   des.volume = ori.quantity;

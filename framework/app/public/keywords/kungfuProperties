@@ -225,6 +225,7 @@ frame_count
 info_a
 info_b
 info_c
+risk_name
 risk_check
 self_deal_check_type
 open_ratio

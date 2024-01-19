@@ -40,6 +40,10 @@ export const dealKfNumber = (
     return '--';
   }
 
+  if (typeof preNumber === 'number') {
+    return dealKfDecimalPrecision(preNumber);
+  }
+
   return Number(preNumber) || 0;
 };
 
@@ -47,6 +51,9 @@ export const dealKfDecimalPrecision = (
   originNum: number,
   precision = 12,
 ): number => {
+  if (originNum.toString().indexOf('e') !== -1) {
+    return originNum;
+  }
   return parseFloat(Number(originNum).toFixed(precision));
 };
 

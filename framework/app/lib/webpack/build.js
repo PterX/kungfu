@@ -70,6 +70,7 @@ const run = (distDir, distName = 'app') => {
       mode: 'production',
       distDir: distDir,
       distName: distName,
+      enableThreadLoader: true,
     };
 
     const mainConfig = require('./webpack.main.config');

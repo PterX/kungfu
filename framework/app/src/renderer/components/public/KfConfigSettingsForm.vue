@@ -1215,10 +1215,7 @@ function handleAddItemIntoTableRows(item: KungfuApi.KfConfigItem) {
   }
 }
 
-function handleRemoveItemIntoTableRows(
-  item: KungfuApi.KfConfigItem,
-  index: number,
-) {
+function handleRemoveItemIntoTableRows(item: KungfuApi.KfConfigItem, index) {
   const targetState = formState.value[item.key];
   if (targetState instanceof Array) {
     targetState.splice(index, 1);

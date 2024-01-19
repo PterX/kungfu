@@ -137,12 +137,14 @@ function dealQuoteAskPidPrices(
         ).price_tick ?? 0.001;
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
-
       if (price_tick !== 0) {
         return quoteData[`${type}_price`].reduce((pre, cur, index) => {
           if (
             index === 0 ||
-            dealKfDecimalPrecision(toLedgalPriceVolume(cur), target_price_tick)
+            dealKfDecimalPrecision(
+              toLedgalPriceVolume(cur),
+              countDecimalPlaces(target_price_tick),
+            )
           ) {
             pre.push(
               dealKfDecimalPrecision(

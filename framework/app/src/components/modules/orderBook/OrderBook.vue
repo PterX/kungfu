@@ -4,6 +4,7 @@ import {
   dealKfNumber,
   dealKfPrice,
   dealKfDecimalPrecision,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -146,7 +147,7 @@ function dealQuoteAskPidPrices(
             pre.push(
               dealKfDecimalPrecision(
                 toLedgalPriceVolume(cur),
-                Math.abs(target_price_tick),
+                countDecimalPlaces(Math.abs(target_price_tick)),
               ),
             );
           } else {
@@ -154,7 +155,7 @@ function dealQuoteAskPidPrices(
             pre.push(
               dealKfDecimalPrecision(
                 toLedgalPriceVolume(prePrice + target_price_tick),
-                Math.abs(target_price_tick),
+                countDecimalPlaces(Math.abs(target_price_tick)),
               ),
             );
           }

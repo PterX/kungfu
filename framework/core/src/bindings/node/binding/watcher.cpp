@@ -23,6 +23,9 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
+
+constexpr uint32_t STEP_INTERVAL = 1;
+
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 
 Napi::FunctionReference Watcher::constructor = {};
@@ -697,9 +700,9 @@ void Watcher::StartWorker() {
       if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
         watcher->setup();
       }
-      if (watcher->is_live() && watcher->feed_mutex_.try_lock()) {
-        watcher->step();
-        watcher->feed_mutex_.unlock();
+      while (watcher->is_live() && watcher->reader_->data_available()) {
+        std::lock_guard<std::mutex> guard(watcher->feed_mutex_);
+        watcher->step(STEP_INTERVAL);
       }
       std::this_thread::sleep_for(std::chrono::microseconds(watcher->milliseconds_sleep_after_step_));
     }

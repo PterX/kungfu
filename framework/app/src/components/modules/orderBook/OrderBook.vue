@@ -146,7 +146,7 @@ function dealQuoteAskPidPrices(
             pre.push(
               dealKfDecimalPrecision(
                 toLedgalPriceVolume(cur),
-                target_price_tick,
+                Math.abs(target_price_tick),
               ),
             );
           } else {
@@ -154,8 +154,8 @@ function dealQuoteAskPidPrices(
             pre.push(
               dealKfDecimalPrecision(
                 toLedgalPriceVolume(prePrice + target_price_tick),
+                Math.abs(target_price_tick),
               ),
-              target_price_tick,
             );
           }
 

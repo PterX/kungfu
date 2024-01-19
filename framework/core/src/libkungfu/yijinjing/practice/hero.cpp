@@ -71,8 +71,9 @@ bool hero::setup() {
 
 void hero::pre_setup() {}
 
-void hero::step() {
+void hero::step(uint32_t step_limit) {
   continual_ = false;
+  step_limit_ = step_limit;
   events_.connect(cs_);
 }
 

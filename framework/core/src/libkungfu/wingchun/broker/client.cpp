@@ -223,6 +223,11 @@ void Client::connect(const event_ptr &event, const Band &band) {
                 app_.get_location_uname(dest_id));
     app_.request_read_from_source_to_dest(event->gen_time(), source_location, dest_id);
   }
+  if (source_location->category == category::OPERATOR and should_connect_operator(source_location)) {
+    SPDLOG_INFO("resume band from source {} {} to dest {} {}", source_id, app_.get_location_uname(source_id), dest_id,
+                app_.get_location_uname(dest_id));
+    app_.request_read_from_source_to_dest(event->gen_time(), source_location, dest_id);
+  }
 }
 
 void Client::on_deregister(const longfist::types::Deregister &deregister_data) {

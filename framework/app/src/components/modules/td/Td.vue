@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, toRefs, onMounted, toRaw, watch } from 'vue';
+import { ref, computed, toRefs, onMounted, toRaw } from 'vue';
 import { storeToRefs } from 'pinia';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';

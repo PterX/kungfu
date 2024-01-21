@@ -308,7 +308,7 @@ declare namespace KungfuApi {
     description: string;
     pythonPath: string;
     scriptPath: string;
-    module_name: string;
+    modulePath: string;
   }
 
   export interface KfExtOriginFactorConfig

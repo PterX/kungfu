@@ -302,22 +302,6 @@ declare namespace KungfuApi {
     };
   }
 
-  export interface FactorItem {
-    id: string;
-    name: string;
-    description: string;
-    pythonPath: string;
-    scriptPath: string;
-    modulePath: string;
-  }
-
-  export interface KfExtOriginFactorConfig
-    extends KfExtOriginBaseConfig<KfExtTypeEnum.Factor> {
-    config?: {
-      factors?: FactorItem[];
-    };
-  }
-
   export interface KfExtOriginServiceConfig
     extends KfExtOriginBaseConfig<KfExtTypeEnum.Service> {
     config?: {

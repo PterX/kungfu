@@ -949,7 +949,17 @@ export class LinkedList<T> {
     if (!this.pos) {
       this.pos = this.head;
     } else {
-      this.pos = this.pos.next;
+      this.pos = this.pos.next || this.head;
+    }
+
+    return this.pos;
+  }
+
+  posPrev() {
+    if (!this.pos) {
+      this.pos = this.tail;
+    } else {
+      this.pos = this.pos.prev;
     }
     return this.pos;
   }
@@ -988,10 +998,6 @@ export class LinkedList<T> {
     }
 
     if (node === this.head || !this.head) {
-      return;
-    }
-
-    if (node === this.tail) {
       return;
     }
 

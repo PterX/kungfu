@@ -350,37 +350,6 @@ const orderTriggerVisible = computed(() => {
   }
 });
 
-// const getOffsetBySide = (
-//   side: SideEnum,
-//   instrumentResolved: KungfuApi.InstrumentResolved,
-// ) => {
-//   const { instrumentType } = instrumentResolved;
-
-// const resolveOffsetByPosition = (pos: KungfuApi.PositionResolved) => {
-//   return pos.yesterday_volume
-//     ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
-//     : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
-// };
-
-//   if (isShotable(instrumentType)) {
-//     if (side === SideEnum.Sell) {
-//       if (currentPositionWithLongDirection.value) {
-//         return currentPositionWithLongDirection.value
-//           ? resolveOffsetByPosition(currentPositionWithLongDirection.value)
-//           : OffsetEnum.Open;
-//       }
-//     } else if (side === SideEnum.Buy) {
-//       return currentPositionWithShortDirection.value
-//         ? resolveOffsetByPosition(currentPositionWithShortDirection.value)
-//         : OffsetEnum.Open;
-//     }
-//   } else {
-//     return side === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
-//   }
-
-//   return -1;
-// };
-
 watch(
   () => currentGlobalKfLocation.value,
   (newVal) => {
@@ -1210,6 +1179,7 @@ watch(
               >
                 <a-button
                   class="make-order-algorithm-btns"
+                  tabindex="-1"
                   v-for="item in availTradingTaskExtensionList"
                   @click="handleOpenTradingTaskConfigModal(item)"
                   :key="item.key"
@@ -1225,12 +1195,6 @@ watch(
           </div>
         </div>
         <div class="make-order-btns">
-          <!-- <a-button class="make-order" @click="handleOpenOrder()">
-            {{ $t('tradingConfig.buy') }}
-          </a-button>
-          <a-button class="make-order" @click="handleCloseOrder()">
-            {{ $t('tradingConfig.sell') }}
-          </a-button> -->
           <a-button
             :id="makeOrderBtnId"
             class="make-order"

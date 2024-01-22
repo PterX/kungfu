@@ -74,7 +74,6 @@ import {
   getCurrentWindow,
   dialog,
   nativeImage,
-  globalShortcut,
 } from '@electron/remote';
 import { ipcRenderer, clipboard } from 'electron';
 import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
@@ -109,7 +108,6 @@ import Mark from 'mark.js';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
-import { LatestUsedQueue } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 // this utils file is only for ui components
@@ -276,48 +274,6 @@ export const loadExtComponents = (
   });
 };
 
-export const useShortcuts = (shortcutsOption: {
-  [shortcut: string]: {
-    elementIdList: string[];
-    onFocus?: (el: HTMLElement) => void;
-  };
-}) => {
-  const shortcutsElementsQueue: Record<string, LatestUsedQueue<string>> = {};
-
-  onMounted(() => {
-    for (const shortcut in shortcutsOption) {
-      const { elementIdList } = shortcutsOption[shortcut];
-      shortcutsElementsQueue[shortcut] = new LatestUsedQueue(elementIdList);
-
-      const res = globalShortcut.isRegistered(shortcut);
-      if (!res) {
-        console.error(`Failed to register shortcut ${shortcut}`);
-        return;
-      }
-
-      let iterator;
-      document.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (
-          (e.ctrlKey || e.metaKey) &&
-          e.shiftKey &&
-          e.code.startsWith('Digit')
-        ) {
-          const boardStr = e.code.replace('Digit', '');
-          if (boardStr !== shortcut.split('+')[2]) return;
-          if (!iterator) {
-            iterator = shortcutsElementsQueue[shortcut].generateIterator();
-            document.addEventListener('keyup', (e: KeyboardEvent) => {
-              if (e.key === null) iterator = null;
-            });
-          }
-
-          iterator?.next()?.value?.();
-        }
-      });
-    }
-  });
-};
-
 export function useStyle(styleString: string) {
   const key = Date.now();
   const styleSheet = document.styleSheets[0];
@@ -437,6 +393,7 @@ export function useShortcutFocuseBoard() {
           await setTimeout(() => {
             boardContent.classList.remove('kf-highlight-outline');
           }, 300);
+          linkList.posNext();
 
           const keyUpHandler = (e: KeyboardEvent) => {
             if (!((e.ctrlKey || e.metaKey) && e.shiftKey)) {
@@ -446,8 +403,6 @@ export function useShortcutFocuseBoard() {
             }
           };
           document.addEventListener('keyup', keyUpHandler);
-
-          linkList.posNext();
         }
       }
     });

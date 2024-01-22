@@ -7,6 +7,10 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Index',
     component: Index,
   },
+  {
+    path: '/main',
+    redirect: '/',
+  },
 ];
 
 const router = createRouter({

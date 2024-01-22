@@ -380,6 +380,7 @@ const getKfUIExtensionConfigByExtKey = (
       const silent = uiConfig?.silent ?? false;
       const access = uiConfig?.access ?? {};
       const position = uiConfig?.position || '';
+      const sidebarIndex = uiConfig?.sidebarIndex || 0;
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
       const script = uiConfig?.script || '';
@@ -398,6 +399,7 @@ const getKfUIExtensionConfigByExtKey = (
         description,
         dependencies,
         position,
+        sidebarIndex,
         exhibit,
         components,
         script,

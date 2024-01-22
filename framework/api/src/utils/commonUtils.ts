@@ -51,12 +51,10 @@ export const dealKfDecimalPrecision = (
   originNum: number,
   precision = 12,
 ): number => {
-  let fixedPrecisionStr = originNum.toPrecision(precision);
-  if (fixedPrecisionStr.indexOf('e') !== -1) {
-    fixedPrecisionStr = fixedPrecisionStr.split('e')[0];
+  if (originNum.toString().indexOf('e') !== -1) {
+    return originNum;
   }
-
-  return parseFloat(fixedPrecisionStr);
+  return parseFloat(Number(originNum).toFixed(precision));
 };
 
 export const dealKfPrice = (

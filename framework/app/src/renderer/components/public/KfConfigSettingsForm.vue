@@ -1048,7 +1048,7 @@ function disabledEndTime(
     return hours;
   };
 
-  const disabledMinutes = (selectedHour: number) => {
+  const disabledMinutes = (selectedHour) => {
     const minutes: number[] = [];
 
     if (

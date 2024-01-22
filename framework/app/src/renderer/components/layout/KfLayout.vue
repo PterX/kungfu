@@ -55,8 +55,8 @@ const footerComponentConfigs = computed(() => {
 const sidebarComponentConfigs = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
   const customSidebar = rootPackageJson.traderUiConfig?.customSidebar ?? {};
-  const allUiExtConfigs = toRaw(uiExtConfigs.value);
-  allUiExtConfigs['main'] = {
+  const uiExtConfigsWithMain = toRaw(uiExtConfigs.value);
+  uiExtConfigsWithMain['main'] = {
     access: {},
     assets: {},
     category: 'ui',
@@ -76,16 +76,16 @@ const sidebarComponentConfigs = computed(() => {
     version: '',
   };
 
-  return Object.keys(allUiExtConfigs)
-    .filter((key) => allUiExtConfigs[key].position === 'sidebar')
+  return Object.keys(uiExtConfigsWithMain)
+    .filter((key) => uiExtConfigsWithMain[key].position === 'sidebar')
     .map((key) => {
       if (customSidebar[key]) {
         const { sidebarIndex, name } = customSidebar[key];
-        allUiExtConfigs[key].sidebarIndex = sidebarIndex ?? -1;
-        allUiExtConfigs[key].name = name ?? allUiExtConfigs[key].name;
+        uiExtConfigsWithMain[key].sidebarIndex = sidebarIndex ?? -1;
+        uiExtConfigsWithMain[key].name = name ?? uiExtConfigsWithMain[key].name;
       }
       return {
-        ...allUiExtConfigs[key],
+        ...uiExtConfigsWithMain[key],
         key,
       };
     })

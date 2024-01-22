@@ -380,7 +380,6 @@ declare namespace KungfuApi {
     | KfExtOriginBrokerConfig
     | KfExtOriginTaskConfig
     | KfExtOriginOperatorConfig
-    | KfExtOriginFactorConfig
     | KfExtOriginServiceConfig
     | KfExtOriginMatcherConfig
     | KfExtOriginIndexerConfig

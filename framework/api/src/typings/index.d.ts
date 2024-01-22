@@ -967,7 +967,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number;
-    volume: bigint;
+    volume: number;
   }
 
   export interface BasketOrder {
@@ -979,8 +979,8 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
-    volume: bigint;
-    volume_left: bigint;
+    volume: number;
+    volume_left: number;
     status: OrderStatusEnum;
 
     source_id: number; // 下单方
@@ -1291,7 +1291,7 @@ declare namespace KungfuApi {
     id: number; // basket id
     name: string; // basket 名字
     volume_type: BasketVolumeTypeEnum; // 比例/数量
-    total_amount: bigint; // 总数量
+    total_amount: number; // 总数量
     basket_type: BasketTypeEnum; // 类型: Custom 或 ETF
     instrument_id: string; // ETF基金代码
     exchange_id: string; // ETF基金的市场

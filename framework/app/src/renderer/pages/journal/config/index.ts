@@ -99,7 +99,6 @@ export const getFrameColumns = (
     dataIndex: 'frameId',
     align: 'right',
     textOverflow: 'ellipsis',
-    sorter: buildStrSorter('frameId'),
 
     width: 50,
   },
@@ -109,7 +108,6 @@ export const getFrameColumns = (
     dataIndex: 'pageId',
     align: 'right',
     textOverflow: 'ellipsis',
-    sorter: buildStrSorter('pageId'),
     width: 40,
   },
   {

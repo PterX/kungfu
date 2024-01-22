@@ -13,10 +13,10 @@
 
 namespace kungfu::yijinjing::log {
 bool signal_log = true;
-static thread_local uint64_t trigger_frame_uid = 0;
-static thread_local uint32_t trigger_source_id = 0;
-static thread_local uint32_t trigger_dest_id = 0;
-static thread_local int32_t trigger_msg_type = 0;
+thread_local uint64_t trigger_frame_uid = 0;
+thread_local uint32_t trigger_source_id = 0;
+thread_local uint32_t trigger_dest_id = 0;
+thread_local int32_t trigger_msg_type = 0;
 
 void disable_signal_log() { signal_log = false; }
 
@@ -35,10 +35,12 @@ public:
 
   void format(const spdlog::details::log_msg &msg, spdlog::memory_buf_t &dest) override {
     spdlog::details::fmt_helper::append_string_view(time::strftime(time::now_in_nano(), TS_PATTERN), dest);
-    spdlog::details::fmt_helper::append_string_view(fmt::format("[{:>20}-{:>10}-{:<10}-{:<10}]",
-                                                                get_trigger_frame_uid(), get_trigger_source_id(),
-                                                                get_trigger_dest_id(), get_trigger_msg_type()),
-                                                    dest);
+    if (is_log_frame()) {
+      spdlog::details::fmt_helper::append_string_view(fmt::format("[{:>10}->{:<10}:{:<10}:{:<20}]",
+                                                                  get_trigger_source_id(), get_trigger_dest_id(),
+                                                                  get_trigger_msg_type(), get_trigger_frame_uid()),
+                                                      dest);
+    }
     spdlog_formatter.format(msg, dest);
   }
 
@@ -111,6 +113,11 @@ void emit_log(const std::string &source_file, int &source_line, const std::strin
   }
 }
 
+bool is_log_frame() {
+  static bool log_frame = std::getenv("KF_LOG_FRAME") != nullptr;
+  return log_frame;
+}
+
 void set_trigger_frame_uid(uint64_t frame_uid) { trigger_frame_uid = frame_uid; }
 
 uint64_t get_trigger_frame_uid() { return trigger_frame_uid; }
@@ -126,4 +133,5 @@ uint32_t get_trigger_dest_id() { return trigger_dest_id; }
 void set_trigger_msg_type(int32_t msg_type) { trigger_msg_type = msg_type; }
 
 int32_t get_trigger_msg_type() { return trigger_msg_type; }
+
 } // namespace kungfu::yijinjing::log

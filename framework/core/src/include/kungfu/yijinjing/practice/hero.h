@@ -38,9 +38,11 @@ public:
 
   bool is_usable() override;
 
+  virtual void pre_setup();
+
   bool setup() override;
 
-  void step();
+  void step(uint32_t count = 0);
 
   void run();
 
@@ -167,6 +169,10 @@ public:
 
   const rx::connectable_observable<event_ptr> &get_events() const;
 
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
@@ -248,13 +254,13 @@ protected:
   void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
                              uint64_t page_size = 0) const;
 
-  virtual void pre_setup();
-
   virtual void react() = 0;
 
   virtual void on_active() = 0;
 
   virtual void on_frame() = 0;
+
+  void cleanup_reader_disjoin();
 
 private:
   yijinjing::io_device_ptr io_device_;
@@ -269,9 +275,12 @@ private:
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   std::unordered_map<uint64_t, yijinjing::data::location_ptr> location64s_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+  std::set<uint32_t> disjoin_uids_ = {};
+  std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
 
   volatile bool continual_ = true;
   volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
 

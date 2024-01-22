@@ -21,8 +21,8 @@ class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
 
 public:
-  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency,
-                  const std::string &arguments);
+  explicit Ledger(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
+                  longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
   ~Ledger() override = default;
 
@@ -66,8 +66,6 @@ private:
   void keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid);
 
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
-
-  double translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price);
 
   template <typename AppStateMap, typename AppStateUpdate>
   void update_app_state_map(uint32_t location_uid, const AppStateUpdate &state_update, AppStateMap &app_states) {

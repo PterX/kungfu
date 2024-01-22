@@ -43,9 +43,13 @@ struct frame : event {
     return reinterpret_cast<char *>(address() + header_length());
   }
 
-  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes(), data_length()); }
+  [[nodiscard]] std::vector<uint8_t> data_as_byte_array() const override {
+    return {data_as_bytes(), data_as_bytes() + data_length()};
+  }
 
-  [[nodiscard]] std::string to_string() const override { return std::string(reinterpret_cast<char *>(address())); }
+  [[nodiscard]] std::string data_as_string() const override { return std::string{data_as_bytes(), data_length()}; }
+
+  [[nodiscard]] std::string to_string() const override { return std::string{reinterpret_cast<char *>(address())}; }
 
   [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
 

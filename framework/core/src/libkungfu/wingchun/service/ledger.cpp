@@ -24,7 +24,8 @@ using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::service {
 
-Ledger::Ledger(locator_ptr locator, mode m, bool low_latency, const std::string &arguments)
+Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
+               const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
       broker_client_(*this), bookkeeper_(*this, broker_client_, true) {
@@ -115,7 +116,7 @@ void Ledger::refresh_account_book(int64_t trigger_time, uint32_t account_uid) {
   subscribe_positions(book->long_positions);
   subscribe_positions(book->short_positions);
   broker_client_.try_renew(trigger_time, md_location);
-  book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  book->update(trigger_time);
 }
 
 OrderStat &Ledger::ensure_order_stat(uint64_t order_id, const event_ptr &event) {
@@ -157,38 +158,10 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
     stat.total_price += data.price * double(data.volume);
     stat.total_volume += double(data.volume);
     if (stat.total_volume > 0) {
-      stat.avg_price =
-          translate_by_price_tick(data.exchange_id, data.instrument_id, stat.total_price / stat.total_volume);
+      stat.avg_price = stat.total_price / stat.total_volume;
     }
     write_to(event->gen_time(), stat, event->source());
   }
-}
-
-double Ledger::translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price) {
-  auto hashed_instrument_key = hash_instrument(exchange_id, instrument_id);
-  auto instruments = bookkeeper_.get_static_data().get_instruments();
-  if (instruments.find(hashed_instrument_key) != instruments.end()) {
-    double price_tick = instruments[hashed_instrument_key].price_tick;
-    if (is_valid_price(price_tick)) {
-      if (price_tick >= 1) {
-        price_tick = 1;
-      }
-
-      int num = 1 / price_tick;
-      int digits = 0;
-      while (num != 0) {
-        num /= 10;
-        digits++;
-      }
-
-      double price_tick = 1.0 / pow(10, digits);
-      uint64_t tick = 1 / price_tick;
-      uint64_t uPrice = (uint64_t)((std::abs(price) + price_tick * 0.5) * tick);
-      return (double)uPrice / tick;
-    }
-  }
-
-  return int64_t(price * DEFAULT_AVG_VALID_VALUE) / DEFAULT_AVG_VALID_VALUE;
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
@@ -207,7 +180,11 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
   auto is_from_account = source_location->category == category::TD;
 
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
-    reader_join(channel.source_id, channel.dest_id, trigger_time);
+    if (not(source_location->category == category::SYSTEM and source_location->group == "service" and
+            get_location(channel.dest_id)->category == category::TD)) {
+      SPDLOG_INFO("join source: {} , dest: {}", source_location->uname, get_location(channel.dest_id)->uname);
+      reader_join(channel.source_id, channel.dest_id, trigger_time);
+    }
   }
   if (channel.dest_id == get_live_home_uid() and has_writer(channel.source_id) and is_from_account) {
     write_book_reset(trigger_time, channel.source_id);
@@ -272,7 +249,7 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
     tmp_books_.erase(strategy_uid);
   }
 
-  strategy_book->update(trigger_time, bookkeeper_.get_accounting_method_type());
+  strategy_book->update(trigger_time);
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {

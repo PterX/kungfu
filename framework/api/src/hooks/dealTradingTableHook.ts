@@ -27,7 +27,6 @@ export interface AntTableColumn {
   key?: string;
   width?: number | string;
   minWidth?: number | string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sorter?:
     | boolean
     | {

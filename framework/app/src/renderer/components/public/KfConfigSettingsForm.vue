@@ -330,6 +330,9 @@ if ('instrument' in formState.value) {
   watch(
     () => formState.value.instrument,
     (newInstrument: string) => {
+      const isMargin = props.configSettings.some(
+        (item) => item.type === 'marginSide',
+      );
       if (newInstrument) {
         const instrumentResolved =
           transformSearchInstrumentResultToInstrument(newInstrument);
@@ -350,6 +353,7 @@ if ('instrument' in formState.value) {
           }
 
           if (
+            !isMargin &&
             'side' in formState.value &&
             !sideRadiosList.value.includes(`${formState.value.side}`)
           ) {
@@ -1211,7 +1215,7 @@ function handleAddItemIntoTableRows(item: KungfuApi.KfConfigItem) {
   }
 }
 
-function handleRemoveItemIntoTableRows(item, index) {
+function handleRemoveItemIntoTableRows(item: KungfuApi.KfConfigItem, index) {
   const targetState = formState.value[item.key];
   if (targetState instanceof Array) {
     targetState.splice(index, 1);

@@ -116,8 +116,8 @@ void master::register_app(const event_ptr &event) {
   auto app_cmd_writer = get_io_device()->open_writer_at(master_cmd_location, app_location->uid);
   writers_.insert_or_assign(app_location->uid, app_cmd_writer);
   reader_->join(app_location, location::PUBLIC, now);
-  reader_->join(app_location, location::SYNC, now); // create sync journal
-  reader_->disjoin(app_location, location::SYNC);   // no need to deal feed from sync
+  reader_->join(app_location, location::SYNC, now);            // create sync journal
+  disjoin_channel(app_location->location_uid, location::SYNC); // no need to deal feed from sync
   reader_->join(app_location, master_cmd_location->uid, now, 0, Priority::High);
 
   auto public_writer = get_writer(location::PUBLIC);
@@ -163,7 +163,7 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   deregister_channel(app_location_uid);
   deregister_band(app_location_uid);
   deregister_location(trigger_time, app_location_uid);
-  reader_->disjoin(app_location_uid);
+  disjoin(app_location_uid);
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
   const Deregister deregister = location->to<Deregister>();
@@ -289,7 +289,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   // layout have to be journal, for locator::list_locations
   auto dirname = home->locator->layout_dir(target_location, enums::layout::JOURNAL);
   reader_->join(target_location, location::PUBLIC, trigger_time, 1);
-  reader_->disjoin(target_location->location_uid);
+  disjoin(target_location->location_uid);
 
   // notify others band location, but it represents a simulation location, no register, only location
   try_add_location(now(), target_location);

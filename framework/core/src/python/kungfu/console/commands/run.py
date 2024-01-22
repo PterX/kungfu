@@ -7,6 +7,7 @@ import kungfu
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing.practice.executor import ExecutorRegistry
+from kungfu.yijinjing.practice.run import run_forever, run_by_step
 from kungfu.yijinjing.practice.master import Master
 
 lf = kungfu.__binding__.longfist
@@ -104,6 +105,12 @@ service_command_context = kfc.pass_context("low_latency")
     help="bypass sync position every minute  ",
 )
 @click.option(
+    "-ENV-log-frame",
+    is_flag=True,
+    required=False,
+    help="log frame message source->dest:msg_type:frame_uid  ",
+)
+@click.option(
     "-ARG-max-pre-create-size",
     type=str,
     required=False,
@@ -135,6 +142,7 @@ def run(
     env_bypass_cached,
     env_bypass_sync_asset,
     env_bypass_sync_position,
+    env_log_frame,
     arg_max_pre_create_size,
 ):
     ctx.mode = mode
@@ -152,7 +160,7 @@ def run(
     ctx.name = name
     ctx.low_latency = low_latency
     ctx.path = reference
-    ctx.arguments = arguments
+    ctx.arguments = arguments or "{}"
     ctx.vendor = vendor
 
     registry = ExecutorRegistry(ctx)
@@ -162,13 +170,22 @@ def run(
         "ledger": registry["system"]["service"]["ledger"],
     }
 
+    ctx.executor = None
+
     if not category and not reference:
         click.echo(run.get_help(ctx))
     elif reference in cheatsheet:
-        cheatsheet[reference](mode, low_latency)
+        ctx.executor = cheatsheet[reference](mode, low_latency)
     else:
         registry.load_extensions()
-        registry[category][group][name](mode, low_latency)
+        ctx.executor = registry[category][group][name](mode, low_latency)
+
+    if ctx.executor is not None:
+        if not low_latency and kfj.MODES[ctx.mode] != lf.enums.mode.BACKTEST:
+            ctx.logger.debug("by step mode")
+            run_by_step(ctx, ctx.executor)
+        else:
+            run_forever(ctx, ctx.executor)
 
 
 @kfc.command(cls=PrioritizedCommandGroup, help_priority=-1)

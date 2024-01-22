@@ -17,7 +17,7 @@ namespace kungfu::wingchun::strategy {
 class Runner : public yijinjing::practice::apprentice {
 public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
-         longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
+         longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
   ~Runner() override = default;
 

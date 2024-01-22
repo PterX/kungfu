@@ -161,6 +161,12 @@ const mainStatusWell = computed(() => {
   return masterIsLive && ledgerIsLive;
 });
 
+const getContainer = () => {
+  const el = document.querySelector('.kf-layout > section');
+
+  return el;
+};
+
 function handleOpenProcessControllerBoard(): void {
   processControllerBoardVisible.value = true;
 }
@@ -225,6 +231,7 @@ onMounted(() => {
       :width="650"
       class="kf-process-status-controller-board__warp"
       :title="$t('baseConfig.control_center')"
+      :get-container="getContainer"
       placement="right"
     >
       <div
@@ -417,10 +424,6 @@ onMounted(() => {
         margin-right: 8px;
         word-break: break-all;
 
-        .process-id {
-          width: 112px;
-        }
-
         .info-item {
           margin-right: 8px;
 
@@ -455,4 +458,3 @@ onMounted(() => {
   }
 }
 </style>
-@kungfu-trader/kungfu-js-api/utils/systemConfig

@@ -22,7 +22,7 @@ namespace fs = std::filesystem;
 
 namespace kungfu::yijinjing::practice {
 
-apprentice::apprentice(const location_ptr &home, bool low_latency, std::string arguments)
+apprentice::apprentice(const data::location_ptr &home, bool low_latency, std::string arguments)
     : hero(std::make_shared<io_device_client>(home, low_latency)), manager_(*this), arguments_(std::move(arguments)) {}
 
 bool apprentice::is_started() const { return started_; }
@@ -210,7 +210,7 @@ void apprentice::on_deregister(const event_ptr &event) {
     return;
   }
 
-  reader_->disjoin(location_uid);
+  disjoin(location_uid);
   deregister_channel(location_uid);
   deregister_band(location_uid);
   deregister_location(event->trigger_time(), location_uid);

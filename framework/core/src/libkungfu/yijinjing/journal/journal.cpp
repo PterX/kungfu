@@ -108,14 +108,15 @@ void journal::load_next_page() { load_page(page_->get_page_id() + 1); }
 
 void journal::preload_next_page() {
   std::lock_guard<std::recursive_mutex> lk(load_page_mtx_);
-  if ((not low_latency_ or not page_) or                                                                       //
-      (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or                          //
-      (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                                      //
-      (not is_writing_ and not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
+  if ((not low_latency_ or not page_) or                                                   //
+      (preload_page_ and preload_page_->get_page_id() == page_->get_page_id() + 1) or      //
+      (page_->header_->status == longfist::enums::PageStatus::PreOpen) or                  //
+      (not page::check_page_existed(location_, page_->dest_id_, page_->get_page_id() + 1)) //
   ) {
     return;
   }
   preload_page_ = page::load(location_, dest_id_, page_size_, page_->get_page_id() + 1, is_writing_, lazy_, true);
+  SPDLOG_TRACE("journal: {} ", page::get_page_path(location_, dest_id_, preload_page_->get_page_id()));
 }
 
 // saving time for other process switch page, except the master

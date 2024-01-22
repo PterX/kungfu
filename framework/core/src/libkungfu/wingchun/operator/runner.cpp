@@ -10,8 +10,10 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::practice;
 
 namespace kungfu::wingchun::op {
-Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency)
-    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency) {}
+Runner::Runner(locator_ptr locator, const std::string &group, const std::string &name, mode m, bool low_latency,
+               const std::string &arguments)
+    : apprentice(location::make_shared(m, category::OPERATOR, group, name, std::move(locator)), low_latency,
+                 arguments) {}
 
 Context_ptr Runner::get_context() const { return context_; }
 

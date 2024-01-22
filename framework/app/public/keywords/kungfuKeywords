@@ -5,10 +5,10 @@ instrument_factors
 static_data
 baskets
 basket_instruments
-home
 state
 runtime_folder
 config
+home
 orders
 order_actions
 trades
@@ -30,6 +30,7 @@ dest
 msg_type
 data_length
 data_as_bytes
+data_as_byte_array
 data_as_string
 frame_length
 publisher
@@ -198,6 +199,9 @@ low_price
 upper_limit_price
 lower_limit_price
 iopv
+total_bid_volume
+total_ask_volume
+total_trade_num
 bid_price
 ask_price
 bid_volume
@@ -210,9 +214,7 @@ ask_no
 exec_type
 trade_num
 bid_weighted_avg_price
-total_bid_volume
 ask_weighted_avg_price
-total_ask_volume
 bid_depth
 ask_depth
 key
@@ -229,6 +231,7 @@ frame_count
 info_a
 info_b
 info_c
+risk_name
 risk_check
 self_deal_check_type
 open_ratio
@@ -353,9 +356,6 @@ has_book
 get_book
 get_books
 set_accounting_method
-set_begin_time
-set_end_time
-get_location
 on_start
 now
 get_writer
@@ -372,6 +372,7 @@ get_vendor
 on_recover
 on_time_key_value
 on_custom_event
+on_risk_setting
 get_asset_writer
 get_position_writer
 has_order
@@ -403,9 +404,6 @@ set_to_indexer
 set_report
 set_time_interval
 set_backtest_config
-setup
-step
-on_exit
 add_operator
 is_started
 subscribe_operator
@@ -455,6 +453,7 @@ on_req_history_trade_error
 on_custom_data
 get_begin_time
 get_end_time
+get_location
 current_frame
 next
 data_available
@@ -535,6 +534,7 @@ read_all
 read_header_data
 read_bytes
 is_usable
+setup
 open_reader
 open_reader_to_subscribe
 open_writer
@@ -548,10 +548,18 @@ set
 get
 get_all
 remove
+get_home_uid
+get_home_uname
+pre_setup
+step
+is_live
+on_exit
 on_register
 check_register
 on_interval_check
 deregister_app
+set_begin_time
+set_end_time
 return ej_pair.first
 MD
 TD

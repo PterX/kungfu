@@ -31,7 +31,7 @@ Context_ptr Runner::make_context() {
     }
     if (not to_indexer_) {
       to_indexer_ = std::make_shared<tool::SliceIndexer>(get_begin_time(), get_end_time());
-      SPDLOG_WARN("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
+      SPDLOG_INFO("Runner in backtest mode not specified to_indexer, Default NameHashingIndexer used.");
     }
     if (not matcher_) {
       matcher_ = std::make_shared<BasicMatcher>();
@@ -105,9 +105,9 @@ void Runner::on_start() {
   pre_start();
   enable(*context_);
 
-  auto resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
+  bool resume_policy_is_now = context_->get_resume_policy() == longfist::enums::ResumePolicy::Now;
   auto start_events =
-      events_ | skip_until(events_ | filter([&](auto e) {
+      events_ | skip_until(events_ | filter([&, resume_policy_is_now](auto e) {
                              return resume_policy_is_now ? context_->is_started() and has_post_started_ : true;
                            }));
   start_events | is(Quote::tag) |

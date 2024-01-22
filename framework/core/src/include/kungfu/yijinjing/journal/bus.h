@@ -16,10 +16,6 @@ public:
 
   void notify_all();
 
-  void consume();
-
-  void produce();
-
   void wait();
 
   static void set_trigger_frame(const event_ptr &event);
@@ -43,7 +39,7 @@ public:
 private:
   std::condition_variable cv_{};
   std::mutex cv_mutex_{};
-  std::atomic<bool> ready_{false};
+  bool ready_ = false;
   const bool on_load_page_required_;
   inline static thread_local uint64_t trigger_frame_uid_ = 0;
   inline static thread_local uint32_t trigger_source_id_ = 0;

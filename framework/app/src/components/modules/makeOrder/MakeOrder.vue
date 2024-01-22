@@ -48,6 +48,7 @@ import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
@@ -87,31 +88,54 @@ const {
 const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
-const formState = ref(
-  initFormStateByConfig(
-    getConfigSettings(
-      currentGlobalKfLocation.value,
-      InstrumentTypeEnum.future,
-      extConfigs.value,
-    ),
-    {},
-  ),
-);
-const autoFillInstrument = ref<boolean>(false);
+
+const currentAccountId = ref<string>('');
 
 const isMarginMakeOrder = computed(() => {
+  const accountId = currentAccountId.value;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.marginMakeOrder || false
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
+    false
   );
 });
 
 const isSpecifyContract = computed(() => {
+  const accountId = currentAccountId.value;
+  const accountPrefix = accountId ? accountId.split('_')[0] : '';
+  const group = currentGlobalKfLocation.value?.group;
+  const isGroupValid = group && group !== 'group';
+  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
   return (
-    extConfigs.value?.td?.[currentGlobalKfLocation.value?.group || '']?.margin
-      ?.specifyContract || false
+    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
+    false
   );
 });
+
+const formState = ref(
+  initFormStateByConfig(
+    getConfigSettings({
+      location: currentGlobalKfLocation.value,
+      instrumentType: InstrumentTypeEnum.future,
+      isMarginMakeOrder: isMarginMakeOrder.value,
+      isSpecifyContract: isSpecifyContract.value,
+    }),
+    {},
+  ),
+);
+
+const contractSideTypes = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayMargin,
+  SideEnum.RepayStock,
+];
+const autoFillInstrument = ref<boolean>(false);
 
 const formRef = ref();
 const { subscribeAllInstrumentByAppStates } = useInstruments();
@@ -149,7 +173,7 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getConfigSettings();
+    return getConfigSettings({});
   }
 
   let step = 0.0001,
@@ -165,15 +189,16 @@ const configSettings = computed(() => {
   }
 
   const { side } = formState.value;
-  return getConfigSettings(
-    currentGlobalKfLocation.value,
-    makeOrderInstrumentType.value,
-    extConfigs.value,
+  return getConfigSettings({
+    location: currentGlobalKfLocation.value,
+    instrumentType: makeOrderInstrumentType.value,
+    isMarginMakeOrder: isMarginMakeOrder.value,
+    isSpecifyContract: isSpecifyContract.value,
     side,
-    +formState.value.price_type,
+    priceType: +formState.value.price_type,
     pricePrecision,
     step,
-  );
+  });
 });
 
 const rules = computed(() => {
@@ -323,21 +348,17 @@ watch(
 
 watch(
   () => isMarginMakeOrder.value,
-  () => {
-    nextTick().then(() => {
-      formRef.value.clearValidate();
-      formState.value = initFormStateByConfig(
-        getConfigSettings(
-          currentGlobalKfLocation.value,
-          InstrumentTypeEnum.future,
-          extConfigs.value,
-        ),
-        {},
-      );
-      formState.value.offset = OffsetEnum.Open;
-    });
+  (newVal) => {
+    if (newVal) {
+      if (!contractSideTypes.includes(formState.value.side)) {
+        formState.value.side = SideEnum.GuaranteeStockBuy;
+      }
+    } else {
+      if (contractSideTypes.includes(formState.value.side)) {
+        formState.value.side = SideEnum.Buy;
+      }
+    }
   },
-
   {
     immediate: true,
   },
@@ -347,11 +368,6 @@ watch(
   () => formState.value.side,
   (newSide) => {
     if (isMarginMakeOrder.value) {
-      if (newSide === SideEnum.Buy) {
-        formState.value.side = SideEnum.GuaranteeStockBuy;
-      } else if (newSide === SideEnum.Sell) {
-        formState.value.side = SideEnum.GuaranteeStockSell;
-      }
       [
         SideEnum.GuaranteeStockBuy,
         SideEnum.MarginTrade,
@@ -458,6 +474,13 @@ watch(
   },
 );
 
+watch(
+  () => formState.value.account_id,
+  (newVal) => {
+    currentAccountId.value = newVal;
+  },
+);
+
 onMounted(() => {
   if (currentGlobalKfLocation.value?.category === 'td') {
     formState.value.account_id = getIdByKfLocation(
@@ -543,7 +566,7 @@ async function handleApartOrder(): Promise<void> {
     if (isContinue !== null && !isContinue) return;
 
     isShowConfirmModal.value = true;
-    curOrderVolume.value = Number(makeOrderInput.volume);
+    curOrderVolume.value = makeOrderInput.volume;
     curOrderType.value = makeOrderInput.instrument_type;
   } catch (e) {
     if ((<Error>e).message) {
@@ -684,8 +707,8 @@ async function confirmApartCloseToOpen(
 
     if (side === SideEnum.Buy) {
       if (currentPositionWithShortDirection.value) {
-        closableVolume = Number(
-          getPosClosableVolume(currentPositionWithShortDirection.value),
+        closableVolume = getPosClosableVolume(
+          currentPositionWithShortDirection.value,
         );
 
         direction = t('tradingConfig.short');
@@ -693,8 +716,8 @@ async function confirmApartCloseToOpen(
       }
     } else if (side === SideEnum.Sell) {
       if (currentPositionWithLongDirection.value) {
-        closableVolume = Number(
-          getPosClosableVolume(currentPositionWithLongDirection.value),
+        closableVolume = getPosClosableVolume(
+          currentPositionWithLongDirection.value,
         );
 
         direction = t('tradingConfig.long');
@@ -706,15 +729,15 @@ async function confirmApartCloseToOpen(
       return [makeOrderInput];
 
     if (volume > closableVolume) {
-      const openVolume = volume - Number(closableVolume);
+      const openVolume = dealKfDecimalPrecision(volume - closableVolume);
       const firstOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
-        volume: Number(closableVolume),
+        volume: closableVolume,
       };
       const secondOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         offset: OffsetEnum.Open,
-        volume: volume - Number(closableVolume),
+        volume: dealKfDecimalPrecision(volume - closableVolume),
       };
       const flag = await confirmContinueOrderModal(
         t('tradingConfig.close_apart_open_modal', {
@@ -888,7 +911,7 @@ function showCloseModal(
   const { result, relationship } = closeModalConditions(
     closeRange,
     makeOrderInput,
-    Number(currentPosition.value?.closable_volume || 0),
+    currentPosition.value?.closable_volume || 0,
   );
 
   if (result) {
@@ -920,7 +943,9 @@ function closeModalConditions(
     return { result: false };
   }
 
-  const positionVolumeResolved = positionVolume * (closeRange / 100);
+  const positionVolumeResolved = dealKfDecimalPrecision(
+    positionVolume * (closeRange / 100),
+  );
 
   if (makeOrderInput.volume === positionVolumeResolved) {
     return {

@@ -226,8 +226,8 @@ class TraderVendor : public BrokerVendor {
   friend class Trader;
 
 public:
-  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
-               const std::string &arguments = {});
+  TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, longfist::enums::mode m,
+               bool low_latency, const std::string &arguments = "{}");
 
   void set_service(Trader_ptr service);
 
@@ -312,7 +312,7 @@ public:
 
   virtual bool on_strategy_exit(const event_ptr &event) { return true; }
 
-  void on_risk_setting();
+  void on_risk_setting(const longfist::types::RiskSetting &risk_setting);
 
   [[maybe_unused]] [[nodiscard]] const std::string &get_account_id() const;
 

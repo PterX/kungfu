@@ -148,8 +148,8 @@ export interface RootConfigJSON {
     customSidebar?: Record<
       string,
       {
-        sidebarIndex: number;
-        name: string;
+        sidebarIndex?: number;
+        name?: string;
       }
     >;
   };

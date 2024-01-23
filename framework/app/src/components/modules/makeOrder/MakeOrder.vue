@@ -93,9 +93,11 @@ const currentAccountId = ref<string>('');
 const isMarginMakeOrder = computed(() => {
   const accountId = currentAccountId.value;
   const accountPrefix = accountId ? accountId.split('_')[0] : '';
-  const group = currentGlobalKfLocation.value?.group;
-  const isGroupValid = group && group !== 'group';
-  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
+  const group = currentGlobalKfLocation.value?.group || '';
+  const groupOrAccountPrefix =
+    currentGlobalKfLocation.value?.category === 'td'
+      ? group
+      : accountPrefix || '';
   return (
     extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
     false
@@ -105,9 +107,11 @@ const isMarginMakeOrder = computed(() => {
 const isSpecifyContract = computed(() => {
   const accountId = currentAccountId.value;
   const accountPrefix = accountId ? accountId.split('_')[0] : '';
-  const group = currentGlobalKfLocation.value?.group;
-  const isGroupValid = group && group !== 'group';
-  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
+  const group = currentGlobalKfLocation.value?.group || '';
+  const groupOrAccountPrefix =
+    currentGlobalKfLocation.value?.category === 'td'
+      ? group
+      : accountPrefix || '';
   return (
     extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
     false

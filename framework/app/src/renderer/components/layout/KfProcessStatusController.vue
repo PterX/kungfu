@@ -25,6 +25,7 @@ import {
   getInstrumentTypeColor,
   handleOpenLogview,
   handleOpenJournalView,
+  onClickOutside,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getKfCategoryData,
@@ -179,6 +180,21 @@ function handleClickReplay(config: KungfuApi.KfLocation) {
 }
 
 const prefixMap = ref({});
+
+watch(
+  () => processControllerBoardVisible.value,
+  (newVal) => {
+    if (newVal) {
+      const deregister = onClickOutside(
+        '.kf-process-status-controller-board__warp > .ant-drawer-content-wrapper',
+        () => {
+          processControllerBoardVisible.value = false;
+          deregister?.();
+        },
+      );
+    }
+  },
+);
 
 watch(
   () => allKfConfigData,
@@ -401,6 +417,8 @@ onMounted(() => {
 }
 
 .kf-process-status-controller-board__warp {
+  height: calc(100% - 28px);
+
   .process-controller-item {
     margin-bottom: 24px;
 

@@ -131,9 +131,7 @@ onMounted(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        if (!currentGlobalKfLocation.value) return;
 
         const positions =
           globalThis.HookKeeper.getHooks().dealTradingData.trigger(

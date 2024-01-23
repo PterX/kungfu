@@ -24,6 +24,7 @@ import {
   createApp,
   defineComponent,
 } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -2097,6 +2098,48 @@ export const useScrollerTableSearch = <T extends object>(
     getItemHtmlResult,
     switchSearchable,
   };
+};
+
+export const onClickOutside = (
+  el: string | Element,
+  callback: (e: MouseEvent) => void,
+) => {
+  let element: Element | null = null;
+  const cleanups: Array<() => void> = [];
+
+  const getElement = () => {
+    if (!element) {
+      if (typeof el === 'string') {
+        element = document.querySelector(el);
+      } else {
+        element = el;
+      }
+    }
+
+    return element;
+  };
+
+  setTimeout(() => {
+    cleanups.push(
+      useEventListener(document, 'click', (e) => {
+        const el = getElement();
+        if (el) {
+          const x = e.clientX;
+          const y = e.clientY;
+          const { left, right, top, bottom } = el.getBoundingClientRect();
+          if (!(x >= left && x <= right && y >= top && y <= bottom)) {
+            callback(e);
+          }
+        }
+      }),
+    );
+  });
+
+  function deregister() {
+    cleanups.forEach((cleanup) => cleanup());
+  }
+
+  return deregister;
 };
 
 export const clearLocalStorageWithNewVersion = () => {

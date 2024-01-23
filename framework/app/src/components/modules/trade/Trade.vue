@@ -82,7 +82,7 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
 
 const columns = computed(() => {
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',
@@ -105,9 +105,7 @@ onMounted(() => {
           return;
         }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        if (!currentGlobalKfLocation.value) return;
 
         const tradesResolved =
           globalThis.HookKeeper.getHooks().dealTradingData.trigger(
@@ -157,9 +155,7 @@ watch(historyDate, async (newDate) => {
     return;
   }
 
-  if (currentGlobalKfLocation.value === null) {
-    return;
-  }
+  if (!currentGlobalKfLocation.value) return;
 
   trades.value = [];
   allTrades.value = [];

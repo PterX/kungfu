@@ -55,7 +55,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 50,
+        width: 80,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -160,7 +160,7 @@ export const statisColums: VTable.ColumnDefine[] = [
   {
     field: 'offset',
     title: '',
-    width: 60,
+    width: 80,
     style: {
       color: (args) => {
         return defaultColorMap[dealOffset(args.dataValue).color || 'default'];

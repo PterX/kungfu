@@ -29,9 +29,7 @@ import {
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getColumns, getPositionLastPrice } from './config';
-import {
-  getIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';

@@ -91,6 +91,7 @@ const defaultTheme:VTable.TYPES.ITableThemeDefine={
         borderLineWidth:1,
         borderColor:'#141414',
         color:'#ffffffd9',
+        lineHeight:35,
         hover:{
           cellBgColor:'#333',
           inlineColumnBgColor:'transparent',
@@ -301,7 +302,7 @@ watch(()=>props.dataSource, (tabledata) => {
   }
   showEmpty.value = false;
 }
-listTable.setRecords(tabledata);
+listTable.setRecords(tabledata.slice(0,2000));
      }
 
     

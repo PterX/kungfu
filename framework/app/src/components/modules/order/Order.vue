@@ -3,7 +3,6 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   delayMilliSeconds,
-  dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -130,140 +129,6 @@ const orderCurrentOrderTriggers = ref<
   Record<string, KungfuApi.OrderTriggerResolved[]>
 >({});
 
-// const column1: VTable.ColumnsDefine = [
-//   {
-//     field: 'update_time_resolved',
-//     title: t('orderConfig.update_time'),
-//     width: !!historyDate.value ? 160 : 120,
-//     sort: sorter,
-//   },
-//   {
-//     field: 'instrument_id',
-//     title: t('orderConfig.instrument_id'),
-//     sort: sorter,
-//     width: 120,
-//     maxWidth: 80,
-//   },
-//   {
-//     field: 'side',
-//     title: '',
-//     width: 80,
-//     minWidth: 50,
-//     style: {
-//       color: (args) => {
-//         return dealSide(args.dataValue).color as string;
-//       },
-//     },
-//     fieldFormat: (args) => {
-//       return dealSide(args.side).name;
-//     },
-//   },
-//   {
-//     field: 'offset',
-//     title: '',
-//     width: 50,
-//     minWidth: 50,
-//     style: {
-//       color: (args) => {
-//         return dealOffset(args.dataValue).color as string;
-//       },
-//     },
-//     fieldFormat: (args) => {
-//       return dealOffset(args.offset).name;
-//     },
-//   },
-//   {
-//     title: t('orderConfig.limit_price'),
-//     field: 'limit_price_resolved',
-//     width: 120,
-//     style: {
-//       textAlign: 'right',
-//     },
-//     headerStyle: {
-//       textAlign: 'right',
-//     },
-//     sort: sorter,
-//   },
-//   {
-//     field: 'volume_left',
-//     title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
-//     width: 120,
-//     sort: sorter,
-//     fieldFormat: (args) => {
-//       return `${args.volume - args.volume_left} / ${args.volume}`;
-//     },
-//   },
-//   {
-//     field: 'avg_price_resolved',
-//     title: t('orderConfig.avg_price'),
-//     width: 120,
-//     style: {
-//       textAlign: 'right',
-//     },
-//     headerStyle: {
-//       textAlign: 'right',
-//     },
-
-//     sort: sorter,
-//   },
-//   {
-//     field: 'status_uname',
-//     title: t('orderConfig.order_status'),
-//     width: 120,
-//     style: {
-//       color: (args) => {
-//         return getOrderStatusStyle(args.dataValue);
-//       },
-//     },
-//     fieldFormat: (args) => {
-//       return args.status_uname;
-//     },
-//   },
-//   {
-//     field: 'latency_system',
-//     title: t('orderConfig.latency_system'),
-//     width: 120,
-//     sort: sorter,
-//   },
-//   {
-//     field: 'latency_network',
-//     title: t('orderConfig.latency_network'),
-//     width: 120,
-//     sort: sorter,
-//   },
-//   ...(isTdStrategyCategory(currentGlobalKfLocation.value?.category)?[
-//     {
-//       field: 'source_uname',
-//       title: t('orderConfig.source_uname'),
-//       width: 120,
-//       style: {
-//         color: (args) => {
-//           return getAccountIdStyle(args.dataValue);
-//         },
-//       }
-//     }]:
-//   [
-//     {
-//       field: 'dest_uname',
-//       title: t('orderConfig.dest_uname'),
-//       width: 100,
-//       style: {
-//         color: (args) => {
-//           return getAccountIdStyle(args.dataValue);
-//         },
-//       }
-//     }]),
-//   ...(!!historyDate.value
-//     ? []
-//     : [
-//         {
-//           field: 'actions',
-//           title: '',
-//           width: 120,
-//         },
-//       ]),
-// ];
-
 const columns = computed(() => {
   if (currentGlobalKfLocation.value === null) {
     return getColumns(
@@ -303,7 +168,7 @@ const customLayout: Record<string, ICustomActionOption[]> = {
           ? t('orderConfig.cancel_order_trigger')
           : '',
       fontSize: 12,
-      fill: 'yellow',
+      fill: '#FAAD14',
       boundsPadding: [7, 10, 5, 10],
       cursor: 'pointer',
       key: 'cancel_order_trigger_revoke',
@@ -658,16 +523,6 @@ function isOrderTriggerHasSubmitted(orderId: bigint) {
   return false;
 }
 
-function isOrderTriggerHasPending(orderId: bigint) {
-  const orderTriggers = orderCurrentOrderTriggers.value[orderId.toString()];
-  if (!orderTriggers || orderTriggers.length === 0) return false;
-  const submittedOrderTrigger = orderTriggers.filter(
-    (orderTrigger) => orderTrigger.status === OrderTriggerStatusEnum.Pending,
-  );
-  if (submittedOrderTrigger.length > 0) return true;
-  return false;
-}
-
 function filterUnfinishedOrders(orders: KungfuApi.Order[]): KungfuApi.Order[] {
   return orders.filter((item) => UnfinishedOrderStatus.includes(item.status));
 }
@@ -688,12 +543,13 @@ function getTargetCancelOrders(): KungfuApi.Order[] {
 }
 
 function handleClickCell(args: VTable.MousePointerCellEvent) {
+  const attribute = args.target?.attribute as ICustomActionOption;
   if (args.field === 'actions') {
-    if (args.target?.attribute?.key === 'cancel_order') {
+    if (attribute?.key === 'cancel_order') {
       handleCancelOrder(args.originData);
     } else if (
-      args.target?.attribute?.key === 'cancel_order_trigger' ||
-      args.target?.attribute?.key === 'cancel_order_trigger_revoke'
+      attribute?.key === 'cancel_order_trigger' ||
+      attribute?.key === 'cancel_order_trigger_revoke'
     ) {
       handleInsertOrderTrigger(args.originData);
     }

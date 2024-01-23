@@ -26,9 +26,7 @@ import {
   dealKfPrice,
   dealKfDecimalPersion,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import {
-  dealCurrency,
-} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { dealCurrency } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   LedgerCategoryEnum,
   SideEnum,
@@ -96,7 +94,9 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
       {
         type: 'text',
         dealValue: (record) => {
-          return `${record.instrument_id}${ExchangeIds[record.exchange_id]?.name}`;
+          return `${record.instrument_id}${
+            ExchangeIds[record.exchange_id]?.name
+          }`;
         },
         fontSize: 12,
         fill: '#ffffffd9',

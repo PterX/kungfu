@@ -10,7 +10,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
-import { dealKfPrice,dealKfDecimalPersion } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfDecimalPersion,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';

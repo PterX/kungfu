@@ -47,7 +47,7 @@
     "mark.js": "^8.11.1",
     "markdown-it": "^13.0.1",
     "markdown-it-highlightjs": "^4.0.1",
-    "markdown-it-task-checkbox": "^1.0.6",
+    "markdown-it-task-checkbox-pro": "^1.0.0",
     "pinia": "^2.0.0",
     "sound-play": "^1.1.0",
     "vue": "^3.2.34"

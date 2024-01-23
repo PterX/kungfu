@@ -1164,7 +1164,10 @@ export async function startReplay(
           'strategy'
         ] || {})[extKey];
         const soPath = path.join(extConfig.extPath, extKey);
-        const processId = getProcessIdByKfLocation(location);
+        const processId = getProcessIdByKfLocation({
+          ...location,
+          mode: 'live',
+        });
 
         const processStatusDetail = processStatusWithDetail[processId];
         if (!processStatusDetail) {

@@ -381,6 +381,7 @@ const getKfUIExtensionConfigByExtKey = (
       const access = uiConfig?.access ?? {};
       const position = uiConfig?.position || '';
       const sidebarIndex = uiConfig?.sidebarIndex || -1;
+      const keepAlive = extConfig.keepAlive ?? true;
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
       const script = uiConfig?.script || '';
@@ -389,6 +390,7 @@ const getKfUIExtensionConfigByExtKey = (
         key: extKey,
         category: 'ui',
         name: extName,
+        keepAlive,
         silent,
         access,
         assets,

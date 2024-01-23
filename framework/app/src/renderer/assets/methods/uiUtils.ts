@@ -166,6 +166,7 @@ export const getUIComponents = (
 ): {
   key: string;
   name: string;
+  keepAlive: boolean;
   script: string;
   extPath: string;
   position: KfUIExtLocatorTypes;
@@ -179,10 +180,11 @@ export const getUIComponents = (
     })
     .map((key) => {
       const config = kfUiExtConfigs[key];
-      const { extPath, position, components, name, script } = config;
+      const { extPath, position, components, name, script, keepAlive } = config;
       return {
         key,
         name,
+        keepAlive,
         position,
         script,
         extPath,
@@ -206,6 +208,7 @@ export const loadExtScripts = async (
   components: {
     key: string;
     name: string;
+    keepAlive: boolean;
     script: string;
     extPath: string;
     position: KfUIExtLocatorTypes;
@@ -235,6 +238,7 @@ export const loadExtComponents = (
   components: {
     key: string;
     name: string;
+    keepAlive: boolean;
     script: string;
     extPath: string;
     position: KfUIExtLocatorTypes;
@@ -243,7 +247,7 @@ export const loadExtComponents = (
   app: App<Element>,
   router: Router,
 ) => {
-  components.forEach(({ cData, position, key, name }) => {
+  components.forEach(({ cData, position, key, name, keepAlive }) => {
     switch (position) {
       case 'sidebar':
         if (cData[`${key}-entry`] && cData[`${key}-page`]) {
@@ -252,6 +256,9 @@ export const loadExtComponents = (
             path: `/${key}`,
             name: key,
             component: cData[`${key}-page`],
+            meta: {
+              keepAlive: keepAlive ?? false,
+            },
           });
         } else {
           console.warn(`${key}-entry or ${key}-page not in cData`);

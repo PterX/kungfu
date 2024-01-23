@@ -32,8 +32,9 @@ import {
 import {
   computed,
   getCurrentInstance,
+  onActivated,
   onBeforeUnmount,
-  onMounted,
+  onDeactivated,
   reactive,
   ref,
   toRaw,
@@ -141,120 +142,122 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-onMounted(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (historyDate.value) {
-          return;
-        }
+onActivated(() => {
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
+    (watcher: KungfuApi.Watcher) => {
+      if (historyDate.value) {
+        return;
+      }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+      if (currentGlobalKfLocation.value === null) {
+        return;
+      }
 
-        if (adjustOrderMaskVisible.value) {
-          return;
-        }
+      if (adjustOrderMaskVisible.value) {
+        return;
+      }
 
-        const ordersResolved =
-          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-            window.watcher,
-            currentGlobalKfLocation.value,
-            watcher.ledger.Order,
-            'order',
-          ) as KungfuApi.Order[];
+      const ordersResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          window.watcher,
+          currentGlobalKfLocation.value,
+          watcher.ledger.Order,
+          'order',
+        ) as KungfuApi.Order[];
 
-        if (unfinishedOrder.value) {
-          const tempAllOrders = ordersResolved.map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-            );
-
-            return toRaw({
-              ...dealDataWithCache(
-                item,
-                () => dealOrder(watcher, item, false, price_precision),
-                { price_precision },
-              ),
-              ...getOrderLatencyDataByOrderStat(
-                item,
-                watcher.ledger.OrderStat,
-                price_precision,
-              ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
-            });
-          });
-          allOrders.value = tempAllOrders;
-          orders.value = toRaw(
-            tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
+      if (unfinishedOrder.value) {
+        const tempAllOrders = ordersResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
           );
-          return;
-        }
 
-        let finishedOrdersCount = 0;
-        const { totalOrders, ordersForTable } = ordersResolved.reduce(
-          (preOrders, curOrder) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              curOrder.instrument_id,
-              curOrder.exchange_id,
-            );
+          return toRaw({
+            ...dealDataWithCache(
+              item,
+              () => dealOrder(watcher, item, false, price_precision),
+              { price_precision },
+            ),
+            ...getOrderLatencyDataByOrderStat(
+              item,
+              watcher.ledger.OrderStat,
+              price_precision,
+            ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
+          });
+        });
+        allOrders.value = tempAllOrders;
+        orders.value = toRaw(
+          tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
+        );
+        return;
+      }
 
-            const orderResolved = toRaw({
-              ...dealDataWithCache(
-                curOrder,
-                () => dealOrder(watcher, curOrder, false, price_precision),
-                { price_precision },
-              ),
-              ...getOrderLatencyDataByOrderStat(
-                curOrder,
-                watcher.ledger.OrderStat,
-                price_precision,
-              ),
-            });
-            preOrders.totalOrders.push(orderResolved);
-            if (isFinishedOrderStatus(curOrder.status)) {
-              if (finishedOrdersCount < 500) {
-                finishedOrdersCount++;
-                preOrders.ordersForTable.push(orderResolved);
-              }
-            } else {
+      let finishedOrdersCount = 0;
+      const { totalOrders, ordersForTable } = ordersResolved.reduce(
+        (preOrders, curOrder) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            curOrder.instrument_id,
+            curOrder.exchange_id,
+          );
+
+          const orderResolved = toRaw({
+            ...dealDataWithCache(
+              curOrder,
+              () => dealOrder(watcher, curOrder, false, price_precision),
+              { price_precision },
+            ),
+            ...getOrderLatencyDataByOrderStat(
+              curOrder,
+              watcher.ledger.OrderStat,
+              price_precision,
+            ),
+          });
+          preOrders.totalOrders.push(orderResolved);
+          if (isFinishedOrderStatus(curOrder.status)) {
+            if (finishedOrdersCount < 500) {
+              finishedOrdersCount++;
               preOrders.ordersForTable.push(orderResolved);
             }
-            return preOrders;
-          },
-          { totalOrders: [], ordersForTable: [] } as {
-            totalOrders: KungfuApi.OrderResolved[];
-            ordersForTable: KungfuApi.OrderResolved[];
-          },
-        );
+          } else {
+            preOrders.ordersForTable.push(orderResolved);
+          }
+          return preOrders;
+        },
+        { totalOrders: [], ordersForTable: [] } as {
+          totalOrders: KungfuApi.OrderResolved[];
+          ordersForTable: KungfuApi.OrderResolved[];
+        },
+      );
 
-        allOrders.value = toRaw(totalOrders);
-        orders.value = toRaw(ordersForTable);
+      allOrders.value = toRaw(totalOrders);
+      orders.value = toRaw(ordersForTable);
 
-        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
-        orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
-          'action_flag',
-          OrderTriggerFlag.TriggerCancel,
-        )
-          .filter('source', source)
-          .list()
-          .reduce((pre, cur) => {
-            const order_id = cur.order_id.toString();
-            if (order_id in pre) {
-              pre[order_id].push(cur);
-            } else {
-              pre[order_id] = [cur];
-            }
-            return pre;
-          }, {});
-      },
-    );
+      const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+      orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
+        'action_flag',
+        OrderTriggerFlag.TriggerCancel,
+      )
+        .filter('source', source)
+        .list()
+        .reduce((pre, cur) => {
+          const order_id = cur.order_id.toString();
+          if (order_id in pre) {
+            pre[order_id].push(cur);
+          } else {
+            pre[order_id] = [cur];
+          }
+          return pre;
+        }, {});
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 watch(currentGlobalKfLocation, () => {

@@ -99,7 +99,7 @@ const defaultTheme:VTable.TYPES.ITableThemeDefine={
         cursor:'pointer',
       },
       defaultStyle:{
-            borderLineWidth:0,
+            borderLineWidth:0,           
             bgColor: 'transparent',
             color:'#ffffffd9',
             fontSize:12,

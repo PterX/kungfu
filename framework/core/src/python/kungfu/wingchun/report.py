@@ -8,7 +8,7 @@ import os
 import sys
 
 from functools import lru_cache
-from kungfu.console.utils import import_force
+from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
@@ -38,7 +38,7 @@ class Report(wc.Report):
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, os.path.relpath(report_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
-        self._module = import_force(module_name)
+        self._module = safe_import(module_name)
         self._init = getattr(self._module, "init", lambda ctx: None)
         self._sumerize = getattr(self._module, "sumerize", lambda ctx: None)
 

@@ -63,7 +63,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
-  dealKfDecimalPersion,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -1516,7 +1516,7 @@ export const useQuote = (): {
       return '--';
     }
 
-    const percent = dealKfDecimalPersion(
+    const percent = dealKfDecimalPrecision(
       (last_price - pre_close_price) / pre_close_price,
     );
     if (percent === Infinity) {
@@ -2061,7 +2061,6 @@ export const useAssets = (): {
     kfLocation: KungfuApi.KfLocation | KungfuApi.KfConfig,
   ): KungfuApi.Asset;
   getAssetsByTdGroup(
-    marginSupportTdMap: Record<string, boolean>,
     tdGroup: KungfuApi.KfExtraLocation,
   ): KungfuApi.Asset | Record<string, never>;
 } => {
@@ -2075,17 +2074,9 @@ export const useAssets = (): {
   };
 
   const getAssetsByTdGroup = (
-    marginSupportTdMap: Record<string, boolean>,
     tdGroup: KungfuApi.KfExtraLocation,
   ): KungfuApi.Asset | Record<string, never> => {
     const children = (tdGroup?.children || []) as KungfuApi.KfConfig[];
-    const isSupportMargin = marginSupportTdMap[children[0]?.group || ''];
-    const isShowData = children.every(
-      (item) => marginSupportTdMap[item.group] === isSupportMargin,
-    );
-    if (!isShowData) {
-      return {};
-    }
     return children.reduce((allAssets, item) => {
       const asset = getAssetsByKfConfig(item);
       if (Object.keys(asset).length === 0) return allAssets;
@@ -2532,16 +2523,16 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = dealKfDecimalPersion(volume - yesterday_volume);
+  const today_volume = dealKfDecimalPrecision(volume - yesterday_volume);
   const frozen_today = frozen_total - frozen_yesterday;
-  const shotable_closable_yesterday = dealKfDecimalPersion(
+  const shotable_closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_yesterday,
   );
-  const closable_yesterday = dealKfDecimalPersion(
+  const closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_total,
   );
-  const closable_today = dealKfDecimalPersion(today_volume - frozen_today);
-  const closable_total = dealKfDecimalPersion(volume - frozen_total);
+  const closable_today = dealKfDecimalPrecision(today_volume - frozen_today);
+  const closable_total = dealKfDecimalPrecision(volume - frozen_total);
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2809,7 +2800,7 @@ export const useMakeOrderInfo = (
     }
 
     return dealTradeAmount(
-      dealKfDecimalPersion((currentPrice.value ?? 0) * volume),
+      dealKfDecimalPrecision((currentPrice.value ?? 0) * volume),
     );
   });
 
@@ -2839,16 +2830,16 @@ export const useMakeOrderInfo = (
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
         if (isMarginMakeOrder.value) {
-          return dealKfDecimalPersion(
+          return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) - volume,
           );
         }
         if (offset === OffsetEnum.Open) {
-          return dealKfDecimalPersion(
+          return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) + volume,
           );
         } else {
-          return dealKfDecimalPersion(
+          return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) - volume,
           );
         }
@@ -3105,7 +3096,7 @@ export const useBasket = () => {
       id: Number(id),
       name,
       volume_type: Number(volume_type),
-      total_amount: BigInt(total_amount),
+      total_amount: Number(total_amount),
     };
   }
 

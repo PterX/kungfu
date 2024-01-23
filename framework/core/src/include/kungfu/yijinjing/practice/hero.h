@@ -38,7 +38,7 @@ public:
 
   bool setup() override;
 
-  void step();
+  void step(uint32_t count = 0);
 
   void run();
 
@@ -228,7 +228,7 @@ protected:
 
   virtual void on_frame() = 0;
 
-  void on_frame_done();
+  void cleanup_reader_disjoin();
 
 private:
   yijinjing::io_device_ptr io_device_;
@@ -244,6 +244,7 @@ private:
 
   volatile bool continual_ = true;
   volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
 

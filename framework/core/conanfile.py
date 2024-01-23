@@ -36,7 +36,7 @@ class KungfuCoreConan(ConanFile):
         # "sqlite_orm/1.7.1",
         "spdlog/1.10.0",
         "tabulate/1.4",
-        # "rocksdb/6.29.5",
+        "rocksdb/8.8.1",
     ]
     settings = "os", "compiler", "build_type", "arch"
     options = {
@@ -63,6 +63,17 @@ class KungfuCoreConan(ConanFile):
         "freezer": "pyinstaller",
         "node_version": "ANY",
         "electron_version": "ANY",
+        "rocksdb:lite": False,
+        "rocksdb:shared": False,
+        "rocksdb:use_rtti": False,
+        "rocksdb:with_lz4": False,
+        "rocksdb:with_tbb": False,
+        "rocksdb:with_zlib": False,
+        "rocksdb:with_zstd": False,
+        "rocksdb:enable_sse": False,
+        "rocksdb:with_gflags": False,
+        "rocksdb:with_snappy": False,
+        "rocksdb:with_jemalloc": False,
         # clang has a known issue:
         # https://developercommunity.visualstudio.com/t/msbuild-doesnt-give-delayload-flags-to-linker-when/1595015
         "vs_toolset": "auto"
@@ -70,6 +81,9 @@ class KungfuCoreConan(ConanFile):
         else environ["CONAN_VS_TOOLSET"],
         "with_yarn": False,
     }
+    if tools.detected_os() != "Windows":
+        default_options["rocksdb:fPIC"] = True
+
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"
     exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*", ".deps/*"

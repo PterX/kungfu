@@ -1923,7 +1923,7 @@ export const useCurrentGlobalKfLocation = (
       | KungfuApi.KfConfig
       | KungfuApi.KfExtraLocation,
   ): string => {
-    if (currentGlobalKfLocation.value === null) return '';
+    if (!currentGlobalKfLocation.value) return '';
 
     if (
       getIdByKfLocation(record) ===
@@ -2434,9 +2434,7 @@ export const useCurrentPositionList = () => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
-          if (currentGlobalKfLocation.value === null) {
-            return;
-          }
+          if (!currentGlobalKfLocation.value) return;
 
           const currentPositions =
             globalThis.HookKeeper.getHooks().dealTradingData.trigger(

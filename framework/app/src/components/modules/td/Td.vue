@@ -225,7 +225,7 @@ const columns = computed(() => {
     };
   };
 
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',

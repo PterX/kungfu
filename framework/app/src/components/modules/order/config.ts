@@ -4,7 +4,7 @@ import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfi
 import {
   isTdStrategyCategory,
   sorter,
-  dealKfDecimalPersion,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import {
@@ -50,7 +50,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 80,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -80,7 +80,7 @@ export const getColumns = (
         width: 120,
         sort: sorter,
         fieldFormat: (args) => {
-          return `${dealKfDecimalPersion(args.volume - args.volume_left)} / ${
+          return `${dealKfDecimalPrecision(args.volume - args.volume_left)} / ${
             args.volume
           }`;
         },
@@ -125,24 +125,29 @@ export const getColumns = (
         width: 110,
         sort: sorter,
       },
+      {
+        field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',
+        title:
+          kfLocation.category === 'td'
+            ? t('orderConfig.dest_uname')
+            : t('orderConfig.source_uname'),
+        sort: sorter,
+        width: 300,
+        style: {
+          color: (args) => {
+            return defaultColorMap[
+              getAccountIdStyle(args.dataValue) || 'default'
+            ];
+          },
+        },
+      },
       ...(isTdStrategyCategory(kfLocation.category)
-        ? [
-            {
-              field: 'source_uname',
-              title: t('orderConfig.source_uname'),
-              width: 100,
-              style: {
-                color: (args) => {
-                  return getAccountIdStyle(args.dataValue);
-                },
-              },
-            },
-          ]
+        ? []
         : [
             {
               field: 'dest_uname',
               title: t('orderConfig.dest_uname'),
-              width: 100,
+              width: 300,
               style: {
                 color: (args) => {
                   return defaultColorMap[
@@ -150,6 +155,7 @@ export const getColumns = (
                   ];
                 },
               },
+              sort: sorter,
             },
           ]),
       ...(isHistory
@@ -185,7 +191,7 @@ export const statisColums: VTable.ColumnDefine[] = [
   {
     field: 'offset',
     title: '',
-    width: 80,
+    width: 60,
     style: {
       color: (args) => {
         return defaultColorMap[dealOffset(args.dataValue).color || 'default'];

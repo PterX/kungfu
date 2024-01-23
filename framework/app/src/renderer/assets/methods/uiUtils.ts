@@ -659,6 +659,9 @@ export const openNewBrowserWindow = (
     });
 
     win.on('closed', () => {
+      if (currentWindow && currentWindow.isDestroyed()) {
+        currentWindow.restore();
+      }
       resolve(win);
     });
 

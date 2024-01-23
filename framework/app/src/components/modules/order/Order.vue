@@ -154,7 +154,7 @@ const customLayout: Record<string, ICustomActionOption[]> = {
           ? t('orderConfig.cancel_order')
           : '',
       fontSize: 12,
-      fill: 'red',
+      fill: '#F54747',
       boundsPadding: [7, 10, 5, 10],
       cursor: 'pointer',
       key: 'cancel_order',
@@ -182,7 +182,7 @@ const customLayout: Record<string, ICustomActionOption[]> = {
           ? t('orderConfig.cancel_order_trigger')
           : '',
       fontSize: 12,
-      fill: '#ffffffd9',
+      fill: '#FFFFFF80',
       boundsPadding: [7, 10, 5, 10],
       cursor: 'pointer',
       key: 'cancel_order_trigger',

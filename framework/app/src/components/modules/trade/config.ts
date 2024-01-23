@@ -55,7 +55,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 80,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -110,7 +110,7 @@ export const getColumns = (
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
         sort: sorter,
-        width: 120,
+        width: 300,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -125,7 +125,7 @@ export const getColumns = (
             {
               field: 'dest_uname',
               title: t('orderConfig.dest_uname'),
-              width: 120,
+              width: 300,
               style: {
                 color: (args) => {
                   return defaultColorMap[

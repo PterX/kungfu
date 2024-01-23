@@ -84,6 +84,7 @@ const defaultTheme:VTable.TYPES.ITableThemeDefine={
       bodyStyle: {
         bgColor:'transparent',
         autoWrapText:true,
+        textBaseline:'alphabetic'
       },
       headerStyle:{
         bgColor:'#1d1d1d',
@@ -97,6 +98,7 @@ const defaultTheme:VTable.TYPES.ITableThemeDefine={
           inlineColumnBgColor:'transparent',
         },
         cursor:'pointer',
+        textBaseline:'middle',
       },
       defaultStyle:{
             borderLineWidth:0,           
@@ -134,7 +136,7 @@ const defaultOptionItems= ref<VTable.ListTableConstructorOptions>({
    defaultRowHeight:28,
    columnResizeMode,
    widthMode,
-   limitMaxAutoWidth:240,
+   limitMaxAutoWidth:300,
   //  autoFillHeight:true,
   //  frozenColCount: 1,
   //  rightFrozenColCount: 1,
@@ -249,24 +251,24 @@ if(rowList && rowList[0]){
 
 }
     registerEvent();
-    new ResizeObserver(entries => {
-      if(!listTable) return;
-      const {width} = entries[0].contentRect;
-      const defaultWidth = props.ScrollableContianerWidth || contianerWidth.value;
-      if(!defaultWidth) return;
-      if(width < defaultWidth && listTable.widthMode === 'adaptive') {
-  listTable.widthMode = widthMode;
-  listTable.renderWithRecreateCells()
+  //   new ResizeObserver(entries => {
+  //     if(!listTable) return;
+  //     const {width} = entries[0].contentRect;
+  //     const defaultWidth = props.ScrollableContianerWidth || contianerWidth.value;
+  //     if(!defaultWidth) return;
+  //     if(width < defaultWidth && listTable.widthMode === 'adaptive') {
+  // listTable.widthMode = widthMode;
+  // listTable.renderWithRecreateCells()
 
         
-      } else if(width >= defaultWidth && listTable.widthMode !== 'adaptive') {
+  //     } else if(width >= defaultWidth && listTable.widthMode !== 'adaptive') {
 
-  listTable.widthMode = 'adaptive';
-  listTable.renderWithRecreateCells()
+  // listTable.widthMode = 'adaptive';
+  // listTable.renderWithRecreateCells()
 
 
-      }
-    }).observe(listTableRef.value.parentNode as HTMLElement);
+  //     }
+  //   }).observe(listTableRef.value?.parentNode as HTMLElement);
 })
 const getListTable = () => {
   return listTable;
@@ -302,7 +304,7 @@ watch(()=>props.dataSource, (tabledata) => {
   }
   showEmpty.value = false;
 }
-listTable.setRecords(tabledata.slice(0,2000));
+listTable.setRecords(tabledata);
      }
 
     

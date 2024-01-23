@@ -338,6 +338,7 @@ declare namespace KungfuApi {
       silent?: boolean;
       access?: Record<string, string[]>;
       position: KfUIExtLocatorTypes;
+      sidebarIndex?: number;
       exhibit?: KfExhibitConfig;
       components?:
         | {
@@ -497,6 +498,7 @@ declare namespace KungfuApi {
 
   export interface KfUIExtConfig extends KfExtConfigBase<'ui'> {
     position: KfUIExtLocatorTypes;
+    sidebarIndex: number;
     exhibit: KfExhibitConfig;
     components:
       | {

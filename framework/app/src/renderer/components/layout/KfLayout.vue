@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toRaw } from 'vue';
 import { SlidersOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import KfProcessStatusController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfProcessStatusController.vue';
 import KfUpdateController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfUpdateController.vue';
@@ -12,6 +13,9 @@ import {
   getLogoPath,
   isDefaultLogo,
 } from '@kungfu-trader/kungfu-js-api/config/brand';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+const { t } = VueI18n.global;
 
 const logoPath = isDefaultLogo()
   ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg')
@@ -49,13 +53,44 @@ const footerComponentConfigs = computed(() => {
 });
 
 const sidebarComponentConfigs = computed(() => {
-  return Object.keys(uiExtConfigs.value)
-    .filter((key) => uiExtConfigs.value[key].position === 'sidebar')
+  const rootPackageJson = readRootPackageJsonSync();
+  const customSidebar = rootPackageJson.traderUiConfig?.customSidebar ?? {};
+  const uiExtConfigsWithMain = toRaw(uiExtConfigs.value);
+  uiExtConfigsWithMain['main'] = {
+    access: {},
+    assets: {},
+    category: 'ui',
+    components: null,
+    dependencies: {},
+    description: '',
+    exhibit: {} as KungfuApi.KfExhibitConfig,
+    extPath: '',
+    key: 'main',
+    name: t('baseConfig.main_panel'),
+    position: 'sidebar',
+    sidebarIndex: 0,
+    readmePath: '',
+    releaseNotePath: '',
+    script: '',
+    silent: false,
+    version: '',
+  };
+
+  return Object.keys(uiExtConfigsWithMain)
+    .filter((key) => uiExtConfigsWithMain[key].position === 'sidebar')
     .map((key) => {
+      if (customSidebar[key]) {
+        const { sidebarIndex, name } = customSidebar[key];
+        uiExtConfigsWithMain[key].sidebarIndex = sidebarIndex ?? -1;
+        uiExtConfigsWithMain[key].name = name ?? uiExtConfigsWithMain[key].name;
+      }
       return {
-        ...uiExtConfigs.value[key],
+        ...uiExtConfigsWithMain[key],
         key,
       };
+    })
+    .sort((a, b) => {
+      return (b.sidebarIndex || 0) - (a.sidebarIndex || 0);
     });
 });
 
@@ -111,12 +146,6 @@ function handleToPage(pathname: string) {
           mode="vertical"
           style="width: 64px"
         >
-          <a-menu-item key="main" @click="handleToPage('/')">
-            <template #icon>
-              <sliders-outlined style="font-size: 24px" />
-            </template>
-            <span>{{ $t('baseConfig.main_panel') }}</span>
-          </a-menu-item>
           <template v-for="config in sidebarComponentConfigs">
             <a-menu-item
               v-if="isExtSidebarShow[config.key] !== false"
@@ -124,7 +153,14 @@ function handleToPage(pathname: string) {
               @click="handleToPage(`/${config.key}`)"
             >
               <template #icon>
-                <component :is="config.key"></component>
+                <component
+                  :is="config.key"
+                  v-if="config.key !== 'main'"
+                ></component>
+                <sliders-outlined
+                  v-if="config.key === 'main'"
+                  style="font-size: 24px"
+                />
               </template>
               <span>
                 {{

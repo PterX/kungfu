@@ -3096,7 +3096,7 @@ export const useBasket = () => {
       id: Number(id),
       name,
       volume_type: Number(volume_type),
-      total_amount: BigInt(total_amount),
+      total_amount: Number(total_amount),
     };
   }
 

@@ -104,7 +104,7 @@ import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import mdHljs from 'markdown-it-highlightjs';
-import mdCheckbox from 'markdown-it-task-checkbox';
+import mdCheckbox from 'markdown-it-task-checkbox-pro';
 import hlForCpp from 'highlight.js/lib/languages/cpp';
 import hlForPython from 'highlight.js/lib/languages/python';
 import hlForJs from 'highlight.js/lib/languages/javascript';

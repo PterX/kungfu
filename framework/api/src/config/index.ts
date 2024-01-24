@@ -24,7 +24,7 @@ export const initKfConfig = () => {
     }
 
     if (
-      !globalStorage.getItem('ifNotFirstRunning') &&
+      globalStorage.getItem('isKungfuFirstRunning') &&
       !booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)
     ) {
       if (!kfConfigJSON.performance) kfConfigJSON.performance = {};

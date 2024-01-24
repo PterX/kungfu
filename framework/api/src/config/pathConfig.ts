@@ -126,7 +126,14 @@ export const BASE_DB_DIR = path.join(
   'live',
 );
 
-export const LAST_VERSION_BASE_DB_DIR = path.join(KF_RUNTIME_DIR,'system', 'etc', 'kungfu', 'db', 'live');
+export const LAST_VERSION_BASE_DB_DIR = path.join(
+  KF_RUNTIME_DIR,
+  'system',
+  'etc',
+  'kungfu',
+  'db',
+  'live',
+);
 
 //RENDERER_LOG_DIR
 export const RENDERER_LOG_DIR = path.join(

@@ -39,5 +39,5 @@ process.env.PYTHONIOENCODING = 'utf8';
 process.env.CPUS_NUM = await getCpusNum();
 process.env.IF_CPUS_NUM_SAFE = process.env.CPUS_NUM > KUNGFU_SAFE_CPUS_NUM;
 
-process.env.IF_CUR_VERSION_FIRST_RUNNING = (packageJson.version && !versions.includes(packageJson.version)) || false;
-
+process.env.IF_CUR_VERSION_FIRST_RUNNING =
+  (packageJson.version && !versions.includes(packageJson.version)) || false;

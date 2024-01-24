@@ -2,7 +2,7 @@ import {
   getCurrentInstance,
   onBeforeUnmount,
   onDeactivated,
-  onActivated,
+  onMounted,
   ref,
   Ref,
 } from 'vue';
@@ -170,7 +170,7 @@ export const useTradingTask = (): {
       .catch((err: Error) => error(err.message || t('operation_failed')));
   };
 
-  onActivated(() => {
+  onMounted(() => {
     if (app?.proxy) {
       const subscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
         if (data.tag === 'setTradingTask') {

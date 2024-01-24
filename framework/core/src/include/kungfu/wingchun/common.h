@@ -755,6 +755,7 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.volume = algo_order_input.volume;
   algo_order.volume_left = algo_order_input.volume;
 
+  algo_order.is_local = algo_order_input.is_local;
   algo_order.basket_uid = algo_order_input.basket_uid;
 
   strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);

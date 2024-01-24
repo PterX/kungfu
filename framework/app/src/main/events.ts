@@ -138,13 +138,11 @@ export function performSystemActions() {
   const rootPackageJson = readRootPackageJsonSync();
   const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
   if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
-    globalStorage.setItem('historicalUsedVersions', [
-      ...versions,
-      rootPackageJson.version,
-    ]);
-
     //如果上一个版本存在config.db，则将其复制到到BASE_DB_DIR
-    if (fse.pathExistsSync(path.join(LAST_VERSION_BASE_DB_DIR, 'config.db'))) {
+    if (
+      fse.pathExistsSync(path.join(LAST_VERSION_BASE_DB_DIR, 'config.db')) &&
+      !fse.pathExistsSync(path.join(BASE_DB_DIR, 'config.db'))
+    ) {
       fse.copySync(
         path.join(LAST_VERSION_BASE_DB_DIR, 'config.db'),
         path.join(BASE_DB_DIR, 'config.db'),

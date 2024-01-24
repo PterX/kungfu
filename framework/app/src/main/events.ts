@@ -1,5 +1,15 @@
 import { BrowserWindow } from 'electron';
 import { ipcMain } from 'electron';
+import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import {
+  BASE_DB_DIR,
+  LAST_VERSION_BASE_DB_DIR,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import path from 'path';
+import dayjs from 'dayjs';
+import fse from 'fs-extra';
+const globalStorage = getGlobalStorage();
 
 export function reqRecordBeforeQuit(
   mainWindow: BrowserWindow,
@@ -122,4 +132,28 @@ function sendMsgToMainWindow(
     mainWindow.webContents.send('main-process-messages', msg, payload);
     !options?.slient && mainWindow.focus();
   }
+}
+
+export function performSystemActions() {
+  const rootPackageJson = readRootPackageJsonSync();
+  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
+  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
+    globalStorage.setItem('historicalUsedVersions', [
+      ...versions,
+      rootPackageJson.version,
+    ]);
+
+    //如果上一个版本存在config.db，则将其复制到到BASE_DB_DIR
+    if (fse.pathExistsSync(path.join(LAST_VERSION_BASE_DB_DIR, 'config.db'))) {
+      fse.copySync(
+        path.join(LAST_VERSION_BASE_DB_DIR, 'config.db'),
+        path.join(BASE_DB_DIR, 'config.db'),
+      );
+    }
+  }
+  globalStorage.setItem('isKungfuFirstRunning', false);
+  globalStorage.setItem(
+    'lastStartDateTime',
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  );
 }

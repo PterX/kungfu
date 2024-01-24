@@ -146,7 +146,7 @@ export interface RootConfigJSON {
 }
 
 export interface GlobalStorageData {
-  ifNotFirstRunning?: boolean;
+  isKungfuFirstRunning?: boolean;
   lastStartDateTime?: string;
   skippedVersions?: string[];
   needClearJournal?: boolean;

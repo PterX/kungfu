@@ -2018,11 +2018,6 @@ export const clearLocalStorageWithNewVersion = () => {
   const rootPackageJson = readRootPackageJsonSync();
   const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
   if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
-    globalStorage.setItem('historicalUsedVersions', [
-      ...versions,
-      rootPackageJson.version,
-    ]);
-
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }

@@ -653,7 +653,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (double, settlement_price), // 期权/期货结算价
     (double, iopv),             // 基金实时参考净值
 
-    (double, total_bid_volume), // 总委托买如量
+    (double, total_bid_volume), // 总委托买入量
     (double, total_ask_volume), // 总委托卖出量
     (int64_t, total_trade_num), // 总成交笔数
 

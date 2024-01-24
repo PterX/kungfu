@@ -681,5 +681,4 @@ def parse_backtest_config(ctx):
             backtest_config = f.read()
     # json format check.
     json.loads(backtest_config)
-    ctx.backtest_config = backtest_config
-    return ctx.backtest_config
+    return backtest_config

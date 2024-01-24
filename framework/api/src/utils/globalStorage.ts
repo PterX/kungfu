@@ -57,7 +57,7 @@ export interface ExtendedGlobalStorage<T> {
 export function getGlobalStorage<T>(): ExtendedGlobalStorage<T> {
   if (!globalThis.globalStorage) {
     const newGlobalStorage: ExtendedGlobalStorage<T> = {
-      _storage: { ifNotFirstRunning: false } as T & GlobalStorageData,
+      _storage: { isKungfuFirstRunning: true } as T & GlobalStorageData,
       _storageUrl: path.join(KF_CONFIG_DIR, 'globalStorage.json'),
       setStoragePath: (path: string) => {
         newGlobalStorage._storageUrl = path;

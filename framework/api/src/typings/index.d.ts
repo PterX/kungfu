@@ -1522,7 +1522,7 @@ declare namespace KungfuApi {
 
   export interface SessionStore {
     getAllSessions(): Session[];
-    getSessionsForLocation(kfLocation: KfLocation): Session[];
+    getSessionsForLocation(kfLocation: KungfuApi.KfExtractLocation): Session[];
   }
 
   export interface Kungfu {
@@ -1622,11 +1622,17 @@ declare namespace KungfuApi {
     script: string;
   }
 
+  export interface KfExtractLocation extends KungfuApi.KfLocation {
+    uname: string;
+    uid: number;
+  }
+
   export type DerivedKfLocation =
     | KfLocation
     | KfExtraLocation
     | KfConfig
-    | KfExtServiceLocation;
+    | KfExtServiceLocation
+    | KfExtractLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 

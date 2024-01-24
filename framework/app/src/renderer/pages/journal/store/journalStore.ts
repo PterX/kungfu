@@ -1,14 +1,13 @@
 import { defineStore } from 'pinia';
 import {
-  LocationRseolved,
   dealCategory,
   getCurrentLocation,
-  getAllSessions,
   dealSession,
   getNowInNano,
 } from '../utils';
 import { JournalLoadingtype } from '../types';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { getAllSessions } from '@kungfu-trader/kungfu-js-api/kungfu/store';
 
 interface journalState {
   sessions: KungfuApi.SessionResolved[];
@@ -16,7 +15,7 @@ interface journalState {
   currentFrameList: KungfuApi.FrameResolved[];
   currentTime: bigint;
   currentLoadedLastestFrameGenTime: bigint;
-  currentLocation: LocationRseolved | null;
+  currentLocation: KungfuApi.KfExtractLocation | null;
   journalLoadingType: JournalLoadingtype;
   isBuildingTracer: boolean;
   selectedChartItem: number;
@@ -52,9 +51,9 @@ export const useJournalStore = defineStore('journal', {
       this.currentLoadedLastestFrameGenTime = this.currentTime;
     },
 
-    setSessions() {
+    async setSessions() {
       const location = this.setCurrentLocation();
-      const sessions = getAllSessions(location);
+      const sessions = await getAllSessions(location);
       this.sessions = sessions
         .sort((a, b) => Number(b.begin_time) - Number(a.begin_time))
         .map((item) => dealSession(item));

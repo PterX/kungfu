@@ -146,7 +146,6 @@ class KungfuCoreConan(ConanFile):
             self.copy("*", dst="deps/hana", src=glob(".deps/hana-*")[0])
             self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
             self.copy("*", dst="deps/sqlite_orm", src=glob(".deps/sqlite_orm-*")[0])
-            self.copy("*", dst="deps/rocksdb", src=glob(".deps/rocksdb-*")[0])
             self.copy("*", dst="cmake", src=".cmake")
 
     def package_info(self):

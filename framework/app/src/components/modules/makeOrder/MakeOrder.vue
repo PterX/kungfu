@@ -219,6 +219,12 @@ const configSettings = computed(() => {
     const { instrumentType, exchangeId } = instrumentResolved.value;
     if (instrumentType === InstrumentTypeEnum.stockoption) {
       sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
+    } else if (instrumentType === InstrumentTypeEnum.fund) {
+      sideList.value = [
+        ...Object.keys(Side).slice(0, 2),
+        SideEnum.Purchase + '',
+        SideEnum.Redemption + '',
+      ];
     } else {
       sideList.value = Object.keys(Side).slice(0, 2);
     }

@@ -1628,6 +1628,11 @@ declare namespace KungfuApi {
     | KfConfig
     | KfExtServiceLocation;
 
+  export type LocationRseolved = KungfuApi.KfLocation & {
+    uname: string;
+    uid: number;
+  };
+
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 
   export interface ScheduleTask {

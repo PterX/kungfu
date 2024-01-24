@@ -3,7 +3,6 @@ import { dialog, shell } from '@electron/remote';
 import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   hashInstrumentUKey,
-  sessionStore,
   longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
@@ -15,7 +14,10 @@ import {
   isShowPosition,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
-import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import {
+  setKfConfig,
+  getAllSessions,
+} from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   BrokerStateStatusTypes,
@@ -2226,11 +2228,6 @@ export const useReplay = (): {
       filePath = await getOperatorPath(record);
     }
     sessionOptions.value = [];
-    const sessions = sessionStore.getAllSessions();
-    if (!sessions || sessions.length === 0) {
-      error(t('replay.process_has_not_been_started'));
-      return;
-    }
 
     let currentSession: KungfuApi.Session | null = curSession || null;
     let sessionInfo = '';
@@ -2245,6 +2242,11 @@ export const useReplay = (): {
         value: `${beginTimeStr}--${endTimeStr}`,
       });
     } else {
+      const sessions = await getAllSessions(null, window?.watcher);
+      if (!sessions || sessions.length === 0) {
+        error(t('replay.process_has_not_been_started'));
+        return;
+      }
       for (let i = sessions.length - 1; i >= 0; i--) {
         const item = sessions[i];
         if (

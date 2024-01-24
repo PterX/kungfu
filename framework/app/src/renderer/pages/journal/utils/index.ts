@@ -2,12 +2,7 @@ import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import fse from 'fs-extra';
 import path from 'path';
 import { format } from '@fast-csv/format';
-import {
-  dealKfTime,
-  io,
-  longfist,
-  sessionStore,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+import { dealKfTime, io, longfist } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { parseURIParams } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getIdByKfLocation,
@@ -60,14 +55,6 @@ export const dealSessionsToMap = (sessions: KungfuApi.Session[]) => {
     sessionsMap[`${cur.begin_time}`] = dealSession(cur);
     return sessionsMap;
   }, {} as Record<string, KungfuApi.SessionResolved>);
-};
-
-export const getAllSessions = (currentLocation: LocationRseolved | null) => {
-  if (currentLocation === null) {
-    return sessionStore.getAllSessions();
-  } else {
-    return sessionStore.getSessionsForLocation(currentLocation);
-  }
 };
 
 export const getSessionLocationById = (
@@ -170,7 +157,7 @@ export const dealFrame = (
   };
 };
 
-export const getCurrentLocation = (): LocationRseolved | null => {
+export const getCurrentLocation = (): KungfuApi.LocationRseolved | null => {
   const location = getKfLocationByProcessId(
     decodeURI(parseURIParams().processId) || '',
   );
@@ -317,12 +304,9 @@ export const useResizeFlag = () => {
   };
 };
 
-export type LocationRseolved = KungfuApi.KfLocation & {
-  uname: string;
-  uid: number;
-};
-
-export const resolveLocations = (obj: Record<string, LocationRseolved>) => {
+export const resolveLocations = (
+  obj: Record<string, KungfuApi.LocationRseolved>,
+) => {
   const output: Record<string, string> = {};
 
   for (const key in obj) {
@@ -343,7 +327,7 @@ export const getSourceDestMap = () => {
   const locationsMap = locations.reduce((pre, cur) => {
     pre[cur.uid] = cur;
     return pre;
-  }, {} as Record<string, LocationRseolved>);
+  }, {} as Record<string, KungfuApi.LocationRseolved>);
   return resolveLocations(locationsMap);
 };
 

@@ -150,7 +150,6 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
                                                               exchange_id, DataType::tag);
         if (not md_location)
           continue;
-
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
           SPDLOG_WARN("failed to subscribe market data between {} and {}, md public journal in locator={}, location={} "
                       "not exists",

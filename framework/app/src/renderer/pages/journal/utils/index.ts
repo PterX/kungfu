@@ -157,7 +157,7 @@ export const dealFrame = (
   };
 };
 
-export const getCurrentLocation = (): KungfuApi.LocationRseolved | null => {
+export const getCurrentLocation = (): KungfuApi.KfExtractLocation | null => {
   const location = getKfLocationByProcessId(
     decodeURI(parseURIParams().processId) || '',
   );
@@ -305,7 +305,7 @@ export const useResizeFlag = () => {
 };
 
 export const resolveLocations = (
-  obj: Record<string, KungfuApi.LocationRseolved>,
+  obj: Record<string, KungfuApi.KfExtractLocation>,
 ) => {
   const output: Record<string, string> = {};
 
@@ -327,7 +327,7 @@ export const getSourceDestMap = () => {
   const locationsMap = locations.reduce((pre, cur) => {
     pre[cur.uid] = cur;
     return pre;
-  }, {} as Record<string, KungfuApi.LocationRseolved>);
+  }, {} as Record<string, KungfuApi.KfExtractLocation>);
   return resolveLocations(locationsMap);
 };
 

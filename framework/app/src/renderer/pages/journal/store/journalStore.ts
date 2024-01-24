@@ -15,7 +15,7 @@ interface journalState {
   currentFrameList: KungfuApi.FrameResolved[];
   currentTime: bigint;
   currentLoadedLastestFrameGenTime: bigint;
-  currentLocation: KungfuApi.LocationRseolved | null;
+  currentLocation: KungfuApi.KfExtractLocation | null;
   journalLoadingType: JournalLoadingtype;
   isBuildingTracer: boolean;
   selectedChartItem: number;

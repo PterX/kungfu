@@ -104,7 +104,7 @@ export const getStrategyKfLocation = (strategyId: string) => {
 };
 
 export const getAllSessions = (
-  currentLocation: KungfuApi.LocationRseolved | null,
+  currentLocation: KungfuApi.KfExtractLocation | null,
   watcher?: KungfuApi.Watcher,
 ) => {
   if (currentLocation === null) {

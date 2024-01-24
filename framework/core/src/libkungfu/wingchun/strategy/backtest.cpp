@@ -186,7 +186,10 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         if (not md_location)
           continue;
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-          SPDLOG_WARN("failed to subscribe market data between {} and {}, md public journal in locator={}, location={} not exists", time::strftime(slice_begin_time), time::strftime(slice_end_time), md_location->locator->get_root(), md_location->uname);
+          SPDLOG_WARN("failed to subscribe market data between {} and {}, md public journal in locator={}, location={} "
+                      "not exists",
+                      time::strftime(slice_begin_time), time::strftime(slice_end_time),
+                      md_location->locator->get_root(), md_location->uname);
         }
 
         add_location(app_, md_location);
@@ -224,7 +227,9 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     if (not op_location)
       continue;
     if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
-      SPDLOG_WARN("failed to subscribe operator data between {} and {}, md public journal in locator={}, location={} not exists", time::strftime(slice_begin_time), time::strftime(slice_end_time), op_location->locator->get_root(),
+      SPDLOG_WARN("failed to subscribe operator data between {} and {}, md public journal in locator={}, location={} "
+                  "not exists",
+                  time::strftime(slice_begin_time), time::strftime(slice_end_time), op_location->locator->get_root(),
                   op_location->uname);
       continue;
     }

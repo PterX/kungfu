@@ -2022,6 +2022,7 @@ export const clearLocalStorageWithNewVersion = () => {
       ...versions,
       rootPackageJson.version,
     ]);
+
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }

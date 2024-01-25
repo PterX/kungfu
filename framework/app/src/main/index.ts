@@ -344,7 +344,7 @@ function setMenu() {
           click: () => MainWindow && openLogFile(MainWindow),
         },
         {
-          label: t('view_all_journal'),
+          label: t('open_inspect_tool'),
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
         },

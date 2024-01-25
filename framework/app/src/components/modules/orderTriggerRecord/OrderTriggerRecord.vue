@@ -32,7 +32,8 @@ import {
   getCurrentInstance,
   h,
   onBeforeUnmount,
-  onMounted,
+  onActivated,
+  onDeactivated,
   ref,
   watch,
 } from 'vue';
@@ -128,7 +129,7 @@ watch(
   },
 );
 
-onMounted(() => {
+onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
@@ -155,6 +156,10 @@ onMounted(() => {
     );
 
     onBeforeUnmount(() => {
+      subscription.unsubscribe();
+    });
+
+    onDeactivated(() => {
       subscription.unsubscribe();
     });
   }

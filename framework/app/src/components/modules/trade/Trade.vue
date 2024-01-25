@@ -28,7 +28,8 @@ import {
   computed,
   getCurrentInstance,
   onBeforeUnmount,
-  onMounted,
+  onActivated,
+  onDeactivated,
   ref,
   toRaw,
   watch,
@@ -99,62 +100,64 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-onMounted(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (historyDate.value) {
-          return;
+onActivated(() => {
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
+    (watcher: KungfuApi.Watcher) => {
+      if (historyDate.value) {
+        return;
+      }
+
+      if (currentGlobalKfLocation.value === null) {
+        return;
+      }
+
+      const tradesResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          watcher,
+          currentGlobalKfLocation.value,
+          watcher.ledger.Trade,
+          'trade',
+        ) as KungfuApi.Trade[];
+
+      const tempAllTrades = toRaw(
+        tradesResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+          );
+
+          return toRaw(
+            dealTrade(
+              watcher,
+              item,
+              watcher.ledger.OrderStat,
+              false,
+              price_precision,
+            ),
+          );
+        }),
+      );
+      allTrades.value = tempAllTrades;
+      if (tempAllTrades.length > 20000) {
+        //复制tempAllTrades的数据使得trades.value变成十倍
+        for (let i = 0; i < 10; i++) {
+          trades.value = trades.value.concat(tempAllTrades);
         }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        subscription.unsubscribe();
+      } else {
+        trades.value = tempAllTrades.slice(0, 2000);
+      }
+    },
+  );
 
-        const tradesResolved =
-          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-            watcher,
-            currentGlobalKfLocation.value,
-            watcher.ledger.Trade,
-            'trade',
-          ) as KungfuApi.Trade[];
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
 
-        const tempAllTrades = toRaw(
-          tradesResolved.map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-            );
-
-            return toRaw(
-              dealTrade(
-                watcher,
-                item,
-                watcher.ledger.OrderStat,
-                false,
-                price_precision,
-              ),
-            );
-          }),
-        );
-        allTrades.value = tempAllTrades;
-        if (tempAllTrades.length > 20000) {
-          //复制tempAllTrades的数据使得trades.value变成十倍
-          for (let i = 0; i < 10; i++) {
-            trades.value = trades.value.concat(tempAllTrades);
-          }
-
-          subscription.unsubscribe();
-        } else {
-          trades.value = tempAllTrades.slice(0, 2000);
-        }
-      },
-    );
-
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 watch(currentGlobalKfLocation, () => {

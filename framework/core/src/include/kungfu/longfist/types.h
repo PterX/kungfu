@@ -498,8 +498,9 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
 
-    (enums::OrderStatus, status),                   // 订单状态
-    (kungfu::array<char, ERROR_MSG_LEN>, error_msg) // 错误信息
+    (enums::OrderStatus, status),                    // 订单状态
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
+    (bool, is_local)                                 // 是否为一个本地算法单
 );
 
 KF_DEFINE_PACK_TYPE(                                                   //

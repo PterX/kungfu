@@ -34,6 +34,7 @@ declare global {
       UI_EXT_TYPE: 'component' | 'script';
       APP_ID: string;
       EXTENSION_DIRS: string;
+      KF_VERIFY_LOCATION: boolean;
       KFC_DIR: string;
       KF_CONFIG_DIR: string;
       KF_APP_RUNTIME_DIR: string;

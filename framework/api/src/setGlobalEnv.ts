@@ -4,11 +4,15 @@ import {
   KF_CONFIG_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
-} from './config/pathConfig';
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { dealSpaceInPath } from './utils/commonUtils';
+import { dealSpaceInPath } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
-import { KUNGFU_SAFE_CPUS_NUM, getCpusNum } from './utils/osUtils';
+import {
+  KUNGFU_SAFE_CPUS_NUM,
+  getCpusNum,
+} from '@kungfu-trader/kungfu-js-api/utils/osUtils';
+import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 // 此文件为所有需要预置在进程时携带的环境变量
 // 注意：由于前端 app 的渲染进程是由 main 进程启动，c++ 中通过 std::getenv 的方式只能获取进程启动时就带有的 env
@@ -16,6 +20,8 @@ import { KUNGFU_SAFE_CPUS_NUM, getCpusNum } from './utils/osUtils';
 
 const packageJson = readRootPackageJsonSync();
 const globalStorage = getGlobalStorage();
+const globalSetting = getKfGlobalSettingsValue();
+
 const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
 const externalEnv = packageJson.kungfuCraft?.env;
 
@@ -27,6 +33,7 @@ if (externalEnv && typeof externalEnv === 'object') {
   });
 }
 
+process.env.KF_VERIFY_LOCATION = globalSetting?.system?.verifyLocation ?? false;
 process.env.KFC_DIR = dealSpaceInPath(KFC_DIR);
 process.env.CLI_DIR = dealSpaceInPath(CLI_DIR);
 process.env.KF_HOME = dealSpaceInPath(KF_HOME);

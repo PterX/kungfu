@@ -2016,13 +2016,7 @@ export const useScrollerTableSearch = <T extends object>(
 
 export const clearLocalStorageWithNewVersion = () => {
   const rootPackageJson = readRootPackageJsonSync();
-  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
-  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
-    globalStorage.setItem('historicalUsedVersions', [
-      ...versions,
-      rootPackageJson.version,
-    ]);
-
+  if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }

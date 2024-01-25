@@ -6,7 +6,7 @@ import caret_downward from '../svg/table-icons/caret-downward.svg';
 import {
   type ITextGraphicAttribute,
   IImageGraphicAttribute,
-} from '@visactor/vrender';
+} from '@visactor/vrender-core';
 export type ITextOption = {
   type: string;
   marginTop?: number;

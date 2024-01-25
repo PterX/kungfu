@@ -138,7 +138,16 @@ onMounted(() => {
           }),
         );
         allTrades.value = tempAllTrades;
-        trades.value = tempAllTrades.slice(0, 2000);
+        if (tempAllTrades.length > 20000) {
+          //复制tempAllTrades的数据使得trades.value变成十倍
+          for (let i = 0; i < 10; i++) {
+            trades.value = trades.value.concat(tempAllTrades);
+          }
+
+          subscription.unsubscribe();
+        } else {
+          trades.value = tempAllTrades.slice(0, 2000);
+        }
       },
     );
 

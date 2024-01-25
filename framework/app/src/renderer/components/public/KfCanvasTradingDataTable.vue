@@ -1,36 +1,42 @@
 <template>
-        <div ref="listTableRef" style="width: 100%;height: 28px;"></div>
-        <a-empty
-        v-if="showEmpty"
-        ref="emptyRef"
-                  :image="simpleImage"
-                  :description="t('empty_text')"
-                ></a-empty>
+  <div ref="listTableRef" style="width: 100%; height: 28px"></div>
+  <a-empty
+    v-if="showEmpty"
+    ref="emptyRef"
+    :image="simpleImage"
+    :description="t('empty_text')"
+  ></a-empty>
 </template>
 
 <script setup lang="ts">
-import {  onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
+import { onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
 import { Empty } from 'ant-design-vue';
-import {getCustomFont} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils'
+import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
-import {VTable,resgisterVTableIconsAndEditers,ICustomActionOption} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable'
+import {
+  VTable,
+  resgisterVTableIconsAndEditers,
+  ICustomActionOption,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 const { t } = VueI18n.global;
 
-if(!globalThis.hasRegisterVTableIconsAndEditers){
+if (!globalThis.hasRegisterVTableIconsAndEditers) {
   resgisterVTableIconsAndEditers();
 }
 
 const app = getCurrentInstance();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
-let widthMode:'adaptive'| 'autoWidth' | 'standard' = 'standard';
-let columnResizeMode:'all' | 'body' | 'header' | 'none' = 'none';
-let font:string = '';
-const ColumnCustomMap = ref<Record<string,{customLayout:VTable.TYPES.ICustomLayoutFuc}>>({});
+let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
+let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
+let font: string = '';
+const ColumnCustomMap = ref<
+  Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
+>({});
 
-type TableDataItem =
+type tableDataItem =
   | KungfuApi.TradingDataItem
   | KungfuApi.Frame
   | KungfuApi.Session;
@@ -38,10 +44,10 @@ type TableDataItem =
 const props = withDefaults(
   defineProps<{
     columns: VTable.ColumnsDefine;
-    dataSource: TableDataItem[];
-    customLayout?:Record<string,ICustomActionOption[]>;
-    widthMode?: 'adaptive'| 'autoWidth' | 'standard';
-    columnResizeMode?:'all' | 'body' | 'header' | 'none';
+    dataSource: tableDataItem[];
+    customLayout?: Record<string, ICustomActionOption[]>;
+    widthMode?: 'adaptive' | 'autoWidth' | 'standard';
+    columnResizeMode?: 'all' | 'body' | 'header' | 'none';
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
     ScrollableContianerWidth?: number;
@@ -55,117 +61,151 @@ const props = withDefaults(
 );
 
 defineEmits<{
-  (e:'clickCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['click_cell']): void;
-  (e:'dblclickCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['dblclick_cell']): void;
-  (e:'rightClickRow', data:VTable.TYPES.TableEventHandlersEventArgumentMap['contextmenu_cell']): void;
-  (e:'mouseenterTable', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseenter_table']): void;
-  (e:'mouseleaveTable', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseleave_table']): void;
-  (e:'mouseenterCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseenter_cell']): void;
-  (e:'mouseleaveCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseleave_cell']): void;
-  (e:'mousemoveCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mousemove_cell']): void;
-  (e:'mousedownCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mousedown_cell']): void;
-  (e:'mouseupCell', data:VTable.TYPES.TableEventHandlersEventArgumentMap['mouseup_cell']): void;
-  (e:'keydown', data:VTable.TYPES.TableEventHandlersEventArgumentMap['keydown']): void;
-  (e:'scroll', data:VTable.TYPES.TableEventHandlersEventArgumentMap['scroll']): void;
+  (
+    e: 'clickCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['click_cell'],
+  ): void;
+  (
+    e: 'dblclickCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['dblclick_cell'],
+  ): void;
+  (
+    e: 'rightClickRow',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['contextmenu_cell'],
+  ): void;
+  (
+    e: 'mouseenterTable',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mouseenter_table'],
+  ): void;
+  (
+    e: 'mouseleaveTable',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mouseleave_table'],
+  ): void;
+  (
+    e: 'mouseenterCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mouseenter_cell'],
+  ): void;
+  (
+    e: 'mouseleaveCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mouseleave_cell'],
+  ): void;
+  (
+    e: 'mousemoveCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mousemove_cell'],
+  ): void;
+  (
+    e: 'mousedownCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mousedown_cell'],
+  ): void;
+  (
+    e: 'mouseupCell',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['mouseup_cell'],
+  ): void;
+  (
+    e: 'keydown',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['keydown'],
+  ): void;
+  (
+    e: 'scroll',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['scroll'],
+  ): void;
 }>();
 
-
-const defaultTheme:VTable.TYPES.ITableThemeDefine={
+const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   columnResize: {
     lineColor: 'transparent',
-        bgColor: 'transparent',
-        lineWidth: 0,
-        labelColor: 'transparent',
-        labelFontSize: 0,
-        labelFontFamily:'Monospace, sans-serif',
-        labelBackgroundFill: 'transparent',
+    bgColor: 'transparent',
+    lineWidth: 0,
+    labelColor: 'transparent',
+    labelFontSize: 0,
+    labelFontFamily: 'Monospace, sans-serif',
+    labelBackgroundFill: 'transparent',
+  },
+  underlayBackgroundColor: 'transparent',
+  bodyStyle: {
+    bgColor: 'transparent',
+    autoWrapText: true,
+    textBaseline: 'alphabetic',
+  },
+  headerStyle: {
+    bgColor: '#1d1d1d',
+    borderLineDash: [1, 1],
+    borderLineWidth: 1,
+    borderColor: '#141414',
+    color: '#ffffffd9',
+    lineHeight: 35,
+    hover: {
+      cellBgColor: '#333',
+      inlineColumnBgColor: 'transparent',
     },
-    underlayBackgroundColor:'transparent',
-      bodyStyle: {
-        bgColor:'transparent',
-        autoWrapText:true,
-        textBaseline:'alphabetic'
-      },
-      headerStyle:{
-        bgColor:'#1d1d1d',
-        borderLineDash:[1,1],
-        borderLineWidth:1,
-        borderColor:'#141414',
-        color:'#ffffffd9',
-        lineHeight:35,
-        hover:{
-          cellBgColor:'#333',
-          inlineColumnBgColor:'transparent',
-        },
-        cursor:'pointer',
-        textBaseline:'middle',
-      },
-      defaultStyle:{
-            borderLineWidth:0,           
-            bgColor: 'transparent',
-            color:'#ffffffd9',
-            fontSize:12,
-            autoWrapText:true,
-            hover:{
-          inlineRowBgColor: '#333',
-        },
-        fontFamily:'Monospace, sans-serif'
-          },
-          tooltipStyle:{
-            bgColor:'#333',
-            color:'#ffffffd9',
-            fontSize:12,
-            fontFamily:'Monospace, sans-serif',
-            padding:[4,4,4,4]
-          },
-          scrollStyle: {
-        scrollSliderColor:'#555',
-        visible:'none',
-      },
+    cursor: 'pointer',
+    textBaseline: 'middle',
+  },
+  defaultStyle: {
+    borderLineWidth: 0,
+    bgColor: 'transparent',
+    color: '#ffffffd9',
+    fontSize: 12,
+    autoWrapText: true,
+    hover: {
+      inlineRowBgColor: '#333',
+    },
+    fontWeight: 100,
+    fontFamily: 'Monospace, sans-serif',
+  },
+  tooltipStyle: {
+    bgColor: '#333',
+    color: '#ffffffd9',
+    fontSize: 12,
+    fontFamily: 'Monospace, sans-serif',
+    padding: [4, 4, 4, 4],
+  },
+  scrollStyle: {
+    scrollSliderColor: '#555',
+    visible: 'none',
+  },
+};
 
-    };
-    
-const defaultOptionItems= ref<VTable.ListTableConstructorOptions>({
-    theme:defaultTheme,
-    hover:{
-    highlightMode:'row',
-   },
-   select:{
-    disableSelect:true,
-   },
-   defaultRowHeight:28,
-   columnResizeMode,
-   widthMode,
-   limitMaxAutoWidth:300,
+const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
+  theme: defaultTheme,
+  hover: {
+    highlightMode: 'row',
+  },
+  select: {
+    disableSelect: true,
+  },
+  defaultRowHeight: 28,
+  columnResizeMode,
+  widthMode,
+  limitMaxAutoWidth: 300,
   //  autoFillHeight:true,
   //  frozenColCount: 1,
   //  rightFrozenColCount: 1,
-  tooltip:{
-    isShowOverflowTextTooltip:true}
+  tooltip: {
+    isShowOverflowTextTooltip: true,
+  },
 });
 const listTableRef = ref();
 const emptyRef = ref();
-const option = computed<VTable.ListTableConstructorOptions>(
-  () => {
-    return {
-      columns: props.columns,
-      ...defaultOptionItems.value,
-        ...props.optionItems,
-
-    };
+const option = computed<VTable.ListTableConstructorOptions>(() => {
+  return {
+    columns: props.columns,
+    ...defaultOptionItems.value,
+    ...props.optionItems,
+  };
 });
-    let listTable:VTable.ListTable | null = null;
+let listTable: VTable.ListTable | null = null;
 
 const contianerWidth = ref<number>(10);
 
-const initCustomLayoutOptions = ()=>{
+const initCustomLayoutOptions = () => {
   const customLayoutOption = props.customLayout || {};
   Object.keys(customLayoutOption).forEach((key) => {
-    if(!customLayoutOption[key]) return;
+    if (!customLayoutOption[key]) return;
     ColumnCustomMap.value[key] = {
-      customLayout:(args:VTable.TYPES.CustomRenderFunctionArg )=>{
-        const {table, row, col, rect} = args;
-        const {height, width} = rect || table.getCellRect(col, row);
+      customLayout: (args: VTable.TYPES.CustomRenderFunctionArg) => {
+        const { table, row, col, rect } = args;
+        const { height, width } = rect || table.getCellRect(col, row);
         const record = table.getRecordByCell(col, row);
 
         const container = new VTable.CustomLayout.Group({
@@ -173,144 +213,164 @@ const initCustomLayoutOptions = ()=>{
           width,
           display: 'flex',
           flexDirection: 'row',
-          alignItems:'center',
-          flexWrap:'nowrap',
-          alignContent:'center'
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          alignContent: 'center',
         });
-      let obj;
-      for(obj of customLayoutOption[key]){
-        const {type,dealValue, ...rest} = obj;
-        if(type === 'text'){
-          try {
-            const text = (dealValue && typeof dealValue === 'function')? dealValue(record):dealValue;
-            if(text){
-            const customLayout = new VTable.CustomLayout.Text({...rest,text});
-        container.add(customLayout);
+        let obj;
+        for (obj of customLayoutOption[key]) {
+          const { type, dealValue, ...rest } = obj;
+          if (type === 'text') {
+            try {
+              const text =
+                dealValue && typeof dealValue === 'function'
+                  ? dealValue(record)
+                  : dealValue;
+              if (text) {
+                const customLayout = new VTable.CustomLayout.Text({
+                  ...rest,
+                  text,
+                });
+                container.add(customLayout);
+              }
+            } catch (error) {
+              console.log(error);
+            }
+          } else if (type === 'image') {
+            try {
+              const image =
+                dealValue && typeof dealValue === 'function'
+                  ? dealValue(record)
+                  : dealValue;
+              if (image) {
+                const customLayout = new VTable.CustomLayout.Image({
+                  ...rest,
+                  image,
+                });
+                container.add(customLayout);
+              }
+            } catch (error) {
+              console.log(error);
+            }
           }
-          } catch (error) {
-            console.log(error);
-          }
-        }else if(type === 'image'){
-          try {
-            const image = (dealValue && typeof dealValue === 'function')? dealValue(record):dealValue;
-            if(image){
-            const customLayout = new VTable.CustomLayout.Image({...rest,image});
-        container.add(customLayout);
-          }
-          } catch (error) {
-            console.log(error);
-          }
-
         }
-      }
 
         return {
           rootContainer: container,
           renderDefault: false,
         };
-      }
-    }
+      },
+    };
   });
   option.value.columns?.forEach((column) => {
-    if(column.field && typeof column.field === 'string' && ColumnCustomMap.value[column.field]){
+    if (
+      column.field &&
+      typeof column.field === 'string' &&
+      ColumnCustomMap.value[column.field]
+    ) {
       column.customLayout = ColumnCustomMap.value[column.field].customLayout;
     }
   });
-}
+};
 
-onMounted(async() => {
-  console.log('props.dataSource.length',!props.dataSource.length)
-   font =await getCustomFont();
-   if (font) {
-  if (defaultTheme.defaultStyle) {
-    defaultTheme.defaultStyle.fontFamily = font;
+onMounted(async () => {
+  font = await getCustomFont();
+  if (font) {
+    if (defaultTheme.defaultStyle) {
+      defaultTheme.defaultStyle.fontFamily = font;
+    }
+    if (defaultTheme.columnResize) {
+      defaultTheme.columnResize.labelFontFamily = font;
+    }
+    if (defaultTheme.tooltipStyle) {
+      defaultTheme.tooltipStyle.fontFamily = font;
+    }
   }
-  if (defaultTheme.columnResize) {
-    defaultTheme.columnResize.labelFontFamily = font;
-  }
-  if (defaultTheme.tooltipStyle) {
-    defaultTheme.tooltipStyle.fontFamily = font;
-  }
-}
-  initCustomLayoutOptions()
+  initCustomLayoutOptions();
   widthMode = props.widthMode || 'standard';
   columnResizeMode = props.columnResizeMode || 'none';
   defaultOptionItems.value.widthMode = widthMode;
   defaultOptionItems.value.columnResizeMode = columnResizeMode;
-  console.log('columnResizeMode',columnResizeMode,option.value);
-  if(listTableRef.value){
-    listTable = new VTable.ListTable(listTableRef.value, option.value as VTable.ListTableConstructorOptions);
+  if (listTableRef.value) {
+    listTable = new VTable.ListTable(
+      listTableRef.value,
+      option.value as VTable.ListTableConstructorOptions,
+    );
   }
 
-const rowList = listTable?.getAllColumnHeaderCells();
-if(rowList && rowList[0]){
-
-  contianerWidth.value = rowList[0].reduce((pre,cur) => {
-    return pre + Number(cur?.cellRange?.width);
-  },0);
-
-}
-    registerEvent();
-  //   new ResizeObserver(entries => {
-  //     if(!listTable) return;
-  //     const {width} = entries[0].contentRect;
-  //     const defaultWidth = props.ScrollableContianerWidth || contianerWidth.value;
-  //     if(!defaultWidth) return;
-  //     if(width < defaultWidth && listTable.widthMode === 'adaptive') {
-  // listTable.widthMode = widthMode;
-  // listTable.renderWithRecreateCells()
-
-        
-  //     } else if(width >= defaultWidth && listTable.widthMode !== 'adaptive') {
-
-  // listTable.widthMode = 'adaptive';
-  // listTable.renderWithRecreateCells()
-
-
-  //     }
-  //   }).observe(listTableRef.value?.parentNode as HTMLElement);
-})
+  const rowList = listTable?.getAllColumnHeaderCells();
+  if (rowList && rowList[0]) {
+    contianerWidth.value = rowList[0].reduce((pre, cur) => {
+      return pre + Number(cur?.cellRange?.width);
+    }, 0);
+  }
+  registerEvent();
+  if (listTableRef.value?.parentNode) {
+    new ResizeObserver((entries) => {
+      if (!listTable) return;
+      const { width } = entries[0].contentRect;
+      const defaultWidth =
+        props.ScrollableContianerWidth || contianerWidth.value;
+      if (!defaultWidth) return;
+      if (width < defaultWidth && listTable.widthMode === 'adaptive') {
+        listTable.widthMode = widthMode;
+        listTable.renderWithRecreateCells();
+      } else if (width >= defaultWidth && listTable.widthMode !== 'adaptive') {
+        listTable.widthMode = 'adaptive';
+        listTable.renderWithRecreateCells();
+      }
+    }).observe(listTableRef.value?.parentNode as HTMLElement);
+  }
+});
 const getListTable = () => {
   return listTable;
 };
 
-defineExpose(
-  {
-    getListTable,
-  }
+defineExpose({
+  getListTable,
+});
 
-)
+watch(
+  () => props.dataSource,
+  (tableData) => {
+    if (listTable) {
+      if (tableData.length === 0) {
+        listTableRef.value.style.height = `35px`;
+        if (
+          defaultTheme.scrollStyle &&
+          defaultTheme.scrollStyle.visible !== 'none'
+        ) {
+          defaultTheme.scrollStyle.visible = 'none';
+          listTable.updateTheme(defaultTheme);
+        }
+        showEmpty.value = true;
+      } else {
+        listTableRef.value.style.height = `100%`;
+        if (
+          defaultTheme.scrollStyle &&
+          defaultTheme.scrollStyle.visible !== 'focus'
+        ) {
+          defaultTheme.scrollStyle.visible = 'focus';
+          listTable.updateTheme(defaultTheme);
+        }
+        showEmpty.value = false;
+      }
+      console.log('tableData', tableData.length);
+      listTable.setRecords(tableData);
+    }
+  },
+  { immediate: true },
+);
 
-
-watch(()=>props.dataSource, (tabledata) => {
-
-
-
-
-     if(listTable) {
-        if(tabledata.length === 0){
-  listTableRef.value.style.height = `28px`;
-  if(defaultTheme.scrollStyle && defaultTheme.scrollStyle.visible !== 'none'){
-    defaultTheme.scrollStyle.visible = 'none';
-    listTable.updateTheme(defaultTheme);
-  }
-  showEmpty.value = true;
-
-}else{
-  listTableRef.value.style.height = `100%`;
-  if(defaultTheme.scrollStyle && defaultTheme.scrollStyle.visible !== 'focus'){
-    defaultTheme.scrollStyle.visible = 'focus';
-    listTable.updateTheme(defaultTheme);
-  }
-  showEmpty.value = false;
-}
-listTable.setRecords(tabledata);
-     }
-
-    
-    
-}, { immediate: true })
-
+watch(
+  () => props.columns,
+  (columns) => {
+    if (listTable) {
+      listTable.updateColumns(columns);
+      console.log('columns', columns);
+    }
+  },
+);
 
 const registerEvent = () => {
   if (!listTable) return;
@@ -331,22 +391,29 @@ const registerEvent = () => {
   };
 
   Object.entries(eventMap).forEach(([event, emitEvent]) => {
-    listTable?.on(event as keyof VTable.TYPES.TableEventHandlersEventArgumentMap, (e) => {
-      app && app.emit(emitEvent, e);
-    });
+    listTable?.on(
+      event as keyof VTable.TYPES.TableEventHandlersEventArgumentMap,
+      (e) => {
+        app && app.emit(emitEvent, e);
+      },
+    );
   });
 
-  if(props.event) {
-        Object.keys(props.event).forEach((key) => {
-            listTable?.on(key as keyof typeof props.event, props.event[key] as unknown as VTable.TYPES.TableEventListener<keyof typeof props.event>);
-        });
-    }
+  if (props.event) {
+    Object.keys(props.event).forEach((key) => {
+      listTable?.on(
+        key as keyof typeof props.event,
+        props.event[key] as unknown as VTable.TYPES.TableEventListener<
+          keyof typeof props.event
+        >,
+      );
+    });
+  }
 };
-
 </script>
 
 <style>
-.DD{
+.DD {
   background-color: #b6afaf;
 }
 </style>

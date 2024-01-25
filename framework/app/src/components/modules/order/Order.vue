@@ -164,20 +164,6 @@ const customLayout: Record<string, ICustomActionOption[]> = {
       dealValue: (record) =>
         !isFinishedOrderStatus(record?.status) &&
         cancelOrderTriggerBtnVisible.value &&
-        isOrderTriggerHasSubmitted(record?.order_id)
-          ? t('orderConfig.cancel_order_trigger')
-          : '',
-      fontSize: 12,
-      fill: '#FAAD14',
-      boundsPadding: [7, 10, 5, 10],
-      cursor: 'pointer',
-      key: 'cancel_order_trigger_revoke',
-    },
-    {
-      type: 'text',
-      dealValue: (record) =>
-        !isFinishedOrderStatus(record?.status) &&
-        cancelOrderTriggerBtnVisible.value &&
         !isOrderTriggerHasSubmitted(record.order_id)
           ? t('orderConfig.cancel_order_trigger')
           : '',
@@ -547,10 +533,7 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
   if (args.field === 'actions') {
     if (attribute?.key === 'cancel_order') {
       handleCancelOrder(args.originData);
-    } else if (
-      attribute?.key === 'cancel_order_trigger' ||
-      attribute?.key === 'cancel_order_trigger_revoke'
-    ) {
+    } else if (attribute?.key === 'cancel_order_trigger') {
       handleInsertOrderTrigger(args.originData);
     }
   }

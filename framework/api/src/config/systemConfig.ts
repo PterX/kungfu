@@ -26,7 +26,7 @@ export const defaultColorMap = {
   orange: '#D87A16',
   blue: '#1890FF',
   yellow: '#FFFF00',
-  purple: '#531DAB',
+  purple: '#800080',
   gray: '#FFFFFF80',
   pink: '#FFC0CB',
   cyan: '#00ffff',

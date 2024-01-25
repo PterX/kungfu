@@ -144,7 +144,9 @@ onActivated(() => {
           trades.value = trades.value.concat(tempAllTrades);
         }
 
-        subscription.unsubscribe();
+        if (subscription) {
+          subscription.unsubscribe();
+        }
       } else {
         trades.value = tempAllTrades.slice(0, 2000);
       }

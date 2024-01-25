@@ -91,6 +91,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         default: false,
       },
+      {
+        key: 'verifyLocation',
+        name: '是否开启 location_uid 校验',
+        tip: '',
+        type: 'bool',
+        default: false,
+      },
     ],
   },
   {

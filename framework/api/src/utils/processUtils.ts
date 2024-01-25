@@ -534,6 +534,7 @@ type KfcEnvOptType<T> =
     };
 
 export interface KfcEnvs {
+  verifyLocation?: KfcEnvOptType<boolean>;
   bypassCached?: KfcEnvOptType<boolean>;
   bypassAccounting?: KfcEnvOptType<boolean>;
   bypassRefreshBook?: KfcEnvOptType<boolean>;
@@ -932,8 +933,13 @@ function buildKfcArgs(options: {
   const logLevel: string =
     options.logLevel || (globalSetting?.system?.logLevel ?? '');
   const ifRocket = globalSetting?.performance?.rocket ?? false;
+  const verifyLocation = globalSetting?.system?.verifyLocation ?? false;
 
-  const fullArgsArray: string[] = [];
+  const fullArgsArray: string[] = [
+    buildKfcEnv({
+      verifyLocation,
+    }),
+  ];
 
   if (options.prefix) {
     fullArgsArray.push(options.prefix);

@@ -23,11 +23,7 @@ inline Config getConfigFromJs(const Napi::CallbackInfo &info, const locator_ptr 
   Config query = {};
   auto config_location = IODevice::ExtractLocation(info, 0, locator);
   if (config_location) {
-    query.location_uid = config_location->uid;
-    query.category = config_location->category;
-    query.group = config_location->group;
-    query.name = config_location->name;
-    query.mode = config_location->mode;
+    query = config_location->to<Config>();
   }
   return query;
 }

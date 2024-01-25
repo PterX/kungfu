@@ -104,12 +104,6 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     ],
   };
 });
-const holderLocation = ref<KungfuApi.KfLocation | null>(null);
-const isMarginMakeOrder = computed(() => {
-  const group = holderLocation.value?.group;
-  if (!group) return false;
-  return extConfigs.value?.td?.[group]?.margin?.marginMakeOrder || false;
-});
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',

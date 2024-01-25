@@ -77,6 +77,7 @@ const sidebarComponentConfigs = computed(() => {
     script: '',
     silent: false,
     version: '',
+    keepAlive: true,
   };
 
   return Object.keys(uiExtConfigsWithMain)
@@ -113,7 +114,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     );
     if (isMain || isExtInSidebar) {
       menuSelectedKeys.value = [targetKey];
-      handleToPage(`/${isMain ? '' : targetKey}`);
+      handleToPage(`/${isMain ? '' : targetKey}`, targetKey);
     }
   }
 

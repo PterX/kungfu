@@ -192,7 +192,7 @@ const option = computed<VTable.ListTableConstructorOptions>(() => {
     columns: props.columns,
     ...defaultOptionItems.value,
     ...props.optionItems,
-  };
+  } as VTable.ListTableConstructorOptions;
 });
 let listTable: VTable.ListTable | null = null;
 
@@ -412,8 +412,4 @@ const registerEvent = () => {
 };
 </script>
 
-<style>
-.DD {
-  background-color: #b6afaf;
-}
-</style>
+<style></style>

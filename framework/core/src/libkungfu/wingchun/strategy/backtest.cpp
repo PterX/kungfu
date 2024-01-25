@@ -34,7 +34,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
       slice_tool_(std::make_shared<SliceTool>(category::STRATEGY, app.get_home()->group, app.get_home()->name,
                                               std::move(to_indexer))),
       report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
-  log::copy_log_settings(app_.get_home(), app_.get_home()->name);
+  KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
 void BacktestContext::on_start() {

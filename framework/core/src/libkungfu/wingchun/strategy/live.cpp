@@ -24,7 +24,7 @@ namespace kungfu::wingchun::strategy {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
-  log::copy_log_settings(app_.get_home(), app_.get_home()->name);
+  KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
 void LiveContext::on_start() {

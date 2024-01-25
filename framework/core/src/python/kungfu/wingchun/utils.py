@@ -2,7 +2,7 @@
 
 import json
 import kungfu
-import re
+
 
 from kungfu.wingchun.constants import *
 

@@ -3117,7 +3117,7 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(price) && +price !== 0) {
-              formState.value.limit_price = price.kfToFixed(4);
+              formState.value.limit_price = +price.kfToFixed(4);
             }
             formState.value.volume = +Number(volume).kfToFixed(0);
             formState.value.side = isMarginMakeOrder.value

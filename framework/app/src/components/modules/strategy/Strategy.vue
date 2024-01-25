@@ -9,7 +9,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
-  BankOutlined,
+  EyeOutlined,
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
@@ -253,10 +253,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
                 style="font-size: 12px"
                 @click.stop="handleOpenReplayConfirmView(record)"
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

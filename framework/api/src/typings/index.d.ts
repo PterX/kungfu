@@ -590,7 +590,10 @@ declare namespace KungfuApi {
 
   export interface DataTable<T> {
     [hashed: string]: Readonly<T>;
-    filter(key: string, value: string | number | bigint): DataTable<T>;
+    filter(
+      key: string,
+      value: string | number | bigint | boolean,
+    ): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
     sort(key: string): Readonly<T>[];
     list(): Readonly<T>[];

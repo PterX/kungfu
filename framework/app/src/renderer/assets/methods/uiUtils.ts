@@ -1015,7 +1015,7 @@ export const handleOpenCodeView = (
 export const handleOpenJournalView = (
   config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
-  const hideloading = messagePrompt().loading(t('open_journal_dashboard'));
+  const hideloading = messagePrompt().loading(t('opening_inspect_tool'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
   const locationUID = config ? getKfLocationUID(config) || '' : '';
   return openJournalView(processId, locationUID).finally(() => {

@@ -65,7 +65,7 @@
         s_name = env_name;                                                                                             \
       }                                                                                                                \
       auto home = location::make_shared(mode::LIVE, category::STRATEGY, s_group, s_name, lr);                          \
-      kungfu::yijinjing::log::copy_log_settings(home, module_name);                                                    \
+      KUNGFU_SETUP_LOGGER(home, module_name);                                                    \
       return std::static_pointer_cast<kungfu::wingchun::strategy::Strategy>(std::make_shared<StrategyType>());         \
     });                                                                                                                \
   };                                                                                                                   \
@@ -92,7 +92,7 @@
         s_name = env_name;                                                                                             \
       }                                                                                                                \
       auto home = location::make_shared(mode::LIVE, category::OPERATOR, s_group, s_name, lr);                          \
-      kungfu::yijinjing::log::copy_log_settings(home, module_name);                                                    \
+      KUNGFU_SETUP_LOGGER(home, module_name);                                                    \
       return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());               \
     });                                                                                                                \
   };                                                                                                                   \
@@ -119,7 +119,7 @@
         s_name = env_name;                                                                                             \
       }                                                                                                                \
       auto home = location::make_shared(mode::LIVE, category::STRATEGY, s_group, s_name, lr);                          \
-      kungfu::yijinjing::log::copy_log_settings(home, module_name);                                                    \
+      KUNGFU_SETUP_LOGGER(home, module_name);                                                        \
       return std::static_pointer_cast<kungfu::wingchun::strategy::Matcher>(std::make_shared<MatcherType>());           \
     });                                                                                                                \
   };                                                                                                                   \

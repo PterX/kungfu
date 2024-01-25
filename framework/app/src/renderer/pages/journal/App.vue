@@ -477,7 +477,7 @@ onMounted(async () => {
   strategy.value = originStategy;
   td.value = originTd;
 
-  setSessions();
+  await setSessions();
   removeLoadingMask();
 });
 

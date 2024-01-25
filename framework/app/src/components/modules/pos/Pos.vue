@@ -34,7 +34,6 @@ import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtil
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { useExtConfigsRelated } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
   getInstrumentByInstrumentPair,
@@ -79,7 +78,6 @@ const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.PositionResolved
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
-const { extConfigs } = useExtConfigsRelated();
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
@@ -147,9 +145,7 @@ onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        if (!currentGlobalKfLocation.value) return;
 
         const positions =
           globalThis.HookKeeper.getHooks().dealTradingData.trigger(
@@ -177,12 +173,6 @@ onActivated(() => {
             );
           }),
         );
-
-        if (pos.value.length > 0) {
-          holderLocation.value = window.watcher.getLocation(
-            pos.value[0].holder_uid,
-          );
-        }
       },
     );
 
@@ -218,13 +208,7 @@ function handleClickRow(args: VTable.MousePointerCellEvent) {
 
   const offset = resolveTriggerOffset(row);
   const extraOrderInput: ExtraOrderInput = {
-    side: isMarginMakeOrder.value
-      ? row.direction === 0
-        ? SideEnum.GuaranteeStockSell
-        : SideEnum.RepayStock
-      : row.direction === 0
-      ? SideEnum.Sell
-      : SideEnum.Buy,
+    side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
     offset,
     volume: getPosClosableVolumeByOffset(row, offset),
     price: getPositionLastPrice(row) || row.avg_open_price || 0,

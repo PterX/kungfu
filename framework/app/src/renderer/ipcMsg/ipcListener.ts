@@ -48,7 +48,7 @@ export function bindIPCListener(store) {
         category,
         group,
         name,
-        mode,
+        mode: 'live',
       },
       replayConfig,
     );

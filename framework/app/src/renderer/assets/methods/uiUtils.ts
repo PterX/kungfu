@@ -24,6 +24,7 @@ import {
   createApp,
   defineComponent,
 } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -103,7 +104,7 @@ import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import mdHljs from 'markdown-it-highlightjs';
-import mdCheckbox from 'markdown-it-task-checkbox';
+import mdCheckbox from 'markdown-it-task-checkbox-pro';
 import hlForCpp from 'highlight.js/lib/languages/cpp';
 import hlForPython from 'highlight.js/lib/languages/python';
 import hlForJs from 'highlight.js/lib/languages/javascript';
@@ -2114,15 +2115,51 @@ export const useScrollerTableSearch = <T extends object>(
   };
 };
 
+export const onClickOutside = (
+  el: string | Element,
+  callback: (e: MouseEvent) => void,
+) => {
+  let element: Element | null = null;
+  const cleanups: Array<() => void> = [];
+
+  const getElement = () => {
+    if (!element) {
+      if (typeof el === 'string') {
+        element = document.querySelector(el);
+      } else {
+        element = el;
+      }
+    }
+
+    return element;
+  };
+
+  setTimeout(() => {
+    cleanups.push(
+      useEventListener(document, 'click', (e) => {
+        const el = getElement();
+        if (el) {
+          const x = e.clientX;
+          const y = e.clientY;
+          const { left, right, top, bottom } = el.getBoundingClientRect();
+          if (!(x >= left && x <= right && y >= top && y <= bottom)) {
+            callback(e);
+          }
+        }
+      }),
+    );
+  });
+
+  function deregister() {
+    cleanups.forEach((cleanup) => cleanup());
+  }
+
+  return deregister;
+};
+
 export const clearLocalStorageWithNewVersion = () => {
   const rootPackageJson = readRootPackageJsonSync();
-  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
-  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
-    globalStorage.setItem('historicalUsedVersions', [
-      ...versions,
-      rootPackageJson.version,
-    ]);
-
+  if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }

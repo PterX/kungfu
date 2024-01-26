@@ -135,12 +135,21 @@ const columns = getColumns((dataIndex) => {
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
 
-function handleOpenSetStrategyDialog(
+async function handleOpenSetStrategyDialog(
   type: KungfuApi.ModalChangeType,
   strategyConfig?: KungfuApi.KfConfig,
 ) {
   setStrategyConfigPayload.value.type = type;
-  setStrategyConfigPayload.value.config = setStrategyConfig;
+  setStrategyConfigPayload.value.config =
+    await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+      {
+        category: 'strategy',
+        group: 'default',
+        name: '*',
+        mode: '*',
+      },
+      setStrategyConfig,
+    );
   setStrategyConfigPayload.value.initValue = undefined;
 
   if (type === 'update') {

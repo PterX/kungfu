@@ -37,6 +37,7 @@ class KungfuCoreConan(ConanFile):
         "spdlog/1.10.0",
         "tabulate/1.4",
         "rocksdb/6.29.5",
+        "gtest/1.14.0",
     ]
     settings = "os", "compiler", "build_type", "arch"
     options = {
@@ -74,6 +75,10 @@ class KungfuCoreConan(ConanFile):
         "rocksdb:with_gflags": False,
         "rocksdb:with_snappy": False,
         "rocksdb:with_jemalloc": False,
+        "gtest:shared": False,
+        "gtest:build_gmock": True,
+        "gtest:hide_symbols": False,
+        "gtest:disable_pthreads": False,
         # clang has a known issue:
         # https://developercommunity.visualstudio.com/t/msbuild-doesnt-give-delayload-flags-to-linker-when/1595015
         "vs_toolset": "auto"
@@ -83,10 +88,18 @@ class KungfuCoreConan(ConanFile):
     }
     if tools.detected_os() != "Windows":
         default_options["rocksdb:fPIC"] = True
+        default_options["gtest:fPIC"] = True
 
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"
-    exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*", ".deps/*"
+    exports_sources = (
+        "src/*",
+        "package.json",
+        "CMakeLists.txt",
+        ".cmake/*",
+        ".deps/*",
+        "dist/*",
+    )
     conanfile_dir = path.dirname(path.realpath(__file__))
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
     build_info_file = "kungfubuildinfo.json"
@@ -121,6 +134,7 @@ class KungfuCoreConan(ConanFile):
         )
         self.copy("*", src=python_inc_src, dst=python_inc_dst)
         self.copy("*", src="include", dst="include")
+        self.copy("*", src="lib", dst="libs")
 
     def build(self):
         build_type = self.__get_build_type()

@@ -49,6 +49,7 @@ build_dir = abspath(make_path(cwd, "build"))
 build_cpp_dir = abspath(make_path(build_dir, "src"))
 build_output_dir = make_path(build_dir, os.environ["CMAKE_BUILD_TYPE"])
 build_whl_dir = make_path(build_dir, "python", "dist")
+build_libs_dir = make_path(build_dir, "libs")
 
 path_env = "PYI_PYTHONPATH"
 extra_python_paths = (
@@ -127,6 +128,7 @@ kfc_a = Analysis(
             (make_path(build_output_dir, "*"), "."),
             (make_path(build_whl_dir, "*"), "kungfu-wheel"),
             (make_path(build_dir, "include"), "include"),
+            (build_libs_dir, "libs"),
         ],
         src_dirs=[
             src_dir,

@@ -20,6 +20,7 @@ macro(kungfu_setup MODULE_NAME)
   <%_ }); _%>
 
   link_directories("<%- kfcDir -%>")
+  link_directories("<%- kfcDir -%>/libs")
   <%_ links.forEach((dir, i) => { _%>
   link_directories("<%= dir %>")
   <%_ }); _%>
@@ -43,10 +44,20 @@ macro(kungfu_setup MODULE_NAME)
   set(ENV{KFC_AS_VARIANT} python)
 
   add_subdirectory("<%- kfcDir -%>/pybind11" "${PROJECT_BINARY_DIR}/pybind11")
+  include_directories("<%- kfcDir -%>/pybind11//include")
 
   <%- makeTarget %>(${MODULE_NAME} <%- makeTargetLinkType %> ${SOURCES})
   target_link_libraries(${MODULE_NAME} PRIVATE kungfu <%- targetLinks %>)
   set_target_properties(${MODULE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
+
+  if (<%- gtestEnabled %>)
+    set(EXE_NAME ${MODULE_NAME}_gtest)
+    add_executable(${EXE_NAME} ${SOURCES})
+    target_link_libraries(${EXE_NAME} PRIVATE kungfu gtest gtest_main <%- targetLinks %>)
+    set_target_properties(${EXE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
+    set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
+    set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
+  endif ()
 endmacro()

@@ -127,6 +127,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
       externalSources: cppExternalSources,
       extraSource: extraSources[kungfuBuild.cpp.target],
       makeTarget: targetMakers[kungfuBuild.cpp.target],
+      gtestEnabled: kungfuBuild.cpp.gtestEnabled || false,
       makeTargetLinkType: targetLinkTypes[kungfuBuild.cpp.target],
       targetLinks: (cppLinks || ['']).join(' '),
     },

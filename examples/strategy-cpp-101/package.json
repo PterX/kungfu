@@ -20,6 +20,20 @@
   "devDependencies": {
     "@kungfu-trader/kungfu-sdk": "^2.7.1-alpha.28"
   },
+  "kungfuBuild": {
+    "cpp": {
+      "gtestEnabled": true,
+      "target": "bind/python",
+      "links": {
+        "windows": [
+        ],
+        "linux": [
+        ],
+        "macos": [
+        ]
+      }
+    }
+  },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"
   }

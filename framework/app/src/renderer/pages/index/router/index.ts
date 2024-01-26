@@ -3,13 +3,9 @@ import Index from '@kungfu-trader/kungfu-app/src/renderer/pages/index/views/Inde
 
 const routes: Array<RouteRecordRaw> = [
   {
-    path: '/',
+    path: '/main',
     name: 'Index',
     component: Index,
-  },
-  {
-    path: '/main',
-    redirect: '/',
   },
 ];
 

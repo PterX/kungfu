@@ -123,6 +123,14 @@ export interface RootConfigJSON {
   appConfig?: {
     showHelp?: boolean;
 
+    customSidebar?: Record<
+      string,
+      {
+        sidebarIndex?: number;
+        name?: string;
+      }
+    >;
+
     boardFilter?: Record<string, boolean>;
 
     orderTrigger?: boolean;
@@ -143,16 +151,6 @@ export interface RootConfigJSON {
     };
 
     clearLocalStorageWithNewVersion?: boolean;
-  };
-
-  traderUiConfig?: {
-    customSidebar?: Record<
-      string,
-      {
-        sidebarIndex?: number;
-        name?: string;
-      }
-    >;
   };
 }
 

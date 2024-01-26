@@ -2404,6 +2404,7 @@ defineExpose({
               <KfConfigSettingsForm
                 :ref="buildInnerFormRef(item)"
                 v-model:formState="formState[item.key][index]"
+                data-active="true"
                 :config-settings="item.columns || []"
                 :change-type="changeType"
                 :primary-key-avoid-repeat-compare-extra="

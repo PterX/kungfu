@@ -36,7 +36,7 @@ const { globalSetting } = storeToRefs(useGlobalStore());
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
 const boardRef = ref();
-const makeOrderBtnId = `make-order-btn-${Date.now()}`;
+const makeOrderRef = ref();
 const { processStatusData } = useProcessStatusDetailData();
 
 const {
@@ -204,16 +204,13 @@ function handleMakeOrder() {
         );
         return;
       }
-      const makeOrderBtn = document.getElementById(makeOrderBtnId);
       if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
         const flag = await confirmModal(
           t('tradingConfig.place_confirm'),
           dealOrderPlaceVNode(makeOrderInput, 1, true),
         );
         if (!flag) {
-          if (makeOrderBtn) {
-            (makeOrderBtn as HTMLElement).focus();
-          }
+          makeOrderRef.value?.focus();
           return;
         }
       }
@@ -285,7 +282,7 @@ function handleMakeOrder() {
           ></KfConfigSettingsForm>
         </div>
         <div class="make-order-btns">
-          <a-button :id="makeOrderBtnId" size="small" @click="handleMakeOrder">
+          <a-button ref="makeOrderRef" size="small" @click="handleMakeOrder">
             {{ $t('futureArbitrageConfig.place_order') }}
           </a-button>
         </div>

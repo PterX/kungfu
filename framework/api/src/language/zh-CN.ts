@@ -48,7 +48,7 @@ export default {
   reset_main_panel: '重置主面板',
   export_all_transaction_data: '导出所有交易数据',
   export_instrument_whitelists: '导出标的白名单',
-  view_all_journal: '查看所有 journal',
+  open_inspect_tool: '打开诊断工具',
 
   website: '官网',
   user_manual: '用户手册',
@@ -68,7 +68,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
-  open_journal_dashboard: '正在打开 journal 面板',
+  opening_inspect_tool: '正在打开诊断工具',
   open_replay_dashboard: '正在打开回放面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
@@ -838,7 +838,7 @@ export default {
       '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
     bypass_archive_dev: '跳过归档 (开发者模式)',
     bypass_archive_dev_desc:
-      '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用 journal 工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
+      '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用诊断工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:

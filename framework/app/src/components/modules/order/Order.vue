@@ -125,7 +125,7 @@ const orderCurrentOrderTriggers = ref<
 >({});
 
 const columns = computed(() => {
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',
@@ -148,9 +148,7 @@ onMounted(() => {
           return;
         }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        if (!currentGlobalKfLocation.value) return;
 
         if (adjustOrderMaskVisible.value) {
           return;
@@ -269,9 +267,7 @@ watch(historyDate, async (newDate) => {
     return;
   }
 
-  if (currentGlobalKfLocation.value === null) {
-    return;
-  }
+  if (!currentGlobalKfLocation.value) return;
 
   orders.value = [];
   allOrders.value = [];

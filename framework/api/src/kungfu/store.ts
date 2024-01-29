@@ -1,6 +1,6 @@
 import path from 'path';
 import fse from 'fs-extra';
-import { configStore } from '../kungfu';
+import { configStore, sessionStore } from '../kungfu';
 import {
   getResultUntilValuable,
   hidePasswordByLogger,
@@ -101,4 +101,24 @@ export const getStrategyKfLocation = (strategyId: string) => {
     name: strategyId,
     mode: 'live',
   };
+};
+
+export const getAllSessions = (
+  currentLocation: KungfuApi.KfExtractLocation | null,
+  watcher?: KungfuApi.Watcher,
+) => {
+  if (currentLocation === null) {
+    const promise = buildConfigOperationPromise(
+      () => sessionStore.getAllSessions(),
+      watcher,
+    );
+
+    return promise.then((allSessions) => allSessions);
+  } else {
+    const promise = buildConfigOperationPromise(
+      () => sessionStore.getSessionsForLocation(currentLocation),
+      watcher,
+    );
+    return promise.then((session) => session);
+  }
 };

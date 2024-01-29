@@ -211,6 +211,7 @@ declare namespace KungfuApi {
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
     isHidden?: boolean;
+    defaultDir?: string; // 选择文件相关的指定默认打开的文件夹
 
     maxlength?: number;
     showArg?: boolean; // 交易任务是否显示参数
@@ -595,7 +596,10 @@ declare namespace KungfuApi {
 
   export interface DataTable<T> {
     [hashed: string]: Readonly<T>;
-    filter(key: string, value: string | number | bigint): DataTable<T>;
+    filter(
+      key: string,
+      value: string | number | bigint | boolean,
+    ): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
     sort(key: string): Readonly<T>[];
     list(): Readonly<T>[];
@@ -1527,7 +1531,7 @@ declare namespace KungfuApi {
 
   export interface SessionStore {
     getAllSessions(): Session[];
-    getSessionsForLocation(kfLocation: KfLocation): Session[];
+    getSessionsForLocation(kfLocation: KungfuApi.KfExtractLocation): Session[];
   }
 
   export interface Kungfu {
@@ -1627,11 +1631,17 @@ declare namespace KungfuApi {
     script: string;
   }
 
+  export interface KfExtractLocation extends KungfuApi.KfLocation {
+    uname: string;
+    uid: number;
+  }
+
   export type DerivedKfLocation =
     | KfLocation
     | KfExtraLocation
     | KfConfig
-    | KfExtServiceLocation;
+    | KfExtServiceLocation
+    | KfExtractLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 

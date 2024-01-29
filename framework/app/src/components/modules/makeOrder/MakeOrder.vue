@@ -51,6 +51,7 @@ import {
   useInstruments,
   useProcessStatusDetailData,
   useTradeLimit,
+  useMarginSupport,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   initFormStateByConfig,
@@ -118,40 +119,21 @@ const MakeOrderInject = inject(BuiltinComponentInjectKeysMap.MakeOrder, {});
 
 const currentAccountId = ref<string>('');
 
-const isMarginMakeOrder = computed(() => {
-  const accountId = currentAccountId.value;
-  const accountPrefix = accountId ? accountId.split('_')[0] : '';
-  const group = currentGlobalKfLocation.value?.group;
-  const isGroupValid = group && group !== 'group';
-  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
-  return (
-    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.marginMakeOrder ||
-    false
-  );
-});
-
-const isSpecifyContract = computed(() => {
-  const accountId = currentAccountId.value;
-  const accountPrefix = accountId ? accountId.split('_')[0] : '';
-  const group = currentGlobalKfLocation.value?.group;
-  const isGroupValid = group && group !== 'group';
-  const groupOrAccountPrefix = isGroupValid ? group : accountPrefix || '';
-  return (
-    extConfigs.value?.td?.[groupOrAccountPrefix]?.margin?.specifyContract ||
-    false
-  );
-});
-
 const formState = ref(
   initFormStateByConfig(
     getConfigSettings({
       location: currentGlobalKfLocation.value,
       instrumentType: InstrumentTypeEnum.future,
-      isMarginMakeOrder: isMarginMakeOrder.value,
-      isSpecifyContract: isSpecifyContract.value,
+      isMarginMakeOrder: false,
+      isSpecifyContract: false,
     }),
     {},
   ),
+);
+
+const { isMarginMakeOrder, isSpecifyContract } = useMarginSupport(
+  currentGlobalKfLocation,
+  formState,
 );
 
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);

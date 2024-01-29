@@ -13,7 +13,7 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  BankOutlined,
+  EyeOutlined,
   ReloadOutlined,
   PayCircleOutlined,
   HistoryOutlined,
@@ -225,7 +225,7 @@ const columns = computed(() => {
     };
   };
 
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',
@@ -852,10 +852,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
                   handleOpenReplayConfirmView(record as KungfuApi.KfConfig)
                 "
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <!-- TODO -->
               <PayCircleOutlined
                 v-if="isShowFundTransIcon(record as KungfuApi.KfConfig)"

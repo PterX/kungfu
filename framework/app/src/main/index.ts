@@ -190,6 +190,10 @@ if (process.env.NODE_ENV !== 'development') {
   }
 }
 
+// disable GPU,
+app.disableDomainBlockingFor3DAPIs();
+app.disableHardwareAcceleration();
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -344,7 +348,7 @@ function setMenu() {
           click: () => MainWindow && openLogFile(MainWindow),
         },
         {
-          label: t('view_all_journal'),
+          label: t('open_inspect_tool'),
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
         },

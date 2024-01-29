@@ -218,6 +218,7 @@ inline void from_xtp(const XTPMarketDataStruct &ori, Quote &des) {
   des.settlement_price = ori.settl_price;
   des.upper_limit_price = ori.upper_limit_price;
   des.lower_limit_price = ori.lower_limit_price;
+  des.total_trade_num = ori.trades_count;
 
   memcpy(des.ask_price, ori.ask, sizeof(des.ask_price));
   memcpy(des.bid_price, ori.bid, sizeof(des.ask_price));

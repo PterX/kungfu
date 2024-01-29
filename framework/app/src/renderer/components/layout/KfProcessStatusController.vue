@@ -2,8 +2,8 @@
 import Icon, {
   ClusterOutlined,
   FileTextOutlined,
-  BankOutlined,
   HistoryOutlined,
+  EyeOutlined,
 } from '@ant-design/icons-vue';
 import { storeToRefs } from 'pinia';
 import { notification } from 'ant-design-vue';
@@ -365,10 +365,10 @@ onMounted(() => {
                   style="font-size: 12px"
                   @click.stop="handleClickReplay(config)"
                 ></HistoryOutlined>
-                <BankOutlined
-                  style="font-size: 12px"
+                <EyeOutlined
+                  style="font-size: 14px"
                   @click.stop="handleOpenJournalView(config)"
-                ></BankOutlined>
+                ></EyeOutlined>
                 <FileTextOutlined
                   @click="handleOpenLogview(config)"
                   style="font-size: 14px"

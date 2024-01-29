@@ -3116,10 +3116,10 @@ export const useMakeOrderSubscribe = (
               formState.value.instrument_type = +instrumentType;
             }
 
-            if (!!price && !Number.isNaN(price) && +price !== 0) {
-              formState.value.limit_price = price.kfToFixed(4);
+            if (!!price && !Number.isNaN(+price)) {
+              formState.value.limit_price = +price.kfToFixed(4);
             }
-            formState.value.volume = +Number(volume).kfToFixed(0);
+            formState.value.volume = +volume.kfToFixed(0);
             formState.value.side = isMarginMakeOrder.value
               ? dealMarginSideByTransFormType(+side)
               : +side;

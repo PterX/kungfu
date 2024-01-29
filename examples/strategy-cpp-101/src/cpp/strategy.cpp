@@ -1,3 +1,4 @@
+#include <gtest/gtest.h>
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/strategy.h>
@@ -12,7 +13,7 @@ KUNGFU_MAIN_STRATEGY(KungfuStrategy101) {
 public:
   KungfuStrategy101() = default;
   ~KungfuStrategy101() = default;
-
+  int x = 100;
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
@@ -54,3 +55,39 @@ public:
     SPDLOG_WARN("on_custom_data length: {}", length);
   }
 };
+
+constexpr int add(int a, int b) { return a + b; }
+
+TEST(MathFunctionsTest, AddPositiveNumbers) { EXPECT_EQ(add(1, 2), -3); }
+
+TEST(MathFunctionsTest, AddNegativeNumbers) { EXPECT_EQ(add(-1, -2), -3); }
+
+TEST(MathFunctionsTest, AddMixedNumbers) { EXPECT_EQ(add(-1, 1), 0); }
+
+struct A {
+  int x = 100;
+  char cs[100];
+};
+
+struct A double_A(struct A &x) {
+  x.x *= 2;
+  return x;
+}
+
+TEST(DoubleATestAAAAA, MultipliesXByTwo) {
+  A a;
+  strcpy(a.cs, "test string");
+
+  A result = double_A(a);
+
+  EXPECT_EQ(result.x, 2001);
+  EXPECT_STREQ(result.cs, "test string");
+
+  KungfuStrategy101 st{};
+  EXPECT_EQ(st.x, 100);
+  EXPECT_EQ(st.x, 101);
+
+  //  st.on_custom_data(10086, {}, 100,
+  //                    location::make_shared(mode::LIVE, category::STRATEGY, "deno", "test",
+  //                    std::shared_ptr<locator>()), 110);
+}

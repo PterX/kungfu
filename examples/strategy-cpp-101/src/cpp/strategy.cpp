@@ -8,6 +8,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun::strategy;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing;
 int i = 0;
 KUNGFU_MAIN_STRATEGY(KungfuStrategy101) {
 public:
@@ -53,6 +54,7 @@ public:
     SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
     SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
     SPDLOG_WARN("on_custom_data length: {}", length);
+    SPDLOG_WARN("now_in_nano: {}", time::strftime(time::now_in_nano()));
   }
 };
 
@@ -74,7 +76,21 @@ struct A double_A(struct A &x) {
   return x;
 }
 
-TEST(DoubleATestAAAAA, MultipliesXByTwo) {
+class KungfuStrategy101Test : public ::testing::Test {
+protected:
+  KungfuStrategy101 st;
+  Context_ptr context_;
+
+  void SetUp() override {
+    // 在这里可以设置一些初始状态
+  }
+
+  void TearDown() override {
+    // 在这里可以进行清理工作
+  }
+};
+
+TEST(KungfuStrategy101, MultipliesXByTwo) {
   A a;
   strcpy(a.cs, "test string");
 
@@ -86,8 +102,10 @@ TEST(DoubleATestAAAAA, MultipliesXByTwo) {
   KungfuStrategy101 st{};
   EXPECT_EQ(st.x, 100);
   EXPECT_EQ(st.x, 101);
+}
 
-  //  st.on_custom_data(10086, {}, 100,
-  //                    location::make_shared(mode::LIVE, category::STRATEGY, "deno", "test",
-  //                    std::shared_ptr<locator>()), 110);
+TEST_F(KungfuStrategy101Test, MultipliesXByTwo) {
+  st.on_custom_data(context_, 10086, {'1', '2', '3', '4', '5', '6'}, 100,
+                    location::make_shared(mode::LIVE, category::STRATEGY, "deno", "test", std::shared_ptr<locator>()),
+                    110);
 }

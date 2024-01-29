@@ -30,6 +30,9 @@ import {
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
+import {
+  readRootPackageJsonSync,
+} from '../utils/fileUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -198,6 +201,69 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.unknown'),
     color: 'default',
   },
+};
+
+export const getMarginSideConfig = (): Record<
+  string,
+  KungfuApi.KfTradeValueCommonData
+> => {
+  return {
+    [SideEnum.GuaranteeStockBuy]: {
+      name: t('tradingConfig.guarantee_stock_buy'),
+      color: 'red',
+      level: SideEnum.GuaranteeStockBuy,
+    },
+    [SideEnum.GuaranteeStockSell]: {
+      name: t('tradingConfig.guarantee_stock_sell'),
+      color: 'green',
+      level: SideEnum.GuaranteeStockSell,
+    },
+    [SideEnum.MarginTrade]: {
+      name: t('tradingConfig.margin_trade'),
+      color: 'red',
+      level: SideEnum.MarginTrade,
+    },
+    [SideEnum.ShortSell]: {
+      name: t('tradingConfig.short_sell'),
+      color: 'green',
+      level: SideEnum.ShortSell,
+    },
+    [SideEnum.RepayStock]: {
+      name: t('tradingConfig.repay_short'),
+      color: 'red',
+      level: SideEnum.RepayStock,
+    },
+    [SideEnum.RepayMargin]: {
+      name: t('tradingConfig.repay_margin'),
+      color: 'green',
+      level: SideEnum.RepayMargin,
+    },
+  };
+};
+
+export const getOffsetConfig = (): Record<
+  PriceTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const offsetConfig =
+    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
+    ({} as Record<string, boolean>);
+  const unsupportedOffset = Object.keys(offsetConfig).filter((key) => {
+    if (offsetConfig[key] === false && OffsetEnum[key] !== undefined) {
+      return true;
+    }
+    return false;
+  });
+
+  return Object.keys(OffsetEnum)
+    .filter((key) => Number.isNaN(+key))
+    .filter((key) => key !== 'Unknown')
+    .filter((offset) => !unsupportedOffset.includes(offset))
+    .map((offset) => OffsetEnum[offset])
+    .reduce((pre, enumValue: OffsetEnum) => {
+      return { ...pre, ...{ [enumValue]: Offset[enumValue] } };
+    }, {});
 };
 
 export const CodeTabSetting: Record<

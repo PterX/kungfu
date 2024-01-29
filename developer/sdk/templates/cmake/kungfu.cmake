@@ -44,7 +44,6 @@ macro(kungfu_setup MODULE_NAME)
   set(ENV{KFC_AS_VARIANT} python)
 
   add_subdirectory("<%- kfcDir -%>/pybind11" "${PROJECT_BINARY_DIR}/pybind11")
-  include_directories("<%- kfcDir -%>/pybind11//include")
 
   <%- makeTarget %>(${MODULE_NAME} <%- makeTargetLinkType %> ${SOURCES})
   target_link_libraries(${MODULE_NAME} PRIVATE kungfu <%- targetLinks %>)
@@ -53,7 +52,7 @@ macro(kungfu_setup MODULE_NAME)
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
 
   if (<%- gtestEnabled %>)
-    target_link_libraries(${MODULE_NAME} PRIVATE gtest gtest_main)
+    target_link_libraries(${MODULE_NAME} PRIVATE gtest)
 
     set(EXE_NAME ${MODULE_NAME}_gtest)
     add_executable(${EXE_NAME} ${SOURCES})
@@ -61,5 +60,16 @@ macro(kungfu_setup MODULE_NAME)
     set_target_properties(${EXE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
     set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
     set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
+
+    if (NOT MSVC)
+      target_link_libraries(${EXE_NAME} PRIVATE pthread)
+    endif ()
+
+    if("<%- makeTarget %>" STREQUAL "pybind11_add_module" )
+      target_include_directories(${EXE_NAME} PRIVATE "<%- kfcDir -%>/pybind11/include")
+      find_package(Python3 COMPONENTS Development REQUIRED)
+      target_include_directories(${EXE_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
+      target_link_libraries(${EXE_NAME} PRIVATE ${Python3_LIBRARIES})
+    endif ()
   endif ()
 endmacro()

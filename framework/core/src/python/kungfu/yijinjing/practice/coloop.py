@@ -33,7 +33,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
             "[{:08x}] {} running".format(self._hero.home.uid, self._hero.home.uname)
         )
         while self._hero.live:
-            self._hero.step()
+            self._hero.step(0)
 
             ready = deque()
             while self._immediate:

@@ -33,7 +33,6 @@ import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { useExtConfigsRelated } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
   getInstrumentByInstrumentPair,
@@ -79,17 +78,10 @@ const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.PositionResolved
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
-const { extConfigs } = useExtConfigsRelated();
 
 const lastPriceSorter = (a: KungfuApi.Position, b: KungfuApi.Position) => {
   return getPositionLastPrice(a) - getPositionLastPrice(b);
 };
-const holderLocation = ref<KungfuApi.KfLocation | null>(null);
-const isMarginMakeOrder = computed(() => {
-  const group = holderLocation.value?.group;
-  if (!group) return false;
-  return extConfigs.value?.td?.[group]?.margin?.marginMakeOrder || false;
-});
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -129,9 +121,7 @@ onMounted(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        if (!currentGlobalKfLocation.value) return;
 
         const positions =
           globalThis.HookKeeper.getHooks().dealTradingData.trigger(
@@ -159,12 +149,6 @@ onMounted(() => {
             );
           }),
         );
-
-        if (pos.value.length > 0) {
-          holderLocation.value = window.watcher.getLocation(
-            pos.value[0].holder_uid,
-          );
-        }
       },
     );
 
@@ -199,13 +183,7 @@ function handleClickRow(data: {
 
   const offset = resolveTriggerOffset(row);
   const extraOrderInput: ExtraOrderInput = {
-    side: isMarginMakeOrder.value
-      ? row.direction === 0
-        ? SideEnum.GuaranteeStockSell
-        : SideEnum.RepayStock
-      : row.direction === 0
-      ? SideEnum.Sell
-      : SideEnum.Buy,
+    side: row.direction === 0 ? SideEnum.Sell : SideEnum.Buy,
     offset,
     volume: getPosClosableVolumeByOffset(row, offset),
     price: getPositionLastPrice(row) || row.avg_open_price || 0,

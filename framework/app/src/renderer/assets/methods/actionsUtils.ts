@@ -3,7 +3,6 @@ import { dialog, shell } from '@electron/remote';
 import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   hashInstrumentUKey,
-  sessionStore,
   longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
@@ -15,7 +14,10 @@ import {
   isShowPosition,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
-import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import {
+  setKfConfig,
+  getAllSessions,
+} from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   BrokerStateStatusTypes,
@@ -1921,7 +1923,7 @@ export const useCurrentGlobalKfLocation = (
       | KungfuApi.KfConfig
       | KungfuApi.KfExtraLocation,
   ): string => {
-    if (currentGlobalKfLocation.value === null) return '';
+    if (!currentGlobalKfLocation.value) return '';
 
     if (
       getIdByKfLocation(record) ===
@@ -2226,11 +2228,6 @@ export const useReplay = (): {
       filePath = await getOperatorPath(record);
     }
     sessionOptions.value = [];
-    const sessions = sessionStore.getAllSessions();
-    if (!sessions || sessions.length === 0) {
-      error(t('replay.process_has_not_been_started'));
-      return;
-    }
 
     let currentSession: KungfuApi.Session | null = curSession || null;
     let sessionInfo = '';
@@ -2245,6 +2242,11 @@ export const useReplay = (): {
         value: `${beginTimeStr}--${endTimeStr}`,
       });
     } else {
+      const sessions = await getAllSessions(null, window?.watcher);
+      if (!sessions || sessions.length === 0) {
+        error(t('replay.process_has_not_been_started'));
+        return;
+      }
       for (let i = sessions.length - 1; i >= 0; i--) {
         const item = sessions[i];
         if (
@@ -2432,9 +2434,7 @@ export const useCurrentPositionList = () => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
-          if (currentGlobalKfLocation.value === null) {
-            return;
-          }
+          if (!currentGlobalKfLocation.value) return;
 
           const currentPositions =
             globalThis.HookKeeper.getHooks().dealTradingData.trigger(
@@ -2543,12 +2543,46 @@ export const getPosClosableVolumeByOffset = (
   }
 };
 
+export const useCurrentAccountLocation = (
+  currentGlobalKfLocation: Ref<
+    KungfuApi.KfLocation | KungfuApi.KfLocationGroup | KungfuApi.KfConfig | null
+  >,
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+) => {
+  const isCurrentCategoryIsTd = computed(
+    () => currentGlobalKfLocation.value?.category === 'td',
+  );
+  const currentAccountLocation = computed(() => {
+    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value.account_id) {
+      const { source, id } = formState.value.account_id.parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  return {
+    currentAccountLocation,
+  };
+};
+
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
   isMarginMakeOrder: Ref<boolean>,
 ) => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
+  );
+  const { currentAccountLocation } = useCurrentAccountLocation(
+    currentGlobalKfLocation,
+    formState,
   );
   const { getPositionLastPrice } = useQuote();
   const { currentPositionList } = useCurrentPositionList();
@@ -2591,22 +2625,6 @@ export const useMakeOrderInfo = (
       return isShowPosition(side) ? 'position' : 'amount';
     }
     return offset === OffsetEnum.Open ? 'amount' : 'position';
-  });
-
-  const currentAccountLocation = computed(() => {
-    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
-      return currentGlobalKfLocation.value;
-    } else if (formState.value.account_id) {
-      const { source, id } = formState.value.account_id.parseSourceAccountId();
-      return {
-        category: 'td',
-        group: source,
-        name: id,
-        mode: 'live',
-      } as KungfuApi.KfLocation;
-    } else {
-      return null;
-    }
   });
 
   const currentPositionHolderLocation = computed(() => {
@@ -2964,9 +2982,62 @@ export const useTradeLimit = () => {
   };
 };
 
+export const useMarginSupport = (
+  currentGlobalKfLocation: Ref<KungfuApi.KfLocation | null>,
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+) => {
+  const { extConfigs } = useExtConfigsRelated();
+  const { currentAccountLocation } = useCurrentAccountLocation(
+    currentGlobalKfLocation,
+    formState,
+  );
+  const isMarginMakeOrder = computed(() => {
+    const group = currentAccountLocation.value?.group;
+    if (!group) return false;
+    return extConfigs.value?.td?.[group]?.margin?.marginMakeOrder || false;
+  });
+
+  const isSpecifyContract = computed(() => {
+    const group = currentAccountLocation.value?.group;
+    if (!group) return false;
+    return extConfigs.value?.td?.[group]?.margin?.specifyContract || false;
+  });
+
+  const dealMarginSideByTransFormType = (
+    side: SideEnum,
+    type: 'direction' | 'side' = 'side',
+  ) => {
+    if (side === SideEnum.Buy) {
+      return SideEnum.GuaranteeStockBuy;
+    } else if (side === SideEnum.Sell) {
+      return type === 'side'
+        ? SideEnum.GuaranteeStockSell
+        : SideEnum.RepayStock;
+    }
+    return side;
+  };
+
+  return {
+    isMarginMakeOrder,
+    isSpecifyContract,
+    dealMarginSideByTransFormType,
+  };
+};
+
 export const useMakeOrderSubscribe = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
+  const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
+    window.watcher,
+  );
+  const { currentAccountLocation } = useCurrentAccountLocation(
+    currentGlobalKfLocation,
+    formState,
+  );
+  const { isMarginMakeOrder, dealMarginSideByTransFormType } = useMarginSupport(
+    currentAccountLocation,
+    formState,
+  );
   const app = getCurrentInstance();
   function closestNumber(target: number, numbers: number[]): number {
     if (numbers.length === 0) {
@@ -3017,7 +3088,9 @@ export const useMakeOrderSubscribe = (
             );
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
-            formState.value.side = +side;
+            formState.value.side = isMarginMakeOrder.value
+              ? dealMarginSideByTransFormType(+side, 'direction')
+              : +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
             formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
@@ -3045,7 +3118,9 @@ export const useMakeOrderSubscribe = (
               formState.value.limit_price = +Number(price).kfToFixed(4);
             }
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.side = +side;
+            formState.value.side = isMarginMakeOrder.value
+              ? dealMarginSideByTransFormType(+side)
+              : +side;
           }
         },
       );

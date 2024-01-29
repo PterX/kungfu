@@ -174,6 +174,9 @@ const buildInnerFormRef = (item: KungfuApi.KfConfigItem) => {
   if (!innerFormRefKeys.includes(key)) innerFormRefKeys.push(key);
   return key;
 };
+const formElement = computed(() => {
+  return app?.proxy?.$el as HTMLElement | null;
+});
 
 const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
@@ -892,9 +895,13 @@ function handleDownloadCsvTemplate(
   }
 }
 
-function handleSelectFile(targetKey: string): void {
+function handleSelectFile(target: KungfuApi.KfConfigItem): void {
+  const targetKey = target.key;
+  const existPath =
+    formState.value[targetKey] && path.dirname(formState.value[targetKey]);
   dialog
     .showOpenDialog({
+      defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openFile'],
     })
     .then((res) => {
@@ -918,7 +925,8 @@ function handleSelectDirectory(
   }
   dialog
     .showOpenDialog({
-      defaultPath: formState.value[targetKey] || os.homedir(),
+      defaultPath:
+        formState.value[targetKey] || target.defaultDir || os.homedir(),
       properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
     })
     .then((res) => {
@@ -931,9 +939,14 @@ function handleSelectDirectory(
     });
 }
 
-function handleSelectFiles(targetKey: string): void {
+function handleSelectFiles(target: KungfuApi.KfConfigItem): void {
+  const targetKey = target.key;
+  const existPath =
+    (formState.value[targetKey] || [])[0] &&
+    path.dirname(formState.value[targetKey][0]);
   dialog
     .showOpenDialog({
+      defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openDirectory'],
     })
     .then((res) => {
@@ -1029,7 +1042,7 @@ function disabledEndTime(
     return hours;
   };
 
-  const disabledMinutes = (selectedHour: number) => {
+  const disabledMinutes = (selectedHour) => {
     const minutes: number[] = [];
 
     if (
@@ -1155,7 +1168,15 @@ function validate(): Promise<Record<string, KungfuApi.KfConfigValue>> {
       type FormRef = InstanceType<typeof KfConfigSettingsForm>;
       if (app?.proxy?.$refs?.[refKey]) {
         const refs = app.proxy.$refs[refKey] as FormRef | Array<FormRef>;
-        return refs;
+
+        if (Array.isArray(refs)) {
+          return refs.filter(
+            (ref) => ref.formElement?.getAttribute('data-active') === 'true',
+          );
+        }
+
+        if (refs.formElement?.getAttribute('data-active') === 'true')
+          return refs;
       }
       return null;
     })
@@ -1196,10 +1217,7 @@ function handleAddItemIntoTableRows(item: KungfuApi.KfConfigItem) {
   }
 }
 
-function handleRemoveItemIntoTableRows(
-  item: KungfuApi.KfConfigItem,
-  index: number,
-) {
+function handleRemoveItemIntoTableRows(item: KungfuApi.KfConfigItem, index) {
   const targetState = formState.value[item.key];
   if (targetState instanceof Array) {
     targetState.splice(index, 1);
@@ -1272,6 +1290,7 @@ function handleContractBlur() {
 defineExpose({
   validate,
   clearValidate,
+  formElement,
 });
 </script>
 <template>
@@ -1734,10 +1753,10 @@ defineExpose({
           "
           show-search
           :filter-option="false"
+          :options="contractList"
           @search="handleContractSearch"
           @blur="handleContractBlur"
           @dropdownVisibleChange="getContracData"
-          :options="contractList"
         ></a-select>
 
         <a-select
@@ -1904,7 +1923,7 @@ defineExpose({
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
           "
-          @click="handleSelectFile(item.key)"
+          @click="handleSelectFile(item)"
         >
           <template #icon><DashOutlined /></template>
         </a-button>
@@ -2064,7 +2083,7 @@ defineExpose({
             item.disabled
           "
           size="small"
-          @click="handleSelectFiles(item.key)"
+          @click="handleSelectFiles(item)"
         >
           <template #icon><PlusOutlined /></template>
         </a-button>
@@ -2266,6 +2285,7 @@ defineExpose({
               #default="{
                 item: _item,
                 index,
+                active,
               }: {
                 item: {
                   data: Record<string, KungfuApi.KfConfigValue>,
@@ -2273,6 +2293,7 @@ defineExpose({
                   id: string,
                 },
                 index: number,
+                active: boolean,
               }"
             >
               <div
@@ -2288,6 +2309,7 @@ defineExpose({
                   <KfConfigSettingsForm
                     :ref="buildInnerFormRef(item)"
                     v-model:formState="_item.data"
+                    :data-active="active"
                     :style="{
                       flexWrap: item.wrap || '',
                       overflowX: item.wrap === 'nowrap' ? 'overlay' : '',
@@ -2356,6 +2378,7 @@ defineExpose({
               <KfConfigSettingsForm
                 :ref="buildInnerFormRef(item)"
                 v-model:formState="formState[item.key][index]"
+                data-active="true"
                 :config-settings="item.columns || []"
                 :change-type="changeType"
                 :primary-key-avoid-repeat-compare-extra="

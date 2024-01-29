@@ -1036,8 +1036,15 @@ export const buildTableColumnSorterWithStrike = <T, U = object>(
 ) => {
   return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
     if (type === 'num') {
-      let aVal = (transform ? transform(a) : a[dataIndex as keyof T]) ?? '--',
-        bVal = (transform ? transform(b) : b[dataIndex as keyof T]) ?? '--';
+      let aVal: string | number | NonNullable<T[keyof T]>;
+      let bVal: string | number | NonNullable<T[keyof T]>;
+      if (transform) {
+        aVal = isNaN(Number(transform(a))) ? '--' : transform(a) ?? '--';
+        bVal = isNaN(Number(transform(b))) ? '--' : transform(b) ?? '--';
+      } else {
+        aVal = a[dataIndex as keyof T] ?? '--';
+        bVal = b[dataIndex as keyof T] ?? '--';
+      }
       if (sorterOrder === 'ascend') {
         aVal = aVal === '--' ? Infinity : aVal;
         bVal = bVal === '--' ? Infinity : bVal;

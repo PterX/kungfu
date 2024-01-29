@@ -1424,7 +1424,7 @@ export const handleOpenCodeView = (
 export const handleOpenJournalView = (
   config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
-  const hideloading = messagePrompt().loading(t('open_journal_dashboard'));
+  const hideloading = messagePrompt().loading(t('opening_inspect_tool'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
   const locationUID = config ? getKfLocationUID(config) || '' : '';
   return openJournalView(processId, locationUID).finally(() => {
@@ -2425,13 +2425,7 @@ export const useScrollerTableSearch = <T extends object>(
 
 export const clearLocalStorageWithNewVersion = () => {
   const rootPackageJson = readRootPackageJsonSync();
-  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
-  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
-    globalStorage.setItem('historicalUsedVersions', [
-      ...versions,
-      rootPackageJson.version,
-    ]);
-
+  if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }

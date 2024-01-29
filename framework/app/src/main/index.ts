@@ -13,7 +13,6 @@ import {
 import { initialize, enable as enableRemote } from '@electron/remote/main';
 import path from 'path';
 import os from 'os';
-import dayjs from 'dayjs';
 import {
   showQuitMessageBox,
   showCrashMessageBox,
@@ -48,10 +47,9 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { performSystemActions } from '@kungfu-trader/kungfu-app/src/main/events';
 import { handleUpdateKungfu } from './autoUpdater';
-import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 const { t } = VueI18n.global;
-const globalStorage = getGlobalStorage();
 let MainWindow: BrowserWindow | null = null;
 let AllowQuit = false;
 let CrashedReloading = false;
@@ -117,11 +115,7 @@ async function createWindow(
     }
 
     isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
-    globalStorage.setItem('ifNotFirstRunning', true);
-    globalStorage.setItem(
-      'lastStartDateTime',
-      dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    );
+    performSystemActions();
   });
 
   MainWindow.on('close', (e) => {
@@ -195,6 +189,10 @@ if (process.env.NODE_ENV !== 'development') {
     });
   }
 }
+
+// disable GPU,
+app.disableDomainBlockingFor3DAPIs();
+app.disableHardwareAcceleration();
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -350,7 +348,7 @@ function setMenu() {
           click: () => MainWindow && openLogFile(MainWindow),
         },
         {
-          label: t('view_all_journal'),
+          label: t('open_inspect_tool'),
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
         },

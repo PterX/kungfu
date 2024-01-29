@@ -99,7 +99,8 @@
         "order_trigger": {
           "MakeOrder": true,
           "CancelOrder": true
-        }
+        },
+        "supportEtf": true
       },
       "md": {
         "type": "multi"

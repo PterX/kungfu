@@ -251,6 +251,7 @@ declare namespace KungfuApi {
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
         show_asset_margin?: boolean;
+        supportEtf?: boolean;
         margin?: {
           showMargin?: boolean;
           marginMakeOrder?: boolean;
@@ -400,6 +401,7 @@ declare namespace KungfuApi {
     orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
+    supportEtf?: boolean;
     showAssetMargin?: boolean;
     margin?: {
       showMargin?: boolean;

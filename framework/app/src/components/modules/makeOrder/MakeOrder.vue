@@ -199,9 +199,15 @@ const configSettings = computed(() => {
   }
   if (instrumentResolved.value) {
     const { instrumentType, exchangeId } = instrumentResolved.value;
+    const tdName = currentGlobalKfLocation.value?.group;
+    const extConfig = extConfigs.value.td[tdName];
     if (instrumentType === InstrumentTypeEnum.stockoption) {
       sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
-    } else if (instrumentType === InstrumentTypeEnum.fund) {
+    } else if (
+      instrumentType === InstrumentTypeEnum.fund &&
+      extConfig &&
+      extConfig.supportEtf
+    ) {
       sideList.value = [
         ...Object.keys(Side).slice(0, 2),
         SideEnum.Purchase + '',

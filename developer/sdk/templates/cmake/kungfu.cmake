@@ -52,11 +52,11 @@ macro(kungfu_setup MODULE_NAME)
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
 
   if (<%- gtestEnabled %>)
-    target_link_libraries(${MODULE_NAME} PRIVATE gtest)
+    target_link_libraries(${MODULE_NAME} PRIVATE gtest gmock)
 
     set(EXE_NAME ${MODULE_NAME}_gtest)
     add_executable(${EXE_NAME} ${SOURCES})
-    target_link_libraries(${EXE_NAME} PRIVATE kungfu gtest gtest_main <%- targetLinks %>)
+    target_link_libraries(${EXE_NAME} PRIVATE kungfu gtest gmock gmock_main <%- targetLinks %>)
     set_target_properties(${EXE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
     set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
     set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})

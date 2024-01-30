@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
@@ -55,6 +56,7 @@ public:
     SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
     SPDLOG_WARN("on_custom_data length: {}", length);
     SPDLOG_WARN("now_in_nano: {}", time::strftime(time::now_in_nano()));
+    context->now();
   }
 };
 
@@ -108,4 +110,37 @@ TEST_F(KungfuStrategy101Test, MultipliesXByTwo) {
   st.on_custom_data(context_, 10086, {'1', '2', '3', '4', '5', '6'}, 100,
                     location::make_shared(mode::LIVE, category::STRATEGY, "deno", "test", std::shared_ptr<locator>()),
                     110);
+}
+
+class MyInterface {
+public:
+  virtual ~MyInterface() {}
+  virtual void DoSomething() { SPDLOG_INFO("de something"); };
+};
+
+class MockMyInterface : public MyInterface, public KungfuStrategy101 {
+public:
+  Context_ptr context_;
+  MOCK_METHOD(void, DoSomething, (), (override));
+  MOCK_METHOD(void, on_synthetic_data,
+              (Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location, uint32_t dest),
+              (override));
+  MOCK_METHOD(void, on_custom_data,
+              (Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+               const kungfu::yijinjing::data::location_ptr &location, uint32_t dest),
+              (override));
+};
+
+TEST(MyMockTest, TestDoSomething) {
+  MockMyInterface mock;
+  EXPECT_CALL(mock, DoSomething);
+  EXPECT_CALL(mock, DoSomething);
+  EXPECT_CALL(mock, on_custom_data);
+  EXPECT_CALL(mock, on_synthetic_data);
+
+  // 在这里，我们触发模拟对象的行为
+  mock.DoSomething();
+  mock.DoSomething();
+  mock.on_synthetic_data(mock.context_, SyntheticData{}, {}, {});
+  mock.on_synthetic_data(mock.context_, SyntheticData{}, {}, 2);
 }

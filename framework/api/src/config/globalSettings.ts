@@ -347,6 +347,8 @@ export const getKfGlobalSettingsValue = (): Record<
   string,
   Record<string, KungfuApi.KfConfigValue>
 > => {
+  if (!fse.existsSync(KF_CONFIG_PATH)) return {};
+
   return fse.readJSONSync(KF_CONFIG_PATH) as Record<
     string,
     Record<string, KungfuApi.KfConfigValue>

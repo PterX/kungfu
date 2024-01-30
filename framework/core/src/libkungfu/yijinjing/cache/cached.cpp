@@ -49,6 +49,7 @@ void cached::restore_profile(const yijinjing::data::location_ptr &location,
   profile_store_mutex_.lock();
   try {
     // for config, basket, instruemnts .etc. from user interface
+    profile_restore_bank_.clear();
     profile_get_all(profile_, profile_restore_bank_);
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());

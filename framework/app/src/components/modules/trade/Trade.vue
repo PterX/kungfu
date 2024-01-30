@@ -81,6 +81,10 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
+const limitCount = ref<number>(20000);
+const maxCount = ref<number>(100000);
+const stopWatcher = ref(false);
+const splitCount = ref<number>(2000);
 const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
 
@@ -111,6 +115,10 @@ onActivated(() => {
         return;
       }
 
+      if (stopWatcher.value) {
+        return;
+      }
+
       const tradesResolved =
         globalThis.HookKeeper.getHooks().dealTradingData.trigger(
           watcher,
@@ -138,17 +146,17 @@ onActivated(() => {
         }),
       );
       allTrades.value = tempAllTrades;
-      if (tempAllTrades.length > 20000) {
-        //复制tempAllTrades的数据使得trades.value变成十倍
-        for (let i = 0; i < 10; i++) {
-          trades.value = trades.value.concat(tempAllTrades);
-        }
 
-        if (subscription) {
-          subscription.unsubscribe();
+      if (tempAllTrades.length > limitCount.value) {
+        trades.value = tempAllTrades;
+        stopWatcher.value = true;
+        while (trades.value.length < maxCount.value) {
+          trades.value = trades.value.concat(tempAllTrades);
+          console.log('trades length', trades.value.length);
         }
       } else {
-        trades.value = tempAllTrades.slice(0, 2000);
+        stopWatcher.value = false;
+        trades.value = tempAllTrades.slice(0, Number(splitCount.value));
       }
     },
   );
@@ -258,6 +266,35 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         </span>
       </template>
       <template #header>
+        <KfDashboardItem>
+          <a-button @click="() => (stopWatcher = false)">
+            {{ 'watcher继续' }}
+          </a-button>
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-input-number
+            v-model:value="splitCount"
+            :min="2000"
+            :placeholder="'截取条数'"
+            style="width: 120px"
+          ></a-input-number>
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-input-number
+            v-model:value="limitCount"
+            :min="2000"
+            :placeholder="'watcher暂停数据'"
+            style="width: 120px"
+          ></a-input-number>
+        </KfDashboardItem>
+        <KfDashboardItem>
+          <a-input-number
+            v-model:value="maxCount"
+            :min="2000"
+            :placeholder="'静态数据条数'"
+            style="width: 120px"
+          ></a-input-number>
+        </KfDashboardItem>
         <KfDashboardItem>
           <a-input-search
             v-model:value="searchKeyword"

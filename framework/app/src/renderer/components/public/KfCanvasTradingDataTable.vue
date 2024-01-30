@@ -9,7 +9,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
+import {
+  onMounted,
+  ref,
+  watch,
+  getCurrentInstance,
+  computed,
+  nextTick,
+} from 'vue';
 import { Empty } from 'ant-design-vue';
 import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -333,31 +340,33 @@ defineExpose({
 watch(
   () => props.dataSource,
   (tableData) => {
-    if (listTable) {
-      if (tableData.length === 0) {
-        listTableRef.value.style.height = `35px`;
-        if (
-          defaultTheme.scrollStyle &&
-          defaultTheme.scrollStyle.visible !== 'none'
-        ) {
-          defaultTheme.scrollStyle.visible = 'none';
-          listTable.updateTheme(defaultTheme);
+    nextTick(() => {
+      if (listTable) {
+        if (tableData.length === 0) {
+          listTableRef.value.style.height = `35px`;
+          if (
+            defaultTheme.scrollStyle &&
+            defaultTheme.scrollStyle.visible !== 'none'
+          ) {
+            defaultTheme.scrollStyle.visible = 'none';
+            listTable.updateTheme(defaultTheme);
+          }
+          showEmpty.value = true;
+        } else {
+          listTableRef.value.style.height = `100%`;
+          if (
+            defaultTheme.scrollStyle &&
+            defaultTheme.scrollStyle.visible !== 'focus'
+          ) {
+            defaultTheme.scrollStyle.visible = 'focus';
+            listTable.updateTheme(defaultTheme);
+          }
+          showEmpty.value = false;
         }
-        showEmpty.value = true;
-      } else {
-        listTableRef.value.style.height = `100%`;
-        if (
-          defaultTheme.scrollStyle &&
-          defaultTheme.scrollStyle.visible !== 'focus'
-        ) {
-          defaultTheme.scrollStyle.visible = 'focus';
-          listTable.updateTheme(defaultTheme);
-        }
-        showEmpty.value = false;
+        console.log('tableData', tableData.length);
+        listTable.setRecords(tableData);
       }
-      console.log('tableData', tableData.length);
-      listTable.setRecords(tableData);
-    }
+    });
   },
   { immediate: true },
 );

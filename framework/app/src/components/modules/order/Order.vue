@@ -530,6 +530,7 @@ function getTargetCancelOrders(): KungfuApi.Order[] {
 }
 
 function handleClickCell(args: VTable.MousePointerCellEvent) {
+  console.log(canvasRef.value.getListTable().getCellStyle(args.col, args.row));
   const attribute = args.target?.attribute as ICustomActionOption;
   if (args.field === 'actions') {
     if (attribute?.key === 'cancel_order') {

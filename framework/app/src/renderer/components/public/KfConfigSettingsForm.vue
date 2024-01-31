@@ -207,38 +207,10 @@ const OriContractList = ref<{ label: string; value: string }[]>([]);
 
 const contractList = ref<{ label: string; value: string }[]>([]);
 
-// const configSettingFormInject = inject(
-//   BuiltinComponentInjectKeysMap.ConfigSettingForm,
-//   {},
-// );
-
 watch(
   () => props.configSettings,
-  (newVal, oldVal) => {
+  (newVal) => {
     if (!newVal || newVal.length === 0) return;
-    if (oldVal) {
-      const oldKeySet = new Set(oldVal.map((item) => item.key));
-      const newKeySet = new Set(newVal.map((item) => item.key));
-      const newValMap = Object.fromEntries(
-        newVal.map((item) => [item.key, item.default]),
-      );
-      const oldValMap = Object.fromEntries(
-        oldVal.map((item) => [item.key, formState.value[item.key]]),
-      );
-      for (const key in oldValMap) {
-        if (!newKeySet.has(key)) {
-          delete formState.value[key];
-        }
-      }
-
-      for (const key in newValMap) {
-        if (!oldKeySet.has(key)) {
-          newValMap[key] !== undefined
-            ? (formState.value[key] = newValMap[key])
-            : null;
-        }
-      }
-    }
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);

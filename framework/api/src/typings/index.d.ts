@@ -210,7 +210,6 @@ declare namespace KungfuApi {
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
-    isHidden?: boolean;
     defaultDir?: string; // 选择文件相关的指定默认打开的文件夹
 
     maxlength?: number;

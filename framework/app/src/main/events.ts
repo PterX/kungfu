@@ -135,7 +135,7 @@ function sendMsgToMainWindow(
   }
 }
 
-export function copyConfigDBToLastVersionDir() {
+export function copyConfigDBToLatestVersionDir() {
   if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
     const rootPackageJson = readRootPackageJsonSync();
     const versions = globalStorage.getItem('historicalUsedVersions') ?? [];

@@ -49,7 +49,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import {
   performSystemActions,
-  copyConfigDBToLastVersionDir,
+  copyConfigDBToLatestVersionDir,
 } from '@kungfu-trader/kungfu-app/src/main/events';
 import { handleUpdateKungfu } from './autoUpdater';
 const { t } = VueI18n.global;
@@ -60,7 +60,7 @@ let SecheduleReloading = false;
 const isDev = process.env.NODE_ENV === 'development';
 const isMac = os.platform() === 'darwin';
 
-copyConfigDBToLastVersionDir();
+copyConfigDBToLatestVersionDir();
 initialize();
 setMenu();
 initKfConfig();

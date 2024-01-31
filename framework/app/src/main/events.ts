@@ -135,7 +135,7 @@ function sendMsgToMainWindow(
   }
 }
 
-export function performSystemActions() {
+export function copyConfigDBToLastVersionDir() {
   if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
     const rootPackageJson = readRootPackageJsonSync();
     const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
@@ -157,6 +157,9 @@ export function performSystemActions() {
       );
     }
   }
+}
+
+export function performSystemActions() {
   globalStorage.setItem('isKungfuFirstRunning', false);
   globalStorage.setItem(
     'lastStartDateTime',

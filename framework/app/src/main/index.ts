@@ -60,11 +60,11 @@ let SecheduleReloading = false;
 const isDev = process.env.NODE_ENV === 'development';
 const isMac = os.platform() === 'darwin';
 
-copyConfigDBToLatestVersionDir();
 initialize();
 setMenu();
 initKfConfig();
 initKfDefaultInstruments();
+copyConfigDBToLatestVersionDir();
 
 async function createWindow(
   reloadAfterCrashed = false,

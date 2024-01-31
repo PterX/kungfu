@@ -87,6 +87,8 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr &get_public_writer();
 
+  const rx::connectable_observable<event_ptr> &get_events() const;
+
   template <typename DataType>
   void write_to(const DataType &data, uint32_t dest_id = yijinjing::data::location::PUBLIC) {
     vendor_.write_to(now(), data, dest_id);

@@ -206,4 +206,6 @@ writer_ptr &BrokerService::get_thread_writer(uint32_t page_size) { return vendor
 
 writer_ptr &BrokerService::get_public_writer() { return vendor_.get_public_writer(); }
 
+const rx::connectable_observable<event_ptr> &BrokerService::get_events() const { return vendor_.get_events(); }
+
 } // namespace kungfu::wingchun::broker

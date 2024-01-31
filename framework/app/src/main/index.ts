@@ -103,7 +103,7 @@ async function createWindow(
     MainWindow.loadFile(filePath);
   }
 
-  MainWindow.on('ready-to-show', function () {
+  MainWindow.on('ready-to-show', async function () {
     MainWindow && MainWindow.show();
     MainWindow && MainWindow.focus();
     if (reloadAfterCrashed) {
@@ -114,7 +114,7 @@ async function createWindow(
       SecheduleReloading = false;
     }
 
-    isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
+    isUpdateVersionLogicEnable() && (await handleUpdateKungfu(MainWindow));
     performSystemActions();
   });
 

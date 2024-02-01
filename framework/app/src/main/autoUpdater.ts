@@ -129,7 +129,7 @@ const download = debounce(() => {
   autoUpdater.downloadUpdate();
 }, 1000);
 
-function updateVersion(version: string, updateType: UpdateVersionType): string {
+function getNextVersionByUpdateType(version: string, updateType: UpdateVersionType): string {
   switch (updateType) {
     case UpdateVersionTypeEnums.UpdateToNextAlpha:
       return (
@@ -156,7 +156,7 @@ function updateVersion(version: string, updateType: UpdateVersionType): string {
   }
 }
 
-function checkUpdateAvailable(
+function checkUpdateTypeAvailable(
   isPrerelease: boolean,
   updateType: UpdateVersionType,
 ) {
@@ -266,7 +266,7 @@ async function getLatestVersion(
       latestVersion: string;
     }
 > {
-  if (!checkUpdateAvailable(isPrerelease, updateVersionType)) {
+  if (!checkUpdateTypeAvailable(isPrerelease, updateVersionType)) {
     if (++updateVersionType <= UpdateVersionTypeEnums.UpdateToNextRelease) {
       return getLatestVersion(
         availableVersion,
@@ -281,7 +281,7 @@ async function getLatestVersion(
       };
     }
   }
-  const targetVersion = updateVersion(availableVersion, updateVersionType);
+  const targetVersion = getNextVersionByUpdateType(availableVersion, updateVersionType);
   let ymlUrl = '';
   if (updaterOption.provider === 'generic') {
     const url = `${urlPrefix}${targetVersion}`;

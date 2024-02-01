@@ -206,6 +206,7 @@ export const getKfExtensionConfigByCategory = (
                   orderTrigger: resolveOrderTriggerConfig(extOriginConfig),
                   settings: extOriginConfig[category]?.settings || [],
                   fundTrans: extOriginConfig[category]?.fund_trans || {},
+                  supportEtf: extOriginConfig[category]?.supportEtf || false,
                   showAssetMargin:
                     extOriginConfig[category]?.show_asset_margin || false,
                   margin: extOriginConfig[category]?.margin || {},

@@ -4,7 +4,7 @@ import {
   useModalVisible,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { ref, toRefs, computed, getCurrentInstance } from 'vue';
+import { ref, toRefs, computed, getCurrentInstance, onMounted } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
@@ -28,6 +28,14 @@ defineEmits<{
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
 }>();
+
+const everyVolumeInput = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  if (everyVolumeInput.value) {
+    everyVolumeInput.value.focus();
+  }
+});
 
 const orderNumber = computed(() => {
   return volume.value ? Math.floor(+curOrderVolume.value / +volume.value) : 0;
@@ -84,6 +92,7 @@ function handleConfirm() {
         <a-input-group compact style="margin-top: 10px" class="input-content">
           <span>{{ $t('tradingConfig.every_volume') }}:</span>
           <a-input-number
+            ref="everyVolumeInput"
             class="input-number"
             :precision="0"
             step="1"

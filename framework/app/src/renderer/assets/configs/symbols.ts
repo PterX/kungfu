@@ -5,9 +5,7 @@ import { InjectionKey } from 'vue';
 
 export const BuiltinComponentInjectKeysMap: {
   TradingTask: InjectionKey<BuiltinComponentPropsMap['TradingTask']>;
-  ConfigSettingForm: InjectionKey<
-    BuiltinComponentPropsMap['ConfigSettingForm']
-  >;
+  // MakeOrder: InjectionKey<BuiltinComponentPropsMap['MakeOrder']>;
 } = {
   TradingTask: Symbol.for('TradingTask'),
   // Pos: Symbol.for('Pos'),
@@ -20,7 +18,13 @@ export const BuiltinComponentInjectKeysMap: {
   // MarketData: Symbol.for('MarketData'),
   // OrderBook: Symbol.for('OrderBook'),
   // MakeOrder: Symbol.for('MakeOrder'),
-  // FutureArbitrage: Symbol.for('FutureArbitrage'),
+  // FutureArbitrage: Symbol.for('FutureArbitrage'),                              `
   // BlockTrade: Symbol.for('BlockTrade'),
-  ConfigSettingForm: Symbol.for('ConfigSettingForm'),
+  // MakeOrder: Symbol.for('MakeOrder'),
 };
+
+// export const BuiltinFormInjectKeysMap:  {
+//   Side:InjectionKey<BuiltinComponentInjectKeysMap['Side']>
+// } = {
+//   Side: Symbol.for('Side'),
+// }

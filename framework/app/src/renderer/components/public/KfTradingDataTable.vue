@@ -604,7 +604,7 @@ defineExpose({
         :class="['kf-table-cell', column.type]"
         :title="column.name"
         :style="{
-          'max-width': getHeaderWidth(column),
+          'max-width': column?.width ? getHeaderWidth(column) : 'none',
         }"
         @click.stop="handleSort(column.dataIndex, column.sorter)"
       >
@@ -672,7 +672,7 @@ defineExpose({
             :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
             :class="['kf-table-cell', column.type]"
             :style="{
-              'max-width': getHeaderWidth(column),
+              'max-width': column?.width ? getHeaderWidth(column) : 'none',
               height: '100%',
               'text-overflow': column.textOverflow || 'clip',
               'white-space': column.wrap ? 'normal' : 'nowrap',

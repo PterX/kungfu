@@ -1162,35 +1162,43 @@ export async function startReplay(
         );
         const enableMatcher = replayConfig.enable_matcher;
         return startTask(
-          location,
+          {
+            ...location,
+            mode: enableMatcher ? 'backtest' : 'replay',
+          },
           soPath,
           dealArgs,
           configSettings,
-          enableMatcher ? 'backtest' : 'replay',
           replayConfig,
         );
       } else {
         const enableMatcher = replayConfig.enable_matcher;
         return startStrategyOperator(
-          location,
+          {
+            ...location,
+            mode: enableMatcher ? 'backtest' : 'replay',
+          },
           '',
-          enableMatcher ? 'backtest' : 'replay',
           replayConfig,
         );
       }
     case 'td':
       return startTd(
         `${location.group}_${location.name}_${location.mode}`,
-        location,
-        'replay',
+        {
+          ...location,
+          mode: 'replay',
+        },
         replayConfig,
       );
     case 'operator':
       const enableMatcher = replayConfig.enable_matcher;
       return startStrategyOperator(
-        location,
+        {
+          ...location,
+          mode: enableMatcher ? 'backtest' : 'replay',
+        },
         '',
-        enableMatcher ? 'backtest' : 'replay',
         replayConfig,
       );
     case 'system':

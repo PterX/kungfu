@@ -121,8 +121,8 @@ export interface RootConfigJSON {
       checkVersion?: {
         UpdateToRelease?: boolean;
         UpdateToPrerelease?: boolean;
-        preToRelease?: boolean;
-        releaseToPre?: boolean;
+        alphaToRelease?: boolean;
+        releaseToAlpha?: boolean;
       };
     };
   };

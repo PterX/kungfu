@@ -915,7 +915,7 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   autoUpdater: {
-    update: '版本更新',
+    update_version: '版本更新',
     is_check_version: '检测更新',
     is_check_version_desc: '启动功夫时, 是否检测更新',
     current_version: '当前版本',
@@ -925,6 +925,7 @@ export default {
     retry_check: '检测',
     has_skipped: '已跳过此版本',
     start_download: '开始下载',
+    update: '更新',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
     downloaded: '下载完成, 等待安装',

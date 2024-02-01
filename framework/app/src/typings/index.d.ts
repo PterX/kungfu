@@ -113,6 +113,12 @@ interface BuiltinComponentPropsMap {
   };
 }
 
+// interface BuiltinComponentInjectKeysMap{
+//   Side:{
+//     sideFilter?: (instrumentType: InstrumentTypeEnum) => string[];
+//   }
+// }
+
 declare module 'worker-loader!*' {
   class WebpackWorker extends Worker {
     constructor();

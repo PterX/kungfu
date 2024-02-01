@@ -450,8 +450,8 @@ export function useTabFocusContainer(
 
     customFocusHandler
       ? container.addEventListener('keydown', (e: KeyboardEvent) =>
-          customFocusHandler(e, focusableElements),
-        )
+        customFocusHandler(e, focusableElements),
+      )
       : container.addEventListener('keydown', defaultFocusHandler);
   }
 
@@ -1353,14 +1353,14 @@ export const getJournalReplayConfigs = async (
 ): Promise<{
   startProcess: number;
   ProcessConfigs:
-    | {
-        category: string;
-        group: string;
-        name: string;
-        mode: string;
-        replayConfig: KungfuApi.ReplayConfig;
-      }
-    | undefined;
+  | {
+    category: string;
+    group: string;
+    name: string;
+    mode: string;
+    replayConfig: KungfuApi.ReplayConfig;
+  }
+  | undefined;
 }> => {
   try {
     return {
@@ -1511,9 +1511,8 @@ export const buildInstrumentSelectOptionValue = (
 export const buildInstrumentSelectOptionLabel = (
   instrument: KungfuApi.InstrumentResolved,
 ): string => {
-  return `${instrument.instrumentId} ${instrument.instrumentName} ${
-    ExchangeIds[instrument.exchangeId.toUpperCase()]?.name || ''
-  }`;
+  return `${instrument.instrumentId} ${instrument.instrumentName} ${ExchangeIds[instrument.exchangeId.toUpperCase()]?.name || ''
+    }`;
 };
 
 export const makeSearchOptionFormInstruments = (
@@ -1777,8 +1776,8 @@ export const useBoardFilter = () => {
   const boardFilter: Record<string, boolean | undefined> | undefined =
     rootPackageJson?.appConfig?.boardFilter;
 
-  const getBoard = <T>(containerName: string, ifTrue: T, ifFalse: T): T => {
-    const isBoardShow = boardFilter?.[containerName] ?? true;
+  const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
+    const isBoardShow = boardFilter?.[boardName] ?? true;
     return isBoardShow ? ifTrue : ifFalse;
   };
 
@@ -1794,8 +1793,8 @@ export const dealKungfuColorToClassname = (
   return isKfColor(color)
     ? color
     : !isHexOrRgbColor(color)
-    ? `color-${color || 'default'}`
-    : '';
+      ? `color-${color || 'default'}`
+      : '';
 };
 
 export const dealKungfuColorToStyleColor = (

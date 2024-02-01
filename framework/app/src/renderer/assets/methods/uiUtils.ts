@@ -330,7 +330,7 @@ export function useStyle(styleString: string) {
   return { addStyle, removeStyle, cleanup };
 }
 
-export function useShortcutFocuseContainer() {
+export function useShortcutFocusContainer() {
   const key = Date.now().toString();
   let keyShort = '';
 
@@ -419,7 +419,7 @@ export function useShortcutFocuseContainer() {
   return { setupShortcut, cleanupShortcut, registerKeyDown, setPos };
 }
 
-export function useTabFocus(
+export function useTabFocusContainer(
   containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
   customFocusHandler:
     | ((e: KeyboardEvent, focusableElements: HTMLElement[]) => void)
@@ -553,8 +553,8 @@ export function useKeyboardControlContainerStyle(
     removeStyle,
     cleanup: cleanupStyle,
   } = useStyle(styleString);
-  const { setupShortcut, setPos } = useShortcutFocuseContainer();
-  useTabFocus(containerRef, loopFocuse);
+  const { setupShortcut, setPos } = useShortcutFocusContainer();
+  useTabFocusContainer(containerRef, loopFocusContainer);
   setupShortcut(containerRef, keyShort);
 
   let container;
@@ -571,7 +571,10 @@ export function useKeyboardControlContainerStyle(
     return false;
   };
 
-  function loopFocuse(e: KeyboardEvent, focusableElements: HTMLElement[]) {
+  function loopFocusContainer(
+    e: KeyboardEvent,
+    focusableElements: HTMLElement[],
+  ) {
     if (!container) return;
 
     const isTabPressed = e.key === 'Tab';

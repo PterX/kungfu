@@ -135,17 +135,8 @@ function sendMsgToMainWindow(
   }
 }
 
-export function performSystemActions() {
+export function copyConfigDBToLatestVersionDir() {
   if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
-    const rootPackageJson = readRootPackageJsonSync();
-    const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
-    if (versions && rootPackageJson.version) {
-      globalStorage.setItem('historicalUsedVersions', [
-        ...versions,
-        rootPackageJson.version,
-      ]);
-    }
-
     //如果上一个版本存在config.db，则将其复制到到BASE_DB_DIR
     if (
       fse.pathExistsSync(path.join(LAST_VERSION_BASE_DB_DIR, 'config.db')) &&
@@ -156,6 +147,21 @@ export function performSystemActions() {
         path.join(BASE_DB_DIR, 'config.db'),
       );
     }
+  }
+}
+
+export function performSystemActions() {
+  const rootPackageJson = readRootPackageJsonSync();
+  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
+  if (
+    versions &&
+    rootPackageJson.version &&
+    !versions.includes(rootPackageJson.version)
+  ) {
+    globalStorage.setItem('historicalUsedVersions', [
+      ...versions,
+      rootPackageJson.version,
+    ]);
   }
   globalStorage.setItem('isKungfuFirstRunning', false);
   globalStorage.setItem(

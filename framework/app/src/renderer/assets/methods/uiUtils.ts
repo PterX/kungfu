@@ -1015,7 +1015,7 @@ export const handleOpenCodeView = (
 export const handleOpenJournalView = (
   config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
-  const hideloading = messagePrompt().loading(t('open_journal_dashboard'));
+  const hideloading = messagePrompt().loading(t('opening_inspect_tool'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
   const locationUID = config ? getKfLocationUID(config) || '' : '';
   return openJournalView(processId, locationUID).finally(() => {
@@ -1402,7 +1402,7 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
   if (!parentProvide || parentProvide === emptyObj) return provide(key, value);
   if (typeof parentProvide !== 'object' || typeof value !== 'object')
     return provide(key, value);
-  return provide(key, Object.assign(parentProvide, value));
+  return provide(key, Object.assign({ ...parentProvide }, { ...value }));
 };
 
 export const showInitAfterReloadConfirmDialog = () => {

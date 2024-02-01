@@ -47,7 +47,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { performSystemActions } from '@kungfu-trader/kungfu-app/src/main/events';
+import {
+  performSystemActions,
+  copyConfigDBToLatestVersionDir,
+} from '@kungfu-trader/kungfu-app/src/main/events';
 import { handleUpdateKungfu } from './autoUpdater';
 const { t } = VueI18n.global;
 let MainWindow: BrowserWindow | null = null;
@@ -61,6 +64,7 @@ initialize();
 setMenu();
 initKfConfig();
 initKfDefaultInstruments();
+copyConfigDBToLatestVersionDir();
 
 async function createWindow(
   reloadAfterCrashed = false,
@@ -189,6 +193,10 @@ if (process.env.NODE_ENV !== 'development') {
     });
   }
 }
+
+// disable GPU,
+app.disableDomainBlockingFor3DAPIs();
+app.disableHardwareAcceleration();
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -344,7 +352,7 @@ function setMenu() {
           click: () => MainWindow && openLogFile(MainWindow),
         },
         {
-          label: t('view_all_journal'),
+          label: t('open_inspect_tool'),
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
         },

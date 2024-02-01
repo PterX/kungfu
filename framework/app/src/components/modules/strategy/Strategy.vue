@@ -9,7 +9,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
-  BankOutlined,
+  EyeOutlined,
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
@@ -119,12 +119,21 @@ const columns = getColumns((dataIndex) => {
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
 
-function handleOpenSetStrategyDialog(
+async function handleOpenSetStrategyDialog(
   type: KungfuApi.ModalChangeType,
   strategyConfig?: KungfuApi.KfConfig,
 ) {
   setStrategyConfigPayload.value.type = type;
-  setStrategyConfigPayload.value.config = setStrategyConfig;
+  setStrategyConfigPayload.value.config =
+    await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+      {
+        category: 'strategy',
+        group: 'default',
+        name: '*',
+        mode: '*',
+      },
+      setStrategyConfig,
+    );
   setStrategyConfigPayload.value.initValue = undefined;
 
   if (type === 'update') {
@@ -253,10 +262,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
                 style="font-size: 12px"
                 @click.stop="handleOpenReplayConfirmView(record)"
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

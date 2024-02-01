@@ -370,7 +370,7 @@ function setMenu() {
           click: () => MainWindow && clearDB(MainWindow),
         },
         {
-          label: t('reset_main_panel'),
+          label: t('reset_current_panel'),
           click: () => MainWindow && resetMainDashboard(MainWindow),
         },
         {

@@ -180,7 +180,7 @@ export const useUpdateVersion = () => {
   const handleToConfirmStartUpdate = (newVersion: string) => {
     popoverVisible.value = false;
     extraConfirmModal(
-      t('autoUpdater.update'),
+      t('autoUpdater.update_version'),
       t('autoUpdater.find_new_version', {
         version: newVersion,
       }),
@@ -202,13 +202,17 @@ export const useUpdateVersion = () => {
     ipcRenderer.send('auto-update-to-start-download');
   };
 
+  const handleDownloadLatest = () => {
+    ipcRenderer.send('auto-update-to-download-latest');
+  };
+
   const skipVersion = (version: string) => {
     ipcRenderer.send('auto-update-skip-version', version);
   };
 
   const handleQuitAndInstall = () => {
     confirmModal(
-      t('autoUpdater.update'),
+      t('autoUpdater.update_version'),
       t('autoUpdater.warning_before_install'),
     ).then((flag) => {
       if (flag) {
@@ -248,6 +252,7 @@ export const useUpdateVersion = () => {
         }
 
         if (data.name === 'auto-update-start-download') {
+          hasNewVersion.value = true;
           downloadStarted.value = true;
           progressStatus.value = 'active';
           popoverVisible.value = true;
@@ -287,6 +292,7 @@ export const useUpdateVersion = () => {
     errorMessage,
     handleToRetryCheckUpdate,
     handleToStartDownload,
+    handleDownloadLatest,
     skipVersion,
     handleQuitAndInstall,
   };

@@ -1,13 +1,13 @@
 <template>
   <a-popover
     v-model:visible="popoverVisible"
-    :overlay-style="{ width: '420px' }"
+    :overlay-style="{ width: '440px' }"
     placement="topRight"
     trigger="click"
   >
     <template #title>
       <div class="kf-update-controller-title__wrap">
-        <span>{{ $t('autoUpdater.update') }}</span>
+        <span>{{ $t('autoUpdater.update_version') }}</span>
         <CloseOutlined @click="popoverVisible = false" />
       </div>
     </template>
@@ -48,6 +48,9 @@
               `(${$t('autoUpdater.has_skipped')})`
             }}
           </span>
+          <a-button type="link" @click="handleDownloadLatest">
+            {{ $t('autoUpdater.update') }}
+          </a-button>
           <a-button
             type="link"
             size="small"
@@ -87,6 +90,9 @@
               `(${$t('autoUpdater.has_skipped')})`
             }}
           </span>
+          <a-button type="link" @click="handleDownloadLatest">
+            {{ $t('autoUpdater.update') }}
+          </a-button>
           <a-button
             type="link"
             size="small"
@@ -121,7 +127,7 @@
     <div class="kf-update-controller-entry__wrap">
       <interaction-outlined />
       <span style="margin-left: 4px">
-        {{ $t('autoUpdater.update') }}
+        {{ $t('autoUpdater.update_version') }}
       </span>
     </div>
   </a-popover>
@@ -144,6 +150,7 @@ const {
   errorMessage,
   handleToRetryCheckUpdate,
   handleToStartDownload,
+  handleDownloadLatest,
   skipVersion,
   handleQuitAndInstall,
 } = useUpdateVersion();

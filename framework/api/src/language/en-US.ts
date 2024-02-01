@@ -45,7 +45,7 @@ export default {
 
   clear_journal: 'Clear journal',
   clear_DB: 'Clear DB',
-  reset_main_panel: 'Reset main panel',
+  reset_current_panel: 'Reset current panel',
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
   open_inspect_tool: 'Open inspect tool',

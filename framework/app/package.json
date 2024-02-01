@@ -47,7 +47,8 @@
     "markdown-it": "^13.0.1",
     "pinia": "^2.0.0",
     "sound-play": "^1.1.0",
-    "vue": "^3.2.34"
+    "vue": "^3.2.34",
+    "axios": "^0.21.1"
   },
   "devDependencies": {
     "@kungfu-trader/kungfu-toolchain": "^2.6.13-alpha.4",

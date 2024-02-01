@@ -36,8 +36,8 @@ let isRendererReady = false;
 const UpdateVersionTypeEnums = {
   UpdateToNextAlpha: 1, //更新到下一个alpha版本
   UpdateToRelease: 2, //更新到release版本
-  UpdatePatch: 3, //更新patch版本
-  UpdateMinor: 4, //更新minor版本
+  UpdateAlphaPatch: 3, //更新patch版本
+  UpdateMinorWithAlpha: 4, //更新minor版本
   UpdateToNextRelease: 5, //更新到下一个release版本
 };
 
@@ -137,13 +137,13 @@ function updateVersion(version: string, updateType: UpdateVersionType): string {
       );
     case UpdateVersionTypeEnums.UpdateToRelease:
       return semver.inc(version, 'patch') || 'kungfu-version-unknown';
-    case UpdateVersionTypeEnums.UpdatePatch: {
+    case UpdateVersionTypeEnums.UpdateAlphaPatch: {
       const versionWithoutPre = semver.coerce(version)?.version;
       const incrementedVersion = semver.inc(versionWithoutPre || '', 'patch');
       const finalVersion = incrementedVersion + '-alpha.0';
       return finalVersion;
     }
-    case UpdateVersionTypeEnums.UpdateMinor: {
+    case UpdateVersionTypeEnums.UpdateMinorWithAlpha: {
       const versionWithoutPre = semver.coerce(version)?.version;
       const incrementedVersion = semver.inc(versionWithoutPre || '', 'minor');
       const finalVersion = incrementedVersion + '-alpha.0';
@@ -162,7 +162,7 @@ function checkUpdateAvailable(
 ) {
   switch (updateType) {
     case UpdateVersionTypeEnums.UpdateToNextAlpha:
-    case UpdateVersionTypeEnums.UpdateMinor:
+    case UpdateVersionTypeEnums.UpdateMinorWithAlpha:
       if (isPrerelease) {
         return true;
       } else {
@@ -178,7 +178,7 @@ function checkUpdateAvailable(
         return true;
       }
     }
-    case UpdateVersionTypeEnums.UpdatePatch:
+    case UpdateVersionTypeEnums.UpdateAlphaPatch:
       if (isPrerelease) {
         return true;
       } else {
@@ -233,10 +233,18 @@ async function setUpdaterOption(
       urlPrefix,
     );
 
-    if (result) {
-      autoUpdater.setFeedURL(result.updaterOption);
+    if (result && result.latestVersion) {
+      const availableVersion = result.latestVersion;
+      const artifactPath = `${urlPrefix}${availableVersion}`;
+      updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
+      if (updaterOption.provider === 'generic') {
+        updaterOption.url = `${artifactPath}`;
+      } else if (updaterOption.provider === 's3') {
+        updaterOption.path = artifactPath;
+      }
+      autoUpdater.setFeedURL(updaterOption);
       return {
-        updaterOption: result.updaterOption,
+        updaterOption,
       };
     } else {
       return false;
@@ -255,7 +263,7 @@ async function getLatestVersion(
 ): Promise<
   | false
   | {
-      updaterOption: Writeable<AllPublishOptions>;
+      latestVersion: string;
     }
 > {
   if (!checkUpdateAvailable(isPrerelease, updateVersionType)) {
@@ -268,15 +276,8 @@ async function getLatestVersion(
         urlPrefix,
       );
     } else {
-      const artifactPath = `${urlPrefix}${availableVersion}`;
-      updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
-      if (updaterOption.provider === 'generic') {
-        updaterOption.url = `${artifactPath}`;
-      } else if (updaterOption.provider === 's3') {
-        updaterOption.path = artifactPath;
-      }
       return {
-        updaterOption,
+        latestVersion: availableVersion,
       };
     }
   }
@@ -307,15 +308,8 @@ async function getLatestVersion(
         urlPrefix,
       );
     } else {
-      const artifactPath = `${urlPrefix}${availableVersion}`;
-      updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
-      if (updaterOption.provider === 'generic') {
-        updaterOption.url = `${artifactPath}`;
-      } else if (updaterOption.provider === 's3') {
-        updaterOption.path = artifactPath;
-      }
       return {
-        updaterOption,
+        latestVersion: availableVersion,
       };
     }
   }

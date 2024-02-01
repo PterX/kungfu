@@ -1,7 +1,7 @@
 <template>
   <a-popover
     v-model:visible="popoverVisible"
-    :overlay-style="{ width: '420px' }"
+    :overlay-style="{ width: '440px' }"
     placement="topRight"
     trigger="click"
   >

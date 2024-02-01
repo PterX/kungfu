@@ -203,43 +203,39 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   },
 };
 
-export const getMarginSideConfig = (): Record<
-  string,
-  KungfuApi.KfTradeValueCommonData
-> => {
-  return {
-    [SideEnum.GuaranteeStockBuy]: {
-      name: t('tradingConfig.guarantee_stock_buy'),
-      color: 'red',
-      level: SideEnum.GuaranteeStockBuy,
-    },
-    [SideEnum.GuaranteeStockSell]: {
-      name: t('tradingConfig.guarantee_stock_sell'),
-      color: 'green',
-      level: SideEnum.GuaranteeStockSell,
-    },
-    [SideEnum.MarginTrade]: {
-      name: t('tradingConfig.margin_trade'),
-      color: 'red',
-      level: SideEnum.MarginTrade,
-    },
-    [SideEnum.ShortSell]: {
-      name: t('tradingConfig.short_sell'),
-      color: 'green',
-      level: SideEnum.ShortSell,
-    },
-    [SideEnum.RepayStock]: {
-      name: t('tradingConfig.repay_short'),
-      color: 'red',
-      level: SideEnum.RepayStock,
-    },
-    [SideEnum.RepayMargin]: {
-      name: t('tradingConfig.repay_margin'),
-      color: 'green',
-      level: SideEnum.RepayMargin,
-    },
-  };
-};
+
+export const marginSideConfig: Record<string, KungfuApi.KfTradeValueCommonData> = {
+  [SideEnum.GuaranteeStockBuy]: {
+    name: t('tradingConfig.guarantee_stock_buy'),
+    color: 'red',
+    level: SideEnum.GuaranteeStockBuy,
+  },
+  [SideEnum.GuaranteeStockSell]: {
+    name: t('tradingConfig.guarantee_stock_sell'),
+    color: 'green',
+    level: SideEnum.GuaranteeStockSell,
+  },
+  [SideEnum.MarginTrade]: {
+    name: t('tradingConfig.margin_trade'),
+    color: 'red',
+    level: SideEnum.MarginTrade,
+  },
+  [SideEnum.ShortSell]: {
+    name: t('tradingConfig.short_sell'),
+    color: 'green',
+    level: SideEnum.ShortSell,
+  },
+  [SideEnum.RepayStock]: {
+    name: t('tradingConfig.repay_short'),
+    color: 'red',
+    level: SideEnum.RepayStock,
+  },
+  [SideEnum.RepayMargin]: {
+    name: t('tradingConfig.repay_margin'),
+    color: 'green',
+    level: SideEnum.RepayMargin,
+  },
+}
 
 export const getOffsetConfig = (): Record<
   PriceTypeEnum,
@@ -1090,19 +1086,19 @@ export const InstrumentMinOrderVolume = {
 };
 
 export const Currency: Record<CurrencyEnum, KungfuApi.KfTradeValueCommonData> =
-  {
-    [CurrencyEnum.Unknown]: { name: '' },
-    [CurrencyEnum.CNY]: { name: t('tradingConfig.CNY') },
-    [CurrencyEnum.HKD]: { name: t('tradingConfig.HKD') },
-    [CurrencyEnum.USD]: { name: t('tradingConfig.USD') },
-    [CurrencyEnum.JPY]: { name: t('tradingConfig.JPY') },
-    [CurrencyEnum.GBP]: { name: t('tradingConfig.GBP') },
-    [CurrencyEnum.EUR]: { name: t('tradingConfig.EURO') },
-    [CurrencyEnum.CNH]: { name: t('tradingConfig.CNH') },
-    [CurrencyEnum.SGD]: { name: t('tradingConfig.SGD') },
-    [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
-    [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
-  };
+{
+  [CurrencyEnum.Unknown]: { name: '' },
+  [CurrencyEnum.CNY]: { name: t('tradingConfig.CNY') },
+  [CurrencyEnum.HKD]: { name: t('tradingConfig.HKD') },
+  [CurrencyEnum.USD]: { name: t('tradingConfig.USD') },
+  [CurrencyEnum.JPY]: { name: t('tradingConfig.JPY') },
+  [CurrencyEnum.GBP]: { name: t('tradingConfig.GBP') },
+  [CurrencyEnum.EUR]: { name: t('tradingConfig.EURO') },
+  [CurrencyEnum.CNH]: { name: t('tradingConfig.CNH') },
+  [CurrencyEnum.SGD]: { name: t('tradingConfig.SGD') },
+  [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
+  [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
+};
 
 export const ExportTradingDataColumnsToFilter: Record<
   KungfuApi.TradingDataTypeName,

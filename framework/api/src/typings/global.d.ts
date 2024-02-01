@@ -119,8 +119,6 @@ export interface RootConfigJSON {
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
       checkVersion?: {
-        UpdateToRelease?: boolean;
-        UpdateToPrerelease?: boolean;
         alphaToRelease?: boolean;
         releaseToAlpha?: boolean;
       };

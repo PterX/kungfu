@@ -18,7 +18,7 @@ export const BuiltinComponentInjectKeysMap: {
   // MarketData: Symbol.for('MarketData'),
   // OrderBook: Symbol.for('OrderBook'),
   // MakeOrder: Symbol.for('MakeOrder'),
-  // FutureArbitrage: Symbol.for('FutureArbitrage'),                              ` 
+  // FutureArbitrage: Symbol.for('FutureArbitrage'),                              `
   // BlockTrade: Symbol.for('BlockTrade'),
   MakeOrder: Symbol.for('MakeOrder'),
 };

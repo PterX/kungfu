@@ -25,7 +25,7 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
-  useKeyboardControlBoardStyle,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -59,7 +59,7 @@ const { currentAccountLocation, curInstrumentResolved } =
   useFormCurrentState(formState);
 useMakeOrderSubscribe(formState);
 
-useKeyboardControlBoardStyle(
+useKeyboardControlContainerStyle(
   'BlockTrade',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
   boardRef,

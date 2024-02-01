@@ -40,7 +40,7 @@ import { Empty } from 'ant-design-vue';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import {
   messagePrompt,
-  useShortcutFocuseBoard,
+  useShortcutFocuseContainer,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 const { success } = messagePrompt();
 
@@ -60,7 +60,7 @@ export default defineComponent({
       setDefaultCurrentGlobalKfLocation,
     } = useGlobalStore();
     const { boardsMap } = storeToRefs(useGlobalStore());
-    const { registerKeyDown } = useShortcutFocuseBoard();
+    const { registerKeyDown } = useShortcutFocuseContainer();
     registerKeyDown();
 
     const dealDefaultBoardsHook =

@@ -17,7 +17,7 @@ import {
   useDashboardBodySize,
   confirmModal,
   messagePrompt,
-  useKeyboardControlBoardStyle,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { BuiltinFormInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
@@ -107,7 +107,7 @@ const makeOrderRef = ref();
 const apartOrderRef = ref();
 const orderTriggerRef = ref();
 
-useKeyboardControlBoardStyle(
+useKeyboardControlContainerStyle(
   'MakeOrder',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
 

@@ -330,7 +330,7 @@ export function useStyle(styleString: string) {
   return { addStyle, removeStyle, cleanup };
 }
 
-export function useShortcutFocuseBoard() {
+export function useShortcutFocuseContainer() {
   const key = Date.now().toString();
   let keyShort = '';
 
@@ -340,8 +340,8 @@ export function useShortcutFocuseBoard() {
   ) => {
     const clean = watch(
       containerRef,
-      (newBoard) => {
-        if (newBoard) {
+      (newContainer) => {
+        if (newContainer) {
           const container = containerRef.value
             ? '$el' in containerRef.value
               ? containerRef.value.$el
@@ -445,7 +445,7 @@ export function useTabFocus(
       : elements;
   };
 
-  function loopFocusWithinBoard() {
+  function loopFocusWithinContainer() {
     if (!container) return;
 
     customFocusHandler
@@ -457,7 +457,7 @@ export function useTabFocus(
 
   const setupFocus = () => {
     updateFocusableElements();
-    loopFocusWithinBoard();
+    loopFocusWithinContainer();
   };
 
   // 默认的键盘事件处理函数
@@ -539,7 +539,7 @@ export function useTabFocus(
   return { cleanupFocus, setupFocus };
 }
 
-export function useKeyboardControlBoardStyle(
+export function useKeyboardControlContainerStyle(
   containerName: string,
   styleString: string,
   containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
@@ -553,7 +553,7 @@ export function useKeyboardControlBoardStyle(
     removeStyle,
     cleanup: cleanupStyle,
   } = useStyle(styleString);
-  const { setupShortcut, setPos } = useShortcutFocuseBoard();
+  const { setupShortcut, setPos } = useShortcutFocuseContainer();
   useTabFocus(containerRef, loopFocuse);
   setupShortcut(containerRef, keyShort);
 
@@ -604,7 +604,7 @@ export function useKeyboardControlBoardStyle(
     }
   }
 
-  function keyBoardFn(e: KeyboardEvent) {
+  function keyboardFn(e: KeyboardEvent) {
     if (e.code === 'Tab') {
       if (!containerRef.value) return;
       const container =
@@ -645,7 +645,7 @@ export function useKeyboardControlBoardStyle(
             : container),
           container.addEventListener('click', setPos);
         container.addEventListener('focusout', focusOutHandler);
-        document.addEventListener('keydown', keyBoardFn);
+        document.addEventListener('keydown', keyboardFn);
       }
     },
     { immediate: true },
@@ -670,7 +670,7 @@ export function useKeyboardControlBoardStyle(
     }
   }
   onBeforeUnmount(() => {
-    document.removeEventListener('keydown', keyBoardFn);
+    document.removeEventListener('keydown', keyboardFn);
     cleanup();
   });
 

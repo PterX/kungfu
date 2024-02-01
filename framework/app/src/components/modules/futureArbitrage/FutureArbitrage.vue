@@ -22,7 +22,7 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
-  useKeyboardControlBoardStyle,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from '../makeOrder/utils';
@@ -46,7 +46,7 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 const { currentAccountLocation } = useFormCurrentState(formState);
 
-useKeyboardControlBoardStyle(
+useKeyboardControlContainerStyle(
   'FutureArbitrage',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
   boardRef,

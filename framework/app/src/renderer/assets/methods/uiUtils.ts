@@ -1811,7 +1811,7 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
   if (!parentProvide || parentProvide === emptyObj) return provide(key, value);
   if (typeof parentProvide !== 'object' || typeof value !== 'object')
     return provide(key, value);
-  return provide(key, Object.assign(parentProvide, value));
+  return provide(key, Object.assign({ ...parentProvide }, { ...value }));
 };
 
 export const showInitAfterReloadConfirmDialog = () => {

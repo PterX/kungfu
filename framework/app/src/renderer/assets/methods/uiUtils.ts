@@ -335,23 +335,23 @@ export function useShortcutFocuseBoard() {
   let keyShort = '';
 
   const setupShortcut = (
-    boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+    containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
     curKeyShort: string,
   ) => {
     const clean = watch(
-      boardRef,
+      containerRef,
       (newBoard) => {
         if (newBoard) {
-          const board = boardRef.value
-            ? '$el' in boardRef.value
-              ? boardRef.value.$el
-              : boardRef.value
+          const container = containerRef.value
+            ? '$el' in containerRef.value
+              ? containerRef.value.$el
+              : containerRef.value
             : null;
           if (!globalThis.KeyShortMap[curKeyShort]) {
             globalThis.KeyShortMap[curKeyShort] = new LinkedList<HTMLElement>();
-            globalThis.KeyShortMap[curKeyShort].prepend(key, board);
+            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
           } else {
-            globalThis.KeyShortMap[curKeyShort].prepend(key, board);
+            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
           }
           keyShort = curKeyShort;
           clean();
@@ -386,12 +386,12 @@ export function useShortcutFocuseBoard() {
         if (globalThis.KeyShortMap[keyShortStr]) {
           const linkList = globalThis.KeyShortMap[keyShortStr];
           const pos = linkList.getPos();
-          const boardContent = linkList.getValue(pos);
-          if (!boardContent) return;
-          boardContent.classList.add('kf-highlight-outline');
-          boardContent.focus();
+          const containerContent = linkList.getValue(pos);
+          if (!containerContent) return;
+          containerContent.classList.add('kf-highlight-outline');
+          containerContent.focus();
           await setTimeout(() => {
-            boardContent.classList.remove('kf-highlight-outline');
+            containerContent.classList.remove('kf-highlight-outline');
           }, 300);
           linkList.posNext();
 
@@ -420,7 +420,7 @@ export function useShortcutFocuseBoard() {
 }
 
 export function useTabFocus(
-  boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
   customFocusHandler:
     | ((e: KeyboardEvent, focusableElements: HTMLElement[]) => void)
     | null = null,
@@ -428,14 +428,14 @@ export function useTabFocus(
     defaultFoucsableElements: HTMLElement[],
   ) => HTMLElement[],
 ) {
-  let board;
+  let container;
   let focusableElements: HTMLElement[] = [];
 
   const updateFocusableElements = () => {
-    if (!board) return;
+    if (!container) return;
 
     const elements = Array.from(
-      board.querySelectorAll(
+      container.querySelectorAll(
         'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
     ) as HTMLElement[];
@@ -446,13 +446,13 @@ export function useTabFocus(
   };
 
   function loopFocusWithinBoard() {
-    if (!board) return;
+    if (!container) return;
 
     customFocusHandler
-      ? board.addEventListener('keydown', (e: KeyboardEvent) =>
+      ? container.addEventListener('keydown', (e: KeyboardEvent) =>
           customFocusHandler(e, focusableElements),
         )
-      : board.addEventListener('keydown', defaultFocusHandler);
+      : container.addEventListener('keydown', defaultFocusHandler);
   }
 
   const setupFocus = () => {
@@ -510,26 +510,26 @@ export function useTabFocus(
   };
 
   const cleanupFocus = () => {
-    if (!board) return;
+    if (!container) return;
 
-    if (board && customFocusHandler) {
-      board.removeEventListener('keydown', customFocusHandler);
+    if (container && customFocusHandler) {
+      container.removeEventListener('keydown', customFocusHandler);
     }
   };
 
   onUnmounted(cleanupFocus);
 
   watch(
-    boardRef,
-    (newBoard) => {
-      if (newBoard) {
-        if (!boardRef.value) {
+    containerRef,
+    (newContainer) => {
+      if (newContainer) {
+        if (!containerRef.value) {
           return;
         }
-        board =
-          boardRef.value instanceof HTMLElement
-            ? boardRef.value
-            : boardRef.value.$el;
+        container =
+          containerRef.value instanceof HTMLElement
+            ? containerRef.value
+            : containerRef.value.$el;
         setupFocus();
       }
     },
@@ -539,25 +539,25 @@ export function useTabFocus(
   return { cleanupFocus, setupFocus };
 }
 
-export function useKeyboardControllerStyle(
-  boardName: string,
+export function useKeyboardControlBoardStyle(
+  containerName: string,
   styleString: string,
-  boardRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
   controlAreaStyleRef: Ref<HTMLElement | ComponentPublicInstance | null> = ref(
     null,
   ),
 ) {
-  const keyShort = keyShortMap[boardName];
+  const keyShort = keyShortMap[containerName];
   const {
     addStyle,
     removeStyle,
     cleanup: cleanupStyle,
   } = useStyle(styleString);
   const { setupShortcut, setPos } = useShortcutFocuseBoard();
-  useTabFocus(boardRef, loopFocuse);
-  setupShortcut(boardRef, keyShort);
+  useTabFocus(containerRef, loopFocuse);
+  setupShortcut(containerRef, keyShort);
 
-  let board;
+  let container;
   let element;
 
   const isChildOf = (parent: Element, child: Element) => {
@@ -572,7 +572,7 @@ export function useKeyboardControllerStyle(
   };
 
   function loopFocuse(e: KeyboardEvent, focusableElements: HTMLElement[]) {
-    if (!board) return;
+    if (!container) return;
 
     const isTabPressed = e.key === 'Tab';
 
@@ -606,16 +606,16 @@ export function useKeyboardControllerStyle(
 
   function keyBoardFn(e: KeyboardEvent) {
     if (e.code === 'Tab') {
-      if (!boardRef.value) return;
-      const board =
-        boardRef.value instanceof HTMLElement
-          ? boardRef.value
-          : boardRef.value.$el;
+      if (!containerRef.value) return;
+      const container =
+        containerRef.value instanceof HTMLElement
+          ? containerRef.value
+          : containerRef.value.$el;
       if (
         document.activeElement &&
-        board &&
-        (document.activeElement === board ||
-          isChildOf(board, document.activeElement))
+        container &&
+        (document.activeElement === container ||
+          isChildOf(container, document.activeElement))
       ) {
         addStyle(element);
       } else {
@@ -625,26 +625,26 @@ export function useKeyboardControllerStyle(
   }
 
   watch(
-    boardRef,
-    (newBoard, oldBoard) => {
-      if (oldBoard) {
-        board.removeEventListener('click', focusOutHandler);
-        board.removeEventListener('focus', setPos);
+    containerRef,
+    (newContainer, oldContainer) => {
+      if (oldContainer) {
+        container.removeEventListener('click', focusOutHandler);
+        container.removeEventListener('focus', setPos);
         cleanupStyle();
       }
-      if (newBoard) {
-        (board = boardRef.value
-          ? '$el' in boardRef.value
-            ? boardRef.value.$el
-            : boardRef.value
+      if (newContainer) {
+        (container = containerRef.value
+          ? '$el' in containerRef.value
+            ? containerRef.value.$el
+            : containerRef.value
           : null),
           (element = controlAreaStyleRef.value
             ? '$el' in controlAreaStyleRef.value
               ? controlAreaStyleRef.value.$el
               : controlAreaStyleRef.value
-            : board),
-          board.addEventListener('click', setPos);
-        board.addEventListener('focusout', focusOutHandler);
+            : container),
+          container.addEventListener('click', setPos);
+        container.addEventListener('focusout', focusOutHandler);
         document.addEventListener('keydown', keyBoardFn);
       }
     },
@@ -654,9 +654,9 @@ export function useKeyboardControllerStyle(
   function focusOutHandler() {
     setTimeout(() => {
       if (
-        board &&
+        container &&
         document.activeElement &&
-        !isChildOf(board, document.activeElement)
+        !isChildOf(container, document.activeElement)
       ) {
         removeStyle(element);
       }
@@ -665,8 +665,8 @@ export function useKeyboardControllerStyle(
 
   function cleanup() {
     cleanupStyle();
-    if (board) {
-      board.removeEventListener('focusout', focusOutHandler);
+    if (container) {
+      container.removeEventListener('focusout', focusOutHandler);
     }
   }
   onBeforeUnmount(() => {
@@ -1774,8 +1774,8 @@ export const useBoardFilter = () => {
   const boardFilter: Record<string, boolean | undefined> | undefined =
     rootPackageJson?.appConfig?.boardFilter;
 
-  const getBoard = <T>(boardName: string, ifTrue: T, ifFalse: T): T => {
-    const isBoardShow = boardFilter?.[boardName] ?? true;
+  const getBoard = <T>(containerName: string, ifTrue: T, ifFalse: T): T => {
+    const isBoardShow = boardFilter?.[containerName] ?? true;
     return isBoardShow ? ifTrue : ifFalse;
   };
 

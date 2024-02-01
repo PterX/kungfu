@@ -23,7 +23,7 @@ import {
   UnderweightType,
   PriceLevel,
   marginSideConfig,
-  getOffsetConfig
+  Offset,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -865,6 +865,31 @@ export const dealTradingData = <T>(
     tradingDataTypeName,
     kfLocation,
   );
+};
+
+export const getOffsetConfig = (): Record<
+  PriceTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const offsetConfig =
+    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
+    ({} as Record<string, boolean>);
+  const unsupportedOffset = Object.keys(offsetConfig).filter((key) => {
+    if (offsetConfig[key] === false && OffsetEnum[key] !== undefined) {
+      return true;
+    }
+    return false;
+  });
+
+  return Object.keys(OffsetEnum)
+    .filter((key) => Number.isNaN(+key))
+    .filter((key) => key !== 'Unknown')
+    .filter((offset) => !unsupportedOffset.includes(offset))
+    .map((offset) => OffsetEnum[offset])
+    .reduce((pre, enumValue: OffsetEnum) => {
+      return { ...pre, ...{ [enumValue]: Offset[enumValue] } };
+    }, {});
 };
 
 export const replaceNonAlphaNumericWithSpace = (

@@ -30,9 +30,6 @@ import {
 } from '../typings/enums';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
-import {
-  readRootPackageJsonSync,
-} from '../utils/fileUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -203,8 +200,10 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   },
 };
 
-
-export const marginSideConfig: Record<string, KungfuApi.KfTradeValueCommonData> = {
+export const marginSideConfig: Record<
+  string,
+  KungfuApi.KfTradeValueCommonData
+> = {
   [SideEnum.GuaranteeStockBuy]: {
     name: t('tradingConfig.guarantee_stock_buy'),
     color: 'red',
@@ -235,31 +234,6 @@ export const marginSideConfig: Record<string, KungfuApi.KfTradeValueCommonData> 
     color: 'green',
     level: SideEnum.RepayMargin,
   },
-}
-
-export const getOffsetConfig = (): Record<
-  PriceTypeEnum,
-  KungfuApi.KfTradeValueCommonData
-> => {
-  const rootPackageJson = readRootPackageJsonSync();
-  const offsetConfig =
-    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
-    ({} as Record<string, boolean>);
-  const unsupportedOffset = Object.keys(offsetConfig).filter((key) => {
-    if (offsetConfig[key] === false && OffsetEnum[key] !== undefined) {
-      return true;
-    }
-    return false;
-  });
-
-  return Object.keys(OffsetEnum)
-    .filter((key) => Number.isNaN(+key))
-    .filter((key) => key !== 'Unknown')
-    .filter((offset) => !unsupportedOffset.includes(offset))
-    .map((offset) => OffsetEnum[offset])
-    .reduce((pre, enumValue: OffsetEnum) => {
-      return { ...pre, ...{ [enumValue]: Offset[enumValue] } };
-    }, {});
 };
 
 export const CodeTabSetting: Record<
@@ -1086,19 +1060,19 @@ export const InstrumentMinOrderVolume = {
 };
 
 export const Currency: Record<CurrencyEnum, KungfuApi.KfTradeValueCommonData> =
-{
-  [CurrencyEnum.Unknown]: { name: '' },
-  [CurrencyEnum.CNY]: { name: t('tradingConfig.CNY') },
-  [CurrencyEnum.HKD]: { name: t('tradingConfig.HKD') },
-  [CurrencyEnum.USD]: { name: t('tradingConfig.USD') },
-  [CurrencyEnum.JPY]: { name: t('tradingConfig.JPY') },
-  [CurrencyEnum.GBP]: { name: t('tradingConfig.GBP') },
-  [CurrencyEnum.EUR]: { name: t('tradingConfig.EURO') },
-  [CurrencyEnum.CNH]: { name: t('tradingConfig.CNH') },
-  [CurrencyEnum.SGD]: { name: t('tradingConfig.SGD') },
-  [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
-  [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
-};
+  {
+    [CurrencyEnum.Unknown]: { name: '' },
+    [CurrencyEnum.CNY]: { name: t('tradingConfig.CNY') },
+    [CurrencyEnum.HKD]: { name: t('tradingConfig.HKD') },
+    [CurrencyEnum.USD]: { name: t('tradingConfig.USD') },
+    [CurrencyEnum.JPY]: { name: t('tradingConfig.JPY') },
+    [CurrencyEnum.GBP]: { name: t('tradingConfig.GBP') },
+    [CurrencyEnum.EUR]: { name: t('tradingConfig.EURO') },
+    [CurrencyEnum.CNH]: { name: t('tradingConfig.CNH') },
+    [CurrencyEnum.SGD]: { name: t('tradingConfig.SGD') },
+    [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
+    [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
+  };
 
 export const ExportTradingDataColumnsToFilter: Record<
   KungfuApi.TradingDataTypeName,

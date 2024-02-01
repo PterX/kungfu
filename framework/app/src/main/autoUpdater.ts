@@ -42,7 +42,7 @@ const UpdateVersionTypeEnums = {
 };
 
 type UpdateVersionType =
-  (typeof UpdateVersionTypeEnums)[keyof typeof UpdateVersionTypeEnums];
+  typeof UpdateVersionTypeEnums[keyof typeof UpdateVersionTypeEnums];
 
 const getChannel = (isPrerelease: boolean) => {
   const prefix = 'kungfu-update';
@@ -129,7 +129,10 @@ const download = debounce(() => {
   autoUpdater.downloadUpdate();
 }, 1000);
 
-function getNextVersionByUpdateType(version: string, updateType: UpdateVersionType): string {
+function getNextVersionByUpdateType(
+  version: string,
+  updateType: UpdateVersionType,
+): string {
   switch (updateType) {
     case UpdateVersionTypeEnums.UpdateToNextAlpha:
       return (
@@ -281,7 +284,10 @@ async function getLatestVersion(
       };
     }
   }
-  const targetVersion = getNextVersionByUpdateType(availableVersion, updateVersionType);
+  const targetVersion = getNextVersionByUpdateType(
+    availableVersion,
+    updateVersionType,
+  );
   let ymlUrl = '';
   if (updaterOption.provider === 'generic') {
     const url = `${urlPrefix}${targetVersion}`;

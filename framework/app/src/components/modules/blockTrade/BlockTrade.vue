@@ -25,7 +25,7 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
-  useKeyboardControllerStyle,
+  useKeyboardControlBoardStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -59,7 +59,7 @@ const { currentAccountLocation, curInstrumentResolved } =
   useFormCurrentState(formState);
 useMakeOrderSubscribe(formState);
 
-useKeyboardControllerStyle(
+useKeyboardControlBoardStyle(
   'BlockTrade',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
   boardRef,
@@ -315,16 +315,20 @@ function handleMakeOrder() {
     }
   }
 }
+
 .modal-node {
   .root-node {
     display: flex;
     flex-wrap: nowrap;
+
     .green {
       color: @green-base !important;
     }
+
     .red {
       color: @red-base !important;
     }
+
     .order-number {
       flex: 1;
       margin-top: 10%;

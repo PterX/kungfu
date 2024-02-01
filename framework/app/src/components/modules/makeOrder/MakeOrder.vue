@@ -19,7 +19,7 @@ import {
   messagePrompt,
   useKeyboardControllerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
+import { BuiltinFormInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
@@ -114,8 +114,6 @@ useKeyboardControllerStyle(
   boardRef,
   formRef,
 );
-
-const MakeOrderInject = inject(BuiltinComponentInjectKeysMap.MakeOrder, {});
 
 const currentAccountId = ref<string>('');
 
@@ -215,10 +213,6 @@ const configSettings = computed(() => {
       ];
     } else {
       sideList.value = Object.keys(Side).slice(0, 2);
-    }
-
-    if (MakeOrderInject?.sideFilter) {
-      sideList.value = MakeOrderInject.sideFilter(instrumentType);
     }
 
     if (instrumentType === InstrumentTypeEnum.future) {

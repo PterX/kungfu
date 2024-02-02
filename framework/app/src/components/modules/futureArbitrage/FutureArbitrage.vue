@@ -220,15 +220,9 @@ function handleMakeOrder() {
         makeOrderInput,
         currentAccountLocation.value,
         tdProcessId.toAccountId(),
-      )
-        .then(() => {
-          if (makeOrderBtn) {
-            (makeOrderBtn as HTMLElement).focus();
-          }
-        })
-        .catch((err) => {
-          error(err.message);
-        });
+      ).catch((err) => {
+        error(err.message);
+      });
     })
     .catch((err: Error) => {
       console.error(err);

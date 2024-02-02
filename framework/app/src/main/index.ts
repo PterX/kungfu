@@ -47,7 +47,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { performSystemActions } from '@kungfu-trader/kungfu-app/src/main/events';
+import {
+  performSystemActions,
+  copyConfigDBToLatestVersionDir,
+} from '@kungfu-trader/kungfu-app/src/main/events';
 import { handleUpdateKungfu } from './autoUpdater';
 const { t } = VueI18n.global;
 let MainWindow: BrowserWindow | null = null;
@@ -61,6 +64,7 @@ initialize();
 setMenu();
 initKfConfig();
 initKfDefaultInstruments();
+copyConfigDBToLatestVersionDir();
 
 async function createWindow(
   reloadAfterCrashed = false,
@@ -103,7 +107,7 @@ async function createWindow(
     MainWindow.loadFile(filePath);
   }
 
-  MainWindow.on('ready-to-show', function () {
+  MainWindow.on('ready-to-show', async function () {
     MainWindow && MainWindow.show();
     MainWindow && MainWindow.focus();
     if (reloadAfterCrashed) {
@@ -114,7 +118,7 @@ async function createWindow(
       SecheduleReloading = false;
     }
 
-    isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
+    isUpdateVersionLogicEnable() && (await handleUpdateKungfu(MainWindow));
     performSystemActions();
   });
 
@@ -366,7 +370,7 @@ function setMenu() {
           click: () => MainWindow && clearDB(MainWindow),
         },
         {
-          label: t('reset_main_panel'),
+          label: t('reset_current_panel'),
           click: () => MainWindow && resetMainDashboard(MainWindow),
         },
         {

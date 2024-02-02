@@ -118,6 +118,10 @@ export interface RootConfigJSON {
     env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
+      checkVersion?: {
+        alphaToRelease?: boolean;
+        releaseToAlpha?: boolean;
+      };
     };
   };
   appConfig?: {

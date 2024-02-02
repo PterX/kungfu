@@ -2,7 +2,6 @@
 import {
   computed,
   getCurrentInstance,
-  inject,
   nextTick,
   onMounted,
   ref,
@@ -19,7 +18,6 @@ import {
   messagePrompt,
   useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { BuiltinFormInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {

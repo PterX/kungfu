@@ -11,6 +11,8 @@ const {
   getAppDir,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 
+const oneThread = !!process.argv.find((arg) => arg === '--one-thread');
+
 function greeting() {
   const isCI = process.env.CI || false;
   const cols = process.stdout.columns;
@@ -70,7 +72,7 @@ const run = (distDir, distName = 'app') => {
       mode: 'production',
       distDir: distDir,
       distName: distName,
-      enableThreadLoader: true,
+      enableThreadLoader: !oneThread,
     };
 
     const mainConfig = require('./webpack.main.config');

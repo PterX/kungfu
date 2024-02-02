@@ -215,6 +215,7 @@ declare namespace KungfuApi {
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+    defaultDir?: string; // 选择文件相关的指定默认打开的文件夹
 
     maxlength?: number;
     showArg?: boolean; // 交易任务是否显示参数
@@ -644,7 +645,10 @@ declare namespace KungfuApi {
 
   export interface DataTable<T> {
     [hashed: string]: Readonly<T>;
-    filter(key: string, value: string | number | bigint): DataTable<T>;
+    filter(
+      key: string,
+      value: string | number | bigint | boolean,
+    ): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
     sort(key: string): Readonly<T>[];
     list(): Readonly<T>[];

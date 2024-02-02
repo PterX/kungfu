@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { toRaw } from 'vue';
+import {
+  toRaw,
+  watchEffect,
+  computed,
+  getCurrentInstance,
+  onBeforeUnmount,
+  nextTick,
+  ref,
+} from 'vue';
+import { useRouter } from 'vue-router';
 import { SlidersOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import KfProcessStatusController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfProcessStatusController.vue';
 import KfUpdateController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfUpdateController.vue';
-import { computed, getCurrentInstance, onBeforeUnmount, ref } from 'vue';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
@@ -25,6 +33,7 @@ const logoPath = isDefaultLogo()
 
 const { boardsStoreId } = storeToRefs(useGlobalStore());
 const app = getCurrentInstance();
+const router = useRouter();
 const globalSettingModalVisible = ref<boolean>(false);
 const menuSelectedKeys = ref<string[]>(['main']);
 
@@ -57,7 +66,7 @@ const footerComponentConfigs = computed(() => {
 
 const sidebarComponentConfigs = computed(() => {
   const rootPackageJson = readRootPackageJsonSync();
-  const customSidebar = rootPackageJson.traderUiConfig?.customSidebar ?? {};
+  const customSidebar = rootPackageJson.appConfig?.customSidebar ?? {};
   const uiExtConfigsWithMain = toRaw(uiExtConfigs.value);
   uiExtConfigsWithMain['main'] = {
     access: {},
@@ -98,6 +107,23 @@ const sidebarComponentConfigs = computed(() => {
     });
 });
 
+const stop = watchEffect(() => {
+  const firstSidebarComponent = sidebarComponentConfigs.value[0];
+  if (firstSidebarComponent && !router.hasRoute('default')) {
+    router.addRoute({
+      path: '/',
+      name: 'default',
+      redirect: `/${firstSidebarComponent.key}`,
+    });
+    router.push({ path: `/${firstSidebarComponent.key}` });
+    menuSelectedKeys.value = [firstSidebarComponent.key];
+
+    nextTick(() => {
+      stop();
+    });
+  }
+});
+
 const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
   if (data.tag === 'main') {
     switch (data.name) {
@@ -108,13 +134,12 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
 
   if (data.tag === 'switch-sidebar') {
     const targetKey = data.targetKey || '';
-    const isMain = targetKey === 'main';
-    const isExtInSidebar = sidebarComponentConfigs.value.some(
+    const isInSidebar = sidebarComponentConfigs.value.some(
       (item) => item.key === targetKey,
     );
-    if (isMain || isExtInSidebar) {
+    if (isInSidebar) {
       menuSelectedKeys.value = [targetKey];
-      handleToPage(`/${isMain ? '' : targetKey}`, targetKey);
+      handleToPage(`/${targetKey}`, targetKey);
     }
   }
 
@@ -122,7 +147,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     isExtSidebarShow.value[data.key || ''] = data.target;
     if (data.target === false) {
       menuSelectedKeys.value = ['main'];
-      handleToPage('/', 'main');
+      handleToPage('/main', 'main');
     }
   }
 });

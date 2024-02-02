@@ -273,6 +273,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         default: false,
       },
+      {
+        key: 'logFrame',
+        name: 'log 是否输出 frame 相关信息',
+        tip: '',
+        type: 'bool',
+        default: true,
+      },
     ],
   },
   {
@@ -340,6 +347,8 @@ export const getKfGlobalSettingsValue = (): Record<
   string,
   Record<string, KungfuApi.KfConfigValue>
 > => {
+  if (!fse.existsSync(KF_CONFIG_PATH)) return {};
+
   return fse.readJSONSync(KF_CONFIG_PATH) as Record<
     string,
     Record<string, KungfuApi.KfConfigValue>

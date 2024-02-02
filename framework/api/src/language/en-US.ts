@@ -45,7 +45,7 @@ export default {
 
   clear_journal: 'Clear journal',
   clear_DB: 'Clear DB',
-  reset_main_panel: 'Reset main panel',
+  reset_current_panel: 'Reset current panel',
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
   open_inspect_tool: 'Open inspect tool',
@@ -919,7 +919,7 @@ export default {
   白名单设置警告: 'Please set the whitelist for this account first',
 
   autoUpdater: {
-    update: 'Upgrade Version',
+    update_version: 'Upgrade Version',
     is_check_version: 'Check Version',
     is_check_version_desc: 'Check the client version when start kungfu',
     current_version: 'Current version',
@@ -929,6 +929,7 @@ export default {
     retry_check: 'Check',
     has_skipped: 'Has skipped the version',
     start_download: 'Start Download',
+    update: 'Update',
     retry_download: 'Retry',
     find_new_version: 'Found new version: {version}\nIf you want download now?',
     downloaded: 'Download finished, wait to install',

@@ -22,6 +22,7 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from '../makeOrder/utils';
@@ -34,6 +35,8 @@ const { globalSetting } = storeToRefs(useGlobalStore());
 
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
+const boardRef = ref();
+const makeOrderRef = ref();
 const { processStatusData } = useProcessStatusDetailData();
 
 const {
@@ -42,6 +45,13 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 const { currentAccountLocation } = useFormCurrentState(formState);
+
+useKeyboardControlContainerStyle(
+  'FutureArbitrage',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+  boardRef,
+  formRef,
+);
 
 const isShowCurrentGlobalKfLocationTitle = computed(() => {
   return (
@@ -199,7 +209,10 @@ function handleMakeOrder() {
           t('tradingConfig.place_confirm'),
           dealOrderPlaceVNode(makeOrderInput, 1, true),
         );
-        if (!flag) return;
+        if (!flag) {
+          makeOrderRef.value?.focus();
+          return;
+        }
       }
 
       makeOrderByOrderInput(
@@ -207,9 +220,15 @@ function handleMakeOrder() {
         makeOrderInput,
         currentAccountLocation.value,
         tdProcessId.toAccountId(),
-      ).catch((err) => {
-        error(err.message);
-      });
+      )
+        .then(() => {
+          if (makeOrderBtn) {
+            (makeOrderBtn as HTMLElement).focus();
+          }
+        })
+        .catch((err) => {
+          error(err.message);
+        });
     })
     .catch((err: Error) => {
       console.error(err);
@@ -218,7 +237,11 @@ function handleMakeOrder() {
 </script>
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @boardSizeChange="handleBodySizeChange">
+    <KfDashboard
+      ref="boardRef"
+      tabindex="0"
+      @boardSizeChange="handleBodySizeChange"
+    >
       <template v-slot:title>
         <span
           v-if="currentGlobalKfLocation && isShowCurrentGlobalKfLocationTitle"
@@ -236,7 +259,11 @@ function handleMakeOrder() {
       </template>
       <template v-slot:header>
         <KfDashboardItem>
-          <a-button size="small" @click="handleResetMakeOrderForm">
+          <a-button
+            tabindex="-2"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
             {{ $t('futureArbitrageConfig.reset_order') }}
           </a-button>
         </KfDashboardItem>
@@ -255,7 +282,7 @@ function handleMakeOrder() {
           ></KfConfigSettingsForm>
         </div>
         <div class="make-order-btns">
-          <a-button size="small" @click="handleMakeOrder">
+          <a-button ref="makeOrderRef" size="small" @click="handleMakeOrder">
             {{ $t('futureArbitrageConfig.place_order') }}
           </a-button>
         </div>
@@ -303,16 +330,20 @@ function handleMakeOrder() {
     }
   }
 }
+
 .modal-node {
   .root-node {
     display: flex;
     flex-wrap: nowrap;
+
     .green {
       color: @green-base !important;
     }
+
     .red {
       color: @red-base !important;
     }
+
     .order-number {
       flex: 1;
       margin-top: 10%;

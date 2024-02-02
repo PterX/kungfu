@@ -857,9 +857,9 @@ async function getBackTestConfigPath(group: string, name: string) {
 
   await fse.ensureDir(cwd);
 
-  if (window.watcher) {
-    const instruments = window.watcher.ledger.Instrument.list();
-    const commissions = await getKfCommission(window.watcher);
+  if (globalThis.watcher) {
+    const instruments = globalThis.watcher.ledger.Instrument.list();
+    const commissions = await getKfCommission(globalThis.watcher);
 
     const backtestConfigJson = {
       Commission: {
@@ -1182,9 +1182,9 @@ export const startMd = async (
 export const startTd = async (
   accountId: string,
   kfConfig: KungfuApi.DerivedKfLocation,
-  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const mode = kfConfig.mode || 'live';
   const globalSetting = getKfGlobalSettingsValue();
   let autorestart = globalSetting?.system?.autoRestartTd ?? true;
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
@@ -1256,9 +1256,9 @@ export const startTask = async (
   soPath: string,
   args: string,
   configSettings: KungfuApi.KfConfigItem[],
-  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const mode = taskLocation.mode || 'live';
   const isReplay = mode === 'replay' || mode === 'backtest';
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   let argsResolved = '';
@@ -1329,9 +1329,9 @@ export const startTask = async (
 
 export const startOperatorByExt = async (
   kfConfig: KungfuApi.DerivedKfLocation,
-  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ) => {
+  const mode = kfConfig.mode || 'live';
   const isReplay = mode === 'replay';
   let args = '';
   let fullProcessId = '';
@@ -1398,9 +1398,9 @@ export const startStrategyOperatorByLocalPython = async (
   KfLocation: KungfuApi.KfLocation,
   filePath: string,
   pythonPath: string,
-  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const mode = KfLocation.mode || 'live';
   const isReplay = mode === 'replay' || mode === 'backtest';
   let args = '';
   let fullProcessId = '';
@@ -1475,10 +1475,9 @@ export const startStrategyOperatorByLocalPython = async (
 export const startStrategyOperator = async (
   kfLocation: KungfuApi.KfLocation,
   filePath: string,
-  mode: KfModeTypes = 'live',
   replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
-  const { category } = kfLocation;
+  const { category, mode } = kfLocation;
   const processId = getProcessIdByKfLocation(kfLocation);
   const isReplay = mode === 'replay' || mode === 'backtest';
   filePath = dealSpaceInPath(filePath);
@@ -1511,7 +1510,6 @@ export const startStrategyOperator = async (
           name: replayConfig.session_name,
           mode: mode,
         },
-        mode,
         replayConfig,
       );
     }
@@ -1526,7 +1524,6 @@ export const startStrategyOperator = async (
         kfLocation,
         filePath,
         pythonPath,
-        mode,
         replayConfig,
       );
     } else {

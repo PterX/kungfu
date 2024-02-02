@@ -292,6 +292,7 @@ function handleToPage(pathname: string) {
           justify-content: space-evenly;
           align-items: center;
           flex-direction: column;
+          padding: 0 8px;
 
           > span {
             display: block;
@@ -301,6 +302,12 @@ function handleToPage(pathname: string) {
             height: auto;
             line-height: 1;
             margin-left: 0;
+            :last-child {
+              display: inline-block;
+              max-width: 48px;
+              white-space: normal;
+              word-break: break-all;
+            }
           }
         }
       }

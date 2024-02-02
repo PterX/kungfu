@@ -2,11 +2,14 @@
 import {
   computed,
   getCurrentInstance,
+  inject,
   nextTick,
   onMounted,
   ref,
   watch,
 } from 'vue';
+import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
+
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import {
@@ -14,7 +17,9 @@ import {
   useDashboardBodySize,
   confirmModal,
   messagePrompt,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { BuiltinFormInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import {
@@ -37,6 +42,10 @@ import {
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
+  Side,
+  MarginSideStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useInstruments,
@@ -44,7 +53,10 @@ import {
   useTradeLimit,
   useMarginSupport,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  initFormStateByConfig,
+  enableCustomRadioType,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
@@ -89,6 +101,20 @@ const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
+const formRef = ref();
+const boardRef = ref();
+const makeOrderRef = ref();
+const apartOrderRef = ref();
+const orderTriggerRef = ref();
+
+useKeyboardControlContainerStyle(
+  'MakeOrder',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+
+  boardRef,
+  formRef,
+);
+
 const currentAccountId = ref<string>('');
 
 const formState = ref(
@@ -108,17 +134,11 @@ const { isMarginMakeOrder, isSpecifyContract } = useMarginSupport(
   formState,
 );
 
-const contractSideTypes = [
-  SideEnum.GuaranteeStockBuy,
-  SideEnum.GuaranteeStockSell,
-  SideEnum.MarginTrade,
-  SideEnum.ShortSell,
-  SideEnum.RepayMargin,
-  SideEnum.RepayStock,
-];
+const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
+const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+
 const autoFillInstrument = ref<boolean>(false);
 
-const formRef = ref();
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 
@@ -170,6 +190,41 @@ const configSettings = computed(() => {
   }
 
   const { side } = formState.value;
+  if (isMarginMakeOrder.value) {
+    if (!MarginSideStatus.includes(formState.value.side)) {
+      formState.value.side = SideEnum.GuaranteeStockBuy;
+    }
+  }
+  if (instrumentResolved.value) {
+    const { instrumentType, exchangeId } = instrumentResolved.value;
+    const tdName = currentGlobalKfLocation.value?.group;
+    const extConfig = extConfigs.value.td[tdName];
+    if (instrumentType === InstrumentTypeEnum.stockoption) {
+      sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
+    } else if (
+      instrumentType === InstrumentTypeEnum.fund &&
+      extConfig &&
+      extConfig.supportEtf
+    ) {
+      sideList.value = [
+        ...Object.keys(Side).slice(0, 2),
+        SideEnum.Purchase + '',
+        SideEnum.Redemption + '',
+      ];
+    } else {
+      sideList.value = Object.keys(Side).slice(0, 2);
+    }
+
+    if (instrumentType === InstrumentTypeEnum.future) {
+      if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
+        offsetList.value = offsetList.value.filter(
+          (item) =>
+            item !== OffsetEnum.CloseToday + '' ||
+            item !== OffsetEnum.CloseYest + '',
+        );
+      }
+    }
+  }
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
@@ -179,6 +234,8 @@ const configSettings = computed(() => {
     priceType: +formState.value.price_type,
     pricePrecision,
     step,
+    sideList: sideList.value,
+    offsetList: offsetList.value,
   });
 });
 
@@ -297,6 +354,13 @@ watch(
   () => formState.value.instrument,
   (newVal) => {
     if (
+      !isMarginMakeOrder.value &&
+      'side' in formState.value &&
+      !sideList.value.includes(formState.value.side + '')
+    ) {
+      formState.value.side = +sideList.value[0];
+    }
+    if (
       !formState.value.account_id &&
       currentGlobalKfLocation.value?.category !== 'td' &&
       instrumentKeyAccountsMap.value[newVal] &&
@@ -331,11 +395,11 @@ watch(
   () => isMarginMakeOrder.value,
   (newVal) => {
     if (newVal) {
-      if (!contractSideTypes.includes(formState.value.side)) {
+      if (!MarginSideStatus.includes(formState.value.side)) {
         formState.value.side = SideEnum.GuaranteeStockBuy;
       }
     } else {
-      if (contractSideTypes.includes(formState.value.side)) {
+      if (MarginSideStatus.includes(formState.value.side)) {
         formState.value.side = SideEnum.Buy;
       }
     }
@@ -544,7 +608,10 @@ async function handleApartOrder(): Promise<void> {
     const isContinue = await confirmContinueOrderModal(
       dealFatFingerMessage(makeOrderInput),
     );
-    if (isContinue !== null && !isContinue) return;
+    if (isContinue !== null && !isContinue) {
+      apartOrderRef.value?.focus();
+      return;
+    }
 
     isShowConfirmModal.value = true;
     curOrderVolume.value = Number(makeOrderInput.volume);
@@ -559,13 +626,19 @@ async function handleApartOrder(): Promise<void> {
 // 拆单弹窗确认回调
 async function handleApartedConfirm(volumeList: number[]): Promise<void> {
   try {
-    if (!makeOrderData.value || !currentGlobalKfLocation.value) return;
+    if (!makeOrderData.value || !currentGlobalKfLocation.value) {
+      apartOrderRef.value?.focus();
+      return;
+    }
 
     const tdProcessId = await confirmOrderPlace(
       makeOrderData.value,
       volumeList.length,
     );
-    if (!tdProcessId) return;
+    if (!tdProcessId) {
+      apartOrderRef.value?.focus();
+      return;
+    }
 
     const apartOrderInput: KungfuApi.MakeOrderInput = makeOrderData.value;
 
@@ -579,6 +652,7 @@ async function handleApartedConfirm(volumeList: number[]): Promise<void> {
         );
       }),
     );
+    apartOrderRef.value?.focus();
   } catch (e) {
     if ((<Error>e).message) {
       error((<Error>e).message);
@@ -762,9 +836,12 @@ async function handleMakeOrder(): Promise<void> {
 
     for (let orderInput of makeOrderInputs) {
       const tdProcessId = await confirmOrderPlace(orderInput);
-      if (!tdProcessId) continue;
+      if (!tdProcessId) {
+        continue;
+      }
       await placeOrder(orderInput, currentGlobalKfLocation.value, tdProcessId);
     }
+    makeOrderRef.value?.focus();
     app?.proxy?.$globalBus.next({
       tag: 'main',
       name: 'click:makeOrder',
@@ -817,7 +894,10 @@ const orderTriggerBtnVisible = computed(() => {
 // 预埋
 async function handleOrderTrigger() {
   try {
-    if (!currentGlobalKfLocation.value) return;
+    if (!currentGlobalKfLocation.value) {
+      orderTriggerRef.value?.focus();
+      return;
+    }
 
     await formRef.value.validate();
     orderTriggerInput.value = await initOrderInputData();
@@ -830,6 +910,7 @@ async function handleOrderTrigger() {
 
     if (processStatusData.value[tdProcessId] !== 'online') {
       error(t('tradingConfig.start_process', { process: tdProcessId }));
+      orderTriggerRef.value?.focus();
       return;
     }
 
@@ -850,7 +931,10 @@ async function handleOrderTrigger() {
 }
 
 function handleOrderTriggerConfirm() {
-  if (!currentGlobalKfLocation.value) return;
+  if (!currentGlobalKfLocation.value) {
+    orderTriggerRef.value?.focus();
+    return;
+  }
   const orderInput: KungfuApi.MakeOrderTriggerInput = {
     ...(orderTriggerInput.value as KungfuApi.MakeOrderInput),
   };
@@ -863,6 +947,7 @@ function handleOrderTriggerConfirm() {
 
   if (processStatusData.value[tdProcessId] !== 'online') {
     error(t('tradingConfig.start_process', { process: tdProcessId }));
+    orderTriggerRef.value?.focus();
     return;
   }
 
@@ -878,6 +963,7 @@ function handleOrderTriggerConfirm() {
     .catch((e) => {
       error((<Error>e).message);
     });
+  orderTriggerRef.value?.focus();
 }
 
 // 展示平仓弹窗
@@ -1008,7 +1094,11 @@ watch(
 
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @boardSizeChange="handleBodySizeChange">
+    <KfDashboard
+      ref="boardRef"
+      tabindex="0"
+      @boardSizeChange="handleBodySizeChange"
+    >
       <template v-slot:title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
@@ -1021,6 +1111,18 @@ watch(
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
+      </template>
+      <template #header>
+        <KfDashboardItem>
+          <a-button
+            tabindex="-2"
+            style="flex: 0"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
+            {{ $t('tradingConfig.reset_order') }}
+          </a-button>
+        </KfDashboardItem>
       </template>
       <div class="make-order__wrap">
         <div class="make-order-content">
@@ -1039,6 +1141,7 @@ watch(
               <a-col :span="LABEL_COL + WRAPPER_COL">
                 <a-button
                   v-for="percent in percentList"
+                  tabindex="-1"
                   :class="{
                     'percent-button': true,
                     'percent-button-active': currentPercent === percent,
@@ -1055,7 +1158,7 @@ watch(
               </a-col>
             </div>
             <template v-if="isAccountOrInstrumentConfirmed">
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     showAmountOrPosition === 'amount'
@@ -1071,7 +1174,7 @@ watch(
                   }}
                 </a-col>
               </div>
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     isMarginMakeOrder
@@ -1087,7 +1190,7 @@ watch(
                   {{ currentTradeAmount }}
                 </a-col>
               </div>
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     showAmountOrPosition === 'amount'
@@ -1105,6 +1208,7 @@ watch(
               </div>
               <a-card
                 v-if="availTradingTaskExtensionList.length"
+                tabindex="-1"
                 class="make-order-algorithm__wrap"
                 :title="$t('tradingConfig.algorithm')"
                 size="small"
@@ -1114,9 +1218,11 @@ watch(
                 }"
               >
                 <a-button
+                  tabindex="-1"
                   class="make-order-algorithm-btns"
                   v-for="item in availTradingTaskExtensionList"
                   @click="handleOpenTradingTaskConfigModal(item)"
+                  :key="item.key"
                 >
                   {{
                     isLanguageKeyAvailable(item.name)
@@ -1130,19 +1236,20 @@ watch(
         </div>
         <div class="make-order-btns">
           <a-button
-            style="flex: 0"
-            size="small"
-            @click="handleResetMakeOrderForm"
+            ref="makeOrderRef"
+            class="make-order"
+            @click="handleMakeOrder"
           >
-            {{ $t('tradingConfig.reset_order') }}
-          </a-button>
-          <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
+          <a-button
+            ref="orderTriggerRef"
+            v-if="orderTriggerBtnVisible"
+            @click="handleOrderTrigger"
+          >
             {{ $t('tradingConfig.order_trigger') }}
           </a-button>
-          <a-button @click="handleApartOrder">
+          <a-button ref="apartOrderRef" @click="handleApartOrder">
             {{ $t('tradingConfig.apart_order') }}
           </a-button>
         </div>
@@ -1152,6 +1259,11 @@ watch(
       v-if="isShowOrderTriggerConfirmModal"
       v-model:visible="isShowOrderTriggerConfirmModal"
       :orderTriggerInput="orderTriggerInputResolved"
+      @close="
+        () => {
+          orderTriggerRef && orderTriggerRef.focus();
+        }
+      "
       @confirm="handleOrderTriggerConfirm"
     ></OrderTriggerConfirmModal>
     <OrderConfirmModal
@@ -1159,6 +1271,11 @@ watch(
       v-model:visible="isShowConfirmModal"
       :curOrderVolume="curOrderVolume"
       :curOrderType="curOrderType"
+      @close="
+        () => {
+          apartOrderRef && apartOrderRef.focus();
+        }
+      "
       @confirm="handleApartedConfirm"
     ></OrderConfirmModal>
   </div>
@@ -1273,6 +1390,7 @@ watch(
           margin-bottom: 0px;
         }
       }
+
       .make-order {
         height: 72%;
         flex: 4;
@@ -1283,6 +1401,7 @@ watch(
   .green {
     color: @green-base !important;
   }
+
   .red {
     color: @red-base !important;
   }
@@ -1292,12 +1411,15 @@ watch(
   .root-node {
     display: flex;
     flex-wrap: nowrap;
+
     .green {
       color: @green-base !important;
     }
+
     .red {
       color: @red-base !important;
     }
+
     .order-number {
       flex: 1;
       margin-top: 10%;

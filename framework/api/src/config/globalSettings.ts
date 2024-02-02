@@ -321,7 +321,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     ? [
         {
           key: 'update',
-          name: t('autoUpdater.update'),
+          name: t('autoUpdater.update_version'),
           config: [
             {
               key: 'isCheckVersion',

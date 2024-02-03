@@ -101,7 +101,7 @@ const { extConfigs, tdExtTypeMap } = useExtConfigsRelated();
 const { td } = toRefs(useAllKfConfigData());
 const tdIdList = computed(() => {
   return td.value.map(
-    (item: KungfuApi.KfLocation): string => `${item.group}_${item.name}`,
+    (item: KungfuApi.KfLocation): string => `${item.group}-${item.name}`,
   );
 });
 const {

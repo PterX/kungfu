@@ -627,7 +627,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               >
                 {{ record.group }}
               </a-tag>
-              <span>
+              <span style="user-select: text">
                 {{ record.name }}
               </span>
               <Icon

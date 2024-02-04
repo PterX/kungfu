@@ -142,11 +142,11 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   auto acked = stat.ack_time != 0;
   if (not inserted) {
     stat.insert_time = event->gen_time();
-    write_to(event->gen_time(), stat, event->source());
+    try_write_to(event->gen_time(), stat, event->source());
   }
   if (inserted and not acked) {
     stat.ack_time = event->gen_time();
-    write_to(event->gen_time(), stat, event->source());
+    try_write_to(event->gen_time(), stat, event->source());
   }
 }
 
@@ -160,19 +160,19 @@ void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {
     if (stat.total_volume > 0) {
       stat.avg_price = stat.total_price / stat.total_volume;
     }
-    write_to(event->gen_time(), stat, event->source());
+    try_write_to(event->gen_time(), stat, event->source());
   }
 }
 
 void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
   refresh_account_book(trigger_time, account_uid);
-  auto writer = get_writer(account_uid);
   auto book = bookkeeper_.get_book(account_uid);
   write_positions(trigger_time, account_uid, book->long_positions);
   write_positions(trigger_time, account_uid, book->short_positions);
-  writer->write(trigger_time, book->asset);
-  writer->open_data<PositionEnd>(trigger_time).holder_uid = account_uid;
-  writer->close_data();
+  try_write_to(trigger_time, book->asset, account_uid);
+  PositionEnd end{};
+  end.holder_uid = account_uid;
+  try_write_to(trigger_time, end, account_uid);
 }
 
 void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
@@ -253,14 +253,14 @@ void Ledger::rebuild_positions(int64_t trigger_time, uint32_t strategy_uid) {
 }
 
 void Ledger::write_book_reset(int64_t trigger_time, uint32_t book_uid) {
-  auto writer = get_writer(book_uid);
-  writer->open_data<CacheReset>(trigger_time).msg_type = Position::tag;
-  writer->close_data();
-  writer->open_data<CacheReset>(trigger_time).msg_type = Asset::tag;
-  writer->close_data();
-  writer->open_data<CacheReset>(trigger_time).msg_type = InstrumentFactor::tag;
-  writer->close_data();
-  writer->mark(trigger_time, ResetBookRequest::tag);
+  CacheReset cache_reset{};
+  cache_reset.msg_type = Position::tag;
+  try_write_to(trigger_time, cache_reset, book_uid);
+  cache_reset.msg_type = Asset::tag;
+  try_write_to(trigger_time, cache_reset, book_uid);
+  cache_reset.msg_type = InstrumentFactor::tag;
+  try_write_to(trigger_time, cache_reset, book_uid,
+               [&, trigger_time]() { get_writer(book_uid)->mark(trigger_time, ResetBookRequest::tag); });
 }
 
 void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
@@ -270,7 +270,6 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
   }
 
   auto location = get_location(strategy_uid);
-  auto writer = get_writer(strategy_uid);
   for (const auto &pair : bookkeeper_.get_books()) {
     auto &book = pair.second;
     auto &asset = book->asset;
@@ -281,18 +280,17 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
     if (has_account or is_strategy or is_node) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
-      writer->write(trigger_time, asset);
+      try_write_to(trigger_time, asset, strategy_uid);
     }
   }
-
-  writer->open_data<PositionEnd>(trigger_time).holder_uid = strategy_uid;
-  writer->close_data();
+  PositionEnd end{};
+  end.holder_uid = strategy_uid;
+  try_write_to(trigger_time, end, strategy_uid);
 }
 
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, PositionMap &positions) {
-  auto writer = get_writer(dest);
   for (const auto &pair : positions) {
-    writer->write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
+    try_write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
   }
 }
 

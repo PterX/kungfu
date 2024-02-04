@@ -8502,10 +8502,10 @@ markdown-it-highlightjs@^4.0.1:
   dependencies:
     highlight.js "^11.5.1"
 
-markdown-it-task-checkbox@^1.0.6:
-  version "1.0.6"
-  resolved "https://registry.npmmirror.com/markdown-it-task-checkbox/-/markdown-it-task-checkbox-1.0.6.tgz#9ebd7b6382e99162264605bc580f2ac118be4242"
-  integrity sha512-7pxkHuvqTOu3iwVGmDPeYjQg+AIS9VQxzyLP9JCg9lBjgPAJXGEkChK6A2iFuj3tS0GV3HG2u5AMNhcQqwxpJw==
+markdown-it-task-checkbox-pro@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/markdown-it-task-checkbox-pro/-/markdown-it-task-checkbox-pro-1.0.0.tgz#65a534109030bcd73df1c737d83220955641faeb"
+  integrity sha512-jiX6lrbnf/AgtkoOy8Xyke5NMhf6UgK7dqpFGfiWNnrRQSY7e5J4bKzDg3tureNihPAPGGqbcXqPEtMwpOrjvQ==
 
 markdown-it@^13.0.1:
   version "13.0.2"

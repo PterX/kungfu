@@ -2,8 +2,8 @@
 import Icon, {
   ClusterOutlined,
   FileTextOutlined,
-  BankOutlined,
   HistoryOutlined,
+  EyeOutlined,
 } from '@ant-design/icons-vue';
 import { storeToRefs } from 'pinia';
 import { notification } from 'ant-design-vue';
@@ -25,6 +25,7 @@ import {
   getInstrumentTypeColor,
   handleOpenLogview,
   handleOpenJournalView,
+  onClickOutside,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getKfCategoryData,
@@ -181,6 +182,21 @@ function handleClickReplay(config: KungfuApi.KfLocation) {
 const prefixMap = ref({});
 
 watch(
+  () => processControllerBoardVisible.value,
+  (newVal) => {
+    if (newVal) {
+      const deregister = onClickOutside(
+        '.kf-process-status-controller-board__warp > .ant-drawer-content-wrapper',
+        () => {
+          processControllerBoardVisible.value = false;
+          deregister?.();
+        },
+      );
+    }
+  },
+);
+
+watch(
   () => allKfConfigData,
   () => {
     prefixMap.value = categoryList.reduce((map, category) => {
@@ -265,18 +281,24 @@ onMounted(() => {
                   class="process-id info-item"
                   v-else-if="config.category !== 'strategy'"
                 >
-                  <a-tag
-                    v-if="isTdMd(config.category)"
-                    :color="
-                      getInstrumentTypeColor(
-                        tdExtTypeMap[config.group] ||
-                          mdExtTypeMap[config.group],
-                      )
-                    "
-                  >
-                    {{ config.group }}
-                  </a-tag>
-                  {{ config.name }}
+                  <div class="item">
+                    <div>
+                      <a-tag
+                        v-if="isTdMd(config.category)"
+                        :color="
+                          getInstrumentTypeColor(
+                            tdExtTypeMap[config.group] ||
+                              mdExtTypeMap[config.group],
+                          )
+                        "
+                      >
+                        {{ config.group }}
+                      </a-tag>
+                    </div>
+                    <div>
+                      {{ config.name }}
+                    </div>
+                  </div>
                 </div>
                 <div class="process-id info-item" v-else>
                   {{ config.name }}
@@ -349,10 +371,10 @@ onMounted(() => {
                   style="font-size: 12px"
                   @click.stop="handleClickReplay(config)"
                 ></HistoryOutlined>
-                <BankOutlined
-                  style="font-size: 12px"
+                <EyeOutlined
+                  style="font-size: 14px"
                   @click.stop="handleOpenJournalView(config)"
-                ></BankOutlined>
+                ></EyeOutlined>
                 <FileTextOutlined
                   @click="handleOpenLogview(config)"
                   style="font-size: 14px"
@@ -401,6 +423,8 @@ onMounted(() => {
 }
 
 .kf-process-status-controller-board__warp {
+  height: calc(100% - 28px);
+
   .process-controller-item {
     margin-bottom: 24px;
 
@@ -426,6 +450,12 @@ onMounted(() => {
 
         .info-item {
           margin-right: 8px;
+
+          .item {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+          }
 
           &.category {
             width: 70px;

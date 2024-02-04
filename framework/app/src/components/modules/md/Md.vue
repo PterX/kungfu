@@ -4,7 +4,7 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  BankOutlined,
+  EyeOutlined,
 } from '@ant-design/icons-vue';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -59,9 +59,7 @@ const columns = getColumns();
 const { extConfigs, mdExtTypeMap } = useExtConfigsRelated();
 const { md } = toRefs(useAllKfConfigData());
 const mdIdList = computed(() => {
-  return md.value.map((item: KungfuApi.KfLocation): string =>
-    getIdByKfLocation(item),
-  );
+  return md.value.map((item: KungfuApi.KfLocation): string => item.group);
 });
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();
@@ -232,10 +230,10 @@ function handleRemoveMd(record: KungfuApi.KfConfig) {
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

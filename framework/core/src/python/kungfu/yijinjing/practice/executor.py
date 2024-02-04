@@ -349,11 +349,6 @@ class StrategyRunner(ExtensionExecutor):
 
     def build_executor(self, loader):
         ctx = self.ctx
-        locator = (
-            ctx.backtest_locator
-            if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST
-            else ctx.runtime_locator
-        )
         os.environ["KF_STG_GROUP"] = ctx.group
         os.environ["KF_STG_NAME"] = ctx.name
         if loader.config is None:
@@ -681,5 +676,4 @@ def parse_backtest_config(ctx):
             backtest_config = f.read()
     # json format check.
     json.loads(backtest_config)
-    ctx.backtest_config = backtest_config
-    return ctx.backtest_config
+    return backtest_config

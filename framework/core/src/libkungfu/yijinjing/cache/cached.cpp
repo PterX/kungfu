@@ -20,6 +20,7 @@ using namespace kungfu::yijinjing::cache;
 // 1,000,000,000.
 #define DEFAULT_STORE_VOLUME_BY_INTERVAL 1000
 #define STORE_INTERVAL 100
+#define RESTORE_LIMIT 10000
 
 namespace kungfu::yijinjing::cache {
 
@@ -49,6 +50,7 @@ void cached::restore_profile(const yijinjing::data::location_ptr &location,
   profile_store_mutex_.lock();
   try {
     // for config, basket, instruemnts .etc. from user interface
+    profile_restore_bank_.clear();
     profile_get_all(profile_, profile_restore_bank_);
   } catch (const std::exception &ex) {
     SPDLOG_ERROR("failed to drain profile db into profile band {} {} {}", location->uid, location->uname, ex.what());
@@ -125,7 +127,7 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
       for (auto dest : location->locator->list_location_dest_by_db(td_location)) {
         try {
           ensure_cached_storage(td_location, dest);
-          app_states_shift_.at(td_location->uid).restore_to(writer, dest);
+          app_states_shift_.at(td_location->uid).restore_to(writer, dest, RESTORE_LIMIT);
         } catch (const std::exception &ex) {
           SPDLOG_ERROR("failed to write cache {} {} {} for target {}", td_location->uname, dest, ex.what(),
                        location->uname);
@@ -134,13 +136,13 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
     }
   }
 
-  // for watcher reload ledger written datas after crash
+  // for watcher reload ledger written data (statisticdata (orerstat) after crash
   if (IS_NODE) {
     for (const auto &ledger_location : location->locator->list_locations("system", "service", "ledger", "live")) {
       for (auto dest : location->locator->list_location_dest_by_db(ledger_location)) {
         try {
           ensure_cached_storage(ledger_location, dest);
-
+          app_states_shift_.at(ledger_location->uid).restore_to(StatisticDataTypes, writer, dest, RESTORE_LIMIT);
         } catch (const std::exception &ex) {
           SPDLOG_ERROR("failed to write cache {} {} {} for target {}", ledger_location->uname, dest, ex.what(),
                        location->uname);

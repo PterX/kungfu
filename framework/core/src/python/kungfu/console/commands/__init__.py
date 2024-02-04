@@ -9,6 +9,7 @@ import typing
 from click.decorators import F as CLI
 from click.globals import get_current_context
 from functools import update_wrapper
+from kungfu.yijinjing.utils import get_default_home_dir
 
 
 class PrioritizedCommandGroup(click.Group):
@@ -144,23 +145,7 @@ class PrioritizedCommandGroup(click.Group):
 @click.version_option(kungfu.__version__, "--version", message=kungfu.__version__)
 @click.pass_context
 def kfc(ctx, home, extension_path, log_level, name, cli_dev_path):
-    if not home:
-        osname = platform.system()
-        user_home = os.path.expanduser("~")
-        if osname == "Linux":
-            xdg_config_home = os.getenv("XDG_CONFIG_HOME")
-            home = (
-                xdg_config_home
-                if xdg_config_home
-                else os.path.join(user_home, ".config")
-            )
-        if osname == "Darwin":
-            home = os.path.join(user_home, "Library", "Application Support")
-        if osname == "Windows":
-            app_data = os.path.join(os.getenv("USERPROFILE"), "AppData", "Roaming")
-            home = os.getenv("APPDATA", app_data)
-        home = os.path.join(home, "kungfu", "home")
-
+    home = get_default_home_dir() if not home else home
     ctx.extension_path = extension_path
 
     os.environ["KF_HOME"] = ctx.home = home

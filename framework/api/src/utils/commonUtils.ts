@@ -770,6 +770,267 @@ export const kfConfigItemsToProcessArgs = (
   );
 };
 
+export class LatestUsedQueue<T> {
+  private queue: T[];
+  private maxLen: number | null;
+
+  constructor(initQueue: T[], maxLen: number | null = null) {
+    this.queue = initQueue;
+    this.maxLen = maxLen;
+  }
+
+  get value() {
+    return this.queue;
+  }
+
+  put(item: T) {
+    this.queue.unshift(item);
+    if (this.maxLen !== null && this.queue.length > this.maxLen) {
+      this.queue.pop();
+    }
+  }
+
+  private use(index: number) {
+    if (index >= this.queue.length) throw new Error('index out of queue range');
+    const item = this.queue[index];
+    this.queue.splice(index, 1);
+    this.queue.unshift(item);
+    return item;
+  }
+
+  useLatest() {
+    return this.use(0);
+  }
+
+  *[Symbol.iterator]() {
+    for (let i = 0; i < this.queue.length; i++) {
+      yield this.use(i);
+    }
+  }
+
+  generateIterator() {
+    return this[Symbol.iterator]();
+  }
+
+  useByForEach(callback: (item: T, next: () => void) => void) {
+    const iterator = this.generateIterator();
+    const next = () => {
+      const { value, done } = iterator.next();
+      if (done || value === void 0) {
+        return;
+      }
+      callback(value, next);
+    };
+    next();
+  }
+}
+
+type LinkedNode<T> = {
+  key: string;
+  value: T;
+  prev: LinkedNode<T> | null;
+  next: LinkedNode<T> | null;
+};
+
+export class LinkedList<T> {
+  private head: LinkedNode<T> | null = null;
+  private tail: LinkedNode<T> | null = null;
+  private pos: LinkedNode<T> | null = null;
+  private nodeMap = new Map<string, LinkedNode<T>>();
+
+  private createNode(key: string, value: T): LinkedNode<T> {
+    return {
+      key,
+      value,
+      prev: null,
+      next: null,
+    };
+  }
+
+  append(key: string, value: T) {
+    const node = this.createNode(key, value);
+    if (this.tail) {
+      this.tail.next = node;
+      node.prev = this.tail;
+    } else {
+      this.head = node;
+    }
+    this.tail = node;
+    this.nodeMap.set(node.key, node);
+  }
+
+  prepend(key: string, value: T) {
+    const node = this.createNode(key, value);
+    if (this.head) {
+      this.head.prev = node;
+      node.next = this.head;
+    } else {
+      this.tail = node;
+    }
+    this.head = node;
+    this.nodeMap.set(node.key, node);
+  }
+
+  getNext(node: LinkedNode<T>) {
+    return node.next;
+  }
+
+  getPrev(node: LinkedNode<T>) {
+    return node.prev;
+  }
+
+  remove(key: string) {
+    const node = this.nodeMap.get(key);
+    if (!node) {
+      throw new Error(`Node with key ${key} not found.`);
+    }
+
+    if (this.pos === node) {
+      this.pos = node.next;
+    }
+
+    if (node.prev) {
+      node.prev.next = node.next;
+    } else {
+      this.head = node.next;
+    }
+
+    if (node.next) {
+      node.next.prev = node.prev;
+    } else {
+      this.tail = node.prev;
+    }
+
+    node.next = null;
+    node.prev = null;
+    this.nodeMap.delete(key);
+  }
+
+  getHead() {
+    return this.head;
+  }
+
+  getTail() {
+    return this.tail;
+  }
+
+  getNode(key: string) {
+    const node = this.nodeMap.get(key);
+    if (!node) {
+      throw new Error(`Node with key ${key} not found.`);
+    }
+    return node;
+  }
+
+  getKeys() {
+    return Array.from(this.nodeMap.keys());
+  }
+
+  getValues() {
+    return Array.from(this.nodeMap.values()).map((node) => node.value);
+  }
+
+  *[Symbol.iterator]() {
+    let current = this.head;
+    while (current) {
+      yield current;
+      current = current.next;
+    }
+  }
+
+  getPos() {
+    if (!this.pos) {
+      this.pos = this.head;
+    } else if (this.nodeMap.get(this.pos.key) === undefined) {
+      this.pos = this.head;
+    }
+    return this.pos;
+  }
+
+  posNext() {
+    if (!this.pos) {
+      this.pos = this.head;
+    } else {
+      this.pos = this.pos.next || this.head;
+    }
+
+    return this.pos;
+  }
+
+  posPrev() {
+    if (!this.pos) {
+      this.pos = this.tail;
+    } else {
+      this.pos = this.pos.prev;
+    }
+    return this.pos;
+  }
+
+  setPos(key: string) {
+    const node = this.nodeMap.get(key);
+    if (!node) {
+      throw new Error(`Node with key ${key} not found.`);
+    } else {
+      this.pos = node;
+    }
+  }
+
+  resetPos() {
+    this.pos = this.head;
+  }
+
+  getValue(node: LinkedNode<T>) {
+    if (!node) return null;
+    return node.value;
+  }
+
+  moveRestToHead(nodeOrKey: string | LinkedNode<T>) {
+    let node: LinkedNode<T>;
+
+    if (typeof nodeOrKey === 'string') {
+      node = this.nodeMap.get(nodeOrKey)!;
+      if (!node) {
+        throw new Error(`Node with key ${nodeOrKey} not found.`);
+      }
+    } else {
+      node = nodeOrKey;
+      if (!this.nodeMap.has(node.key)) {
+        throw new Error(`Node with key ${node.key} is not part of the list.`);
+      }
+    }
+
+    if (node === this.head || !this.head) {
+      return;
+    }
+
+    this.head.prev = null;
+    if (this.tail) {
+      this.tail.next = null;
+    }
+
+    const oldHead = this.head;
+    this.head = node;
+    const oldTail = this.tail;
+    this.tail = node.prev;
+    if (this.tail) {
+      this.tail.next = null;
+    }
+    node.prev = null;
+
+    oldHead.prev = oldTail;
+    if (oldTail) {
+      oldTail.next = oldHead;
+    }
+  }
+
+  clear() {
+    this.head = null;
+    this.tail = null;
+    this.pos = null;
+    this.nodeMap.clear();
+  }
+}
+
 export const buildTableColumnSorterWithStrike = <T, U = object>(
   type: 'num' | 'str',
   dataIndex: keyof T | keyof U,
@@ -777,8 +1038,15 @@ export const buildTableColumnSorterWithStrike = <T, U = object>(
 ) => {
   return (a: T, b: T, sorterOrder: '' | 'ascend' | 'descend') => {
     if (type === 'num') {
-      let aVal = (transform ? transform(a) : a[dataIndex as keyof T]) ?? '--',
-        bVal = (transform ? transform(b) : b[dataIndex as keyof T]) ?? '--';
+      let aVal: string | number | NonNullable<T[keyof T]>;
+      let bVal: string | number | NonNullable<T[keyof T]>;
+      if (transform) {
+        aVal = isNaN(Number(transform(a))) ? '--' : transform(a) ?? '--';
+        bVal = isNaN(Number(transform(b))) ? '--' : transform(b) ?? '--';
+      } else {
+        aVal = a[dataIndex as keyof T] ?? '--';
+        bVal = b[dataIndex as keyof T] ?? '--';
+      }
       if (sorterOrder === 'ascend') {
         aVal = aVal === '--' ? Infinity : aVal;
         bVal = bVal === '--' ? Infinity : bVal;

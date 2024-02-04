@@ -56,7 +56,7 @@ const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { operator } = toRefs(useAllKfConfigData());
 const operatorIdList = computed(() => {
   return operator.value.map((item: KungfuApi.KfLocation): string =>
-    getIdByKfLocation(item),
+    item.group === 'default' ? item.name : `${item.group}-${item.name}`,
   );
 });
 const { processStatusData, getProcessStatusName } =

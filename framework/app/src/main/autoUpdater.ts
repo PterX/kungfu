@@ -74,13 +74,8 @@ const getNextMinorReleaseVersion = (version: semver.SemVer) => {
 const getLatestSkippedVersion = () => {
   const skippedVersions = globalStorage.getItem('skippedVersions');
 
-  if (skippedVersions) {
-    const versionArrays = skippedVersions;
-    if (Array.isArray(versionArrays)) {
-      return versionArrays[versionArrays.length - 1];
-    } else {
-      return false;
-    }
+  if (skippedVersions && skippedVersions.length > 0) {
+    return skippedVersions[skippedVersions.length - 1];
   } else {
     return false;
   }
@@ -97,14 +92,9 @@ const getCurrentLatestVersion = (currentVersion: string) => {
 
 function saveSkippedVersion(version: string) {
   const skippedVersions = globalStorage.getItem('skippedVersions');
-  if (skippedVersions) {
-    const versionArrays = skippedVersions;
-    if (Array.isArray(versionArrays)) {
-      versionArrays.push(version);
-      globalStorage.setItem('skippedVersions', versionArrays);
-    } else {
-      globalStorage.setItem('skippedVersions', [version]);
-    }
+  if (skippedVersions && skippedVersions.length > 0) {
+    skippedVersions.push(version);
+    globalStorage.setItem('skippedVersions', skippedVersions);
   } else {
     globalStorage.setItem('skippedVersions', [version]);
   }
@@ -549,5 +539,22 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
     autoUpdater.checkForUpdates();
   }
 }
+
+function checkToClearSkippedVersionList() {
+  const skipLatestVersion = getLatestSkippedVersion();
+  if (!skipLatestVersion) return;
+  const currentVersion = rootPackageJson?.version;
+  if (currentVersion) {
+    if (semver.gt(currentVersion, skipLatestVersion)) {
+      globalStorage.setItem('skippedVersions', []);
+    } else if (currentVersion === skipLatestVersion) {
+      globalStorage.setItem('skippedVersions', []);
+    }
+  } else {
+    globalStorage.setItem('skippedVersions', []);
+  }
+}
+
+checkToClearSkippedVersionList();
 
 export { handleUpdateKungfu };

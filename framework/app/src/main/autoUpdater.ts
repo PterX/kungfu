@@ -540,7 +540,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   }
 }
 
-function checkToUpdateSkippedVersionList() {
+function checkToClearSkippedVersionList() {
   const skipLatestVersion = getLatestSkippedVersion();
   if (!skipLatestVersion) return;
   const currentVersion = rootPackageJson?.version;
@@ -555,4 +555,6 @@ function checkToUpdateSkippedVersionList() {
   }
 }
 
-export { handleUpdateKungfu, checkToUpdateSkippedVersionList };
+checkToClearSkippedVersionList();
+
+export { handleUpdateKungfu };

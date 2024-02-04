@@ -25,6 +25,7 @@
   "scripts": {
     "rebuild": "rm -rf ./node_modules && node --max_old_space_size=10240 lib/webpack/build.js",
     "build": "node --max_old_space_size=10240 lib/webpack/build.js",
+    "build:one-thread": "yarn clean; yarn build --one-thread",
     "clean": "rimraf build dist node_modules/.cache",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",

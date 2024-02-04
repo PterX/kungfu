@@ -302,12 +302,6 @@ function handleToPage(pathname: string) {
             height: auto;
             line-height: 1;
             margin-left: 0;
-            :last-child {
-              display: inline-block;
-              max-width: 48px;
-              white-space: normal;
-              word-break: break-all;
-            }
           }
         }
       }

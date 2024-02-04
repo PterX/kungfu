@@ -597,7 +597,6 @@ export const startProcess = async (
       PYTHONIOENCODING: 'utf8',
 
       KFC_AS_VARIANT: '',
-      KF_LOG_FRAME: '',
       ...options.env,
 
       // cover father process env

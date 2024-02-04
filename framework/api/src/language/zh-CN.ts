@@ -45,7 +45,7 @@ export default {
 
   clear_journal: '清理 journal',
   clear_DB: '清理 DB',
-  reset_main_panel: '重置主面板',
+  reset_current_panel: '重置当前面板布局',
   export_all_transaction_data: '导出所有交易数据',
   export_instrument_whitelists: '导出标的白名单',
   open_inspect_tool: '打开诊断工具',
@@ -828,6 +828,9 @@ export default {
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
+    log_frame: '全局日志输出 Frame 信息',
+    log_frame_desc:
+      '对系统内所有日志生效, 开启后会在 log 上附加当前 frame 的信息, 修改后重启功夫生效',
 
     auto_restart_td: '交易进程自动重启',
     auto_restart_td_desc:
@@ -917,7 +920,7 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   autoUpdater: {
-    update: '版本更新',
+    update_version: '版本更新',
     is_check_version: '检测更新',
     is_check_version_desc: '启动功夫时, 是否检测更新',
     current_version: '当前版本',
@@ -927,6 +930,7 @@ export default {
     retry_check: '检测',
     has_skipped: '已跳过此版本',
     start_download: '开始下载',
+    update: '更新',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
     downloaded: '下载完成, 等待安装',

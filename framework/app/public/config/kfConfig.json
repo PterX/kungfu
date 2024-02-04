@@ -10,6 +10,7 @@
   "strategy": { "python": false },
   "system": {
     "logLevel": "-l info",
+    "logFrame": false,
     "autoRestartTd": true,
     "language": "zh-CN",
     "bypassArchive": false,

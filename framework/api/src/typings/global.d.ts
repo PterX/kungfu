@@ -38,6 +38,7 @@ declare global {
       KFC_DIR: string;
       KF_CONFIG_DIR: string;
       KF_APP_RUNTIME_DIR: string;
+      KF_LOG_FRAME: boolean;
       IS_KF_DEV: boolean; // 判断当前是否通过 yarn dev 启动的开发模式
       CPUS_NUM: number;
       IF_CPUS_NUM_SAFE: boolean;
@@ -119,6 +120,10 @@ export interface RootConfigJSON {
     env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
+      checkVersion?: {
+        alphaToRelease?: boolean;
+        releaseToAlpha?: boolean;
+      };
     };
   };
   appConfig?: {

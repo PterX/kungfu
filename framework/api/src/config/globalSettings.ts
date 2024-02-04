@@ -280,7 +280,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         default: false,
       },
-      
     ],
   },
   {

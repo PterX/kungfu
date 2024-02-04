@@ -51,7 +51,10 @@ import {
   performSystemActions,
   copyConfigDBToLatestVersionDir,
 } from '@kungfu-trader/kungfu-app/src/main/events';
-import { handleUpdateKungfu } from './autoUpdater';
+import {
+  handleUpdateKungfu,
+  checkToUpdateSkippedVersionList,
+} from './autoUpdater';
 const { t } = VueI18n.global;
 let MainWindow: BrowserWindow | null = null;
 let AllowQuit = false;
@@ -65,6 +68,7 @@ setMenu();
 initKfConfig();
 initKfDefaultInstruments();
 copyConfigDBToLatestVersionDir();
+checkToUpdateSkippedVersionList();
 
 async function createWindow(
   reloadAfterCrashed = false,

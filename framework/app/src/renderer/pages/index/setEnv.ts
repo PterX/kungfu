@@ -15,5 +15,4 @@ if (
 }
 console.log('RELOAD_AFTER_CRASHED', process.env.RELOAD_AFTER_CRASHED);
 
-
 process.env.BY_PASS_RESTORE = true;

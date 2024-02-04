@@ -826,6 +826,9 @@ export default {
     reset_order: 'Reset',
     log_level: 'Log Level',
     for_all_log: 'For all Log',
+    log_frame: 'Log Output Frame Info',
+    log_frame_desc:
+      'It takes effect on all logs in the system. After it is enabled, the information of the current frame will be attached to the log.',
 
     auto_restart_td: 'Trading Process Auto Restart',
     auto_restart_td_desc:

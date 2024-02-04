@@ -63,6 +63,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: '-l info',
       },
       {
+        key: 'logFrame',
+        name: t('globalSettingConfig.log_frame'),
+        tip: t('globalSettingConfig.log_frame_desc'),
+        type: 'bool',
+        default: false,
+      },
+      {
         key: 'language',
         name: t('globalSettingConfig.language'),
         tip: t('globalSettingConfig.select_language_desc'),
@@ -273,13 +280,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         default: false,
       },
-      {
-        key: 'logFrame',
-        name: 'log 是否输出 frame 相关信息',
-        tip: '',
-        type: 'bool',
-        default: true,
-      },
+      
     ],
   },
   {

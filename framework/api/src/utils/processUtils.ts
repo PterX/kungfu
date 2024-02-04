@@ -597,6 +597,7 @@ export const startProcess = async (
       PYTHONIOENCODING: 'utf8',
 
       KFC_AS_VARIANT: '',
+      KF_LOG_FRAME: '',
       ...options.env,
 
       // cover father process env
@@ -935,11 +936,7 @@ function buildKfcArgs(options: {
   const ifRocket = globalSetting?.performance?.rocket ?? false;
   const logFrame = globalSetting?.system?.logFrame ?? false;
 
-  const fullArgsArray: string[] = [
-    buildKfcEnv({
-      logFrame,
-    }),
-  ];
+  const fullArgsArray: string[] = [];
 
   if (options.prefix) {
     fullArgsArray.push(options.prefix);
@@ -968,8 +965,19 @@ function buildKfcArgs(options: {
     fullArgsArray.push(options.suffix);
   }
 
+  fullArgsArray.push(
+    buildKfcEnv({
+      logFrame,
+    }),
+  );
+
   if (options.env) {
-    fullArgsArray.push(buildKfcEnv(options.env));
+    fullArgsArray.push(
+      buildKfcEnv({
+        logFrame,
+      }),
+      buildKfcEnv(options.env),
+    );
   }
 
   const fullArgs = fullArgsArray.join(' ');

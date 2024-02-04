@@ -828,6 +828,9 @@ export default {
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
+    log_frame: '全局日志输出 Frame 信息',
+    log_frame_desc:
+      '对系统内所有日志生效, 开启后会在 log 上附加当前 frame 的信息',
 
     auto_restart_td: '交易进程自动重启',
     auto_restart_td_desc:

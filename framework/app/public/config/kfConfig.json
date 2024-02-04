@@ -3,13 +3,13 @@
     "rocket": false,
     "bypassAccounting": false,
     "bypassTradingData": false,
-    "bypassRefreshBook": false,
-    "logFrame": true
+    "bypassRefreshBook": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },
   "system": {
     "logLevel": "-l info",
+    "logFrame": false,
     "autoRestartTd": true,
     "language": "zh-CN",
     "bypassArchive": false,

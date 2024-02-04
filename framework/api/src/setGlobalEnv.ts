@@ -6,7 +6,10 @@ import {
   KF_RUNTIME_DIR,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { dealSpaceInPath } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  booleanProcessEnv,
+  dealSpaceInPath,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import {
   KUNGFU_SAFE_CPUS_NUM,
@@ -33,7 +36,8 @@ if (externalEnv && typeof externalEnv === 'object') {
   });
 }
 
-process.env.KF_LOG_FRAME = globalSetting?.system?.logFrame ?? false;
+process.env.KF_LOG_FRAME =
+  booleanProcessEnv(globalSetting?.system?.logFrame) || '';
 process.env.KFC_DIR = dealSpaceInPath(KFC_DIR);
 process.env.CLI_DIR = dealSpaceInPath(CLI_DIR);
 process.env.KF_HOME = dealSpaceInPath(KF_HOME);

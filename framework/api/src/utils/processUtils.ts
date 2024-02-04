@@ -534,6 +534,7 @@ type KfcEnvOptType<T> =
     };
 
 export interface KfcEnvs {
+  logFrame?: KfcEnvOptType<boolean>;
   bypassCached?: KfcEnvOptType<boolean>;
   bypassAccounting?: KfcEnvOptType<boolean>;
   bypassRefreshBook?: KfcEnvOptType<boolean>;
@@ -932,6 +933,7 @@ function buildKfcArgs(options: {
   const logLevel: string =
     options.logLevel || (globalSetting?.system?.logLevel ?? '');
   const ifRocket = globalSetting?.performance?.rocket ?? false;
+  const logFrame = globalSetting?.system?.logFrame ?? false;
 
   const fullArgsArray: string[] = [];
 
@@ -962,8 +964,19 @@ function buildKfcArgs(options: {
     fullArgsArray.push(options.suffix);
   }
 
+  fullArgsArray.push(
+    buildKfcEnv({
+      logFrame,
+    }),
+  );
+
   if (options.env) {
-    fullArgsArray.push(buildKfcEnv(options.env));
+    fullArgsArray.push(
+      buildKfcEnv({
+        logFrame,
+      }),
+      buildKfcEnv(options.env),
+    );
   }
 
   const fullArgs = fullArgsArray.join(' ');

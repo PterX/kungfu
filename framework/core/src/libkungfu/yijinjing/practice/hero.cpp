@@ -5,7 +5,6 @@
 //
 
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/hero.h>
@@ -50,6 +49,11 @@ hero::hero(io_device_ptr io_device)
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
+  if (get_home()->mode != mode::LIVE) {
+    for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
+      add_location(0, l);
+    }
+  }
 }
 
 hero::~hero() {
@@ -515,7 +519,7 @@ void hero::cleanup_reader_disjoin() {
 rocksdb::DB *hero::get_master_rocksdb() const {
   static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
   SPDLOG_DEBUG("get_master_rocksdb from dir: {}", master_db_dir);
-  if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
+  if (io_device_->is_lazy()) {
     rocksdb::Status status = rocks::open_db(master_db_dir, &master_db_, false);
     if (not status.ok()) {
       const std::string msg = fmt::format("OpenForReadOnly for {} failed, {}", master_db_dir, status.ToString());
@@ -536,18 +540,18 @@ rocksdb::DB *hero::get_master_rocksdb() const {
 }
 
 rocksdb::DB *hero::get_app_rocksdb() const {
-  if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
-    rocksdb::Status status = rocks::open_db(get_locator()->layout_dir(get_home(), layout::MAP), &app_db_, true);
-    if (not status.ok()) {
-      const std::string msg =
-          fmt::format("Open for {} failed, {}", get_locator()->layout_dir(get_home(), layout::MAP), status.ToString());
-      SPDLOG_ERROR(msg);
-      throw yijinjing_error(msg);
-    }
-    return app_db_;
-  } else {
+  if (not io_device_->is_lazy()) {
     return get_master_rocksdb();
   }
+
+  rocksdb::Status status = rocks::open_db(get_locator()->layout_dir(get_home(), layout::MAP), &app_db_, true);
+  if (not status.ok()) {
+    const std::string msg =
+        fmt::format("Open for {} failed, {}", get_locator()->layout_dir(get_home(), layout::MAP), status.ToString());
+    SPDLOG_ERROR(msg);
+    throw yijinjing_error(msg);
+  }
+  return app_db_;
 }
 
 std::string hero::get_master_kv(const std::string &key) const {
@@ -560,7 +564,7 @@ std::string hero::get_master_kv(const std::string &key) const {
 }
 
 void hero::put_master_kv(const std::string &key, const std::string &value) const {
-  if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
+  if (io_device_->is_lazy()) {
     return;
   }
   rocksdb::Status status = rocks::put_kv(key, value, get_master_rocksdb());
@@ -606,7 +610,7 @@ std::map<std::string, std::string> hero::get_app_kvs(const std::set<std::string>
 }
 
 void hero::put_master_kvs(const std::map<std::string, std::string> &kvs) const {
-  if (io_device_->is_lazy() and get_home()->mode == mode::LIVE) {
+  if (io_device_->is_lazy()) {
     return;
   }
 
@@ -624,7 +628,7 @@ void hero::put_app_kvs(const std::map<std::string, std::string> &kvs) const {
 }
 
 void hero::write_location_to_rocksdb(const location_ptr &location) {
-  if (io_device_->is_lazy() and get_home()->mode != mode::LIVE) {
+  if (io_device_->is_lazy()) {
     return;
   }
 

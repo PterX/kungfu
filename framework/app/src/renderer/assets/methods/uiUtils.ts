@@ -430,6 +430,7 @@ export function useTabFocusContainer(
 ) {
   let container;
   let focusableElements: HTMLElement[] = [];
+  let observer: MutationObserver | null = null;
 
   const updateFocusableElements = () => {
     if (!container) return;
@@ -517,7 +518,10 @@ export function useTabFocusContainer(
     }
   };
 
-  onUnmounted(cleanupFocus);
+  onUnmounted(() => {
+    if (observer) observer.disconnect();
+    cleanupFocus();
+  });
 
   watch(
     containerRef,
@@ -526,11 +530,23 @@ export function useTabFocusContainer(
         if (!containerRef.value) {
           return;
         }
+        if (observer) observer.disconnect();
         container =
           containerRef.value instanceof HTMLElement
             ? containerRef.value
             : containerRef.value.$el;
         setupFocus();
+        if (container) {
+          observer = new MutationObserver((mutations) => {
+            if (mutations.length === 0) return;
+
+            updateFocusableElements();
+          });
+
+          const config = { childList: true, subtree: true }; // 监听子节点的增减，以及子树的变化
+
+          observer.observe(container, config);
+        }
       }
     },
     { immediate: true },

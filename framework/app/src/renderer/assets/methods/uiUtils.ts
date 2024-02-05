@@ -535,8 +535,9 @@ export function useTabFocusContainer(
           containerRef.value instanceof HTMLElement
             ? containerRef.value
             : containerRef.value.$el;
-        setupFocus();
+
         if (container) {
+          setupFocus();
           observer = new MutationObserver((mutations) => {
             if (mutations.length === 0) return;
 

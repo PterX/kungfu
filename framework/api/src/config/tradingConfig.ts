@@ -200,6 +200,42 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   },
 };
 
+export const marginSideConfig: Record<
+  string,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [SideEnum.GuaranteeStockBuy]: {
+    name: t('tradingConfig.guarantee_stock_buy'),
+    color: 'red',
+    level: SideEnum.GuaranteeStockBuy,
+  },
+  [SideEnum.GuaranteeStockSell]: {
+    name: t('tradingConfig.guarantee_stock_sell'),
+    color: 'green',
+    level: SideEnum.GuaranteeStockSell,
+  },
+  [SideEnum.MarginTrade]: {
+    name: t('tradingConfig.margin_trade'),
+    color: 'red',
+    level: SideEnum.MarginTrade,
+  },
+  [SideEnum.ShortSell]: {
+    name: t('tradingConfig.short_sell'),
+    color: 'green',
+    level: SideEnum.ShortSell,
+  },
+  [SideEnum.RepayStock]: {
+    name: t('tradingConfig.repay_short'),
+    color: 'red',
+    level: SideEnum.RepayStock,
+  },
+  [SideEnum.RepayMargin]: {
+    name: t('tradingConfig.repay_margin'),
+    color: 'green',
+    level: SideEnum.RepayMargin,
+  },
+};
+
 export const CodeTabSetting: Record<
   SpaceTabSettingEnum,
   KungfuApi.KfTradeValueCommonData
@@ -345,6 +381,15 @@ export const OrderStatus: Record<
     color: 'default',
   },
 };
+
+export const MarginSideStatus = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayStock,
+  SideEnum.RepayMargin,
+];
 
 export const UnfinishedOrderStatus = [
   OrderStatusEnum.Submitted,

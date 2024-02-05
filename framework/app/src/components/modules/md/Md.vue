@@ -59,9 +59,7 @@ const columns = getColumns();
 const { extConfigs, mdExtTypeMap } = useExtConfigsRelated();
 const { md } = toRefs(useAllKfConfigData());
 const mdIdList = computed(() => {
-  return md.value.map((item: KungfuApi.KfLocation): string =>
-    getIdByKfLocation(item),
-  );
+  return md.value.map((item: KungfuApi.KfLocation): string => item.group);
 });
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();

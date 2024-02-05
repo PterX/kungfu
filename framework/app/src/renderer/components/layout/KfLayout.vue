@@ -292,6 +292,7 @@ function handleToPage(pathname: string) {
           justify-content: space-evenly;
           align-items: center;
           flex-direction: column;
+          padding: 0 8px;
 
           > span {
             display: block;

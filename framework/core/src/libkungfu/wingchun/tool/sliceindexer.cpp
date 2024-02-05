@@ -7,7 +7,6 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
-namespace fs = std::filesystem;
 
 namespace kungfu::wingchun::tool {
 location_ptr SliceIndexer::find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,

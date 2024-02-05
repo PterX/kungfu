@@ -84,6 +84,22 @@ void bind_tool(pybind11::module &m) {
                                         const std::string &name) const override {
       PYBIND11_OVERLOAD(int64_t, SliceIndexer, get_operator_slice_end_time, nano_time, group, name);
     }
+
+    void submit_acquire_location(const yijinjing::data::location_ptr &location) override {
+      PYBIND11_OVERLOAD(void, SliceIndexer, submit_acquire_location, location);
+    }
+
+    void submit_release_location(const yijinjing::data::location_ptr &location) override {
+      PYBIND11_OVERLOAD(void, SliceIndexer, submit_release_location, location);
+    }
+
+    virtual void wait_acquire_location(const yijinjing::data::location_ptr &location) override {
+      PYBIND11_OVERLOAD(void, SliceIndexer, wait_acquire_location, location);
+    }
+
+    virtual void wait_release_location(const yijinjing::data::location_ptr &location) override {
+      PYBIND11_OVERLOAD(void, SliceIndexer, wait_release_location, location);
+    }
   };
 
   py::class_<SliceIndexer, PySliceIndexer, SliceIndexer_ptr>(m, "SliceIndexer")
@@ -93,7 +109,11 @@ void bind_tool(pybind11::module &m) {
       .def("find_md_slice_location", &SliceIndexer::find_md_slice_location)
       .def("get_md_slice_end_time", &SliceIndexer::get_md_slice_end_time)
       .def("find_operator_slice_location", &SliceIndexer::find_operator_slice_location)
-      .def("get_operator_slice_end_time", &SliceIndexer::get_operator_slice_end_time);
+      .def("get_operator_slice_end_time", &SliceIndexer::get_operator_slice_end_time)
+      .def("submit_acquire_location", &SliceIndexer::submit_acquire_location)
+      .def("submit_release_location", &SliceIndexer::submit_release_location)
+      .def("wait_acquire_location", &SliceIndexer::wait_acquire_location)
+      .def("wait_release_location", &SliceIndexer::wait_release_location);
 
   py::class_<DayIndexer, SliceIndexer, std::shared_ptr<DayIndexer>>(m, "DayIndexer")
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));

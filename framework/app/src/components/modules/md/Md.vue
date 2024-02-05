@@ -26,10 +26,7 @@ import {
   getIfProcessRunning,
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import {
-  getIdByKfLocation,
-  getProcessIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,

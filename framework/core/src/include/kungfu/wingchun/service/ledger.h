@@ -77,20 +77,18 @@ private:
 
   template <typename AppStateMap>
   void write_app_state(int64_t trigger_time, uint32_t source_id, const AppStateMap &app_states) {
-    auto writer = get_writer(source_id);
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
-      writer->write(trigger_time, app_state);
+      try_write_to(trigger_time, pair.second, source_id);
       SPDLOG_INFO("response to StateRequest, write to location {}, app {} state {}", get_location_uname(source_id),
                   get_location_uname(app_state.location_uid), static_cast<int>(app_state.state));
     }
   };
 
   template <typename AppStateMap> void write_app_state_to_public(const AppStateMap &app_states) {
-    auto writer = get_writer(yijinjing::data::location::PUBLIC);
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
-      writer->write(now(), app_state);
+      try_write_to(now(), app_state, yijinjing::data::location::PUBLIC);
       SPDLOG_INFO("write to public location app {} state {}", get_location_uname(app_state.location_uid),
                   static_cast<int>(app_state.state));
     }
@@ -117,9 +115,9 @@ private:
       return;
     }
     auto book = bookkeeper_.get_book(book_uid);
-    auto apply = [&](auto &position) { write_to(trigger_time, position, book_uid); };
+    auto apply = [&](auto &position) { try_write_to(trigger_time, position, book_uid); };
     book->apply_position_for(data, apply);
-    write_to(trigger_time, book->asset, book_uid);
+    try_write_to(trigger_time, book->asset, book_uid);
   }
 };
 } // namespace kungfu::wingchun::service

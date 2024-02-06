@@ -51,8 +51,6 @@ export const KF_SCHEDULE_TASKS_JSON_PATH = path.join(
 );
 addFileSync('', KF_SCHEDULE_TASKS_JSON_PATH, 'file');
 
-export const PY_WHL_DIR = path.join(KUNGFU_RESOURCES_DIR, 'python');
-
 //================== config & resources end ===================================
 
 //================= home start ==============================
@@ -208,6 +206,8 @@ export const KFC_PARENT_DIR = production
   : path.dirname(process.env.KFC_DIR || staticDevKfcDir);
 export const KFC_DIR = process.env.KFC_DIR || path.join(KFC_PARENT_DIR, 'kfc');
 process.env.KFC_DIR = KFC_DIR;
+
+export const PY_WHL_DIR = path.join(KFC_DIR, 'kungfu-wheel');
 
 export const KFC_EXECUTABLE = process.platform === 'win32' ? 'kfc.exe' : 'kfc';
 export const EXTENSION_DIRS: string[] = Array.from(

@@ -268,6 +268,8 @@ private:
   int64_t now_;
   mutable rocksdb::DB *master_db_ = {};
   mutable rocksdb::DB *app_db_ = {};
+  mutable std::mutex master_db_mtx_ = {};
+  mutable std::mutex app_db_mtx_ = {};
   inline static std::string LOCATION_KEYS = "location_uid64";
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
@@ -302,6 +304,8 @@ private:
   }
 
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
+
+  static void clear_rocksdb(rocksdb::DB **db);
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_HERO_H

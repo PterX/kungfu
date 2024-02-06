@@ -310,7 +310,7 @@ class ExtensionExecutor(Executor):
         if loader.extension_dir:
             site.setup(loader.extension_dir)
             sys.path.insert(0, loader.extension_dir)
-        elif use_ctx_path:
+        elif use_ctx_path and self.ctx.path:
             dirname = os.path.dirname(self.ctx.path)
             site.setup(dirname)
             sys.path.insert(0, dirname)

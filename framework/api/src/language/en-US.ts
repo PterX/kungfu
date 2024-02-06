@@ -45,10 +45,10 @@ export default {
 
   clear_journal: 'Clear journal',
   clear_DB: 'Clear DB',
-  reset_main_panel: 'Reset main panel',
+  reset_current_panel: 'Reset current panel',
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
-  view_all_journal: 'View all journal',
+  open_inspect_tool: 'Open inspect tool',
 
   website: 'Website',
   user_manual: 'User manual',
@@ -69,7 +69,7 @@ export default {
   open_window: 'Opening window',
   open_code_editor: 'Opening code editor',
   open_trading_task_view: 'Opening trading task view',
-  open_journal_dashboard: 'Opening journal dashboard',
+  opening_inspect_tool: 'Opening inspect tool',
   open_log_view: 'Opening log view',
   add_board: 'Add Board',
   select_board: 'Please select the board to add',
@@ -836,7 +836,7 @@ export default {
       "If open, archive will delete journal and zip files, and these files data can't be recovered, will accelerate start system, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.",
     bypass_archive_dev: 'ByPass Archive (For developer)',
     bypass_archive_dev_desc:
-      "Non-developers don't turn this option on\nIf open, archive will not do anything, all journal and log file will be retained, help developers troubleshoot issues faster with journal tools, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.",
+      "Non-developers don't turn this option on\nIf open, archive will not do anything, all journal and log file will be retained, help developers troubleshoot issues faster with inspect tool, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.",
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
@@ -917,7 +917,7 @@ export default {
   白名单设置警告: 'Please set the whitelist for this account first',
 
   autoUpdater: {
-    update: 'Upgrade Version',
+    update_version: 'Upgrade Version',
     is_check_version: 'Check Version',
     is_check_version_desc: 'Check the client version when start kungfu',
     current_version: 'Current version',
@@ -927,6 +927,7 @@ export default {
     retry_check: 'Check',
     has_skipped: 'Has skipped the version',
     start_download: 'Start Download',
+    update: 'Update',
     retry_download: 'Retry',
     find_new_version: 'Found new version: {version}\nIf you want download now?',
     downloaded: 'Download finished, wait to install',

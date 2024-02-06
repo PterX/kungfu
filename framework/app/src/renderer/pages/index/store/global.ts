@@ -271,7 +271,7 @@ export const useGlobalStore = defineStore('global', {
     },
 
     checkCurrentGlobalKfLocationExisted() {
-      if (this.currentGlobalKfLocation === null) {
+      if (!this.currentGlobalKfLocation) {
         return false;
       }
 
@@ -313,7 +313,7 @@ export const useGlobalStore = defineStore('global', {
 
     setDefaultCurrentGlobalKfLocation() {
       if (
-        this.currentGlobalKfLocation === null ||
+        !this.currentGlobalKfLocation ||
         !this.checkCurrentGlobalKfLocationExisted()
       ) {
         if (this.tdList.length) {

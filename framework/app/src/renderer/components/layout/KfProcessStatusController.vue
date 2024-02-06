@@ -2,8 +2,8 @@
 import Icon, {
   ClusterOutlined,
   FileTextOutlined,
-  BankOutlined,
   HistoryOutlined,
+  EyeOutlined,
 } from '@ant-design/icons-vue';
 import { storeToRefs } from 'pinia';
 import { notification } from 'ant-design-vue';
@@ -258,18 +258,24 @@ onMounted(() => {
                   class="process-id info-item"
                   v-else-if="config.category !== 'strategy'"
                 >
-                  <a-tag
-                    v-if="isTdMd(config.category)"
-                    :color="
-                      getInstrumentTypeColor(
-                        tdExtTypeMap[config.group] ||
-                          mdExtTypeMap[config.group],
-                      )
-                    "
-                  >
-                    {{ config.group }}
-                  </a-tag>
-                  {{ config.name }}
+                  <div class="item">
+                    <div>
+                      <a-tag
+                        v-if="isTdMd(config.category)"
+                        :color="
+                          getInstrumentTypeColor(
+                            tdExtTypeMap[config.group] ||
+                              mdExtTypeMap[config.group],
+                          )
+                        "
+                      >
+                        {{ config.group }}
+                      </a-tag>
+                    </div>
+                    <div>
+                      {{ config.name }}
+                    </div>
+                  </div>
                 </div>
                 <div class="process-id info-item" v-else>
                   {{ config.name }}
@@ -342,10 +348,10 @@ onMounted(() => {
                   style="font-size: 12px"
                   @click.stop="handleClickReplay(config)"
                 ></HistoryOutlined>
-                <BankOutlined
-                  style="font-size: 12px"
+                <EyeOutlined
+                  style="font-size: 14px"
                   @click.stop="handleOpenJournalView(config)"
-                ></BankOutlined>
+                ></EyeOutlined>
                 <FileTextOutlined
                   @click="handleOpenLogview(config)"
                   style="font-size: 14px"
@@ -417,8 +423,18 @@ onMounted(() => {
         margin-right: 8px;
         word-break: break-all;
 
+        .process-id {
+          width: 112px;
+        }
+
         .info-item {
           margin-right: 8px;
+
+          .item {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+          }
 
           &.category {
             width: 70px;

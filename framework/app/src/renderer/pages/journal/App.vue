@@ -477,7 +477,7 @@ onMounted(async () => {
   strategy.value = originStategy;
   td.value = originTd;
 
-  setSessions();
+  await setSessions();
   removeLoadingMask();
 });
 
@@ -661,6 +661,10 @@ function onEntryVisualization(visible: boolean) {
       padding: 0 8px 8px 8px;
       display: flex;
       flex-direction: column;
+
+      .ant-table-body {
+        max-height: 100% !important;
+      }
 
       .gutter {
         cursor: row-resize;

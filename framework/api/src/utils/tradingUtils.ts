@@ -1310,6 +1310,10 @@ export const dealByConfigItemType = (
       const label = options.filter((option) => option.value === value)[0]
         .label as string;
       return isLanguageKeyAvailable(label) ? t(label) : label;
+    case 'bool':
+      return value ? t('yes') : t('no');
+    case 'percent':
+      return `${value}%`;
     default:
       return value;
   }

@@ -13,7 +13,7 @@ import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  BankOutlined,
+  EyeOutlined,
   ReloadOutlined,
   PayCircleOutlined,
   HistoryOutlined,
@@ -101,7 +101,7 @@ const { extConfigs, tdExtTypeMap } = useExtConfigsRelated();
 const { td } = toRefs(useAllKfConfigData());
 const tdIdList = computed(() => {
   return td.value.map(
-    (item: KungfuApi.KfLocation): string => `${item.group}_${item.name}`,
+    (item: KungfuApi.KfLocation): string => `${item.group}-${item.name}`,
   );
 });
 const {
@@ -627,7 +627,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               >
                 {{ record.group }}
               </a-tag>
-              <span>
+              <span style="user-select: text">
                 {{ record.name }}
               </span>
               <Icon
@@ -852,10 +852,10 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
                   handleOpenReplayConfirmView(record as KungfuApi.KfConfig)
                 "
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <!-- TODO -->
               <PayCircleOutlined
                 v-if="isShowFundTransIcon(record as KungfuApi.KfConfig)"

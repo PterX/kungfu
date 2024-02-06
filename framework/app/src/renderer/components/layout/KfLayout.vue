@@ -78,6 +78,7 @@ const sidebarComponentConfigs = computed(() => {
     exhibit: {} as KungfuApi.KfExhibitConfig,
     extPath: '',
     key: 'main',
+    keepAlive: true,
     name: t('baseConfig.main_panel'),
     position: 'sidebar',
     sidebarIndex: 0,
@@ -138,7 +139,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     );
     if (isInSidebar) {
       menuSelectedKeys.value = [targetKey];
-      handleToPage(`/${targetKey}`);
+      handleToPage(`/${targetKey}`, targetKey);
     }
   }
 
@@ -146,7 +147,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     isExtSidebarShow.value[data.key || ''] = data.target;
     if (data.target === false) {
       menuSelectedKeys.value = ['main'];
-      handleToPage('/main');
+      handleToPage('/main', 'main');
     }
   }
 });

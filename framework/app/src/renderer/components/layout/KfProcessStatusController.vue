@@ -448,6 +448,10 @@ onMounted(() => {
         margin-right: 8px;
         word-break: break-all;
 
+        .process-id {
+          width: 112px;
+        }
+
         .info-item {
           margin-right: 8px;
 

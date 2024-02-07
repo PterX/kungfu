@@ -5,7 +5,6 @@ const kungfuCore = require('@kungfu-trader/kungfu-core/package.json');
 const {
   getAppDir,
   getKfcDir,
-  getCoreDir,
   getExtensionDirs,
   findPackageRoot,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
@@ -14,7 +13,6 @@ const isWindows = os.platform() === 'win32';
 const appDir = getAppDir();
 const vsDepsDir = path.join(appDir, 'public', 'vsDeps');
 const kfcDir = getKfcDir();
-const coreDir = getCoreDir();
 const extensionDirs = getExtensionDirs(true);
 const root = findPackageRoot();
 console.log(`-- Package root ${root}`);
@@ -140,11 +138,6 @@ module.exports = {
           },
         ]
       : []),
-    {
-      from: `${coreDir}/dist/kfc/kungfu-wheel`,
-      to: 'app/dist/public/python',
-      filter: ['*.whl'],
-    },
     {
       from: appDir,
       to: 'app/dist',

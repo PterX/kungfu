@@ -12,6 +12,7 @@
 #include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
+#include <unordered_map>
 
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
@@ -20,11 +21,13 @@ public:
                            Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
                            tool::Report_ptr report, int64_t time_interval, std::string backtest_config);
 
+  ~BacktestContext() override;             
+
   /**
    * checked_ is strated started.
    * @return current time in nano seconds
    */
-  virtual bool is_started() const override;
+  bool is_started() const override;
 
   /**
    * Get location_uid of current process
@@ -369,12 +372,23 @@ private:
   int32_t protected_timer_id_;
   std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
   std::multimap<int64_t, TimerTask> timer_callbacks_{};
-  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
+  // std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
-  void lease_expired_check();
+  // void lease_expired_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
+
+  enum class SliceState {Idle, Acquiring, Acquired, Releasing, Released};
+  struct SliceReferenceState {
+    SliceState state;
+    int reference_count;
+  };
+  std::unordered_map<yijinjing::data::location, SliceReferenceState> slice_reference_states_;
+  void subscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
+  void unsubscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
+
+
 };
 
 DECLARE_PTR(BacktestContext)

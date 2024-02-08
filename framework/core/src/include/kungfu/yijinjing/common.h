@@ -155,10 +155,26 @@ struct location : public std::enable_shared_from_this<location>, public longfist
                                          std::string n, locator_ptr l) {
     return std::make_shared<location>(m, c, g, n, l);
   }
+   bool operator==(const location &another) const {
+    return locator->get_root() == another.locator->get_root() and category == another.category and group == another.group and name == another.name and mode == another.mode;
+  }
 };
 } // namespace data
 } // namespace yijinjing
+} // namespace kungfu
 
+namespace std {
+  template <> 
+  struct hash<kungfu::yijinjing::data::location> {
+    std::size_t operator()(const kungfu::yijinjing::data::location &l) const {
+      return (static_cast<uint64_t>(kungfu::yijinjing::util::hash_str_32(l.locator->get_root())) << 32) ^ static_cast<uint32_t>(l.uid);
+    }
+  };
+}
+
+
+
+namespace kungfu {
 namespace hana {
 using namespace boost::hana;
 
@@ -327,5 +343,6 @@ std::function<Result(Observable)> holdon() {
 } // namespace kungfu
 
 #define $$(handler) $([&](const event_ptr &event) { handler; })
+
 
 #endif // KUNGFU_YIJINJING_COMMON_H

@@ -24,9 +24,9 @@ const { isLanguageKeyAvailable } = useLanguage();
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 const availKfBoards = ref<string[]>([]);
 const selectedBoard = ref<string>('');
-const { boardsStoreId } = storeToRefs(useGlobalStore());
+const { currentBoardsStoreId } = storeToRefs(useGlobalStore());
 const { getBoardsStoreById } = useBoards();
-const useBoardsStore = getBoardsStoreById(boardsStoreId.value);
+const useBoardsStore = getBoardsStoreById(currentBoardsStoreId.value);
 const { boardsMap } = storeToRefs(useBoardsStore());
 const { addBoardFromEmpty, addBoardByContentId } = useBoardsStore();
 const addedBoards = computed(() => {

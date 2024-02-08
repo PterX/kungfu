@@ -14,6 +14,8 @@ import {
 } from 'vue';
 import { Subscription } from 'rxjs';
 import { messagePrompt } from '../../../assets/methods/uiUtils';
+import { useGlobalStore } from './global';
+import { storeToRefs } from 'pinia';
 
 // 对应store中的state
 interface StateTree {
@@ -71,19 +73,21 @@ export const useBoards = () => {
   const { success } = messagePrompt();
 
   const createBoardsStore = (
-    boardsStoreId: string,
+    storeId: string,
     initBoardMap: KfLayout.BoardsMap,
     defaultBoardsMap: KfLayout.BoardsMap,
   ) => {
-    const useBoardsStore = defineStore(`${boardsStoreId}_boardsStore`, () => {
+    const useBoardsStore = defineStore(`${storeId}_boardsStore`, () => {
       const boardsMap = ref<KfLayout.BoardsMap>(initBoardMap);
       const dragedContentData = ref<KfLayout.ContentData | null>(null);
       const isBoardDragging = ref<boolean>(false);
 
-      const localBoardsMapKey = `${boardsStoreId}_boardsMap`;
+      const { currentBoardsStoreId } = storeToRefs(useGlobalStore());
+      const localBoardsMapKey = `${storeId}_boardsMap`;
 
       let subscription: Subscription | undefined;
       onActivated(() => {
+        currentBoardsStoreId.value = storeId;
         subscription = app?.proxy?.$globalBus.subscribe(
           (data: KfEvent.KfBusEvent) => {
             if (data.tag === 'main') {
@@ -365,19 +369,17 @@ export const useBoards = () => {
       } as combineType;
     });
 
-    window.allBoardsStore[boardsStoreId] = useBoardsStore;
+    window.allBoardsStore[storeId] = useBoardsStore;
 
     return useBoardsStore;
   };
 
-  const getBoardsStoreById = (boardsStoreId: string) => {
-    return window.allBoardsStore[boardsStoreId];
+  const getBoardsStoreById = (storeId: string) => {
+    return window.allBoardsStore[storeId];
   };
 
-  const getLocalBoardsMap = (
-    boardsStoreId: string,
-  ): KfLayout.BoardsMap | null => {
-    const data = localStorage.getItem(`${boardsStoreId}_boardsMap`);
+  const getLocalBoardsMap = (storeId: string): KfLayout.BoardsMap | null => {
+    const data = localStorage.getItem(`${storeId}_boardsMap`);
     if (!data) {
       return null;
     }

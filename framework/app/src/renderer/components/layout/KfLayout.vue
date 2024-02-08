@@ -24,14 +24,11 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 const { t } = VueI18n.global;
-import { useGlobalStore } from '../../pages/index/store/global';
-import { storeToRefs } from 'pinia';
 
 const logoPath = isDefaultLogo()
   ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg')
   : getLogoPath();
 
-const { boardsStoreId } = storeToRefs(useGlobalStore());
 const app = getCurrentInstance();
 const router = useRouter();
 const globalSettingModalVisible = ref<boolean>(false);
@@ -139,7 +136,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     );
     if (isInSidebar) {
       menuSelectedKeys.value = [targetKey];
-      handleToPage(`/${targetKey}`, targetKey);
+      handleToPage(`/${targetKey}`);
     }
   }
 
@@ -147,7 +144,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     isExtSidebarShow.value[data.key || ''] = data.target;
     if (data.target === false) {
       menuSelectedKeys.value = ['main'];
-      handleToPage('/main', 'main');
+      handleToPage('/main');
     }
   }
 });
@@ -156,9 +153,8 @@ onBeforeUnmount(() => {
   busSubscription.unsubscribe();
 });
 
-function handleToPage(pathname: string, id: string) {
+function handleToPage(pathname: string) {
   if (app?.proxy) {
-    boardsStoreId.value = id;
     app.proxy.$router.push(pathname);
   }
 }
@@ -180,7 +176,7 @@ function handleToPage(pathname: string, id: string) {
             <a-menu-item
               v-if="isExtSidebarShow[config.key] !== false"
               :key="config.key"
-              @click="handleToPage(`/${config.key}`, config.key)"
+              @click="handleToPage(`/${config.key}`)"
             >
               <template #icon>
                 <component

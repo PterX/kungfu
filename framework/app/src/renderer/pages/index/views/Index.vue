@@ -5,7 +5,7 @@
       :board-id="0"
       :closable="true"
       :init-boards-map="curBoardsMap"
-      :boards-store-id="'main'"
+      :current-boards-store-id="'main'"
       :default-boards-map="curDefaultBoardsMap"
     ></KfRowColIter>
     <a-empty v-else class="kf-index__empty" :image="simpleImage">

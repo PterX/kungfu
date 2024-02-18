@@ -245,6 +245,7 @@ declare namespace KungfuApi {
     description: string;
     assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
+    keepAlive: boolean;
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
@@ -502,6 +503,7 @@ declare namespace KungfuApi {
   };
 
   export interface KfUIExtConfig extends KfExtConfigBase<'ui'> {
+    keepAlive: boolean;
     position: KfUIExtLocatorTypes;
     sidebarIndex: number;
     exhibit: KfExhibitConfig;

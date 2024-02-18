@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.1-alpha.32",
+  "version": "2.7.1-alpha.33",
   "description": "Kungfu App Framework",
   "license": "Apache-2.0",
   "repository": {
@@ -25,7 +25,7 @@
   "scripts": {
     "rebuild": "rm -rf ./node_modules && node --max_old_space_size=10240 lib/webpack/build.js",
     "build": "node --max_old_space_size=10240 lib/webpack/build.js",
-    "build:one-thread": "yarn clean; yarn build --one-thread",
+    "build:one-thread": "yarn clean && yarn build --one-thread",
     "clean": "rimraf build dist node_modules/.cache",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@electron/remote": "^2.0.0",
-    "@kungfu-trader/kungfu-js-api": "^2.7.1-alpha.32",
+    "@kungfu-trader/kungfu-js-api": "^2.7.1-alpha.33",
     "@types/mark.js": "^8.11.8",
     "@vueuse/core": "^10.4.1",
     "ant-design-vue": "^3.2.20",
@@ -55,7 +55,7 @@
     "vue": "^3.2.34"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-toolchain": "^2.7.1-alpha.32",
+    "@kungfu-trader/kungfu-toolchain": "^2.7.1-alpha.33",
     "@types/echarts": "^4.9.16",
     "@types/markdown-it": "^12.2.3",
     "webpack-bundle-analyzer": "^4.6.1"

@@ -6,6 +6,9 @@ const routes: Array<RouteRecordRaw> = [
     path: '/main',
     name: 'Index',
     component: Index,
+    meta: {
+      keepAlive: true,
+    },
   },
 ];
 

@@ -75,6 +75,7 @@ const sidebarComponentConfigs = computed(() => {
     exhibit: {} as KungfuApi.KfExhibitConfig,
     extPath: '',
     key: 'main',
+    keepAlive: true,
     name: t('baseConfig.main_panel'),
     position: 'sidebar',
     sidebarIndex: 0,

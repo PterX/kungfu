@@ -174,12 +174,14 @@ public:
     });
   };
 
-  void create_server(const std::string url, const std::string& path, bool is_text_mode, const size_t max_num_connections = 0);
+  /*
+  void create_server(const std::string url, const std::string& path, bool is_text_mode, const size_t max_num_connections
+  = 0);
 
   bool is_server_exist();
 
   kungfu::yijinjing::webserver::server_ptr &get_server();
-
+*/
 protected:
   int64_t begin_time_;
   int64_t end_time_;
@@ -241,8 +243,12 @@ protected:
 
   void on_frame_done();
 
+
+protected:
+  virtual bool drain(const rx::subscriber<event_ptr> &sb);
+
 private:
-  kungfu::yijinjing::webserver::server_ptr server_;
+  // kungfu::yijinjing::webserver::server_ptr server_;
 
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
@@ -260,8 +266,6 @@ private:
   volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
-
-  virtual bool drain(const rx::subscriber<event_ptr> &sb);
 
   void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 

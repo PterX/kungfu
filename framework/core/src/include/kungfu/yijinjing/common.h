@@ -217,6 +217,7 @@ static constexpr auto is_custom = []() {
   return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
+
 template <typename... Ts>
 static constexpr auto event_filter_any = [](auto member) {
   return [=](Ts... arg) {
@@ -265,6 +266,14 @@ template <typename... Ts> constexpr decltype(auto) to(Ts... arg) {
 
 template <typename... Ts> constexpr decltype(auto) while_to(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::dest)(arg...);
+}
+
+template <typename... Ts> constexpr decltype(auto) from_ip(Ts... arg) {
+  return event_filter_any<Ts...>(&event::source_ip)(arg...);
+}
+
+template <typename... Ts> constexpr decltype(auto) to_ip(Ts... arg) {
+  return event_filter_any<Ts...>(&event::dest_ip)(arg...);
 }
 
 static constexpr auto interrupt_on_error = [](const std::exception_ptr &e) {

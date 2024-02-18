@@ -115,6 +115,8 @@ public:
 
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> read_bytes(int32_t msg_type,
                                                                                          int64_t end_time = INT64_MAX);
+  std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> read_datas(int32_t msg_type, uint64_t nums_to_read,
+                                                                                         int64_t end_time = INT64_MAX);
 
   template <typename T>
   [[maybe_unused]] std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
@@ -141,6 +143,10 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
+  void reset_num();
+
+  uint32_t get_num();
+
 protected:
   std::vector<reader_ptr> readers_ = {};
   reader_ptr current_reader_ = {};
@@ -153,7 +159,7 @@ private:
   publisher_ptr publisher_;
   std::vector<data::locator_ptr> locators_ = {};
   int64_t from_time_ = 0;
-
+  uint32_t data_read_num = 0;
   void sort();
 };
 DECLARE_PTR(assemble)

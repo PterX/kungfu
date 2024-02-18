@@ -35,6 +35,17 @@
   }
 
 namespace kungfu::longfist::enums {
+
+enum class server : int8_t { NONE, WEBSERVER, WEBCLIENT };
+
+KF_JSON_SERIALIZE_ENUM(server, {
+                                   {server::NONE, "NONE"},
+                                   {server::WEBSERVER, "WEBSERVER"},
+                                   {server::WEBCLIENT, "WEBCLIENT"},
+                               })
+
+inline std::ostream &operator<<(std::ostream &os, server t) { return os << int32_t(t); }
+
 enum class mode : int8_t { LIVE, DATA, REPLAY, BACKTEST, REMOTE };
 
 KF_JSON_SERIALIZE_ENUM(mode, {
@@ -872,6 +883,8 @@ KF_JSON_SERIALIZE_ENUM(ResumePolicy, {
                                      })
 
 inline std::ostream &operator<<(std::ostream &os, ResumePolicy t) { return os << int8_t(t); }
+
+enum class RemoteDataType : int8_t { Order, Trade };
 
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

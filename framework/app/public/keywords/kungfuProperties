@@ -61,6 +61,8 @@ yijinjing
 wingchun
 length
 header_length
+source_ip
+dest_ip
 data_type
 initial_source
 frame_uid
@@ -189,6 +191,9 @@ args
 is_last
 is_withdraw
 close_today_volume
+location_uid
+type
+resume_time
 data_time
 turnover
 pre_open_interest
@@ -222,7 +227,6 @@ market_type
 tag_a
 tag_b
 tag_c
-location_uid
 pid
 last_active_time
 frame_count
@@ -259,6 +263,7 @@ replace_flag
 cash_premium_ratio
 from_time
 dest_id
+stream_id
 base_time
 duration
 repeat
@@ -290,6 +295,8 @@ HistoryOrder
 HistoryTrade
 RequestHistoryOrderError
 RequestHistoryTradeError
+RequestRemoteData
+RemoteDataEnd
 Quote
 Entrust
 Transaction
@@ -310,6 +317,11 @@ Channel
 ChannelRequest
 Band
 RequestReadFromOthers
+RemoteRequestReadFrom
+RemoteRequestReadFromPublic
+RemoteRequestWriteTo
+RemoteRequestConnect
+RemoteConnectInfo
 TimeRequest
 TimeReset
 TradingDay
@@ -329,6 +341,12 @@ RequestWriteToBand
 TimeValue
 TimeKeyValue
 return ej_pair.first
+server
+LIVE
+DATA
+REPLAY
+BACKTEST
+REMOTE
 MD
 TD
 STRATEGY
@@ -350,6 +368,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future
@@ -568,3 +589,5 @@ Intraday
 Stateless
 Continuous
 ResumePolicy
+Order
+RemoteDataType

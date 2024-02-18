@@ -193,7 +193,7 @@ protected:
     r.repeat = 1;
     r.location_uid = get_live_home_uid();
     writer->close_data();
-    timer_checkpoints_[timer_id] = now(); 
+    timer_checkpoints_[timer_id] = now();
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                return (event->msg_type() == longfist::types::Time::tag &&

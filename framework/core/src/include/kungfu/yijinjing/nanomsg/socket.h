@@ -162,6 +162,10 @@ struct nanomsg_json : event {
 
   [[nodiscard]] uint32_t dest() const override { return get_meta<uint32_t>("dest", 0); }
 
+  [[nodiscard]] uint32_t source_ip() const override { return get_meta<uint32_t>("source_ip", 0); }
+
+  [[nodiscard]] uint32_t dest_ip() const override { return get_meta<uint32_t>("dest_ip", 0); }
+
   [[nodiscard]] uint32_t data_length() const override { return binding_.size(); }
 
   [[nodiscard]] const void *data_address() const override {

@@ -35,6 +35,10 @@ struct frame : event {
 
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
+  [[nodiscard]] uint32_t source_ip() const override { return header_->source_ip; }
+
+  [[nodiscard]] uint32_t dest_ip() const override { return header_->dest_ip; }
+
   [[nodiscard]] const void *data_address() const override {
     return reinterpret_cast<void *>(address() + header_length());
   }

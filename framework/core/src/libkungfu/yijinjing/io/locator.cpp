@@ -53,7 +53,6 @@ std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
       {es::mode::BACKTEST, std::pair("KF_BACKTEST_DIR", "backtest")},
       {es::mode::DATA, std::pair("KF_DATASET_DIR", "dataset")},
       {es::mode::REPLAY, std::pair("KF_REPLAY_DIR", "replay")},
-      {es::mode::REMOTE, std::pair("KF_REMOTE_DIR", "remote")},
   };
 
   auto iter = map_env.find(m);
@@ -217,6 +216,6 @@ bool locator::operator==(const locator &another) const {
 }
 
 remote_locator::remote_locator(uint32_t source_ip, uint32_t dest_ip)
-    : locator(longfist::enums::mode::REMOTE, {ip_to_string(source_ip), ip_to_string(dest_ip)}), source_ip_(source_ip),
-      dest_ip_(dest_ip) {}
+    : locator((get_default_root() / "runtime" / ip_to_string(source_ip) / ip_to_string(dest_ip)).string()),
+      source_ip_(source_ip), dest_ip_(dest_ip) {}
 } // namespace kungfu::yijinjing::data

@@ -406,26 +406,26 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
 }
 
 void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
-  //SPDLOG_DEBUG("bypass:{} notify:{}", bypass, notify);
+  // SPDLOG_DEBUG("bypass:{} notify:{}", bypass, notify);
   if (bypass or io_device_->get_home()->mode != mode::LIVE) {
     return;
   }
 
   auto rc = notify ? io_device_->get_observer()->wait() : io_device_->get_observer()->nonblock_wait();
-  //SPDLOG_DEBUG("rc:{}", rc);
+  // SPDLOG_DEBUG("rc:{}", rc);
   if (not rc)
     return;
 
   const std::string &notice = io_device_->get_observer()->get_notice();
   now_ = time::now_in_nano();
-  //SPDLOG_DEBUG("notice:{}", notice);
+  // SPDLOG_DEBUG("notice:{}", notice);
   if (notice.length() > 2) {
-    //SPDLOG_DEBUG("on_next");
+    // SPDLOG_DEBUG("on_next");
     const auto frame = std::make_shared<nanomsg_json>(notice);
     io_device_->get_bus()->set_trigger_frame(frame);
     sb.on_next(frame);
   } else if (notify) {
-    //SPDLOG_DEBUG("on_notify");
+    // SPDLOG_DEBUG("on_notify");
     on_notify();
   }
 }
@@ -455,61 +455,62 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       return false;
     }
   }
-    while (live_ and reader_->data_available()) {
-      deal_notice(io_device_->is_lazy(), false, sb);
-      const frame_ptr frame = reader_->current_frame();
-      io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
-      if (frame->gen_time() <= end_time_) {
-        int64_t frame_time = frame->gen_time();
-        if (frame_time > now_) {
-          now_ = frame_time;
-        }
-        if (is_reactable(frame)) {
-          sb.on_next(frame);
-        }
-        on_frame();
-        reader_->next();
-      } else {
-        SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
-        return false;
+  while (live_ and reader_->data_available()) {
+    deal_notice(io_device_->is_lazy(), false, sb);
+    const frame_ptr frame = reader_->current_frame();
+    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
+    if (frame->gen_time() <= end_time_) {
+      int64_t frame_time = frame->gen_time();
+      if (frame_time > now_) {
+        now_ = frame_time;
       }
-    }
-    if (get_io_device()->get_home()->mode != mode::LIVE and not reader_->data_available()) {
-      SPDLOG_INFO("reached journal end {}", time::strftime(now()));
+      if (is_reactable(frame)) {
+        sb.on_next(frame);
+      }
+      on_frame();
+      reader_->next();
+    } else {
+      SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
     }
-    return true;
   }
+  if (get_io_device()->get_home()->mode != mode::LIVE and not reader_->data_available()) {
+    SPDLOG_INFO("reached journal end {}", time::strftime(now()));
+    return false;
+  }
+  return true;
+}
 
-  void hero::delegate_produce(hero * instance, const rx::subscriber<event_ptr> &subscriber) {
+void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber) {
 #ifdef _WINDOWS
-    __try {
-      instance->produce(subscriber);
-    } __except (util::print_stack_trace(GetExceptionInformation())) {
-    }
-#else
+  __try {
     instance->produce(subscriber);
+  } __except (util::print_stack_trace(GetExceptionInformation())) {
+  }
+#else
+  instance->produce(subscriber);
 #endif
-  }
+}
 
-  bool hero::is_reactable(const event_ptr &event) { return true; }
+bool hero::is_reactable(const event_ptr &event) { return true; }
 
-  void hero::create_server(const std::string url, const std::string &path, bool is_text_mode,
-                           const size_t max_num_connections) {
-    SPDLOG_DEBUG("start create_server");
-    server_ = std::make_shared<server>(url);
-    SPDLOG_DEBUG("before start");
-    server_->start();
-    SPDLOG_DEBUG("before addWebsocket");
-    server_->add_websocket(path, is_text_mode, max_num_connections);
-    SPDLOG_DEBUG("end create_server");
-  }
+/*
+void hero::create_server(const std::string url, const std::string &path, bool is_text_mode,
+                         const size_t max_num_connections) {
+  SPDLOG_DEBUG("start create_server");
+  server_ = std::make_shared<server>(url);
+  SPDLOG_DEBUG("before start");
+  server_->start();
+  SPDLOG_DEBUG("before addWebsocket");
+  server_->add_websocket(path, is_text_mode, max_num_connections);
+  SPDLOG_DEBUG("end create_server");
+}
 
-  // operator bool
-  bool hero::is_server_exist() { return static_cast<bool>(server_); }
+// operator bool
+bool hero::is_server_exist() { return static_cast<bool>(server_); }
 
-  kungfu::yijinjing::webserver::server_ptr &hero::get_server() { return server_; }
-
+kungfu::yijinjing::webserver::server_ptr &hero::get_server() { return server_; }
+*/
 void hero::disjoin(uint32_t location_uid) { disjoin_uids_.insert(location_uid); }
 
 void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {

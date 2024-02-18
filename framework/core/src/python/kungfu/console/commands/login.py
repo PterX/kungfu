@@ -1,6 +1,5 @@
 from kungfu.console.commands import kfc
-from kungfu.store.sso import SSO
-import kungfu
+from kungfu.feature.sso import SSO
 import click
 
 

@@ -1,0 +1,76 @@
+from authing import AuthenticationClient
+from kungfu.feature.config import AUTHING_APP_CONFIG
+from kungfu.feature.utils import record_tokens
+
+class SSO:
+    def __init__(self, stage="prod"):
+        self.stage = stage
+        self.ac = AuthenticationClient(
+            app_id=AUTHING_APP_CONFIG[self.stage]["appId"],
+            app_host=AUTHING_APP_CONFIG[self.stage]["appHost"],
+            app_secret=AUTHING_APP_CONFIG[self.stage]["appSecret"],
+        )
+
+    def sign_in_by_account_password(self, account, password):
+        sign_in_resp = self.ac.sign_in_by_account_password(
+            account,
+            password,
+            options={"scope": "phone profile email openid offline_access backtest"},
+        )
+
+        if sign_in_resp["statusCode"] != 200:
+            print("Login Error", sign_in_resp["statusCode"], sign_in_resp["message"])
+            return
+
+        print("Login Success")
+        access_token = sign_in_resp["data"]["access_token"]
+        refresh_token = sign_in_resp["data"]["refresh_token"]
+        id_token = sign_in_resp["data"]["id_token"]
+        record_tokens(access_token, refresh_token, id_token)
+
+    def send_sms_code(self, phone_number):
+        self.ac.send_sms(channel="CHANNEL_LOGIN", phone_number=phone_number)
+
+    def sign_in_by_phone_passcode(self, phone, pass_code):
+        sign_in_resp = self.ac.sign_in_by_phone_passcode(
+            phone=phone,
+            pass_code=str(pass_code),
+            options={"scope": "phone profile email openid offline_access backtest"},
+        )
+
+        if sign_in_resp["statusCode"] != 200:
+            print("Login Error", sign_in_resp["statusCode"], sign_in_resp["message"])
+            return
+
+        access_token = sign_in_resp["data"]["access_token"]
+        refresh_token = sign_in_resp["data"]["refresh_token"]
+        id_token = sign_in_resp["data"]["id_token"]
+        record_tokens(access_token, refresh_token, id_token)
+
+    def get_new_access_token_by_refresh_token(self):
+        get_access_token_resp = self.ac.get_new_access_token_by_refresh_token(
+            self.refresh_token
+        )
+
+        if get_access_token_resp.get("error", None) is not None:
+            print(
+                "Get New Access Token Error:",
+                get_access_token_resp["error"],
+                get_access_token_resp["error_description"],
+            )
+            return
+
+        print("Get New Access Token Success")
+        access_token = get_access_token_resp["access_token"]
+        refresh_token = get_access_token_resp["refresh_token"]
+        id_token = get_access_token_resp["id_token"]
+        record_tokens(access_token, refresh_token, id_token)
+
+
+
+# sso = SSO("alpha")
+# sso.sign_in_by_account_password(account="13151998870", password="")
+# AccessKeyId, SecretKey, SessionToken = sso.get_credentials_for_identity()
+# buckets = sso.list_buckets(AccessKeyId, SecretKey, SessionToken)
+# objects = sso.list_objects("kungfu", AccessKeyId, SecretKey, SessionToken)
+# object = sso.get_object("kungfu", objects[0]["Key"], AccessKeyId, SecretKey, SessionToken)

@@ -163,7 +163,7 @@ export const useUpdateVersion = () => {
   const errorMessage = ref('');
   const process = ref<number>();
   const skippedVersionList = globalStorage.getItem('skippedVersions');
-  if (skippedVersionList) {
+  if (skippedVersionList && skippedVersionList.length > 0) {
     hasSkiped.value = true;
     const list = skippedVersionList;
     lastSkippedVersion.value = list[list.length - 1];

@@ -3,8 +3,8 @@ import json
 from urllib.parse import urlparse
 from kungfu.feature.config import AUTHING_APP_CONFIG
 from kungfu.feature.utils import get_sls_kungfu_params, get_tokens
+from kungfu.feature.sso import SSO
 
-client = boto3.client("cognito-identity", region_name="cn-north-1")
 
 
 class FeatureStore:
@@ -12,7 +12,9 @@ class FeatureStore:
         self.stage = stage
         self.sls_params = get_sls_kungfu_params(stage)
 
+    @SSO.check_login_status
     def get_credentials_for_identity(self):
+        client = boto3.client("cognito-identity", region_name="cn-north-1")
         host_name = urlparse(AUTHING_APP_CONFIG[self.stage]["appHost"]).netloc
         access_token, refresh_token, id_token = get_tokens()
         login_info = {f"{host_name}/oidc": id_token}

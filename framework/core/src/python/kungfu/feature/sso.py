@@ -1,6 +1,6 @@
 from authing import AuthenticationClient
 from kungfu.feature.config import AUTHING_APP_CONFIG
-from kungfu.feature.utils import record_tokens
+from kungfu.feature.utils import record_tokens, get_tokens
 
 class SSO:
     def __init__(self, stage="prod"):
@@ -48,8 +48,9 @@ class SSO:
         record_tokens(access_token, refresh_token, id_token)
 
     def get_new_access_token_by_refresh_token(self):
+        access_token, refresh_token, id_token = get_tokens()
         get_access_token_resp = self.ac.get_new_access_token_by_refresh_token(
-            self.refresh_token
+            refresh_token
         )
 
         if get_access_token_resp.get("error", None) is not None:
@@ -66,6 +67,17 @@ class SSO:
         id_token = get_access_token_resp["id_token"]
         record_tokens(access_token, refresh_token, id_token)
 
+    @staticmethod
+    def check_login_status(func):
+
+        def wrapper(*args, **kargs):
+            access_token, refresh_token, id_token = get_tokens()
+            if id_token == '':
+                print("Please login first")
+                return
+            
+            return func(*args, **kargs)
+        return wrapper
 
 
 # sso = SSO("alpha")

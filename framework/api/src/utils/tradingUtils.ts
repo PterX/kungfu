@@ -1348,6 +1348,8 @@ export const dealByConfigItemType = (
       return isLanguageKeyAvailable(label) ? t(label) : label;
     case 'bool':
       return value ? t('yes') : t('no');
+    case 'percent':
+      return `${value}%`;
     default:
       return value;
   }

@@ -170,6 +170,7 @@ export const getUIComponents = (
 ): {
   key: string;
   name: string;
+  keepAlive: boolean;
   script: string;
   extPath: string;
   position: KfUIExtLocatorTypes;
@@ -183,10 +184,11 @@ export const getUIComponents = (
     })
     .map((key) => {
       const config = kfUiExtConfigs[key];
-      const { extPath, position, components, name, script } = config;
+      const { extPath, position, components, name, script, keepAlive } = config;
       return {
         key,
         name,
+        keepAlive,
         position,
         script,
         extPath,
@@ -210,6 +212,7 @@ export const loadExtScripts = async (
   components: {
     key: string;
     name: string;
+    keepAlive: boolean;
     script: string;
     extPath: string;
     position: KfUIExtLocatorTypes;
@@ -239,6 +242,7 @@ export const loadExtComponents = (
   components: {
     key: string;
     name: string;
+    keepAlive: boolean;
     script: string;
     extPath: string;
     position: KfUIExtLocatorTypes;
@@ -247,7 +251,7 @@ export const loadExtComponents = (
   app: App<Element>,
   router: Router,
 ) => {
-  components.forEach(({ cData, position, key, name }) => {
+  components.forEach(({ cData, position, key, name, keepAlive }) => {
     switch (position) {
       case 'sidebar':
         if (cData[`${key}-entry`] && cData[`${key}-page`]) {
@@ -256,6 +260,9 @@ export const loadExtComponents = (
             path: `/${key}`,
             name: key,
             component: cData[`${key}-page`],
+            meta: {
+              keepAlive: keepAlive ?? false,
+            },
           });
         } else {
           console.warn(`${key}-entry or ${key}-page not in cData`);
@@ -437,6 +444,7 @@ export function useTabFocusContainer(
 ) {
   let container;
   let focusableElements: HTMLElement[] = [];
+  let observer: MutationObserver | null = null;
 
   const updateFocusableElements = () => {
     if (!container) return;
@@ -524,7 +532,10 @@ export function useTabFocusContainer(
     }
   };
 
-  onUnmounted(cleanupFocus);
+  onUnmounted(() => {
+    if (observer) observer.disconnect();
+    cleanupFocus();
+  });
 
   watch(
     containerRef,
@@ -533,11 +544,24 @@ export function useTabFocusContainer(
         if (!containerRef.value) {
           return;
         }
+        if (observer) observer.disconnect();
         container =
           containerRef.value instanceof HTMLElement
             ? containerRef.value
             : containerRef.value.$el;
-        setupFocus();
+
+        if (container) {
+          setupFocus();
+          observer = new MutationObserver((mutations) => {
+            if (mutations.length === 0) return;
+
+            updateFocusableElements();
+          });
+
+          const config = { childList: true, subtree: true }; // 监听子节点的增减，以及子树的变化
+
+          observer.observe(container, config);
+        }
       }
     },
     { immediate: true },

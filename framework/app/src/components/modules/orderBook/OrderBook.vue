@@ -12,6 +12,8 @@ import {
   getCurrentInstance,
   onBeforeUnmount,
   onMounted,
+  onDeactivated,
+  onActivated,
   ref,
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
@@ -38,20 +40,24 @@ const quoteData = computed(() => {
 
 onMounted(() => {
   currentInstrument.value = useGlobalStore().orderBookCurrentInstrument;
+});
 
-  if (app?.proxy) {
-    const subscription = app.proxy.$globalBus.subscribe(
-      (data: KfEvent.KfBusEvent) => {
-        if (data.tag === 'orderbook') {
-          currentInstrument.value = data.instrument;
-        }
-      },
-    );
+onActivated(() => {
+  const subscription = app?.proxy?.$globalBus.subscribe(
+    (data: KfEvent.KfBusEvent) => {
+      if (data.tag === 'orderbook') {
+        currentInstrument.value = data.instrument;
+      }
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 const askPrices = computed(() => {

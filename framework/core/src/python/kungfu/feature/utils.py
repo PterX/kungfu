@@ -3,6 +3,7 @@ from kungfu.feature.config import TOKEN_FILE, APP_PARAMS
 import json
 import os
 
+
 def record_tokens(access_token, refresh_token, id_token):
     write_token_json(
         TOKEN_FILE,

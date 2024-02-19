@@ -12,7 +12,3 @@ with open(
     __build_info__ = json.load(build_info_file)
 
 __version__ = __build_info__["version"]
-
-from kungfu.feature.store import FeatureStore
-fs = FeatureStore()
-fs.get_credentials_for_identity()

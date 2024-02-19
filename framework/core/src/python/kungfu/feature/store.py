@@ -5,14 +5,20 @@ from kungfu.feature.config import AUTHING_APP_CONFIG
 from kungfu.feature.utils import get_sls_kungfu_params, get_tokens
 from kungfu.feature.sso import SSO
 
-
-
 class FeatureStore:
     def __init__(self, stage="prod"):
         self.stage = stage
         self.sls_params = get_sls_kungfu_params(stage)
+        self.sso = SSO(stage)
 
-    @SSO.check_login_status
+        if self.sso.introspect_token() != True:
+            print("Please Login First")
+            raise Exception("Login Required")
+
+        self.sso.get_new_access_token_by_refresh_token()
+        phone, username = self.sso.get_profile()
+        print(f"Feature Store init successfully, phone {phone} username {username}")
+
     def get_credentials_for_identity(self):
         client = boto3.client("cognito-identity", region_name="cn-north-1")
         host_name = urlparse(AUTHING_APP_CONFIG[self.stage]["appHost"]).netloc
@@ -34,7 +40,8 @@ class FeatureStore:
             credentials["SessionToken"],
         )
 
-    def list_buckets(self, access_key, secret_key, session_token):
+    def list_buckets(self):
+        access_key, secret_key, session_token = self.get_credentials_for_identity()
         s3 = boto3.client(
             "s3",
             region_name="cn-north-1",
@@ -45,7 +52,8 @@ class FeatureStore:
         resp = s3.list_buckets()
         return resp["Buckets"]
 
-    def list_objects(self, bucket, access_key, secret_key, session_token):
+    def list_objects(self, bucket):
+        access_key, secret_key, session_token = self.get_credentials_for_identity()
         s3 = boto3.client(
             "s3",
             region_name="cn-north-1",
@@ -56,7 +64,8 @@ class FeatureStore:
         resp = s3.list_objects(Bucket=bucket)
         return resp["Contents"]
 
-    def get_object(self, bucket, key, access_key, secret_key, session_token):
+    def get_object(self, bucket, key):
+        access_key, secret_key, session_token = self.get_credentials_for_identity()
         s3 = boto3.client(
             "s3",
             region_name="cn-north-1",

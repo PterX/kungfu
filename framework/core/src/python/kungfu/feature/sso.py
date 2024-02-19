@@ -2,6 +2,7 @@ from authing import AuthenticationClient
 from kungfu.feature.config import AUTHING_APP_CONFIG
 from kungfu.feature.utils import record_tokens, get_tokens
 
+
 class SSO:
     def __init__(self, stage="prod"):
         self.stage = stage
@@ -10,6 +11,19 @@ class SSO:
             app_host=AUTHING_APP_CONFIG[self.stage]["appHost"],
             app_secret=AUTHING_APP_CONFIG[self.stage]["appSecret"],
         )
+
+    def get_profile(self):
+        access_token, refresh_token, id_token = get_tokens()
+        self.ac.set_access_token(access_token)
+        resp = self.ac.get_profile()
+        if resp["statusCode"] != 200:
+            print("Get Profile Failed", resp["statusCode"], resp["message"])
+            raise Exception("Get Profile Failed")
+
+        data = resp["data"]
+        phone = data["phone"]
+        username = data["username"]
+        return phone, username
 
     def sign_in_by_account_password(self, account, password):
         sign_in_resp = self.ac.sign_in_by_account_password(
@@ -61,23 +75,18 @@ class SSO:
             )
             return
 
-        print("Get New Access Token Success")
         access_token = get_access_token_resp["access_token"]
         refresh_token = get_access_token_resp["refresh_token"]
         id_token = get_access_token_resp["id_token"]
         record_tokens(access_token, refresh_token, id_token)
 
-    @staticmethod
-    def check_login_status(func):
-
-        def wrapper(*args, **kargs):
-            access_token, refresh_token, id_token = get_tokens()
-            if id_token == '':
-                print("Please login first")
-                return
-            
-            return func(*args, **kargs)
-        return wrapper
+    def introspect_token(self):
+        access_token, refresh_token, id_token = get_tokens()
+        resp = self.ac.introspect_token(access_token)
+        if resp["active"] == True:
+            return True
+        else:
+            return False
 
 
 # sso = SSO("alpha")

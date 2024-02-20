@@ -1347,7 +1347,8 @@ export const useSubscibeInstrumentAtEntry = (
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject
         .pipe(throttleTime(30000))
-        .subscribe((watcher: KungfuApi.Watcher) => {
+        .subscribe((data) => {
+          const { watcher } = data;
           const instrumentsForSub = customInstrumentsForSubGetter
             ? customInstrumentsForSubGetter(watcher)
             : getCurrentPositionsForSub(watcher);
@@ -1443,11 +1444,10 @@ export const useQuote = (): {
 
   onActivated(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          quotes.value = toRaw({ ...watcher.ledger.Quote });
-        },
-      );
+      const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+        const { watcher } = data;
+        quotes.value = toRaw({ ...watcher.ledger.Quote });
+      });
 
       onBeforeUnmount(() => {
         subscription.unsubscribe();
@@ -1633,7 +1633,8 @@ export const useDealInstruments = (): void => {
 
       const subscription = app.proxy.$tradingDataSubject
         .pipe(throttleTime(5000))
-        .subscribe((watcher: KungfuApi.Watcher) => {
+        .subscribe((data) => {
+          const { watcher } = data;
           const instruments = watcher.ledger.Instrument.list();
           const instrumentsLength = instruments.length;
           if (!instruments || !instrumentsLength) {
@@ -2440,26 +2441,25 @@ export const useCurrentPositionList = () => {
 
   onActivated(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          if (!currentGlobalKfLocation.value) return;
+      const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+        const { watcher } = data;
+        if (!currentGlobalKfLocation.value) return;
 
-          const currentPositions =
-            globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-              window.watcher,
-              currentGlobalKfLocation.value,
-              watcher.ledger.Position,
-              'position',
-            ) as KungfuApi.Position[];
-          currentPositionList.value = toRaw(
-            currentPositions
-              .reverse()
-              .map((item) =>
-                dealDataWithCache(item, () => dealPosition(watcher, item)),
-              ),
-          );
-        },
-      );
+        const currentPositions =
+          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+            window.watcher,
+            currentGlobalKfLocation.value,
+            watcher.ledger.Position,
+            'position',
+          ) as KungfuApi.Position[];
+        currentPositionList.value = toRaw(
+          currentPositions
+            .reverse()
+            .map((item) =>
+              dealDataWithCache(item, () => dealPosition(watcher, item)),
+            ),
+        );
+      });
 
       onBeforeUnmount(() => {
         subscription.unsubscribe();

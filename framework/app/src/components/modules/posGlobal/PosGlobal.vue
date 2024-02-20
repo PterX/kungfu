@@ -146,35 +146,34 @@ const columns = computed(() => {
 });
 
 onActivated(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        setTimeout(() => {
-          const positions = watcher.ledger.Position.nofilter('volume', 0)
-            .filter('ledger_category', LedgerCategoryEnum.td)
-            .list();
+  if (app?.proxy && 0) {
+    const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+      const { watcher } = data;
+      setTimeout(() => {
+        const positions = watcher.ledger.Position.nofilter('volume', 0)
+          .filter('ledger_category', LedgerCategoryEnum.td)
+          .list();
 
-          pos.value = toRaw(
-            buildGlobalPositions(positions).map((position) => {
-              const { price_precision } = getPriceTickAndPrecision(
-                position.instrument_id,
-                position.exchange_id,
-              );
-              const currency = getInstrumentCurrency(
-                position.instrument_id,
-                position.exchange_id,
-              );
+        pos.value = toRaw(
+          buildGlobalPositions(positions).map((position) => {
+            const { price_precision } = getPriceTickAndPrecision(
+              position.instrument_id,
+              position.exchange_id,
+            );
+            const currency = getInstrumentCurrency(
+              position.instrument_id,
+              position.exchange_id,
+            );
 
-              return dealDataWithCache(
-                position,
-                () => dealPosition(watcher, position, price_precision),
-                { currency },
-              );
-            }),
-          );
-        });
-      },
-    );
+            return dealDataWithCache(
+              position,
+              () => dealPosition(watcher, position, price_precision),
+              { currency },
+            );
+          }),
+        );
+      });
+    });
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();

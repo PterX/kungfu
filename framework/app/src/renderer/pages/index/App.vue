@@ -61,26 +61,25 @@ const latestTrade = ref<bigint>(0n);
 
 useIpcListener();
 
-const tradingDataSubscription = tradingDataSubject.subscribe(
-  (watcher: KungfuApi.Watcher) => {
-    const appStates = dealAppStates(watcher, watcher.appStates);
-    store.setAppStates(appStates);
-    const assets = dealAssetsByHolderUID<KungfuApi.Asset>(
-      watcher,
-      watcher.ledger.Asset,
-    );
-    store.setAssets(assets);
-    const strategyStates = dealStrategyStates(watcher, watcher.strategyStates);
-    store.setStrategyStates(strategyStates);
+const tradingDataSubscription = tradingDataSubject.subscribe((data) => {
+  const { watcher } = data;
+  const appStates = dealAppStates(watcher, watcher.appStates);
+  store.setAppStates(appStates);
+  const assets = dealAssetsByHolderUID<KungfuApi.Asset>(
+    watcher,
+    watcher.ledger.Asset,
+  );
+  store.setAssets(assets);
+  const strategyStates = dealStrategyStates(watcher, watcher.strategyStates);
+  store.setStrategyStates(strategyStates);
 
-    const sortKey = getTradingDataSortKey('Trade');
-    const trades = watcher.ledger.Trade.sort(sortKey);
-    if (trades.length && latestTrade.value !== trades[0]?.trade_id) {
-      latestTrade.value = trades[0]?.trade_id || 0n;
-      playSound();
-    }
-  },
-);
+  const sortKey = getTradingDataSortKey('Trade');
+  const trades = watcher.ledger.Trade.sort(sortKey);
+  if (trades.length && latestTrade.value !== trades[0]?.trade_id) {
+    latestTrade.value = trades[0]?.trade_id || 0n;
+    playSound();
+  }
+});
 
 store.setKfConfigList();
 store.setKfExtConfigs();

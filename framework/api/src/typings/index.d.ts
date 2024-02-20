@@ -1476,6 +1476,48 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
+  export interface TradingDataObject {
+    order: {
+      td: {
+        [key: number]: {
+          orderIndexMap?: any;
+          orderMap?: Records<
+            string,
+            { orderResolved: KungfuApi.OrderResolved; index: number }
+          >;
+          orderList?: KungfuApi.OrderResolved[];
+          addedOrderList?: KungfuApi.OrderResolved[];
+          updatedOrderList?: [KungfuApi.OrderResolved[], number[]];
+          orderLength?: number;
+        };
+      };
+      strategy: {
+        [key: number]: {
+          orderMap?: Records<
+            string,
+            { orderResolved: KungfuApi.OrderResolved; index: number }
+          >;
+          orderList?: KungfuApi.OrderResolved[];
+          addedOrderList?: KungfuApi.OrderResolved[];
+          updatedOrderList?: [KungfuApi.OrderResolved[], number[]];
+          orderLength?: number;
+        };
+      };
+    };
+    trade: {
+      tradeMap: Map<string, KungfuApi.Trade>;
+      tradeList: KungfuApi.Trade[];
+      addedTradeList: KungfuApi.Trade[];
+      updatedTradeList: KungfuApi.Trade[];
+    };
+    position: {
+      positionMap: Map<string, KungfuApi.Position>;
+      positionList: KungfuApi.Position[];
+      addedPositionList: KungfuApi.Position[];
+      updatedPositionList: KungfuApi.Position[];
+    };
+  }
+
   export interface Session {
     index: number;
     location_uid: number;

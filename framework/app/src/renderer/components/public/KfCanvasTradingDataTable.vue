@@ -1,5 +1,5 @@
 <template>
-  <div ref="listTableRef" style="width: 100%; height: 28px"></div>
+  <div ref="listTableRef" style="width: 100%; height: 100%"></div>
   <a-empty
     v-if="showEmpty"
     ref="emptyRef"
@@ -15,7 +15,7 @@ import {
   watch,
   getCurrentInstance,
   computed,
-  nextTick,
+  // nextTick,
 } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -169,7 +169,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   },
   scrollStyle: {
     scrollSliderColor: '#555',
-    visible: 'none',
+    visible: 'focus',
   },
 };
 
@@ -335,41 +335,42 @@ const getListTable = () => {
 
 defineExpose({
   getListTable,
+  initCustomLayoutOptions,
 });
 
-watch(
-  () => props.dataSource,
-  (tableData) => {
-    nextTick(() => {
-      if (listTable) {
-        if (tableData.length === 0) {
-          listTableRef.value.style.height = `35px`;
-          if (
-            defaultTheme.scrollStyle &&
-            defaultTheme.scrollStyle.visible !== 'none'
-          ) {
-            defaultTheme.scrollStyle.visible = 'none';
-            listTable.updateTheme(defaultTheme);
-          }
-          showEmpty.value = true;
-        } else {
-          listTableRef.value.style.height = `100%`;
-          if (
-            defaultTheme.scrollStyle &&
-            defaultTheme.scrollStyle.visible !== 'focus'
-          ) {
-            defaultTheme.scrollStyle.visible = 'focus';
-            listTable.updateTheme(defaultTheme);
-          }
-          showEmpty.value = false;
-        }
-        console.log('tableData', tableData.length);
-        listTable.setRecords(tableData);
-      }
-    });
-  },
-  { immediate: true },
-);
+// watch(
+//   () => props.dataSource,
+//   (tableData) => {
+//     nextTick(() => {
+//       if (listTable) {
+//         if (tableData.length === 0) {
+//           listTableRef.value.style.height = `35px`;
+//           if (
+//             defaultTheme.scrollStyle &&
+//             defaultTheme.scrollStyle.visible !== 'none'
+//           ) {
+//             defaultTheme.scrollStyle.visible = 'none';
+//             listTable.updateTheme(defaultTheme);
+//           }
+//           showEmpty.value = true;
+//         } else {
+//           listTableRef.value.style.height = `100%`;
+//           if (
+//             defaultTheme.scrollStyle &&
+//             defaultTheme.scrollStyle.visible !== 'focus'
+//           ) {
+//             defaultTheme.scrollStyle.visible = 'focus';
+//             listTable.updateTheme(defaultTheme);
+//           }
+//           showEmpty.value = false;
+//         }
+//         console.log('tableData', tableData.length);
+//         listTable.setRecords(tableData);
+//       }
+//     });
+//   },
+//   { immediate: true },
+// );
 
 watch(
   () => props.columns,

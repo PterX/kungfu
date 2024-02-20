@@ -12,6 +12,7 @@ import {
   dealSide,
   getAccountIdStyle,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -23,10 +24,13 @@ export const getColumns = (
     .trigger(kfLocation, 'order')
     .getColumns<VTable.ColumnDefine>([
       {
-        field: 'update_time_resolved',
+        field: 'update_time',
         title: t('orderConfig.update_time'),
         width: isHistory ? 160 : 120,
         sort: sorter,
+        fieldFormat: (args) => {
+          return dealKfTime(args.update_time, isHistory);
+        },
       },
       {
         field: 'instrument_id',

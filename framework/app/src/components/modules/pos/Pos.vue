@@ -136,39 +136,38 @@ const columns = computed(() => {
 });
 
 onActivated(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (!currentGlobalKfLocation.value) return;
+  if (app?.proxy && 0) {
+    const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+      const { watcher } = data;
+      if (!currentGlobalKfLocation.value) return;
 
-        const positions =
-          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-            watcher,
-            currentGlobalKfLocation.value,
-            watcher.ledger.Position,
-            'position',
-          ) as KungfuApi.Position[];
+      const positions =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          watcher,
+          currentGlobalKfLocation.value,
+          watcher.ledger.Position,
+          'position',
+        ) as KungfuApi.Position[];
 
-        pos.value = toRaw(
-          positions.reverse().map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-            );
-            const currency = getInstrumentCurrency(
-              item.instrument_id,
-              item.exchange_id,
-            );
+      pos.value = toRaw(
+        positions.reverse().map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+          );
+          const currency = getInstrumentCurrency(
+            item.instrument_id,
+            item.exchange_id,
+          );
 
-            return dealDataWithCache(
-              item,
-              () => dealPosition(watcher, item, price_precision),
-              { currency },
-            );
-          }),
-        );
-      },
-    );
+          return dealDataWithCache(
+            item,
+            () => dealPosition(watcher, item, price_precision),
+            { currency },
+          );
+        }),
+      );
+    });
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();

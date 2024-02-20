@@ -105,61 +105,60 @@ const columns = computed(() => {
 });
 
 onActivated(() => {
-  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
-    (watcher: KungfuApi.Watcher) => {
-      if (historyDate.value) {
-        return;
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
+    const { watcher } = data;
+    if (historyDate.value) {
+      return;
+    }
+
+    if (currentGlobalKfLocation.value === null) {
+      return;
+    }
+
+    if (stopWatcher.value) {
+      return;
+    }
+
+    const tradesResolved =
+      globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+        watcher,
+        currentGlobalKfLocation.value,
+        watcher.ledger.Trade,
+        'trade',
+      ) as KungfuApi.Trade[];
+
+    const tempAllTrades = toRaw(
+      tradesResolved.map((item) => {
+        const { price_precision } = getPriceTickAndPrecision(
+          item.instrument_id,
+          item.exchange_id,
+        );
+
+        return toRaw(
+          dealTrade(
+            watcher,
+            item,
+            watcher.ledger.OrderStat,
+            false,
+            price_precision,
+          ),
+        );
+      }),
+    );
+    allTrades.value = tempAllTrades;
+
+    if (tempAllTrades.length > limitCount.value) {
+      trades.value = tempAllTrades;
+      stopWatcher.value = true;
+      while (trades.value.length < maxCount.value) {
+        trades.value = trades.value.concat(tempAllTrades);
+        console.log('trades length', trades.value.length);
       }
-
-      if (currentGlobalKfLocation.value === null) {
-        return;
-      }
-
-      if (stopWatcher.value) {
-        return;
-      }
-
-      const tradesResolved =
-        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-          watcher,
-          currentGlobalKfLocation.value,
-          watcher.ledger.Trade,
-          'trade',
-        ) as KungfuApi.Trade[];
-
-      const tempAllTrades = toRaw(
-        tradesResolved.map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
-
-          return toRaw(
-            dealTrade(
-              watcher,
-              item,
-              watcher.ledger.OrderStat,
-              false,
-              price_precision,
-            ),
-          );
-        }),
-      );
-      allTrades.value = tempAllTrades;
-
-      if (tempAllTrades.length > limitCount.value) {
-        trades.value = tempAllTrades;
-        stopWatcher.value = true;
-        while (trades.value.length < maxCount.value) {
-          trades.value = trades.value.concat(tempAllTrades);
-          console.log('trades length', trades.value.length);
-        }
-      } else {
-        stopWatcher.value = false;
-        trades.value = tempAllTrades.slice(0, Number(splitCount.value));
-      }
-    },
-  );
+    } else {
+      stopWatcher.value = false;
+      trades.value = tempAllTrades.slice(0, Number(splitCount.value));
+    }
+  });
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();

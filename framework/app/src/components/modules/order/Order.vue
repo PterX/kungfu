@@ -2,7 +2,7 @@
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
-  delayMilliSeconds,
+  // delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -36,23 +36,24 @@ import {
 import {
   computed,
   getCurrentInstance,
-  onActivated,
+  // onMounted,
   onBeforeUnmount,
   onDeactivated,
   reactive,
   ref,
-  toRaw,
+  // toRaw,
   watch,
   nextTick,
+  onActivated,
 } from 'vue';
 import { getColumns } from './config';
 import {
-  dealOrder,
-  getKungfuHistoryData,
+  // dealOrder,
+  // getKungfuHistoryData,
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
-  getOrderLatencyDataByOrderStat,
+  // getOrderLatencyDataByOrderStat,
   kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
@@ -62,12 +63,12 @@ import {
   UnfinishedOrderStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
-  HistoryDateEnum,
+  // HistoryDateEnum,
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
   OrderTriggerConfigTypeEnum,
-  OrderTriggerFlag,
+  // OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   showTradingDataDetail,
@@ -89,7 +90,7 @@ const { extConfigs } = useExtConfigsRelated();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
-const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
+const { clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolvedWithoutStat
 >(['uid_key', 'update_time']);
@@ -177,114 +178,210 @@ const customLayout: Record<string, ICustomActionOption[]> = {
   ],
 };
 
+let firstRender = true;
+let needClear = true;
+
 onActivated(() => {
-  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
-    (watcher: KungfuApi.Watcher) => {
-      if (historyDate.value) {
-        return;
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
+    const { watcher, tradingDataObject } = data;
+    if (historyDate.value) {
+      return;
+    }
+
+    if (currentGlobalKfLocation.value === null) {
+      return;
+    }
+
+    if (adjustOrderMaskVisible.value) {
+      return;
+    }
+    const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
+    const obj =
+      tradingDataObject.order[currentGlobalKfLocation.value.category][
+        locationId
+      ];
+    // const updatedOrderList = tradingDataObject.order.updatedOrderList;
+    // console.log('obj', obj);
+    nextTick(() => {
+      if (obj) {
+        if (firstRender) {
+          console.time('first');
+          const orderListCopy = obj.orderIndexMap.getValuesArray();
+          if (!orderListCopy) return;
+          needClear = true;
+          canvasRef.value.initCustomLayoutOptions();
+          canvasRef.value.getListTable()?.setRecords(orderListCopy.reverse());
+          console.timeEnd('first');
+          console.log('first', orderListCopy);
+          firstRender = false;
+          return;
+        }
+        if (obj.updatedOrderList && obj.updatedOrderList[0].length > 0) {
+          const updateList = [...obj.updatedOrderList[0]];
+          const updateIndexList = [...obj.updatedOrderList[1]];
+          canvasRef.value
+            .getListTable()
+            ?.updateRecords(updateList, updateIndexList);
+          console.log('updatedOrderList', obj.updatedOrderList);
+        }
+        if (obj.addedOrderList.length > 0) {
+          const addedOrderListCopy = [...obj.addedOrderList]; // Create a copy of addedOrderList
+          canvasRef.value.getListTable()?.addRecords(addedOrderListCopy, 0);
+          console.log('addedOrderList', obj.addedOrderList.length);
+        }
+        if (
+          obj.addFinishedOrderList &&
+          obj.addFinishedOrderList[0].length > 0
+        ) {
+          const addedOrderListCopy = [...obj.addFinishedOrderList[0]];
+          canvasRef.value
+            .getListTable()
+            ?.addRecords(addedOrderListCopy, obj.addFinishedOrderList[1] || 0);
+          console.log('addFinishedOrderList', obj.addFinishedOrderList);
+        }
+        allOrders.value = obj.orderIndexMap.getValuesArray();
+        console.log('allOrders', allOrders.value.length);
+      } else {
+        if (needClear) {
+          canvasRef.value.getListTable()?.setRecords([]);
+          needClear = false;
+        }
       }
+    });
 
-      if (currentGlobalKfLocation.value === null) {
-        return;
-      }
+    // const ordersResolved =
+    //   globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+    //     window.watcher,
+    //     currentGlobalKfLocation.value,
+    //     watcher.ledger.Order,
+    //     'order',
+    //   ) as KungfuApi.Order[];
 
-      if (adjustOrderMaskVisible.value) {
-        return;
-      }
+    // if (unfinishedOrder.value) {
+    //   const tempAllOrders = ordersResolved.map((item) => {
+    //     const { price_precision } = getPriceTickAndPrecision(
+    //       item.instrument_id,
+    //       item.exchange_id,
+    //     );
 
-      const ordersResolved =
-        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-          window.watcher,
-          currentGlobalKfLocation.value,
-          watcher.ledger.Order,
-          'order',
-        ) as KungfuApi.Order[];
+    //     return toRaw({
+    //       ...dealDataWithCache(
+    //         item,
+    //         () => dealOrder(watcher, item, false, price_precision),
+    //         { price_precision },
+    //       ),
+    //       ...getOrderLatencyDataByOrderStat(
+    //         item,
+    //         watcher.ledger.OrderStat,
+    //         price_precision,
+    //       ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
+    //     });
+    //   });
+    //   allOrders.value = tempAllOrders;
+    //   orders.value = toRaw(
+    //     tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
+    //   );
+    //   console.log('orders', orders.value.length, orders.value);
+    //   return;
+    // }
 
-      if (unfinishedOrder.value) {
-        const tempAllOrders = ordersResolved.map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
+    // let finishedOrdersCount = 0;
+    // if (addedOrderList.length > 0) {
+    //   const { totalOrders, ordersForTable } = addedOrderList.reduce(
+    //     (preOrders, curOrder) => {
+    //       const { price_precision } = getPriceTickAndPrecision(
+    //         curOrder.instrument_id,
+    //         curOrder.exchange_id,
+    //       );
 
-          return toRaw({
-            ...dealDataWithCache(
-              item,
-              () => dealOrder(watcher, item, false, price_precision),
-              { price_precision },
-            ),
-            ...getOrderLatencyDataByOrderStat(
-              item,
-              watcher.ledger.OrderStat,
-              price_precision,
-            ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
-          });
-        });
-        allOrders.value = tempAllOrders;
-        orders.value = toRaw(
-          tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
-        );
-        return;
-      }
+    //       const orderResolved = toRaw({
+    //         ...dealDataWithCache(
+    //           curOrder,
+    //           () => dealOrder(watcher, curOrder, false, price_precision),
+    //           { price_precision },
+    //         ),
+    //         ...getOrderLatencyDataByOrderStat(
+    //           curOrder,
+    //           watcher.ledger.OrderStat,
+    //           price_precision,
+    //         ),
+    //       });
+    //       preOrders.totalOrders.push(orderResolved);
+    //       if (isFinishedOrderStatus(curOrder.status)) {
+    //         if (finishedOrdersCount < 500) {
+    //           finishedOrdersCount++;
+    //           preOrders.ordersForTable.push(orderResolved);
+    //         }
+    //       } else {
+    //         preOrders.ordersForTable.push(orderResolved);
+    //       }
+    //       return preOrders;
+    //     },
+    //     { totalOrders: [], ordersForTable: [] } as {
+    //       totalOrders: KungfuApi.OrderResolved[];
+    //       ordersForTable: KungfuApi.OrderResolved[];
+    //     },
+    //   );
 
-      let finishedOrdersCount = 0;
-      const { totalOrders, ordersForTable } = ordersResolved.reduce(
-        (preOrders, curOrder) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            curOrder.instrument_id,
-            curOrder.exchange_id,
-          );
+    //   const addedTotalOrders = toRaw(totalOrders);
+    //   const addedordersForTable = toRaw(ordersForTable);
+    //   console.log('addedordersForTable', addedTotalOrders, addedordersForTable);
+    // }
+    // const { totalOrders, ordersForTable } = ordersResolved.reduce(
+    //   (preOrders, curOrder) => {
+    //     const { price_precision } = getPriceTickAndPrecision(
+    //       curOrder.instrument_id,
+    //       curOrder.exchange_id,
+    //     );
 
-          const orderResolved = toRaw({
-            ...dealDataWithCache(
-              curOrder,
-              () => dealOrder(watcher, curOrder, false, price_precision),
-              { price_precision },
-            ),
-            ...getOrderLatencyDataByOrderStat(
-              curOrder,
-              watcher.ledger.OrderStat,
-              price_precision,
-            ),
-          });
-          preOrders.totalOrders.push(orderResolved);
-          if (isFinishedOrderStatus(curOrder.status)) {
-            if (finishedOrdersCount < 500) {
-              finishedOrdersCount++;
-              preOrders.ordersForTable.push(orderResolved);
-            }
-          } else {
-            preOrders.ordersForTable.push(orderResolved);
-          }
-          return preOrders;
-        },
-        { totalOrders: [], ordersForTable: [] } as {
-          totalOrders: KungfuApi.OrderResolved[];
-          ordersForTable: KungfuApi.OrderResolved[];
-        },
-      );
+    //     const orderResolved = toRaw({
+    //       ...dealDataWithCache(
+    //         curOrder,
+    //         () => dealOrder(watcher, curOrder, false, price_precision),
+    //         { price_precision },
+    //       ),
+    //       ...getOrderLatencyDataByOrderStat(
+    //         curOrder,
+    //         watcher.ledger.OrderStat,
+    //         price_precision,
+    //       ),
+    //     });
+    //     preOrders.totalOrders.push(orderResolved);
+    //     if (isFinishedOrderStatus(curOrder.status)) {
+    //       if (finishedOrdersCount < 500) {
+    //         finishedOrdersCount++;
+    //         preOrders.ordersForTable.push(orderResolved);
+    //       }
+    //     } else {
+    //       preOrders.ordersForTable.push(orderResolved);
+    //     }
+    //     return preOrders;
+    //   },
+    //   { totalOrders: [], ordersForTable: [] } as {
+    //     totalOrders: KungfuApi.OrderResolved[];
+    //     ordersForTable: KungfuApi.OrderResolved[];
+    //   },
+    // );
 
-      allOrders.value = toRaw(totalOrders);
-      orders.value = toRaw(ordersForTable);
-
-      const source = watcher.getLocationUID(currentGlobalKfLocation.value);
-      orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
-        'action_flag',
-        OrderTriggerFlag.TriggerCancel,
-      )
-        .filter('source', source)
-        .list()
-        .reduce((pre, cur) => {
-          const order_id = cur.order_id.toString();
-          if (order_id in pre) {
-            pre[order_id].push(cur);
-          } else {
-            pre[order_id] = [cur];
-          }
-          return pre;
-        }, {});
-    },
-  );
+    // allOrders.value = toRaw(totalOrders);
+    // orders.value = toRaw(ordersForTable);
+    // const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+    // orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
+    //   'action_flag',
+    //   OrderTriggerFlag.TriggerCancel,
+    // )
+    //   .filter('source', source)
+    //   .list()
+    //   .reduce((pre, cur) => {
+    //     const order_id = cur.order_id.toString();
+    //     if (order_id in pre) {
+    //       pre[order_id].push(cur);
+    //     } else {
+    //       pre[order_id] = [cur];
+    //     }
+    //     return pre;
+    //   }, {});
+  });
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();
@@ -300,6 +397,7 @@ watch(currentGlobalKfLocation, () => {
   allOrders.value = [];
   orders.value = [];
   clearCaches();
+  firstRender = true;
 });
 
 watch(historyDate, async (newDate) => {
@@ -313,63 +411,64 @@ watch(historyDate, async (newDate) => {
   orders.value = [];
   allOrders.value = [];
   historyDataLoading.value = true;
-  delayMilliSeconds(500)
-    .then(() =>
-      getKungfuHistoryData(
-        window.watcher,
-        newDate.format(),
-        HistoryDateEnum.naturalDate,
-        'Order',
-        currentGlobalKfLocation.value as KungfuApi.KfLocation,
-      ),
-    )
-    .then((historyData) => {
-      if (!historyData) return;
+  // delayMilliSeconds(500)
+  //   .then(() =>
+  //     getKungfuHistoryData(
+  //       window.watcher,
+  //       newDate.format(),
+  //       HistoryDateEnum.naturalDate,
+  //       'Order',
+  //       currentGlobalKfLocation.value as KungfuApi.KfLocation,
+  //     ),
+  //   )
+  //   .then((historyData) => {
+  //     if (!historyData) return;
 
-      const { tradingData } = historyData;
+  //     const { tradingData } = historyData;
 
-      const orderResolved =
-        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-          window.watcher,
-          currentGlobalKfLocation.value,
-          tradingData.Order,
-          'order',
-        ) as KungfuApi.Order[];
+  //     const orderResolved =
+  //       globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+  //         window.watcher,
+  //         currentGlobalKfLocation.value,
+  //         tradingData.Order,
+  //         'order',
+  //       ) as KungfuApi.Order[];
 
-      const tempAllOrders = toRaw(
-        orderResolved.map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
+  //     const tempAllOrders = toRaw(
+  //       orderResolved.map((item) => {
+  //         const { price_precision } = getPriceTickAndPrecision(
+  //           item.instrument_id,
+  //           item.exchange_id,
+  //         );
 
-          return toRaw({
-            ...dealDataWithCache(
-              item,
-              () => dealOrder(window.watcher, item, true, price_precision),
-              { price_precision },
-            ),
-            ...getOrderLatencyDataByOrderStat(
-              item,
-              tradingData.OrderStat,
-              price_precision,
-            ),
-          });
-        }),
-      );
-      allOrders.value = tempAllOrders;
-      orders.value = tempAllOrders;
-    })
-    .catch((err) => {
-      if (err.message === 'database_locked') {
-        messagePrompt().error(t('export_database_locked'));
-      } else {
-        console.error(err.message);
-      }
-    })
-    .finally(() => {
-      historyDataLoading.value = false;
-    });
+  //         return toRaw({
+  //           ...dealDataWithCache(
+  //             item,
+  //             () => dealOrder(window.watcher, item, true, price_precision),
+  //             { price_precision },
+  //           ),
+  //           ...getOrderLatencyDataByOrderStat(
+  //             item,
+  //             tradingData.OrderStat,
+  //             price_precision,
+  //           ),
+  //         });
+  //       }),
+  //     );
+  //     allOrders.value = tempAllOrders;
+  //     orders.value = tempAllOrders;
+  //     console.log('orders', orders.value.length);
+  //   })
+  //   .catch((err) => {
+  //     if (err.message === 'database_locked') {
+  //       messagePrompt().error(t('export_database_locked'));
+  //     } else {
+  //       console.error(err.message);
+  //     }
+  //   })
+  //   .finally(() => {
+  //     historyDataLoading.value = false;
+  //   });
 });
 
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {

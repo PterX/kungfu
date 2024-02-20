@@ -47,6 +47,7 @@ import {
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
   dealKfDecimalPrecision,
+  countDecimalPlaces,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -958,6 +959,111 @@ export const getOrderLatencyDataByOrderStat = (
     avg_price: dealKfDecimalPrecision(latencyData.avg_price, price_precision),
     avg_price_resolved: dealKfPrice(latencyData.avg_price, price_precision),
   };
+};
+
+export const getOrderStatResolve = (
+  orderStat: KungfuApi.OrderStat | null,
+):
+  | {
+      latencySystem: string;
+      latencyNetwork: string;
+      latencyTrade: string;
+      trade_time: bigint;
+      avg_price: number;
+    }
+  | {} => {
+  if (!orderStat) {
+    return {};
+  }
+
+  const { insert_time, ack_time, md_time, trade_time } = orderStat;
+  const latencyTrade =
+    trade_time && ack_time
+      ? Number(Number(trade_time - ack_time) / 1000).kfToFixed(0)
+      : '--';
+  const latencyNetwork =
+    ack_time && insert_time
+      ? Number(Number(ack_time - insert_time) / 1000).kfToFixed(0)
+      : '--';
+  const latencySystem =
+    insert_time && md_time
+      ? Number(Number(insert_time - md_time) / 1000).kfToFixed(0)
+      : '--';
+
+  return {
+    latencySystem,
+    latencyNetwork,
+    latencyTrade,
+    trade_time: orderStat.trade_time,
+    avg_price: dealKfDecimalPrecision(orderStat.avg_price),
+  };
+};
+
+const getInstrumentByIdsWithWatcher = (
+  instrumentId: string,
+  exchangeId: string,
+) => {
+  const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+  const watcher = window.watcher as KungfuApi.Watcher;
+  const instrument = watcher.ledger.Instrument[ukey];
+  if (instrument) return instrument;
+
+  return null;
+};
+
+const getPriceTickAndPrecision = (
+  instrumentId: string,
+  exchangeId: string,
+  defaultTick = 0.0001,
+  defaultPrecision = 0.0001,
+) => {
+  const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+  const price_tick = instrument?.price_tick || defaultTick;
+  const price_precision = countDecimalPlaces(
+    instrument?.price_tick || defaultPrecision,
+  );
+  return { price_tick, price_precision };
+};
+
+export const getOrderResolved = (
+  watcher: KungfuApi.Watcher,
+  order: KungfuApi.Order,
+  orderStats: KungfuApi.OrderStat | null,
+): KungfuApi.OrderResolved => {
+  const { price_precision } = getPriceTickAndPrecision(
+    order.instrument_id,
+    order.exchange_id,
+  );
+  const latencyData = getOrderStatResolve(orderStats);
+  const destResolvedData = resolveClientId(watcher, order.dest);
+  const sourceResolvedData = resolveAccountId(
+    watcher,
+    order.source,
+    order.dest,
+  );
+  const statusData = dealOrderStatus(order.status, order.error_msg);
+
+  return {
+    ...order,
+    ...latencyData,
+    volume: dealKfDecimalPrecision(order.volume),
+    volume_left: dealKfDecimalPrecision(order.volume_left),
+    source: order.source,
+    dest: order.dest,
+    uid_key: order.uid_key,
+    source_resolved_data: sourceResolvedData,
+    dest_resolved_data: destResolvedData,
+    source_uname: sourceResolvedData.name,
+    dest_uname: destResolvedData.name,
+    limit_price_resolved: dealKfPrice(order.limit_price, price_precision),
+    limit_price: dealKfDecimalPrecision(order.limit_price, price_precision),
+    frozen_price: dealKfDecimalPrecision(order.frozen_price, price_precision),
+    avg_price_resolved:
+      'avg_price' in latencyData
+        ? dealKfPrice(latencyData.avg_price, price_precision)
+        : '--',
+    status_uname: statusData.name,
+  } as unknown as KungfuApi.OrderResolved;
 };
 
 export const dealOrder = (

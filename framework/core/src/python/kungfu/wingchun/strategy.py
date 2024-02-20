@@ -311,7 +311,7 @@ class Strategy(wc.Strategy):
 
     def on_transaction(self, wc_context, transaction, location, dest):
         self.__call_proxy(self._on_transaction, self.ctx, transaction, location, dest)
-    
+
     def on_depth(self, wc_context, depth, location, dest_id):
         self.__call_proxy(self._on_depth, self.ctx, depth, location)
 

@@ -58,7 +58,7 @@ public:
   }
 
   void on_depth(op::Context_ptr &context, const Depth &depth, const kungfu::yijinjing::data::location_ptr &location,
-               uint32_t dest) override {
+                uint32_t dest) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_depth, context, depth, location, dest);
   }
 
@@ -66,8 +66,6 @@ public:
                uint32_t dest) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_tick, context, tick, location, dest);
   }
-
-
 
   void on_synthetic_data(op::Context_ptr &context, const SyntheticData &synthetic_data,
                          const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {

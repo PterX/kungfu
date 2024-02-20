@@ -56,8 +56,8 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_tree, context, tree, location, dest);
   }
 
-  void on_depth(strategy::Context_ptr &context, const Depth &depth, const kungfu::yijinjing::data::location_ptr &location,
-               uint32_t dest) override {
+  void on_depth(strategy::Context_ptr &context, const Depth &depth,
+                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_depth, context, depth, location, dest);
   }
 

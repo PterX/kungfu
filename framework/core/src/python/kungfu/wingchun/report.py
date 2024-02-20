@@ -93,7 +93,7 @@ class Report(wc.Report):
 
     def on_tree(self, tree):
         self._on_transaction(self.ctx, tree)
-        
+
     def on_depth(self, depth):
         self._on_transaction(self.ctx, depth)
 

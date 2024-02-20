@@ -70,6 +70,12 @@ class Strategy(wc.Strategy):
             "on_transaction",
             lambda ctx, transaction, location, dest: None,
         )
+        self._on_depth = getattr(
+            self._module, "on_depth", lambda ctx, depth, location: None
+        )
+        self._on_tick = getattr(
+            self._module, "on_tick", lambda ctx, tick, location: None
+        )
         self._on_synthetic_data = getattr(
             self._module,
             "on_synthetic_data",
@@ -305,6 +311,12 @@ class Strategy(wc.Strategy):
 
     def on_transaction(self, wc_context, transaction, location, dest):
         self.__call_proxy(self._on_transaction, self.ctx, transaction, location, dest)
+    
+    def on_depth(self, wc_context, depth, location, dest_id):
+        self.__call_proxy(self._on_depth, self.ctx, depth, location)
+
+    def on_tick(self, wc_context, tick, location, dest_id):
+        self.__call_proxy(self._on_tick, self.ctx, tick, location)
 
     def on_synthetic_data(self, wc_context, synthetic_data, location, dest):
         self.__call_proxy(

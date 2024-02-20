@@ -57,6 +57,18 @@ public:
     PYBIND11_OVERLOAD(void, op::Operator, on_tree, context, tree, location, dest);
   }
 
+  void on_depth(op::Context_ptr &context, const Depth &depth, const kungfu::yijinjing::data::location_ptr &location,
+               uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_depth, context, depth, location, dest);
+  }
+
+  void on_tick(op::Context_ptr &context, const Tick &tick, const kungfu::yijinjing::data::location_ptr &location,
+               uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, op::Operator, on_tick, context, tick, location, dest);
+  }
+
+
+
   void on_synthetic_data(op::Context_ptr &context, const SyntheticData &synthetic_data,
                          const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     PYBIND11_OVERLOAD(void, op::Operator, on_synthetic_data, context, synthetic_data, location, dest);
@@ -120,6 +132,8 @@ void bind_operator(pybind11::module &m) {
       .def("on_entrust", &op::Operator::on_entrust)
       .def("on_transaction", &op::Operator::on_transaction)
       .def("on_tree", &op::Operator::on_tree)
+      .def("on_depth", &op::Operator::on_depth)
+      .def("on_tick", &op::Operator::on_tick)
       .def("on_synthetic_data", &op::Operator::on_synthetic_data)
       .def("on_deregister ", &op::Operator::on_deregister)
       .def("on_broker_state_change ", &op::Operator::on_broker_state_change)

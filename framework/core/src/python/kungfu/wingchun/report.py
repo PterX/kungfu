@@ -54,6 +54,10 @@ class Report(wc.Report):
 
         self._on_tree = getattr(self._module, "on_tree", lambda ctx, tree: None)
 
+        self._on_depth = getattr(self._module, "on_depth", lambda ctx, tree: None)
+
+        self._on_tick = getattr(self._module, "on_tick", lambda ctx, tree: None)
+
         self._on_read_synthetic_data = getattr(
             self._module,
             "on_read_synthetic_data",
@@ -89,6 +93,12 @@ class Report(wc.Report):
 
     def on_tree(self, tree):
         self._on_transaction(self.ctx, tree)
+        
+    def on_depth(self, depth):
+        self._on_transaction(self.ctx, depth)
+
+    def on_tick(self, tick):
+        self._on_transaction(self.ctx, tick)
 
     def on_read_synthetic_data(self, synthetic_data):
         self._on_read_synthetic_data(self.ctx, synthetic_data)

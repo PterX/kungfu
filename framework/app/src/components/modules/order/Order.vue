@@ -178,7 +178,7 @@ const customLayout: Record<string, ICustomActionOption[]> = {
   ],
 };
 
-let firstRender = true;
+// let firstRender = true;
 let needClear = true;
 
 onActivated(() => {
@@ -204,43 +204,41 @@ onActivated(() => {
     // console.log('obj', obj);
     nextTick(() => {
       if (obj) {
-        if (firstRender) {
-          console.time('first');
-          const orderListCopy = obj.orderIndexMap.getValuesArray();
-          if (!orderListCopy) return;
-          needClear = true;
-          canvasRef.value.initCustomLayoutOptions();
-          canvasRef.value.getListTable()?.setRecords(orderListCopy.reverse());
-          console.timeEnd('first');
-          console.log('first', orderListCopy);
-          firstRender = false;
-          return;
-        }
-        if (obj.updatedOrderList && obj.updatedOrderList[0].length > 0) {
-          const updateList = [...obj.updatedOrderList[0]];
-          const updateIndexList = [...obj.updatedOrderList[1]];
-          canvasRef.value
-            .getListTable()
-            ?.updateRecords(updateList, updateIndexList);
-          console.log('updatedOrderList', obj.updatedOrderList);
-        }
-        if (obj.addedOrderList.length > 0) {
-          const addedOrderListCopy = [...obj.addedOrderList]; // Create a copy of addedOrderList
-          canvasRef.value.getListTable()?.addRecords(addedOrderListCopy, 0);
-          console.log('addedOrderList', obj.addedOrderList.length);
-        }
-        if (
-          obj.addFinishedOrderList &&
-          obj.addFinishedOrderList[0].length > 0
-        ) {
-          const addedOrderListCopy = [...obj.addFinishedOrderList[0]];
-          canvasRef.value
-            .getListTable()
-            ?.addRecords(addedOrderListCopy, obj.addFinishedOrderList[1] || 0);
-          console.log('addFinishedOrderList', obj.addFinishedOrderList);
-        }
-        allOrders.value = obj.orderIndexMap.getValuesArray();
+        // if (firstRender) {
+
+        const orderListCopy = obj.orderIndexMap.getValuesArray();
+        if (!orderListCopy) return;
+        needClear = true;
+        // canvasRef.value.initCustomLayoutOptions();
+        canvasRef.value.getListTable()?.setRecords(orderListCopy.reverse());
+        // firstRender = false;
+        allOrders.value = orderListCopy;
         console.log('allOrders', allOrders.value.length);
+        return;
+        // }
+        // if (obj.updatedOrderList && obj.updatedOrderList[0].length > 0) {
+        //   const updateList = [...obj.updatedOrderList[0]];
+        //   const updateIndexList = [...obj.updatedOrderList[1]];
+        //   canvasRef.value
+        //     .getListTable()
+        //     ?.updateRecords(updateList, updateIndexList);
+        //   console.log('updatedOrderList', obj.updatedOrderList);
+        // }
+        // if (obj.addedOrderList.length > 0) {
+        //   const addedOrderListCopy = [...obj.addedOrderList]; // Create a copy of addedOrderList
+        //   canvasRef.value.getListTable()?.addRecords(addedOrderListCopy, 0);
+        //   console.log('addedOrderList', obj.addedOrderList.length);
+        // }
+        // if (
+        //   obj.addFinishedOrderList &&
+        //   obj.addFinishedOrderList[0].length > 0
+        // ) {
+        //   const addedOrderListCopy = [...obj.addFinishedOrderList[0]];
+        //   canvasRef.value
+        //     .getListTable()
+        //     ?.addRecords(addedOrderListCopy, obj.addFinishedOrderList[1] || 0);
+        //   console.log('addFinishedOrderList', obj.addFinishedOrderList);
+        // }
       } else {
         if (needClear) {
           canvasRef.value.getListTable()?.setRecords([]);

@@ -10,7 +10,7 @@ import {
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getOrderResolved } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-// import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {
@@ -130,7 +130,7 @@ export function useWatcher() {
       const orderList = Object.values(watcher.ledger.Order);
       const tradeList = Object.values(watcher.ledger.Trade);
       const positionList = Object.values(watcher.ledger.Position);
-      console.log('orderList', orderList.length);
+      console.log('orderStatList', orderStatList);
 
       dataQueue.push({ orderList, orderStatList, tradeList, positionList });
 
@@ -289,6 +289,7 @@ export function useWatcher() {
         orderIndexMap: new DynamicIndexedMap<string, KungfuApi.OrderResolved>(),
         addedOrderList: [],
         addFinishedOrderList: [[], 0],
+        deletedOrderList: [],
         updatedOrderList: [[], []],
       };
     }
@@ -298,38 +299,43 @@ export function useWatcher() {
       target.addedOrderList = [];
       target.updatedOrderList = [[], []];
       target.addFinishedOrderList = [[], 0];
+      target.deletedOrderList = [];
 
       markObject[key] = true; // 标记已处理
     }
 
     if (target.orderIndexMap.hasKey(orderUKey)) {
-      target.orderIndexMap.updateKeyWithValue(orderUKey, orderResolved);
-      const correctIndex = target.orderIndexMap.getIndexForKey(orderUKey);
-      target.updatedOrderList[0].push(orderResolved);
-      target.updatedOrderList[1].push(correctIndex);
+      const index = target.orderIndexMap.getOrderStatus(orderUKey);
+      if (index <= 0 && !UnfinishedOrderStatus.includes(orderResolved.status)) {
+        const correctIndex = target.orderIndexMap.getIndexForKey(orderUKey);
+        target.deletedOrderList.push(correctIndex);
+        target.orderIndexMap.deleteUnfinishedKeyAndValue(orderUKey);
+
+        target.orderIndexMap.insertKeyWithValue(orderUKey, orderResolved);
+        target.addedOrderList.unshift(orderResolved);
+      } else {
+        target.orderIndexMap.updateKeyWithValue(orderUKey, orderResolved);
+        const correctIndex = target.orderIndexMap.getIndexForKey(orderUKey);
+        target.updatedOrderList[0].push(orderResolved);
+        target.updatedOrderList[1].push(correctIndex);
+      }
     } else {
-      target.orderIndexMap.insertKeyWithValue(orderUKey, orderResolved);
-      target.addedOrderList.unshift(orderResolved);
-      // if (UnfinishedOrderStatus.includes(orderResolved.status)) {
-      //   target.orderIndexMap.insertKeyWithValue(orderUKey, orderResolved);
-      //   target.addedOrderList.unshift(orderResolved);
-      // } else {
-      //   const finishedOrderLength =
-      //     target.orderIndexMap.getFinishedListLength();
-      //   if (finishedOrderLength >= 500) {
-      //     target.addFinishedOrderList = [[], 0];
-      //     return;
-      //   }
-      //   target.orderIndexMap.insertKeyWithValue(
-      //     orderUKey,
-      //     orderResolved,
-      //     false,
-      //     500,
-      //   );
-      //   const index = target.orderIndexMap.getUnfinishEdListLength();
-      //   target.addFinishedOrderList[0].unshift(orderResolved);
-      //   target.addFinishedOrderList[1] = index;
+      // const count = target.orderIndexMap.getValuesArrayLength();
+      // if (count >= 50000) {
       // }
+      if (UnfinishedOrderStatus.includes(orderResolved.status)) {
+        target.orderIndexMap.insertKeyWithValue(orderUKey, orderResolved);
+        target.addedOrderList.unshift(orderResolved);
+      } else {
+        target.orderIndexMap.insertKeyWithValue(
+          orderUKey,
+          orderResolved,
+          false,
+        );
+        const index = target.orderIndexMap.getUnfinishEdListLength();
+        target.addFinishedOrderList[0].unshift(orderResolved);
+        target.addFinishedOrderList[1] = index;
+      }
     }
   }
 

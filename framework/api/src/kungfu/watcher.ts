@@ -287,11 +287,9 @@ export function useWatcher() {
     if (!tradingDataObject.order[type][key]) {
       tradingDataObject.order[type][key] = {
         orderIndexMap: new DynamicIndexedMap<string, KungfuApi.OrderResolved>(),
-        orderMap: {},
         addedOrderList: [],
         addFinishedOrderList: [[], 0],
         updatedOrderList: [[], []],
-        orderList: [],
       };
     }
 

@@ -372,10 +372,8 @@ private:
   int32_t protected_timer_id_;
   std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
   std::multimap<int64_t, TimerTask> timer_callbacks_{};
-  // std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
   void on_timer_check();
-  // void lease_expired_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
 

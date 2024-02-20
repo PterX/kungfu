@@ -228,19 +228,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
 constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderInput),                               // 201
     TYPE_PAIR(Order),                                    // 202
-    TYPE_PAIR(Trade),                                    // 203
-    TYPE_PAIR(BlockMessage),                             // 206
-    TYPE_PAIR(OrderStat),                                // 207
-    TYPE_PAIR(OrderTriggerInput),                        // 209
-    TYPE_PAIR(OrderTrigger),                             // 210
-    TYPE_PAIR(AlgoOrderInput),                           // 213
-    TYPE_PAIR(AlgoOrder)                                 // 214
-);
-
-constexpr auto TradingDataWithStatusTypes = boost::hana::make_map( //
-    TYPE_PAIR(Order),                                              // 202
-    TYPE_PAIR(OrderTrigger),                                       // 210
-    TYPE_PAIR(AlgoOrder)                                           // 214
+    TYPE_PAIR(Trade)                                     // 203
 );
 
 constexpr auto MarketDataTypes = boost::hana::make_map( //
@@ -275,7 +263,6 @@ const auto build_data_set = [](auto types) {
 
 const auto AllTypesTags = build_data_set(AllTypes);
 const auto TradingDataTags = build_data_set(TradingDataTypes);
-const auto TradingDataWithStatusTags = build_data_set(TradingDataWithStatusTypes);
 const auto ProfileDataTags = build_data_set(ProfileDataTypes);
 const auto StaticDataTags = build_data_set(StaticDataTypes);
 
@@ -295,11 +282,22 @@ constexpr auto build_state_map = [](auto types) {
   return boost::hana::unpack(maps, boost::hana::make_map);
 };
 
+constexpr auto build_state_vector_map = [](auto types) {
+  auto vectors = boost::hana::transform(boost::hana::values(types), [](auto value) {
+    using DataType = typename decltype(+value)::type;
+    return boost::hana::make_pair(value, std::vector<state<DataType>>());
+  });
+  return boost::hana::unpack(vectors, boost::hana::make_map);
+};
+
 using ProfileMapType = decltype(build_data_map(longfist::ProfileDataTypes));
 DECLARE_PTR(ProfileMapType)
 
 using StateMapType = decltype(build_state_map(longfist::StateDataTypes));
 DECLARE_PTR(StateMapType)
+
+using StateVectorMapType = decltype(build_state_vector_map(longfist::StateDataTypes));
+DECLARE_PTR(StateVectorMapType)
 
 template <typename DataType> std::enable_if_t<size_fixed_v<DataType>> copy(DataType &to, const DataType &from) {
   memcpy(&to, &from, sizeof(DataType));

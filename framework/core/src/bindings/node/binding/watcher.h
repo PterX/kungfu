@@ -158,7 +158,7 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::bank unfinished_trading_data_bank_;
+  yijinjing::cache::vector_bank trading_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
@@ -186,10 +186,9 @@ private:
     });
   };
 
-  static constexpr auto is_trading_data_with_status = []() {
+  static constexpr auto not_trading_data = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::TradingDataWithStatusTags.find(event->msg_type()) !=
-             kungfu::longfist::TradingDataWithStatusTags.end();
+      return kungfu::longfist::TradingDataTags.find(event->msg_type()) == kungfu::longfist::TradingDataTags.end();
     });
   };
 
@@ -295,7 +294,7 @@ private:
                                                                                         const TradingData &data) {
     bookkeeper_.on_order_input(now(), source, dest, data);
     state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
-    data_bank_ << cache_state_order_input;
+    trading_data_bank_ << cache_state_order_input;
   }
 
   template <typename TradingData>
@@ -346,14 +345,14 @@ private:
   }
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
-    auto iter = target_map.begin();
+    using DataTypeVector = std::vector<state<DataType>>;
+    auto &target_vector = const_cast<DataTypeVector &>(trading_data_bank_[type]);
+    auto iter = target_vector.begin();
     auto count = 0;
-    while (iter != target_map.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
-      const auto &state = iter->second;
+    while (iter != target_vector.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
+      const auto &state = *iter;
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter = target_map.erase(iter);
+      iter = target_vector.erase(iter);
       count++;
     }
   }

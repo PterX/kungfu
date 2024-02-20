@@ -41,7 +41,7 @@ export const getColumns = (
       {
         field: 'side',
         title: '',
-        width: 100,
+        width: 80,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -54,7 +54,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 60,
+        width: 50,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -79,20 +79,9 @@ export const getColumns = (
         sort: sorter,
       },
       {
-        field: 'volume_left',
-        title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
-        width: 120,
-        sort: sorter,
-        fieldFormat: (args) => {
-          return `${dealKfDecimalPrecision(args.volume - args.volume_left)} / ${
-            args.volume
-          }`;
-        },
-      },
-      {
         field: 'avg_price_resolved',
         title: t('orderConfig.avg_price'),
-        width: 120,
+        width: 100,
         style: {
           textAlign: 'right',
         },
@@ -101,6 +90,23 @@ export const getColumns = (
         },
 
         sort: sorter,
+      },
+      {
+        field: 'volume_left',
+        title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
+        width: 144,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+        fieldFormat: (args) => {
+          return `${dealKfDecimalPrecision(args.volume - args.volume_left)} / ${
+            args.volume
+          }`;
+        },
       },
       {
         field: 'status_uname',
@@ -117,16 +123,25 @@ export const getColumns = (
           return args.status_uname;
         },
       },
+      ...(isHistory
+        ? []
+        : [
+            {
+              field: 'actions',
+              title: t('orderConfig.actions'),
+              width: 120,
+            },
+          ]),
       {
         field: 'latency_system',
         title: t('orderConfig.latency_system'),
-        width: 110,
+        width: 120,
         sort: sorter,
       },
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
-        width: 110,
+        width: 120,
         sort: sorter,
       },
       {
@@ -160,15 +175,6 @@ export const getColumns = (
                 },
               },
               sort: sorter,
-            },
-          ]),
-      ...(isHistory
-        ? []
-        : [
-            {
-              field: 'actions',
-              title: '',
-              width: 120,
             },
           ]),
     ]);

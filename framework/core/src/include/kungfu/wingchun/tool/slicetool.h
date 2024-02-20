@@ -2,6 +2,7 @@
 #ifndef KUNGFU_TOOL_SLICE_TOOL_H
 #define KUNGFU_TOOL_SLICE_TOOL_H
 
+#include <cstddef>
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
@@ -16,7 +17,7 @@ class SliceTool {
 
 public:
   SliceTool(longfist::enums::category category, std::string group, std::string name, SliceIndexer_ptr indexer,
-            bool overwrite = true, std::string arguments = "{}");
+            bool overwrite = true, std::string arguments = "{}", std::size_t size = 128);
 
   virtual ~SliceTool() = default;
 
@@ -51,6 +52,11 @@ public:
 
   yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time) const;
 
+  int64_t get_md_slice_end_time(int64_t nano_time, const std::string &instrument_id, const std::string &exchange_id,
+                                        int32_t data_type) const;
+
+  int64_t get_operator_slice_end_time(int64_t nano_time) const;
+
   void next();
 
   bool data_available() const;
@@ -59,7 +65,7 @@ public:
 
   yijinjing::journal::frame_ptr current_frame() const;
 
-  yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id);
+  yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id, int64_t end_time=INT64_MAX);
 
 protected:
   void write_raw_at(yijinjing::data::location_ptr location, int64_t gen_time, int64_t trigger_time, uint32_t dest_id,
@@ -68,19 +74,18 @@ protected:
   void write_raw_at_as(yijinjing::data::location_ptr location, int64_t gen_time, int64_t trigger_time, uint32_t source,
                        uint32_t dest_id, int32_t msg_type, uintptr_t data, uint32_t length);
 
-  int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
+
 
   longfist::enums::category category_;
   std::string group_;
   std::string name_;
   SliceIndexer_ptr indexer_;
   bool overwrite_;
-  yijinjing::publisher_ptr publisher_;
   std::map<std::tuple<std::string, uint32_t>, yijinjing::practice::WriterMap> writer_maps_;
   yijinjing::journal::reader_ptr reader_;
   mutable int64_t last_gen_time_;
-  mutable int64_t last_read_gen_time_;
   const std::string arguments_;
+  std::size_t size_;
 
   void valid_time(int64_t gen_time, int64_t trigger_time) const;
 };

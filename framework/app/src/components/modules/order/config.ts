@@ -146,10 +146,15 @@ export const getColumns = (
       {
         field: 'actions',
         title: t('orderConfig.actions'),
-        width: 120,
+        width: 80,
         style: {
-          bgColor: defaultColorMap.red,
+          bgColor: (args) => {
+            return args.value === t('orderConfig.cancel_order')
+              ? defaultColorMap.red
+              : 'transparent';
+          },
           textAlign: 'center',
+          cursor: 'pointer',
         },
         headerStyle: {
           textAlign: 'center',

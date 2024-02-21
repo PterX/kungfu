@@ -26,10 +26,7 @@ import {
   getIfProcessRunning,
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import {
-  getIdByKfLocation,
-  getProcessIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
@@ -59,9 +56,7 @@ const columns = getColumns();
 const { extConfigs, mdExtTypeMap } = useExtConfigsRelated();
 const { md } = toRefs(useAllKfConfigData());
 const mdIdList = computed(() => {
-  return md.value.map((item: KungfuApi.KfLocation): string =>
-    getIdByKfLocation(item),
-  );
+  return md.value.map((item: KungfuApi.KfLocation): string => item.group);
 });
 const { processStatusData, getProcessStatusName } =
   useProcessStatusDetailData();

@@ -20,7 +20,6 @@
 <script lang="ts">
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { useBoards } from '../../pages/index/store/board';
 
 interface KfDragRowData {
@@ -43,9 +42,13 @@ export default defineComponent({
       required: true,
       type: Number as PropType<number>,
     },
+    currentBoardsStoreId: {
+      type: String as PropType<string>,
+      default: 'main',
+    },
   },
 
-  setup() {
+  setup(props) {
     const rowData = reactive<KfDragRowData>({
       resizeing: false,
       leftCol$: null,
@@ -58,9 +61,8 @@ export default defineComponent({
       preX: 0,
     });
 
-    const { boardsStoreId } = storeToRefs(useGlobalStore());
     const { getBoardsStoreById } = useBoards();
-    const useBoardsStore = getBoardsStoreById(boardsStoreId.value);
+    const useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
     const { boardsMap } = storeToRefs(useBoardsStore());
     const { setBoardsMapAttrById } = useBoardsStore();
 

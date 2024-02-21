@@ -38,3 +38,9 @@ export const defaultColorMap = {
   'kf-color-waiting': '#FFFFFF80',
   'kf-color-error': '#F54747',
 };
+
+export const keyShortMap = {
+  MakeOrder: 'CommandOrControl+Shift+1',
+  FutureArbitrage: 'CommandOrControl+Shift+2',
+  BlockTrade: 'CommandOrControl+Shift+9',
+};

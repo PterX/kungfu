@@ -1,5 +1,9 @@
 <template>
-  <KfDragRow v-if="direction === h" :id="boardId">
+  <KfDragRow
+    v-if="direction === h"
+    :id="boardId"
+    :current-boards-store-id="currentBoardsStoreId"
+  >
     <template
       v-for="childBoardId in boardInfo.children || []"
       :key="childBoardId"
@@ -7,7 +11,7 @@
       <KfRowColIter
         :board-id="childBoardId"
         :closable="closable"
-        :boards-store-id="boardsStoreId"
+        :current-boards-store-id="currentBoardsStoreId"
       ></KfRowColIter>
     </template>
     <template v-if="contents.length">
@@ -58,7 +62,11 @@
       </a-tabs>
     </template>
   </KfDragRow>
-  <KfDragCol v-else-if="direction === v" :id="boardId">
+  <KfDragCol
+    v-else-if="direction === v"
+    :id="boardId"
+    :current-boards-store-id="currentBoardsStoreId"
+  >
     <template
       v-for="childBoardId in boardInfo.children || []"
       :key="childBoardId"
@@ -66,7 +74,7 @@
       <KfRowColIter
         :board-id="childBoardId"
         :closable="closable"
-        :boards-store-id="boardsStoreId"
+        :current-boards-store-id="currentBoardsStoreId"
       ></KfRowColIter>
     </template>
     <template v-if="contents.length">
@@ -176,7 +184,7 @@ export default defineComponent({
       default: null,
     },
 
-    boardsStoreId: {
+    currentBoardsStoreId: {
       type: String as PropType<string>,
       default: 'main',
     },
@@ -190,12 +198,12 @@ export default defineComponent({
     let useBoardsStore;
     if (props.boardId === 0) {
       useBoardsStore = createBoardsStore(
-        props.boardsStoreId,
+        props.currentBoardsStoreId,
         props.initBoardsMap,
         props.defaultBoardsMap,
       );
     } else {
-      useBoardsStore = getBoardsStoreById(props.boardsStoreId);
+      useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
     }
 
     const { boardsMap, dragedContentData, isBoardDragging } = storeToRefs(

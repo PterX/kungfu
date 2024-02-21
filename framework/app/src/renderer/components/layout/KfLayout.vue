@@ -24,14 +24,11 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 const { t } = VueI18n.global;
-import { useGlobalStore } from '../../pages/index/store/global';
-import { storeToRefs } from 'pinia';
 
 const logoPath = isDefaultLogo()
   ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg')
   : getLogoPath();
 
-const { boardsStoreId } = storeToRefs(useGlobalStore());
 const app = getCurrentInstance();
 const router = useRouter();
 const globalSettingModalVisible = ref<boolean>(false);
@@ -78,6 +75,7 @@ const sidebarComponentConfigs = computed(() => {
     exhibit: {} as KungfuApi.KfExhibitConfig,
     extPath: '',
     key: 'main',
+    keepAlive: true,
     name: t('baseConfig.main_panel'),
     position: 'sidebar',
     sidebarIndex: 0,
@@ -156,9 +154,8 @@ onBeforeUnmount(() => {
   busSubscription.unsubscribe();
 });
 
-function handleToPage(pathname: string, id: string) {
+function handleToPage(pathname: string) {
   if (app?.proxy) {
-    boardsStoreId.value = id;
     app.proxy.$router.push(pathname);
   }
 }
@@ -180,7 +177,7 @@ function handleToPage(pathname: string, id: string) {
             <a-menu-item
               v-if="isExtSidebarShow[config.key] !== false"
               :key="config.key"
-              @click="handleToPage(`/${config.key}`, config.key)"
+              @click="handleToPage(`/${config.key}`)"
             >
               <template #icon>
                 <component
@@ -297,6 +294,7 @@ function handleToPage(pathname: string, id: string) {
           justify-content: space-evenly;
           align-items: center;
           flex-direction: column;
+          padding: 0 8px;
 
           > span {
             display: block;

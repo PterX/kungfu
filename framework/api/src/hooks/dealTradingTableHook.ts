@@ -18,8 +18,11 @@ export interface KfTradingDataTableHeaderConfig {
     | 'priceType'
     | 'direction'
     | 'actions';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sorter?: (a: any, b: any, sorterOrder: '' | 'ascend' | 'descend') => number;
+  sorter?: (
+    a: unknown,
+    b: unknown,
+    sorterOrder: '' | 'ascend' | 'descend',
+  ) => number;
 }
 
 export interface AntTableColumn {

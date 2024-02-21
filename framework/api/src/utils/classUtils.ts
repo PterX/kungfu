@@ -1,18 +1,28 @@
 class DynamicIndexedMap<K extends string | number, V> {
   private keyValueMap: { [key in K]?: V };
-  private keyIndexMap: { [key in K]?: number };
-  private values: V[];
-  private offset = 1;
-  private listLength = 0;
+  private commonKeyIndexMap: { [key in K]?: number };
+  private fullKeyIndexMap: { [key in K]?: number };
+  private commonList: V[];
+  private fullList: V[];
+  private commonListOffset = 1;
+  private commonSliceCount = 0;
+  private fullListOffset = 1;
+  // private listLength = 0;
   private finishCount = 0;
   private unFinishedCount = 0;
   private updatedUnfinishedIndexList: number[] = [];
-  private updateUnfinishedIndexCount = 0;
+  // private updateUnfinishedIndexCount = 0;
+  private updateFinishedIndexList: number[] = [];
+  private maxCommonListLength: number = 50000;
+  private;
 
-  constructor() {
+  constructor(maxLength = 500) {
     this.keyValueMap = {};
-    this.keyIndexMap = {};
-    this.values = [];
+    this.commonKeyIndexMap = {};
+    this.fullKeyIndexMap = {};
+    this.commonList = [];
+    this.fullList = [];
+    this.maxCommonListLength = maxLength;
   }
 
   insertNegativeNumber(num) {
@@ -37,15 +47,16 @@ class DynamicIndexedMap<K extends string | number, V> {
   }
 
   countSmallerNumbers(num) {
-    if (this.updatedUnfinishedIndexList.length === 0) {
+    const length = this.updateFinishedIndexList.length;
+    if (length === 0) {
       return 0;
     }
 
     let left = 0;
-    let right = this.updatedUnfinishedIndexList.length;
+    let right = length;
     while (left < right) {
       const mid = Math.floor((left + right) / 2);
-      if (this.updatedUnfinishedIndexList[mid] < num) {
+      if (this.updateFinishedIndexList[mid] < num) {
         left = mid + 1;
       } else {
         right = mid;
@@ -56,7 +67,7 @@ class DynamicIndexedMap<K extends string | number, V> {
   }
 
   getOrderStatus(key: K) {
-    const index = this.keyIndexMap[key];
+    const index = this.commonKeyIndexMap[key];
     if (index === undefined) {
       console.error(`Key ${key} not found in map`);
       return;
@@ -64,61 +75,73 @@ class DynamicIndexedMap<K extends string | number, V> {
     return index;
   }
 
-  insertKeyWithValue(key: K, value: V, atStart = true): void {
-    if (atStart) {
-      this.keyIndexMap[key] = --this.offset; // 为新键分配当前偏移量作为索引 插入新元素后减少偏移量
-      this.values.unshift(value); // 在数组前端插入值
-      this.listLength++;
-      this.keyValueMap[key] = value;
-      this.unFinishedCount++;
-    } else {
-      this.finishCount = this.listLength + this.offset;
-      this.values.splice(
-        1 - this.offset - this.updateUnfinishedIndexCount,
-        0,
-        value,
-      );
+  insertKeyWithValue(key: K, value: V, isFinished: boolean): void {
+    if (this.maxCommonListLength <= this.commonList.length) {
+      this.deleteLastCommonValue();
+    }
 
-      this.keyIndexMap[key] = this.finishCount;
-      this.listLength++;
-      this.keyValueMap[key] = value;
-    }
-  }
-  updateKeyWithValue(key: K, value: V): void {
-    const index = this.keyIndexMap[key];
-    if (index === undefined) {
-      console.error(`Key ${key} not found in map`);
-      return;
-    }
+    this.commonKeyIndexMap[key] = --this.commonListOffset; // 为新键分配当前偏移量作为索引 插入新元素后减少偏移量
+    this.commonList.unshift(value);
     this.keyValueMap[key] = value;
-    const correctIndex =
-      Number(index) - this.offset - this.countSmallerNumbers(index);
-    this.values.splice(correctIndex, 1, value);
+    if (!isFinished) {
+      this.fullKeyIndexMap[key] = --this.fullListOffset;
+      this.fullList.unshift(value);
+    }
   }
-
-  deleteUnfinishedKeyAndValue(key: K): void {
-    const realIndex = this.getIndexForKey(key);
-    if (realIndex === undefined) {
-      console.error(`Key ${key} not found in map`);
+  updateKeyWithValue(key: K, value: V, isFinished: boolean): void {
+    const correctIndex = this.getCommonListIndexForKey(key);
+    if (correctIndex !== undefined) {
+      this.keyValueMap[key] = value;
+      this.commonList.splice(correctIndex, 1, value);
+    } else {
       return;
     }
-    this.values.splice(realIndex, 1);
-    const index = this.keyIndexMap[key];
 
-    this.insertNegativeNumber(index);
-    this.updateUnfinishedIndexCount++;
-    console.log('index', index);
-    delete this.keyIndexMap[key];
+    const fullCorrectIndex = this.getFullListIndexForKey(key);
+    if (fullCorrectIndex !== undefined) {
+      if (isFinished) {
+        this.fullList.splice(fullCorrectIndex, 1);
+        this.updateFinishedIndexList.push(this.fullKeyIndexMap[key] || 0);
+        delete this.fullKeyIndexMap[key];
+      } else {
+        this.fullList.splice(fullCorrectIndex, 1, value);
+      }
+    }
   }
-  deleteFinishedKeyAndValue(key: K) {
-    const index = this.keyIndexMap[key];
+
+  deleteLastCommonValue(): void {
+    this.commonList.pop();
+    this.commonSliceCount++;
+  }
+
+  getCommonListIndexForKey(key: K): number | undefined {
+    const index = this.commonKeyIndexMap[key];
+
     if (index === undefined) {
-      console.error(`Key ${key} not found in map`);
+      return undefined;
+    }
+    if (Number(index) + this.commonSliceCount > 0) {
+      delete this.commonKeyIndexMap[key];
+      return undefined;
+    }
+    return Number(index) - this.commonListOffset;
+  }
+
+  getFullListIndexForKey(key: K): number | undefined {
+    const index = this.fullKeyIndexMap[key];
+    if (index === undefined) {
       return;
     }
+    return (
+      Number(index) - this.fullListOffset - this.countSmallerNumbers(index)
+    );
   }
+
   hasKey(key: K): boolean {
-    return this.keyValueMap[key] !== undefined;
+    return (
+      this.commonKeyIndexMap[key] !== undefined ||
+      this.fullKeyIndexMap[key] !== undefined
+    );
   }
 
   getValueForKey(key: K): V | undefined {
@@ -126,28 +149,24 @@ class DynamicIndexedMap<K extends string | number, V> {
   }
 
   getIndexForKey(key: K): number | undefined {
-    const index = this.keyIndexMap[key];
+    const index = this.commonKeyIndexMap[key];
     if (index === undefined) {
       console.error(`Key ${key} not found in map`);
       return;
     }
     if (Number(index) <= 0) {
       const countUpdated = this.countSmallerNumbers(index);
-      return Number(index) - this.offset - countUpdated;
+      return Number(index) - this.commonListOffset - countUpdated;
     } else {
       return Number(index);
     }
   }
   getKeyIndexMap(): { [key in K]?: number } {
-    return this.keyIndexMap;
-  }
-
-  getValuesArray(): V[] {
-    return [...this.values];
+    return this.commonKeyIndexMap;
   }
 
   getValuesArrayLength(): number {
-    return this.values.length;
+    return this.commonList.length;
   }
 
   getUnfinishEdListLength(): number {
@@ -157,13 +176,20 @@ class DynamicIndexedMap<K extends string | number, V> {
   getFinishedListLength(): number {
     return this.finishCount;
   }
+  getCommonList(): V[] {
+    return [...this.commonList];
+  }
 
-  popLastFinishedValue(): void | undefined {
-    if (this.finishCount > 0) {
-      this.finishCount--;
-      this.listLength--;
-      this.values.pop();
-    }
+  // popLastFinishedValue(): void | undefined {
+  //   if (this.finishCount > 0) {
+  //     this.finishCount--;
+  //     this.listLength--;
+  //     this.commonList.pop();
+  //   }
+  // }
+
+  getFullList(): V[] {
+    return [...this.fullList];
   }
 }
 

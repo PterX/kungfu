@@ -126,45 +126,45 @@ export const getColumns = (
           return args.status_uname;
         },
       },
-      // ...(isHistory
-      //   ? []
-      //   : [
-      //       {
-      //         field: 'actions',
-      //         title: t('orderConfig.actions'),
-      //         width: 120,
-      //         style: {
-      //           color: defaultColorMap.red,
-      //         },
-      //         fieldFormat: (args) => {
-      //           return UnfinishedOrderStatus.includes(args.status)
-      //             ? t('orderConfig.cancel_order')
-      //             : '';
-      //         },
-      //       },
-      //     ]),
-      {
-        field: 'actions',
-        title: '',
-        width: 80,
-        style: {
-          bgColor: (args) => {
-            return args.value === t('orderConfig.cancel_order')
-              ? defaultColorMap.red
-              : 'transparent';
-          },
-          textAlign: 'center',
-          cursor: 'pointer',
-        },
-        headerStyle: {
-          textAlign: 'center',
-        },
-        fieldFormat: (args) => {
-          return UnfinishedOrderStatus.includes(args.status)
-            ? t('orderConfig.cancel_order')
-            : '';
-        },
-      },
+      ...(isHistory
+        ? []
+        : [
+            {
+              field: 'actions',
+              title: t('orderConfig.actions'),
+              width: 60,
+              style: {
+                color: defaultColorMap.red,
+              },
+              fieldFormat: (args) => {
+                return UnfinishedOrderStatus.includes(args.status)
+                  ? t('orderConfig.cancel_order')
+                  : '';
+              },
+            },
+          ]),
+      // {
+      //   field: 'actions',
+      //   title: '',
+      //   width: 80,
+      //   style: {
+      //     bgColor: (args) => {
+      //       return args.value === t('orderConfig.cancel_order')
+      //         ? defaultColorMap.red
+      //         : 'transparent';
+      //     },
+      //     textAlign: 'center',
+      //     cursor: 'pointer',
+      //   },
+      //   headerStyle: {
+      //     textAlign: 'center',
+      //   },
+      //   fieldFormat: (args) => {
+      //     return UnfinishedOrderStatus.includes(args.status)
+      //       ? t('orderConfig.cancel_order')
+      //       : '';
+      //   },
+      // },
       {
         field: 'latency_system',
         title: t('orderConfig.latency_system'),

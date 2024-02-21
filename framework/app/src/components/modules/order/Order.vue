@@ -178,7 +178,7 @@ const columns = computed(() => {
 //   ],
 // };
 
-let firstRender = true;
+// let firstRender = true;
 let needClear = true;
 
 onActivated(() => {
@@ -196,9 +196,9 @@ onActivated(() => {
       return;
     }
 
-    if (!update && !firstRender) {
-      return;
-    }
+    // if (!update && !firstRender) {
+    //   return;
+    // }
     const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
     const obj =
       tradingDataObject.order[currentGlobalKfLocation.value.category][
@@ -208,11 +208,13 @@ onActivated(() => {
     // console.log('obj', obj);
     nextTick(() => {
       if (obj) {
-        const orderListCopy = obj.orderIndexMap.getValuesArray();
+        const orderListCopy = unfinishedOrder.value
+          ? obj.orderIndexMap.getFullList()
+          : obj.orderIndexMap.getCommonList();
         if (!orderListCopy) return;
         needClear = true;
         canvasRef.value.getListTable()?.setRecords(orderListCopy);
-        firstRender = false;
+        // firstRender = false;
         allOrders.value = orderListCopy;
         console.log('allOrders', allOrders.value.length);
         return;

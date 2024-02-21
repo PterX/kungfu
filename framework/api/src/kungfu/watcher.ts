@@ -86,6 +86,7 @@ export const startWatcher = () => {
 
 type TradingDataList = {
   orderList: KungfuApi.Order[];
+  orderStatList: KungfuApi.OrderStat[];
   tradeList: KungfuApi.Trade[];
   positionList: KungfuApi.Position[];
 };
@@ -131,7 +132,7 @@ export function useWatcher() {
       const positionList = Object.values(watcher.ledger.Position);
       console.log('orderStatList', orderList.length, orderStatList.length);
 
-      dataQueue.push({ orderList, tradeList, positionList });
+      dataQueue.push({ orderList, tradeList, positionList, orderStatList });
 
       // 开始处理队列中的数据
       if (!isProcessing) {
@@ -147,7 +148,10 @@ export function useWatcher() {
         const data = dataQueue.shift();
         if (data && data.orderList.length > 0) {
           console.time('dealTradingDataObject');
-          await dealTradingDataObjectOptimized(data.orderList);
+          await dealTradingDataObjectOptimized(
+            data.orderList,
+            data?.orderStatList,
+          );
           console.timeEnd('dealTradingDataObject');
           if (watcher && tradingDataObject) {
             console.log('obj', tradingDataObject);
@@ -166,9 +170,15 @@ export function useWatcher() {
     }
   }
 
-  async function dealTradingDataObjectOptimized(orderList: KungfuApi.Order[]) {
+  async function dealTradingDataObjectOptimized(
+    orderList: KungfuApi.Order[],
+    _orderStatList: KungfuApi.OrderStat[],
+  ) {
     const markObject = {}; // 用于标记是否已处理
-
+    // const orderStats = {};
+    // orderStatList.forEach((stat) => {
+    //   orderStats[stat.uid_key] = stat;
+    // });
     //处理 orderList
     await doSomethingWithDataSliced(
       orderList,
@@ -182,6 +192,7 @@ export function useWatcher() {
             watcher as KungfuApi.Watcher,
             order,
             watcher.ledger.OrderStat[orderUKey] || null,
+            // orderStats[orderUKey] || null,
           );
           await processOrder(
             'td',
@@ -202,6 +213,70 @@ export function useWatcher() {
 
       1000,
     );
+
+    // 处理剩余的 orderStats
+
+    // const orderStatKeys = Object.keys(orderStats);
+    // if (orderStatKeys.length > 0) {
+    //   orderStatKeys.forEach((key) => {
+    //     Object.keys(tradingDataObject.order.td).forEach((source) => {
+    //       if (tradingDataObject.order.td[source].orderIndexMap) {
+    //         const order =
+    //           tradingDataObject.order.td[source].orderIndexMap.getValueForKey(
+    //             key,
+    //           );
+
+    //         if (!order) return;
+    //         const orderResolved = getOrderResolved(
+    //           watcher as KungfuApi.Watcher,
+    //           order,
+    //           orderStats[key],
+    //         );
+    //         tradingDataObject.order.td[source].orderIndexMap.updateKeyWithValue(
+    //           key,
+    //           orderResolved,
+    //         );
+    //         const index =
+    //           tradingDataObject.order.td[source].orderIndexMap.getIndexForKey(
+    //             key,
+    //           );
+    //         tradingDataObject.order.td[source].updatedOrderList[0].push(
+    //           orderResolved,
+    //         );
+    //         tradingDataObject.order.td[source].updatedOrderList[1].push(index);
+    //       }
+    //     });
+
+    //     Object.keys(tradingDataObject.order.strategy).forEach((dest) => {
+    //       if (tradingDataObject.order.strategy[dest].orderIndexMap) {
+    //         const order =
+    //           tradingDataObject.order.strategy[
+    //             dest
+    //           ].orderIndexMap.getValueForKey(key);
+
+    //         if (!order) return;
+    //         const orderResolved = getOrderResolved(
+    //           watcher as KungfuApi.Watcher,
+    //           order,
+    //           orderStats[key],
+    //         );
+    //         tradingDataObject.order.strategy[
+    //           dest
+    //         ].orderIndexMap.updateKeyWithValue(key, orderResolved);
+    //         const index =
+    //           tradingDataObject.order.strategy[
+    //             dest
+    //           ].orderIndexMap.getIndexForKey(key);
+    //         tradingDataObject.order.strategy[dest].updatedOrderList[0].push(
+    //           orderResolved,
+    //         );
+    //         tradingDataObject.order.strategy[dest].updatedOrderList[1].push(
+    //           index,
+    //         );
+    //       }
+    //     });
+    //   });
+    // }
   }
 
   function processOrder(
@@ -213,7 +288,9 @@ export function useWatcher() {
   ) {
     if (!tradingDataObject.order[type][key]) {
       tradingDataObject.order[type][key] = {
-        orderIndexMap: new DynamicIndexedMap<string, KungfuApi.OrderResolved>(),
+        orderIndexMap: new DynamicIndexedMap<string, KungfuApi.OrderResolved>(
+          20,
+        ),
         addedOrderList: [],
         addFinishedOrderList: [[], 0],
         deletedOrderList: [],
@@ -231,29 +308,20 @@ export function useWatcher() {
       markObject[key] = true; // 标记已处理
     }
 
-    if (target.orderIndexMap.hasKey(orderUKey)) {
-      const index = target.orderIndexMap.getOrderStatus(orderUKey);
-      if (index <= 0 && !UnfinishedOrderStatus.includes(orderResolved.status)) {
-        target.orderIndexMap.deleteUnfinishedKeyAndValue(orderUKey);
+    const isFinished = !UnfinishedOrderStatus.includes(orderResolved.status);
 
-        target.orderIndexMap.insertKeyWithValue(
-          orderUKey,
-          orderResolved,
-          false,
-        );
-      } else {
-        target.orderIndexMap.updateKeyWithValue(orderUKey, orderResolved);
-      }
+    if (target.orderIndexMap.hasKey(orderUKey)) {
+      target.orderIndexMap.updateKeyWithValue(
+        orderUKey,
+        orderResolved,
+        isFinished,
+      );
     } else {
-      if (UnfinishedOrderStatus.includes(orderResolved.status)) {
-        target.orderIndexMap.insertKeyWithValue(orderUKey, orderResolved);
-      } else {
-        target.orderIndexMap.insertKeyWithValue(
-          orderUKey,
-          orderResolved,
-          false,
-        );
-      }
+      target.orderIndexMap.insertKeyWithValue(
+        orderUKey,
+        orderResolved,
+        isFinished,
+      );
     }
   }
 

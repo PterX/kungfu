@@ -145,7 +145,7 @@ export const getColumns = (
       //     ]),
       {
         field: 'actions',
-        title: t('orderConfig.actions'),
+        title: '',
         width: 80,
         style: {
           bgColor: (args) => {

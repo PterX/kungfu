@@ -22,7 +22,7 @@ import {
   CommissionMode,
   UnderweightType,
   PriceLevel,
-  marginSideConfig,
+  MarginSideConfig,
   Offset,
 } from '../config/tradingConfig';
 import {
@@ -945,7 +945,7 @@ export const enableCustomRadioType: Record<
   Record<string, KungfuApi.KfTradeValueCommonData>
 > = {
   side: Side,
-  marginSide: marginSideConfig,
+  marginSide: MarginSideConfig,
   offset: getOffsetConfig(),
 };
 

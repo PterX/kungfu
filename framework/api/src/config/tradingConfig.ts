@@ -200,7 +200,7 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   },
 };
 
-export const marginSideConfig: Record<
+export const MarginSideConfig: Record<
   string,
   KungfuApi.KfTradeValueCommonData
 > = {
@@ -381,6 +381,15 @@ export const OrderStatus: Record<
     color: 'default',
   },
 };
+
+export const MarginSideStatus = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayStock,
+  SideEnum.RepayMargin,
+];
 
 export const getOrderStatusStyle = (name: string) => {
   switch (name) {

@@ -2,11 +2,12 @@ class DynamicIndexedMap<K extends string | number, V> {
   private keyValueMap: { [key in K]?: V };
   private keyIndexMap: { [key in K]?: number };
   private values: V[];
-  private offset: number = 1;
-  private listLength: number = 0;
-  private finishCount: number = 0;
-  private unFinishedCount: number = 0;
+  private offset = 1;
+  private listLength = 0;
+  private finishCount = 0;
+  private unFinishedCount = 0;
   private updatedUnfinishedIndexList: number[] = [];
+  private updateUnfinishedIndexCount = 0;
 
   constructor() {
     this.keyValueMap = {};
@@ -16,13 +17,13 @@ class DynamicIndexedMap<K extends string | number, V> {
 
   insertNegativeNumber(num) {
     if (this.updatedUnfinishedIndexList.length === 0) {
-      return [num];
+      return this.updatedUnfinishedIndexList.push(num);
     }
 
     let left = 0;
     let right = this.updatedUnfinishedIndexList.length - 1;
     while (left <= right) {
-      let mid = Math.floor((left + right) / 2);
+      const mid = Math.floor((left + right) / 2);
       if (this.updatedUnfinishedIndexList[mid] < num) {
         left = mid + 1;
       } else {
@@ -43,7 +44,7 @@ class DynamicIndexedMap<K extends string | number, V> {
     let left = 0;
     let right = this.updatedUnfinishedIndexList.length;
     while (left < right) {
-      let mid = Math.floor((left + right) / 2);
+      const mid = Math.floor((left + right) / 2);
       if (this.updatedUnfinishedIndexList[mid] < num) {
         left = mid + 1;
       } else {
@@ -63,16 +64,20 @@ class DynamicIndexedMap<K extends string | number, V> {
     return index;
   }
 
-  insertKeyWithValue(key: K, value: V, atStart: boolean = true): void {
+  insertKeyWithValue(key: K, value: V, atStart = true): void {
     if (atStart) {
       this.keyIndexMap[key] = --this.offset; // 为新键分配当前偏移量作为索引 插入新元素后减少偏移量
-      this.values.push(value); // 在数组前端插入值
+      this.values.unshift(value); // 在数组前端插入值
       this.listLength++;
       this.keyValueMap[key] = value;
       this.unFinishedCount++;
     } else {
       this.finishCount = this.listLength + this.offset;
-      this.values.splice(0 - this.offset + 1, 0, value);
+      this.values.splice(
+        1 - this.offset - this.updateUnfinishedIndexCount,
+        0,
+        value,
+      );
 
       this.keyIndexMap[key] = this.finishCount;
       this.listLength++;
@@ -86,7 +91,8 @@ class DynamicIndexedMap<K extends string | number, V> {
       return;
     }
     this.keyValueMap[key] = value;
-    const correctIndex = Number(index) - this.offset;
+    const correctIndex =
+      Number(index) - this.offset - this.countSmallerNumbers(index);
     this.values.splice(correctIndex, 1, value);
   }
 
@@ -100,6 +106,7 @@ class DynamicIndexedMap<K extends string | number, V> {
     const index = this.keyIndexMap[key];
 
     this.insertNegativeNumber(index);
+    this.updateUnfinishedIndexCount++;
     console.log('index', index);
     delete this.keyIndexMap[key];
   }

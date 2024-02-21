@@ -973,27 +973,28 @@ export const getOrderStatResolve = (
     }
   | {} => {
   if (!orderStat) {
-    return {};
+    const obj: Record<string, unknown> = {};
+    return obj;
   }
 
   const { insert_time, ack_time, md_time, trade_time } = orderStat;
-  const latencyTrade =
+  const latency_trade =
     trade_time && ack_time
       ? Number(Number(trade_time - ack_time) / 1000).kfToFixed(0)
       : '--';
-  const latencyNetwork =
+  const latency_network =
     ack_time && insert_time
       ? Number(Number(ack_time - insert_time) / 1000).kfToFixed(0)
       : '--';
-  const latencySystem =
+  const latency_system =
     insert_time && md_time
       ? Number(Number(insert_time - md_time) / 1000).kfToFixed(0)
       : '--';
 
   return {
-    latencySystem,
-    latencyNetwork,
-    latencyTrade,
+    latency_system,
+    latency_network,
+    latency_trade,
     trade_time: orderStat.trade_time,
     avg_price: dealKfDecimalPrecision(orderStat.avg_price),
   };

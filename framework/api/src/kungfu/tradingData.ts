@@ -4,11 +4,12 @@ const { startWatcherSyncTask } = useWatcher();
 export const tradingDataSubject = new Subject<{
   watcher: KungfuApi.Watcher;
   tradingDataObject: KungfuApi.TradingDataObject;
+  update: boolean;
 }>();
 
 export const triggerStartStep = (stepInterval = 2000) => {
   startWatcher();
-  startWatcherSyncTask(stepInterval, (watcher, tradingDataObject) => {
-    tradingDataSubject.next({ watcher, tradingDataObject });
+  startWatcherSyncTask(stepInterval, (watcher, tradingDataObject, update) => {
+    tradingDataSubject.next({ watcher, tradingDataObject, update });
   });
 };

@@ -84,7 +84,6 @@ const sidebarComponentConfigs = computed(() => {
     script: '',
     silent: false,
     version: '',
-    keepAlive: true,
   };
 
   return Object.keys(uiExtConfigsWithMain)
@@ -137,7 +136,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     );
     if (isInSidebar) {
       menuSelectedKeys.value = [targetKey];
-      handleToPage(`/${targetKey}`, targetKey);
+      handleToPage(`/${targetKey}`);
     }
   }
 
@@ -145,7 +144,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     isExtSidebarShow.value[data.key || ''] = data.target;
     if (data.target === false) {
       menuSelectedKeys.value = ['main'];
-      handleToPage('/main', 'main');
+      handleToPage('/main');
     }
   }
 });

@@ -10,7 +10,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   useActiveInstruments,
-  useExtConfigsRelated,
+  // useExtConfigsRelated,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
@@ -67,7 +67,7 @@ import {
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
-  OrderTriggerConfigTypeEnum,
+  // OrderTriggerConfigTypeEnum,
   // OrderTriggerFlag,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
@@ -79,13 +79,13 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+// import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { extConfigs } = useExtConfigsRelated();
+// const { extConfigs } = useExtConfigsRelated();
 
 const { handleBodySizeChange } = useDashboardBodySize();
 
@@ -147,43 +147,43 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-const customLayout: Record<string, ICustomActionOption[]> = {
-  actions: [
-    {
-      type: 'text',
-      dealValue: (record) =>
-        !isFinishedOrderStatus(record?.status)
-          ? t('orderConfig.cancel_order')
-          : '',
-      fontSize: 12,
-      fill: '#F54747',
-      boundsPadding: [7, 10, 5, 10],
-      cursor: 'pointer',
-      key: 'cancel_order',
-    },
-    {
-      type: 'text',
-      dealValue: (record) =>
-        !isFinishedOrderStatus(record?.status) &&
-        cancelOrderTriggerBtnVisible.value &&
-        !isOrderTriggerHasSubmitted(record.order_id)
-          ? t('orderConfig.cancel_order_trigger')
-          : '',
-      fontSize: 12,
-      fill: '#FFFFFF80',
-      boundsPadding: [7, 10, 5, 10],
-      cursor: 'pointer',
-      key: 'cancel_order_trigger',
-    },
-  ],
-};
+// const customLayout: Record<string, ICustomActionOption[]> = {
+//   actions: [
+//     {
+//       type: 'text',
+//       dealValue: (record) =>
+//         !isFinishedOrderStatus(record?.status)
+//           ? t('orderConfig.cancel_order')
+//           : '',
+//       fontSize: 12,
+//       fill: '#F54747',
+//       boundsPadding: [7, 10, 5, 10],
+//       cursor: 'pointer',
+//       key: 'cancel_order',
+//     },
+//     {
+//       type: 'text',
+//       dealValue: (record) =>
+//         !isFinishedOrderStatus(record?.status) &&
+//         cancelOrderTriggerBtnVisible.value &&
+//         !isOrderTriggerHasSubmitted(record.order_id)
+//           ? t('orderConfig.cancel_order_trigger')
+//           : '',
+//       fontSize: 12,
+//       fill: '#FFFFFF80',
+//       boundsPadding: [7, 10, 5, 10],
+//       cursor: 'pointer',
+//       key: 'cancel_order_trigger',
+//     },
+//   ],
+// };
 
-// let firstRender = true;
+let firstRender = true;
 let needClear = true;
 
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
-    const { watcher, tradingDataObject } = data;
+    const { watcher, tradingDataObject, update } = data;
     if (historyDate.value) {
       return;
     }
@@ -195,6 +195,10 @@ onActivated(() => {
     if (adjustOrderMaskVisible.value) {
       return;
     }
+
+    if (!update && !firstRender) {
+      return;
+    }
     const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
     const obj =
       tradingDataObject.order[currentGlobalKfLocation.value.category][
@@ -204,41 +208,14 @@ onActivated(() => {
     // console.log('obj', obj);
     nextTick(() => {
       if (obj) {
-        // if (firstRender) {
-
         const orderListCopy = obj.orderIndexMap.getValuesArray();
         if (!orderListCopy) return;
         needClear = true;
-        // canvasRef.value.initCustomLayoutOptions();
-        canvasRef.value.getListTable()?.setRecords(orderListCopy.reverse());
-        // firstRender = false;
+        canvasRef.value.getListTable()?.setRecords(orderListCopy);
+        firstRender = false;
         allOrders.value = orderListCopy;
         console.log('allOrders', allOrders.value.length);
         return;
-        // }
-        // if (obj.updatedOrderList && obj.updatedOrderList[0].length > 0) {
-        //   const updateList = [...obj.updatedOrderList[0]];
-        //   const updateIndexList = [...obj.updatedOrderList[1]];
-        //   canvasRef.value
-        //     .getListTable()
-        //     ?.updateRecords(updateList, updateIndexList);
-        //   console.log('updatedOrderList', obj.updatedOrderList);
-        // }
-        // if (obj.addedOrderList.length > 0) {
-        //   const addedOrderListCopy = [...obj.addedOrderList]; // Create a copy of addedOrderList
-        //   canvasRef.value.getListTable()?.addRecords(addedOrderListCopy, 0);
-        //   console.log('addedOrderList', obj.addedOrderList.length);
-        // }
-        // if (
-        //   obj.addFinishedOrderList &&
-        //   obj.addFinishedOrderList[0].length > 0
-        // ) {
-        //   const addedOrderListCopy = [...obj.addFinishedOrderList[0]];
-        //   canvasRef.value
-        //     .getListTable()
-        //     ?.addRecords(addedOrderListCopy, obj.addFinishedOrderList[1] || 0);
-        //   console.log('addFinishedOrderList', obj.addFinishedOrderList);
-        // }
       } else {
         if (needClear) {
           canvasRef.value.getListTable()?.setRecords([]);
@@ -473,23 +450,23 @@ function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);
 }
 
-const cancelOrderTriggerBtnVisible = computed(() => {
-  const rootPackageJson = readRootPackageJsonSync();
-  if (rootPackageJson?.appConfig?.orderTrigger === false) {
-    return false;
-  }
+// const cancelOrderTriggerBtnVisible = computed(() => {
+//   const rootPackageJson = readRootPackageJsonSync();
+//   if (rootPackageJson?.appConfig?.orderTrigger === false) {
+//     return false;
+//   }
 
-  const tdName = currentGlobalKfLocation.value?.group as string;
-  const extConfig = extConfigs.value.td[tdName];
-  if (
-    extConfig &&
-    extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
-  ) {
-    return true;
-  } else {
-    return false;
-  }
-});
+//   const tdName = currentGlobalKfLocation.value?.group as string;
+//   const extConfig = extConfigs.value.td[tdName];
+//   if (
+//     extConfig &&
+//     extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
+//   ) {
+//     return true;
+//   } else {
+//     return false;
+//   }
+// });
 
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
   if (!currentGlobalKfLocation.value || !window.watcher) {
@@ -956,7 +933,6 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
           ref="canvasRef"
           :columns="columns"
           :data-source="tableData"
-          :custom-layout="customLayout"
           @click-cell="handleClickCell"
           @right-click-row="handleShowTradingDataDetail"
         />

@@ -1,5 +1,8 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { getOrderStatusStyle } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
+  getOrderStatusStyle,
+  UnfinishedOrderStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   isTdStrategyCategory,
@@ -24,12 +27,12 @@ export const getColumns = (
     .trigger(kfLocation, 'order')
     .getColumns<VTable.ColumnDefine>([
       {
-        field: 'update_time',
-        title: t('orderConfig.update_time'),
+        field: 'insert_time',
+        title: t('orderConfig.order_time'),
         width: isHistory ? 160 : 120,
         sort: sorter,
         fieldFormat: (args) => {
-          return dealKfTime(args.update_time, isHistory);
+          return dealKfTime(args.insert_time, isHistory);
         },
       },
       {
@@ -130,6 +133,14 @@ export const getColumns = (
               field: 'actions',
               title: t('orderConfig.actions'),
               width: 120,
+              style: {
+                color: defaultColorMap.red,
+              },
+              fieldFormat: (args) => {
+                return UnfinishedOrderStatus.includes(args.status)
+                  ? t('orderConfig.cancel_order')
+                  : '';
+              },
             },
           ]),
       {

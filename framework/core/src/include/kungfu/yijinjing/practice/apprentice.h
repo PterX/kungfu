@@ -126,7 +126,7 @@ public:
     request["initial_source"] = get_live_home_uid();
     request["source"] = source;
     request["dest"] = dest;
-    request["data"] = data.to_json();
+    request["data"] = data.to_string();
     return request.dump();
   }
 

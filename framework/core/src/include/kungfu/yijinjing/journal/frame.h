@@ -55,11 +55,7 @@ struct frame : event {
 
   [[nodiscard]] std::string to_string() const override {
     auto j = header_->to_json();
-    if (is_json()) {
-      j["data"] = nlohmann::json::parse(data_as_string());
-    } else {
-      j["data"] = data_as_string();
-    }
+    j["data"] = data_as_string();
     return j.dump(-1, ' ', false, nlohmann::json::basic_json::error_handler_t::replace);
   }
 

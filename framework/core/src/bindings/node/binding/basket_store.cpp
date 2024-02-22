@@ -27,15 +27,58 @@ Napi::Value BasketStore::SetAllBasket(const Napi::CallbackInfo &info) {
     }
     try {
       profile_.remove_all<Basket>();
-      for (auto basket : baskets) {
-        profile_.set(basket);
-      }
+      profile_.replace_range(baskets);
     } catch (const std::exception &ex) {
       SPDLOG_ERROR("failed to SetAllBasket {}", ex.what());
       yijinjing::util::print_stack_trace();
       return Napi::Boolean::New(info.Env(), false);
     }
   }
+  return Napi::Boolean::New(info.Env(), true);
+}
+
+Napi::Value BasketStore::SetBasket(const Napi::CallbackInfo &info) {
+  try {
+    if (not info[0].IsObject()) {
+      throw Napi::Error::New(info.Env(), "Invalid argument");
+    }
+
+    Basket basket = {};
+    get(info[0].ToObject(), basket);
+
+    profile_.set(basket);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to SetBasket {}", ex.what());
+    yijinjing::util::print_stack_trace();
+    return Napi::Boolean::New(info.Env(), false);
+  }
+  return Napi::Boolean::New(info.Env(), true);
+}
+
+Napi::Value BasketStore::SetBaskets(const Napi::CallbackInfo &info) {
+  if (not info[0].IsArray()) {
+    throw Napi::Error::New(info.Env(), "Invalid argument");
+  }
+
+  auto args = info[0].As<Napi::Array>();
+  std::vector<Basket> baskets;
+  for (int i = 0; i < args.Length(); i++) {
+    Basket basket = {};
+    get(args.Get(i).ToObject(), basket);
+    if (basket.id == (uint32_t)0) {
+      basket.id = util::hash_str_32(basket.name);
+    }
+    baskets.push_back(basket);
+  }
+
+  try {
+    profile_.replace_range(baskets);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to SetBasketInstrument {}", ex.what());
+    yijinjing::util::print_stack_trace();
+    return Napi::Boolean::New(info.Env(), false);
+  }
+
   return Napi::Boolean::New(info.Env(), true);
 }
 
@@ -63,6 +106,8 @@ void BasketStore::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func = DefineClass(env, "BasketStore",
                                     {
                                         InstanceMethod("setAllBasket", &BasketStore::SetAllBasket),
+                                        InstanceMethod("setBasket", &BasketStore::SetBasket),
+                                        InstanceMethod("setBaskets", &BasketStore::SetBaskets),
                                         InstanceMethod("getAllBasket", &BasketStore::GetAllBasket),
                                     });
 

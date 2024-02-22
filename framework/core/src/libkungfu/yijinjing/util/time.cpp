@@ -66,6 +66,8 @@ int64_t time::calendar_day_start(int64_t nanotime) {
 
 int64_t time::today_start() { return calendar_day_start(time::now_in_nano()); }
 
+int64_t time::trading_day_start() { return today_start() - time_unit::NANOSECONDS_PER_HOUR * 8; }
+
 int64_t time::strptime(const std::string &time_string, const std::string &format) {
   int64_t nano = 0;
   std::string normal_timestr = time_string;
@@ -87,8 +89,12 @@ int64_t time::strptime(const std::string &time_string, const std::string &format
   }
 
   std::tm result = {};
+#ifdef __linux__
+  ::strptime(normal_timestr.c_str(), normal_format.c_str(), &result);
+#else
   std::istringstream iss(normal_timestr);
   iss >> std::get_time(&result, normal_format.c_str());
+#endif
   std::time_t parsed_time = std::mktime(&result);
   auto tp_system = system_clock::from_time_t(parsed_time);
   return duration_cast<nanoseconds>(tp_system.time_since_epoch()).count() + nano;

@@ -1,5 +1,4 @@
 import fse from 'fs-extra';
-import os from 'os';
 import {
   OrderInputKeyEnum,
   SpaceSizeSettingEnum,
@@ -17,13 +16,15 @@ import {
 } from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { getDefaultHomeDir } from './homePathConfig';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 const { t } = VueI18n.global;
-const numCPUs = os.cpus() ? os.cpus().length : 1;
+const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
 
 export interface KfSystemConfig {
   key: string;
   name: string;
-  config: KungfuApi.KfConfigItem[];
+  config: (KungfuApi.KfConfigItem & { for?: 'cli' | 'ui' | 'custom' })[]; //for配置项用于区分配置项是用于cli还是ui, 不配置默认适配cli和ui
 }
 
 const __python_version_resolved = __python_version
@@ -32,11 +33,20 @@ const __python_version_resolved = __python_version
 
 const packageJson = readRootPackageJsonSync();
 
+const defaultHomeDir = getDefaultHomeDir();
+
 export const getKfGlobalSettings = (): KfSystemConfig[] => [
   {
     key: 'system',
     name: t('globalSettingConfig.system'),
     config: [
+      {
+        key: 'homeDir',
+        name: t('globalSettingConfig.home_dir'),
+        tip: t('globalSettingConfig.home_dir_desc'),
+        default: defaultHomeDir,
+        type: 'directory',
+      },
       {
         key: 'logLevel',
         name: t('globalSettingConfig.log_level'),
@@ -51,6 +61,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
           { value: '-l critical', label: 'CRITICAL' },
         ],
         default: '-l info',
+      },
+      {
+        key: 'logFrame',
+        name: t('globalSettingConfig.log_frame'),
+        tip: t('globalSettingConfig.log_frame_desc'),
+        type: 'bool',
+        default: false,
       },
       {
         key: 'language',
@@ -74,6 +91,20 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         type: 'bool',
         default: false,
       },
+      {
+        key: 'bypassArchiveDev',
+        name: t('globalSettingConfig.bypass_archive_dev'),
+        tip: t('globalSettingConfig.bypass_archive_dev_desc'),
+        type: 'bool',
+        default: false,
+      },
+      {
+        key: 'verifyLocation',
+        name: '是否开启 location_uid 校验',
+        tip: '',
+        type: 'bool',
+        default: false,
+      },
     ],
   },
   {
@@ -85,14 +116,14 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.rocket_model'),
         tip: t('globalSettingConfig.rocket_model_desc'),
         default: false,
-        disabled: numCPUs <= 4,
+        disabled: !ifCpusNumSafe,
         type: 'bool',
       },
       {
         key: 'bypassAccounting',
         name: t('globalSettingConfig.bypass_accounting'),
         tip: t('globalSettingConfig.bypass_accounting_desc'),
-        default: false,
+        default: !ifCpusNumSafe,
         type: 'bool',
       },
       {
@@ -100,6 +131,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.bypass_trading_data'),
         tip: t('globalSettingConfig.bypass_trading_data_desc'),
         default: false,
+        type: 'bool',
+      },
+      {
+        key: 'bypassRefreshBook',
+        name: t('globalSettingConfig.bypass_subscribe_position'),
+        tip: t('globalSettingConfig.bypass_subscribe_position_desc'),
+        default: !ifCpusNumSafe,
         type: 'bool',
       },
     ],
@@ -150,23 +188,33 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.use_sound'),
         default: false,
         type: 'bool',
+        for: 'ui',
       },
       {
         key: 'fatFinger',
         name: t('globalSettingConfig.fat_finger_threshold'),
         tip: t('globalSettingConfig.set_fat_finger'),
-        default: '',
+        default: 0,
         type: 'percent',
         min: 0,
+        for: 'ui',
       },
       {
         key: 'close',
         name: t('globalSettingConfig.close_threshold'),
         tip: t('globalSettingConfig.set_close_threshold'),
-        default: '',
+        default: 0,
         type: 'percent',
+        for: 'ui',
       },
-
+      {
+        key: 'skipConfirmMakeOrder',
+        name: t('globalSettingConfig.skip_confirm_make_order'),
+        tip: t('globalSettingConfig.set_skip_confirm_make_order'),
+        default: false,
+        type: 'bool',
+        for: 'ui',
+      },
       {
         key: 'limit',
         name: t('globalSettingConfig.trade_limit'),
@@ -201,13 +249,43 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             type: 'float',
           },
         ],
+        for: 'ui',
       },
       {
-        key: 'assetMargin',
-        name: t('globalSettingConfig.asset_margin'),
-        tip: t('globalSettingConfig.show_asset_margin'),
-        default: false,
+        key: 'posTableColumns',
+        name: t('globalSettingConfig.pos_table_columns'),
+        type: 'checkboxGroup',
+        options: [
+          {
+            value: 'static_yesterday',
+            label: t('posGlobalConfig.static_yesterday_volume_setting'),
+          },
+          {
+            value: 'yesterday_volume',
+            label: t('posGlobalConfig.yesterday_volume_setting'),
+          },
+          {
+            value: 'open_volume',
+            label: t('posGlobalConfig.open_volume'),
+          },
+          {
+            value: 'close_volume',
+            label: t('posGlobalConfig.close_volume'),
+          },
+          {
+            value: 'today_volume',
+            label: t('posGlobalConfig.today_volume'),
+          },
+        ],
+        default: ['yesterday_volume', 'today_volume'],
+        for: 'ui',
+      },
+      {
+        key: 'skipSyncPosition',
+        name: t('globalSettingConfig.skip_sync_position'),
+        tip: t('globalSettingConfig.set_skip_sync_position'),
         type: 'bool',
+        default: false,
       },
     ],
   },
@@ -231,6 +309,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             label: CodeTabSetting[SpaceTabSettingEnum.TABS].name,
           },
         ],
+        for: 'ui',
       },
       {
         key: 'tabSpaceSize',
@@ -248,6 +327,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
             label: CodeSizeSetting[SpaceSizeSettingEnum.FOURINDENT].name,
           },
         ],
+        for: 'ui',
       },
     ],
   },
@@ -255,12 +335,12 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     ? [
         {
           key: 'update',
-          name: t('globalSettingConfig.update'),
+          name: t('autoUpdater.update_version'),
           config: [
             {
               key: 'isCheckVersion',
-              name: t('globalSettingConfig.is_check_version'),
-              tip: t('globalSettingConfig.is_check_version_desc'),
+              name: t('autoUpdater.is_check_version'),
+              tip: t('autoUpdater.is_check_version_desc'),
               default: true,
               type: 'bool' as KungfuApi.KfConfigItemSupportedTypes,
             },
@@ -274,6 +354,8 @@ export const getKfGlobalSettingsValue = (): Record<
   string,
   Record<string, KungfuApi.KfConfigValue>
 > => {
+  if (!fse.existsSync(KF_CONFIG_PATH)) return {};
+
   return fse.readJSONSync(KF_CONFIG_PATH) as Record<
     string,
     Record<string, KungfuApi.KfConfigValue>

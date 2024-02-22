@@ -105,9 +105,8 @@ int socket::getsockopt_ms(const char *opt) {
 int socket::listen(const std::string &path, int flags) {
   url_ = "ipc://" + path;
   int rc = nng_listen(sock_, url_.c_str(), NULL, flags);
-  if (rc < 0) {
-    SPDLOG_ERROR("can not listen to {}, error [{}] {}", url_, rc, nng_strerror(rc));
-    throw nn_exception(rc);
+  if (rc != 0) {
+    SPDLOG_WARN("can not listen to {}, error [{}] {}", url_, rc, nng_strerror(rc));
   }
 
   return rc;
@@ -116,9 +115,8 @@ int socket::listen(const std::string &path, int flags) {
 int socket::dial(const std::string &path, int flags) {
   url_ = "ipc://" + path;
   int rc = nng_dial(sock_, url_.c_str(), NULL, flags);
-  if (rc < 0) {
-    SPDLOG_ERROR("can not dial to {}, error [{}] {}", url_, rc, nng_strerror(rc));
-    throw nn_exception(rc);
+  if (rc != 0) {
+    SPDLOG_WARN("can not dial to {}, error [{}] {}", url_, rc, nng_strerror(rc));
   }
   return rc;
 }
@@ -131,12 +129,14 @@ void socket::close() {
   }
 }
 
-int socket::send(const std::string &msg, int flags) const {
+int socket::send(const std::string &msg, int flags, bool no_exception) const {
   void *msg_ptr = const_cast<void *>(reinterpret_cast<const void *>(msg.c_str()));
   int rc = nng_send(sock_, msg_ptr, msg.length(), flags);
   if (rc != 0 && rc != NNG_EAGAIN) {
     SPDLOG_ERROR("can not send to {} error [{}] {}", url_, rc, nng_strerror(rc));
-    throw nn_exception(rc);
+    if (not no_exception) {
+      throw nn_exception(rc);
+    }
   }
   return rc;
 }

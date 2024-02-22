@@ -12,11 +12,23 @@ export const getColumns = (): AntTableColumns => [
     fixed: 'left',
   },
   {
+    title: t('remarks'),
+    dataIndex: 'remarks',
+    align: 'left',
+    width: 80,
+    fixed: 'left',
+  },
+  {
     title: t('operatorConfig.operator_file'),
     dataIndex: 'operatorFile',
     align: 'left',
     width: 120,
-    fixed: 'left',
+  },
+  {
+    title: t('operatorConfig.operator_ext'),
+    dataIndex: 'operatorExt',
+    align: 'left',
+    width: 80,
   },
   {
     title: t('operatorConfig.state_status'),
@@ -29,7 +41,6 @@ export const getColumns = (): AntTableColumns => [
     dataIndex: 'processStatus',
     align: 'center',
     width: 60,
-    fixed: 'left',
   },
   {
     title: t('operatorConfig.actions'),
@@ -57,12 +68,20 @@ export const addOperatorConfig: KungfuApi.KfConfigItem = {
   ],
 };
 
-export const setOperatorConfig: KungfuApi.KfExtConfig = {
+export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
   type: [],
   name: t('operatorConfig.operator'),
   category: 'operator',
   key: 'default',
+  silent: true,
+  access: {},
+  assets: {},
   extPath: '',
+  version: '',
+  description: '',
+  dependencies: {},
+  readmePath: '',
+  releaseNotePath: '',
   settings: [
     {
       key: 'operator_id',
@@ -71,6 +90,11 @@ export const setOperatorConfig: KungfuApi.KfExtConfig = {
       primary: true,
       required: true,
       tip: t('operatorConfig.operator_tip'),
+    },
+    {
+      key: 'remarks',
+      name: t('remarks'),
+      type: 'str',
     },
     {
       key: 'file_path',

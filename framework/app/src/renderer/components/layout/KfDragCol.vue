@@ -15,7 +15,7 @@
 <script lang="ts">
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useBoards } from '../../pages/index/store/board';
 
 export default defineComponent({
   name: 'KfDragCol',
@@ -25,9 +25,13 @@ export default defineComponent({
       required: true,
       type: Number as PropType<number>,
     },
+    currentBoardsStoreId: {
+      type: String as PropType<string>,
+      default: 'main',
+    },
   },
 
-  setup() {
+  setup(props) {
     const colData = reactive<{
       resizeing: boolean;
       upRow$: HTMLElement | null;
@@ -50,8 +54,10 @@ export default defineComponent({
       preY: 0,
     });
 
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    const { setBoardsMapAttrById } = useGlobalStore();
+    const { getBoardsStoreById } = useBoards();
+    const useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
+    const { boardsMap } = storeToRefs(useBoardsStore());
+    const { setBoardsMapAttrById } = useBoardsStore();
 
     return {
       ...toRefs(colData),
@@ -156,7 +162,7 @@ export default defineComponent({
         this.paBoundingRect.height
           ? Number(
               (this.upRowHeight * 100) / this.paBoundingRect.height,
-            ).toFixed(3) + '%'
+            ).kfToFixed(3) + '%'
           : this.upRowHeight,
       );
       this.setBoardsMapAttrById(
@@ -165,7 +171,7 @@ export default defineComponent({
         this.paBoundingRect.height
           ? Number(
               (this.bottomRowHeight * 100) / this.paBoundingRect.height,
-            ).toFixed(3) + '%'
+            ).kfToFixed(3) + '%'
           : 0,
       );
 

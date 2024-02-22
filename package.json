@@ -45,6 +45,9 @@
     "wsrun": "^5.2.0"
   },
   "resolutions": {
+    "vue": "~3.2.0",
+    "pinia": "~2.0.0",
+    "prettier": "~2.7.0",
     "ansi-regex": "^5.0.1",
     "async": "^3.2.2",
     "axios": "^0.21.1",
@@ -58,6 +61,7 @@
     "dayjs": "^1.10.7",
     "minimist": "^1.2.6",
     "uuid": "^7.0.0",
-    "fs-extra": "^10.1.0"
+    "fs-extra": "^10.1.0",
+    "nanopop": "~2.3.0"
   }
 }

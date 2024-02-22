@@ -82,6 +82,7 @@ Napi::Value RiskSettingStore::SetAllRiskSetting(const Napi::CallbackInfo &info) 
           risk_setting.group = location->group;
           risk_setting.name = location->name;
           risk_setting.mode = location->mode;
+          risk_setting.risk_name = args.Get(i).ToObject().Get("risk_name").ToString().Utf8Value();
           risk_setting.value = args.Get(i).ToObject().Get("value").ToString().Utf8Value();
           risk_settings.push_back(risk_setting);
         };

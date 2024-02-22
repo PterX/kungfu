@@ -11,6 +11,7 @@ const { shell, utils } = require('@kungfu-trader/kungfu-js-api/toolkit');
 
 let electronProcess = null;
 let manualRestart = false;
+const oneThread = !!process.argv.find((arg) => arg === '--one-thread');
 
 const electronLog = (data, color, type = 'Kungfu') => {
   let log = '';
@@ -149,6 +150,7 @@ const run = (distDir, distName = 'app', withWebpack) => {
 
   const appDir = utils.getAppDir();
   const argv = utils.buildDevArgv(distDir, distName);
+  argv.enableThreadLoader = !oneThread;
   const tasks = withWebpack ? [startRenderer, startMain] : [copyWebpackDist];
 
   if (withWebpack) {
@@ -157,7 +159,9 @@ const run = (distDir, distName = 'app', withWebpack) => {
     process.chdir(process.cwd().toString());
   }
 
-  return Promise.all(tasks.map((f) => f(argv))).then(() => startElectron(argv));
+  return Promise.all(tasks.map((f) => f({ ...argv }))).then(() =>
+    startElectron(argv),
+  );
 };
 
 module.exports = run;

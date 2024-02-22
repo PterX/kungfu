@@ -4,11 +4,15 @@ import path from 'path';
 import { triggerStartStep } from '@kungfu-trader/kungfu-js-api/kungfu/tradingData';
 import {
   getOrderTradeFilterKey,
-  getProcessIdByKfLocation,
   getTradingDataSortKey,
-  setTimerPromiseTask,
+  dealAssetsByHolderUID,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { dealAssetsByHolderUID } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+
+import {
+  setTimerPromiseTask,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { buildTradingDataHeaders } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { Pm2PacketMain } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   dealOrder,
@@ -16,8 +20,9 @@ import {
   dealTrade,
   dealTradingDataItem,
   getKungfuHistoryData,
+  getOrderLatencyDataByOrderStat,
   kfCancelAllOrders,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { watcher } from '@kungfu-trader/kungfu-js-api/kungfu/watcher';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { writeCsvWithUTF8Bom } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
@@ -82,13 +87,13 @@ function resOrders(packet: Pm2PacketMain) {
   const orders = globalThis.HookKeeper.getHooks()
     .dealTradingData.trigger(watcher, kfLocation, watcher.ledger.Order, 'order')
     .slice(0, 10)
-    .map((item) =>
-      dealOrder(
-        watcher as KungfuApi.Watcher,
-        item as KungfuApi.Order,
+    .map((item) => ({
+      ...dealOrder(watcher as KungfuApi.Watcher, item as KungfuApi.Order),
+      ...getOrderLatencyDataByOrderStat(
+        item,
         (watcher as KungfuApi.Watcher).ledger.OrderStat,
       ),
-    );
+    }));
 
   turnBigIntToString(orders);
 
@@ -226,7 +231,11 @@ function dealTradingDataItemResolved(item: KungfuApi.TradingDataTypes): Row {
 }
 
 async function exportTradingData(date, output_folder) {
+  if (!watcher) {
+    throw new Error('Watcher is NULL');
+  }
   const { tradingData } = await getKungfuHistoryData(
+    watcher,
     date,
     HistoryDateEnum.naturalDate,
     'all',
@@ -241,20 +250,36 @@ async function exportTradingData(date, output_folder) {
   const orderStat = tradingData.OrderStat.sort(orderStatSortKey);
   const positions = tradingData.Position.sort(positionSortKey);
 
-  const ordersFilename = path.join(output_folder, `orders-${date}}`);
+  const ordersFilename = path.join(output_folder, `orders-${date}`);
   const tradesFilename = path.join(output_folder, `trades-${date}`);
   const orderStatFilename = path.join(output_folder, `orderStats-${date}`);
   const posFilename = path.join(output_folder, `pos-${date}`);
 
   return Promise.all([
-    writeCsvWithUTF8Bom(ordersFilename, orders, dealTradingDataItemResolved),
-    writeCsvWithUTF8Bom(tradesFilename, trades, dealTradingDataItemResolved),
+    writeCsvWithUTF8Bom(
+      ordersFilename,
+      orders,
+      buildTradingDataHeaders('Order', orders),
+      dealTradingDataItemResolved,
+    ),
+    writeCsvWithUTF8Bom(
+      tradesFilename,
+      trades,
+      buildTradingDataHeaders('Trade', trades),
+      dealTradingDataItemResolved,
+    ),
     writeCsvWithUTF8Bom(
       orderStatFilename,
       orderStat,
+      buildTradingDataHeaders('OrderStat', orderStat),
       dealTradingDataItemResolved,
     ),
-    writeCsvWithUTF8Bom(posFilename, positions, dealTradingDataItemResolved),
+    writeCsvWithUTF8Bom(
+      posFilename,
+      positions,
+      buildTradingDataHeaders('Position', positions),
+      dealTradingDataItemResolved,
+    ),
   ]);
 }
 
@@ -272,7 +297,7 @@ function turnBigIntToString<T>(list: T[]) {
   list.forEach((item) => {
     Object.keys(item).forEach((key) => {
       if (typeof item[key] === 'bigint') {
-        item[key] = Number(item[key]).toFixed(0);
+        item[key] = Number(item[key]).kfToFixed(0);
       }
     });
   });

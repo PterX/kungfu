@@ -10,6 +10,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import re
 
 from conans import ConanFile
 from conans import tools
@@ -29,12 +30,14 @@ class KungfuCoreConan(ConanFile):
     requires = [
         "fmt/8.1.1",
         "nlohmann_json/3.11.2",
-        "nng/1.5.2",
+        "nng/1.6.0",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
         # "sqlite_orm/1.7.1",
         "spdlog/1.10.0",
         "tabulate/1.4",
+        "rocksdb/6.29.5",
+        "gtest/1.14.0",
     ]
     settings = "os", "compiler", "build_type", "arch"
     options = {
@@ -61,6 +64,21 @@ class KungfuCoreConan(ConanFile):
         "freezer": "pyinstaller",
         "node_version": "ANY",
         "electron_version": "ANY",
+        "rocksdb:lite": False,
+        "rocksdb:shared": False,
+        "rocksdb:use_rtti": False,
+        "rocksdb:with_lz4": False,
+        "rocksdb:with_tbb": False,
+        "rocksdb:with_zlib": False,
+        "rocksdb:with_zstd": False,
+        "rocksdb:enable_sse": False,
+        "rocksdb:with_gflags": False,
+        "rocksdb:with_snappy": False,
+        "rocksdb:with_jemalloc": False,
+        "gtest:shared": False,
+        "gtest:build_gmock": True,
+        "gtest:hide_symbols": False,
+        "gtest:disable_pthreads": False,
         # clang has a known issue:
         # https://developercommunity.visualstudio.com/t/msbuild-doesnt-give-delayload-flags-to-linker-when/1595015
         "vs_toolset": "auto"
@@ -68,9 +86,20 @@ class KungfuCoreConan(ConanFile):
         else environ["CONAN_VS_TOOLSET"],
         "with_yarn": False,
     }
+    if tools.detected_os() != "Windows":
+        default_options["rocksdb:fPIC"] = True
+        default_options["gtest:fPIC"] = True
+
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"
-    exports_sources = "src/*", "package.json", "CMakeLists.txt", ".cmake/*", ".deps/*"
+    exports_sources = (
+        "src/*",
+        "package.json",
+        "CMakeLists.txt",
+        ".cmake/*",
+        ".deps/*",
+        "dist/*",
+    )
     conanfile_dir = path.dirname(path.realpath(__file__))
     pyi_hooks_dir = path.join(conanfile_dir, "src", "python", "pyi-hooks")
     build_info_file = "kungfubuildinfo.json"
@@ -105,6 +134,7 @@ class KungfuCoreConan(ConanFile):
         )
         self.copy("*", src=python_inc_src, dst=python_inc_dst)
         self.copy("*", src="include", dst="include")
+        self.copy("*", src="lib", dst="libs")
 
     def build(self):
         build_type = self.__get_build_type()
@@ -286,12 +316,12 @@ class KungfuCoreConan(ConanFile):
         log_level = spdlog_levels[str(self.options.log_level)]
 
         parallel_level = os.cpu_count()
-
-        python_path = (
-            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE)
+        python_path = re.sub(
+            r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]",
+            "",
+            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE, text=True)
             .stdout.read()
-            .decode()
-            .strip()
+            .strip(),
         )
 
         toolset_option = ["--toolset", toolset] if toolset != "auto" else []

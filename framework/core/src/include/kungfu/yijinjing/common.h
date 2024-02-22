@@ -17,6 +17,7 @@
 
 namespace kungfu {
 namespace yijinjing {
+
 /** size related */
 constexpr int KB = 1024;
 constexpr int MB = KB * KB;
@@ -30,7 +31,7 @@ class resource {
 public:
   virtual bool is_usable() = 0;
 
-  virtual void setup() = 0;
+  virtual bool setup() = 0;
 };
 
 class publisher : public resource {
@@ -39,7 +40,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) = 0;
 };
 
 DECLARE_PTR(publisher)
@@ -50,6 +51,8 @@ public:
 
   virtual bool wait() = 0;
 
+  virtual bool nonblock_wait() = 0;
+
   [[nodiscard]] virtual int get_recv_timeout() const = 0;
 
   virtual const std::string &get_notice() = 0;
@@ -59,6 +62,7 @@ DECLARE_PTR(observer)
 
 namespace data {
 FORWARD_DECLARE_STRUCT_PTR(location)
+
 FORWARD_DECLARE_CLASS_PTR(locator)
 typedef std::unordered_map<uint32_t, location_ptr> location_map;
 
@@ -76,13 +80,18 @@ public:
 
   [[nodiscard]] virtual std::string get_env(const std::string &name) const;
 
-  [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout) const;
+  [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout,
+                                               bool create_not_exist = true) const;
+
+  [[nodiscard]] std::string layout_directory(longfist::enums::layout layout, longfist::enums::category c,
+                                             const std::string &g, const std::string &n, longfist::enums::mode m,
+                                             bool create_not_exist = true) const;
 
   [[nodiscard]] virtual std::string layout_file(const location_ptr &location, longfist::enums::layout layout,
                                                 const std::string &name) const;
 
-  [[maybe_unused]] [[maybe_unused]] [[nodiscard]] virtual std::string
-  default_to_system_db(const location_ptr &location, const std::string &name) const;
+  [[maybe_unused]] [[nodiscard]] virtual std::string default_to_system_db(const location_ptr &location,
+                                                                          const std::string &name) const;
 
   [[nodiscard]] virtual std::vector<uint32_t> list_page_id(const location_ptr &location, uint32_t dest_id) const;
 
@@ -111,45 +120,52 @@ struct location : public std::enable_shared_from_this<location>, public longfist
 
   const locator_ptr locator;
   const std::string uname;
-  const uint32_t uid;
+  uint32_t uid;
 
-  location(longfist::enums::mode m, longfist::enums::category c, std::string g, std::string n, locator_ptr l)
-      : locator(std::move(l)), uname(fmt::format("{}/{}/{}/{}", longfist::enums::get_category_name(c), g, n,
-                                                 longfist::enums::get_mode_name(m))),
-        uid(util::hash_str_32(uname)) {
-    category = c;
-    group = std::move(g);
-    name = std::move(n);
-    mode = m;
-    location_uid = uid;
-  }
+  location(longfist::enums::mode m, longfist::enums::category c, std::string g, std::string n, locator_ptr l,
+           uint32_t default_seed = KUNGFU_HASH_SEED);
+
+  bool static is_verify_location();
+
+  bool is_uid_clash();
+
+  void verify_location_uid();
+
+  std::string get_master_kv(const std::string &key);
+
+  void update_seed(uint32_t s);
 
   template <typename T> inline T to() const {
     T t{};
-    t.location_uid = uid;
+    t.uid64 = uid64;
+    t.location_uid = location_uid;
     t.mode = mode;
     t.category = category;
     t.group = group;
     t.name = name;
+    t.seed = seed;
     return t;
   }
 
   template <typename T> inline T &to(T &t) const {
-    t.location_uid = uid;
+    t.uid64 = uid64;
+    t.location_uid = location_uid;
     t.mode = mode;
     t.category = category;
     t.group = group;
     t.name = name;
+    t.seed = seed;
     return t;
   }
 
   template <typename T> static inline location_ptr make_shared(T msg, locator_ptr l) {
-    return std::make_shared<location>(msg.mode, msg.category, msg.group, msg.name, l);
+    return std::make_shared<location>(msg.mode, msg.category, msg.group, msg.name, l, msg.seed);
   }
 
-  static inline location_ptr make_shared(longfist::enums::mode m, longfist::enums::category c, std::string g,
-                                         std::string n, locator_ptr l) {
-    return std::make_shared<location>(m, c, g, n, l);
+  static inline location_ptr make_shared(longfist::enums::mode m, longfist::enums::category c, const std::string &g,
+                                         const std::string &n, const locator_ptr &l,
+                                         uint32_t default_seed = KUNGFU_HASH_SEED) {
+    return std::make_shared<location>(m, c, g, n, l, default_seed);
   }
 };
 } // namespace data
@@ -170,9 +186,9 @@ using namespace rxcpp;
 using namespace rxcpp::operators;
 using namespace rxcpp::util;
 
-static constexpr auto noop_event_handler = []() { return [](const event_ptr &event) {}; };
+[[maybe_unused]] static constexpr auto noop_event_handler = []() { return [](const event_ptr &event) {}; };
 
-static constexpr auto error_handler_log = [](const std::string &subscriber_name) {
+[[maybe_unused]] static constexpr auto error_handler_log = [](const std::string &subscriber_name) {
   return [=](const std::exception_ptr &e) {
     try {
       std::rethrow_exception(e);
@@ -190,10 +206,12 @@ template <typename EventType>
 static constexpr auto instanceof
     = []() { return filter([](const event_ptr &event) { return dynamic_cast<EventType *>(event.get()) != nullptr; }); };
 
-static constexpr auto is_custom = []() {
-  return filter([](const event_ptr &event) {
-    return longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
-  });
+static constexpr auto is_custom_event = [](const event_ptr &event) -> bool {
+  return event->msg_type() > 0 and longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
+};
+
+[[maybe_unused]] static constexpr auto is_custom = []() {
+  return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
 template <typename... Ts>
@@ -234,7 +252,7 @@ template <typename... Ts> constexpr decltype(auto) from(Ts... arg) {
   return event_filter_any<Ts...>(&event::source)(arg...);
 }
 
-template <typename... Ts> constexpr decltype(auto) while_from(Ts... arg) {
+template <typename... Ts> [[maybe_unused]] constexpr decltype(auto) while_from(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::source)(arg...);
 }
 
@@ -242,7 +260,7 @@ template <typename... Ts> constexpr decltype(auto) to(Ts... arg) {
   return event_filter_any<Ts...>(&event::dest)(arg...);
 }
 
-template <typename... Ts> constexpr decltype(auto) while_to(Ts... arg) {
+template <typename... Ts> [[maybe_unused]] constexpr decltype(auto) while_to(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::dest)(arg...);
 }
 
@@ -284,11 +302,11 @@ template <class T, class Observable, class Subject> struct steppable : public op
 
   steppable(source_type o, subject_type sub) : state(std::make_shared<steppable_state>(std::move(o), std::move(sub))) {}
 
-  template <class Subscriber> void on_subscribe(Subscriber &&o) const {
+  template <class Subscriber> [[maybe_unused]] void on_subscribe(Subscriber &&o) const {
     state->subject_value.get_observable().subscribe(std::forward<Subscriber>(o));
   }
 
-  void on_connect(composite_subscription cs) const {
+  [[maybe_unused]] void on_connect(composite_subscription cs) const {
     auto destination = state->subject_value.get_subscriber();
     if (state->connection.empty()) {
 

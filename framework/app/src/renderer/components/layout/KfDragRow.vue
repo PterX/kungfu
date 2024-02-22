@@ -20,7 +20,7 @@
 <script lang="ts">
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useBoards } from '../../pages/index/store/board';
 
 interface KfDragRowData {
   resizeing: boolean;
@@ -42,9 +42,13 @@ export default defineComponent({
       required: true,
       type: Number as PropType<number>,
     },
+    currentBoardsStoreId: {
+      type: String as PropType<string>,
+      default: 'main',
+    },
   },
 
-  setup() {
+  setup(props) {
     const rowData = reactive<KfDragRowData>({
       resizeing: false,
       leftCol$: null,
@@ -57,8 +61,10 @@ export default defineComponent({
       preX: 0,
     });
 
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    const { setBoardsMapAttrById } = useGlobalStore();
+    const { getBoardsStoreById } = useBoards();
+    const useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
+    const { boardsMap } = storeToRefs(useBoardsStore());
+    const { setBoardsMapAttrById } = useBoardsStore();
 
     return {
       ...toRefs(rowData),
@@ -158,16 +164,16 @@ export default defineComponent({
       this.setBoardsMapAttrById(
         +this.leftBoardId,
         'width',
-        Number((this.leftColWidth * 100) / this.paBoundingRect.width).toFixed(
+        Number((this.leftColWidth * 100) / this.paBoundingRect.width).kfToFixed(
           3,
         ) + '%',
       );
       this.setBoardsMapAttrById(
         +this.rightBoardId,
         'width',
-        Number((this.rightColWidth * 100) / this.paBoundingRect.width).toFixed(
-          3,
-        ) + '%',
+        Number(
+          (this.rightColWidth * 100) / this.paBoundingRect.width,
+        ).kfToFixed(3) + '%',
       );
 
       this.$globalBus.next({

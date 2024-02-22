@@ -4,9 +4,10 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  dealOffset,
   dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealOffset,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+
 import colors from 'colors';
 import { calcHeaderWidth, parseToString } from '../methods/utils';
 import Table from './Table';
@@ -77,7 +78,7 @@ export class TradeTable extends Table {
           side,
           offset,
           trade.price,
-          Number(trade.volume),
+          trade.volume,
           last,
           trade.latency_trade,
         ],

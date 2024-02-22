@@ -1,213 +1,390 @@
 <template>
   <a-layout>
     <div class="kf-journal-view__wrap">
-      <div class="kf-journal-session__wrap">
-        <KfTradingDataTable
-          :data-source="sessions"
-          :columns="sessionColumns"
-          key-field="begin_time"
-          :resizable="false"
-          :custom-row-class="dealRowClassName"
-          @click-cell="handleSelectSession"
+      <div class="kf-journal-head-warp" :style="journalHeadStyle">
+        <div
+          v-if="!visualVisible"
+          class="kf-journal-session__warp kf-translateZ"
         >
-          <template
-            #default="{
-              item,
-              column,
-            }: {
-              item: KungfuApi.SessionResolved,
-              column: KfTradingDataTableHeaderConfig,
-            }"
-          >
-            <template v-if="column.dataIndex === 'session_id_resolved'">
-              <a-tag :color="dealCategory(item.category)?.color || 'default'">
-                {{ dealCategory(item.category)?.name }}
-              </a-tag>
-              {{ item[column.dataIndex as keyof KungfuApi.SessionResolved] }}
+          <KfDashboard @boardSizeChange="handleBodySizeChange">
+            <template #header>
+              <KfDashboardItem>
+                <a-input-search
+                  v-model:value="searchKeyword"
+                  :placeholder="$t('keyword_input')"
+                  style="width: 120px"
+                />
+              </KfDashboardItem>
+              <KfDashboardItem>
+                <a-button size="small" @click="setSessions">
+                  <template #icon>
+                    <reload-outlined style="font-size: 14px"></reload-outlined>
+                  </template>
+                </a-button>
+              </KfDashboardItem>
             </template>
-            <template v-else-if="column.dataIndex === 'status'">
-              <span
-                :style="{ color: SessionStatus[item[column.dataIndex]].color }"
+            <a-table
+              class="kf-ant-table"
+              style="height: 100%"
+              :columns="columns"
+              :data-source="tableData"
+              :pagination="false"
+              size="small"
+              :row-class-name="dealRowClassName"
+              :custom-row="customRow"
+              :default-expand-all-rows="true"
+              :scroll="{ y: dashboardBodyHeight - 4 }"
+            >
+              <template #emptyText>
+                <a-empty
+                  :image="simpleImage"
+                  :description="t('empty_text')"
+                ></a-empty>
+              </template>
+              <template
+                #bodyCell="{
+                  column,
+                  record,
+                }: {
+                  column: KfTradingDataTableHeaderConfig,
+                  record: KungfuApi.SessionResolved,
+                }"
               >
-                {{ SessionStatus[item[column.dataIndex]].name }}
-              </span>
-            </template>
-          </template>
-        </KfTradingDataTable>
-      </div>
-      <div class="kf-journal-control-bar">
-        <div class="kf-journal-bar-title">
-          <a-tag :color="currentCategoryData?.color || 'default'">
-            {{ currentCategoryData?.name }}
-          </a-tag>
-          {{ currentSessionTitle }}
+                <template v-if="column.dataIndex === 'sessionName'">
+                  <div class="session-name__warp">
+                    <a-tag
+                      :color="dealCategory(record.category)?.color || 'default'"
+                    >
+                      {{ dealCategory(record.category)?.name }}
+                    </a-tag>
+                    <span>
+                      {{
+                        record[
+                          column.dataIndex as keyof KungfuApi.SessionResolved
+                        ]
+                      }}
+                    </span>
+                  </div>
+                </template>
+                <template v-else-if="column.dataIndex === 'status'">
+                  <span
+                    :style="{
+                      color: SessionStatus[record[column.dataIndex]].color,
+                    }"
+                  >
+                    {{ SessionStatus[record[column.dataIndex]].name }}
+                  </span>
+                </template>
+              </template>
+            </a-table>
+          </KfDashboard>
         </div>
-        <TimeSlider
-          ref="timeSlider"
-          v-model:current-time="currentTime"
-          :current-session="currentSession"
-          :now-time="nowTime"
-          :begin-time="beginTime"
-          :end-time="endTime"
-          :step="60"
-          stick
-          class="kf-journal-time-slider"
-        ></TimeSlider>
-        <ExportJournal @export-journal-data="onExportJournalData" />
-      </div>
-      <div class="kf-journal-menu__wrap">
-        <a-menu
-          v-model:selectedKeys="currentMenuList"
-          class="kf-journal-menu-tab"
-        >
-          <a-menu-item v-for="item in menus" :key="item.key">
-            <template #icon>
-              <component :is="item.icon"></component>
-            </template>
-            {{ item.title }}
-          </a-menu-item>
-        </a-menu>
-        <div class="kf-journal-menu-content">
-          <EventsDashBoard
-            v-show="isCurrentMenuItem('event')"
-            ref="eventDashBoard"
-            :current-session="currentSession"
-            :current-location="currentLocation"
-            :begin-time="beginTime"
-            :end-time="endTime"
-            :now-time="nowTime"
-            :current-time="currentTime"
-            :location-map="SourceAndDestNameMap"
-            @update-current-time="onUpdateCurrentTime"
+        <div v-if="visualVisible" class="kf-journal-visualization">
+          <EntryVisualization
+            ref="entryVisualzationRef"
+            :category="currentSession?.category"
           />
-          <!-- <OrdersDashboard
-            v-show="isCurrentMenuItem('visual')"
-            :current-session="currentSession"
-          /> -->
+        </div>
+      </div>
+      <div class="gutter" @mousedown="mouseDownHandler"></div>
+      <div class="kf-journal-content" :style="journalContentStyle">
+        <div class="kf-journal-control-bar">
+          <div class="kf-journal-bar-title" v-if="currentSession">
+            <a-tag :color="currentCategoryData?.color || 'default'">
+              {{ currentCategoryData?.name }}
+            </a-tag>
+            <span>
+              {{ currentSessionName }}
+            </span>
+          </div>
+          <TimeSlider
+            v-if="currentSession"
+            :step="60"
+            class="kf-journal-time-slider"
+          ></TimeSlider>
+          <JournalActions
+            :is-show-replay-action="isShowReplayAction || false"
+            :is-show-visual-action="isShowVisualAction"
+            @export-journal-data="onJournalActionsData"
+            @start-replay="dealLocation"
+            @show-visual="onEntryVisualization"
+          />
+        </div>
+        <div class="kf-journal-menu__wrap">
+          <a-menu
+            v-model:selectedKeys="currentMenuList"
+            class="kf-journal-menu-tab"
+          >
+            <a-menu-item v-for="item in menus" :key="item.key">
+              <template #icon>
+                <component :is="item.icon"></component>
+              </template>
+              {{ item.title }}
+            </a-menu-item>
+          </a-menu>
+          <div class="kf-journal-menu-content">
+            <EventsDashBoard
+              v-show="currentSession && isCurrentMenuItem('event')"
+              ref="eventDashBoard"
+            />
+            <template v-if="replayPramas.logPath">
+              <Replay
+                v-show="
+                  currentSession &&
+                  isShowReplayAction &&
+                  replayPramas.logPath &&
+                  replayPramas.processId &&
+                  isCurrentMenuItem('replay')
+                "
+                ref="replayRef"
+                :params="replayPramas"
+                @stop-replay-loading="stopLoadingInterval"
+              />
+            </template>
+          </div>
         </div>
       </div>
     </div>
   </a-layout>
+  <KfReplaySettingModal
+    v-if="setReplayModalVisible"
+    :width="520"
+    v-model:visible="setReplayModalVisible"
+    :is-journal="true"
+    :can-backtest="canBacktest"
+    :session-options="sessionOptions"
+    :session-info="replayConfig.session_info"
+    :begin-time="replayConfig.begin_time.split(' ')[1]"
+    :end-time="replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''"
+    :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
+    :log-level="replayConfig.log_level"
+    @close="setReplayModalVisible = false"
+    @confirm="
+      async (event) => (
+        await handleReplayModal(event, true),
+        startLoadingInterval(),
+        updateLogLevel()
+      )
+    "
+  ></KfReplaySettingModal>
 </template>
 
 <script setup lang="ts">
-import {
-  onMounted,
-  ref,
-  computed,
-  toRaw,
-  watch,
-  nextTick,
-  watchEffect,
-} from 'vue';
-import {
-  dealKfTime,
-  sessionStore,
-  io,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+import { onMounted, ref, computed, watch, onUnmounted, ComputedRef } from 'vue';
+import { ensureFileSync, outputFile } from 'fs-extra';
+import { storeToRefs } from 'pinia';
 import { getSessionColumns, SessionStatus } from './config';
-import { removeLoadingMask } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-
+import { getCurrentWindow } from '@electron/remote';
 import {
-  getCurrentLocation,
-  dealCategory,
-  dealSessionsToMap,
-  getAbs,
-} from './utils';
-import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+  buildProcessReplayPath,
+  buildProcessBacktestPath,
+} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
+import {
+  messagePrompt,
+  removeLoadingMask,
+  useDashboardBodySize,
+  useTableSearchKeyword,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import {
+  getProcessIdByKfLocation,
+  getYearMonthDay,
+  delayMilliSeconds,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+
+import { dealCategory } from './utils';
+import { Empty } from 'ant-design-vue';
+
 import {
   UnorderedListOutlined,
-  // LineChartOutlined,
+  HistoryOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons-vue';
-import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import TimeSlider from './components/TimeSlider.vue';
-import ExportJournal from './components/ExportJournal.vue';
+import JournalActions from './components/JournalActions.vue';
 import EventsDashBoard from './components/EventsDashboard.vue';
-// import OrdersDashboard from './components/OrdersDashboard.vue';
+import EntryVisualization from './components/EntryVisualization.vue';
 import { useJournalStore } from './store/journalStore';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { getAllKfConfigOriginData } from '@kungfu-trader/kungfu-js-api/actions';
+import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
-type LocationRseolved = KungfuApi.KfLocation & {
-  uname: string;
-  uid: number;
-};
+import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import KfDashboard from '../../components/public/KfDashboard.vue';
+
+import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
+import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
+
 const { t } = VueI18n.global;
-const beginTime = ref<bigint>(BigInt(new Date().getTime()) * 1000000n);
-const endTime = ref<bigint>(0n);
-const currentLocation = getCurrentLocation();
-const timeSlider = ref();
-const eventDashBoard = ref();
-const mdSession = ref();
-const journalStore = useJournalStore();
-const allLocations = ref<Record<string, LocationRseolved>>({});
-const sessionsMap = ref<Record<string, KungfuApi.SessionResolved>>({});
-const SourceAndDestNameMap = ref<Record<string, string>>({});
-const sessions = computed(() => {
-  return Object.values(sessionsMap.value);
+const { testCase } = storeToRefs(useGlobalStore());
+const replayRef = ref();
+
+let currentWindow: Electron.BrowserWindow | null = null;
+const {
+  sessions,
+  currentSession,
+  currentSessionName,
+  currentSessionKey,
+  currentCategoryData,
+  currentFrameList,
+} = storeToRefs(useJournalStore());
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  journalReplayflag,
+  replayProcessParams,
+  handleReplayModal,
+  startLoadingInterval,
+  stopLoadingInterval,
+  replayPreLoading,
+} = useReplay();
+
+const { setSessions, setCurrentSession } = useJournalStore();
+const { handleBodySizeChange, dashboardBodyHeight } = useDashboardBodySize();
+const columns = getSessionColumns();
+
+const entryVisualzationRef = ref();
+
+const operator = ref<KungfuApi.KfConfig[]>([]);
+const strategy = ref<KungfuApi.KfConfig[]>([]);
+const td = ref<KungfuApi.KfConfig[]>([]);
+const canBacktest = computed(() => {
+  return currentSession.value?.category === 'strategy';
 });
-const runningSessions = computed(() => {
-  return sessions.value.filter(
-    (item) => item.status === SessionStatusEnum.Running,
+const replayPramas = computed(() => {
+  const currentSessionValue = currentSession.value;
+  const replayConfigValue = replayConfig.value;
+  const replayEnabled = testCase.value.replayEnabled;
+  if (
+    !(
+      currentSessionValue &&
+      (replayEnabled[currentSessionValue.category] ||
+        (currentSessionValue.category === 'system' &&
+          currentSessionValue.name === 'ledger'))
+    )
+  ) {
+    return {};
+  }
+  const mode = replayConfigValue.enable_matcher ? 'backtest' : 'replay';
+  const { category, group, name, begin_time, end_time } = currentSessionValue;
+  const dateStr = getYearMonthDay();
+  const logPath = setReplayModalVisible.value
+    ? replayPramas.value.logPath
+    : replayConfigValue.enable_matcher
+    ? buildProcessBacktestPath(
+        { category, group, name, mode },
+        `${name}_${dateStr}`,
+      )
+    : buildProcessReplayPath(
+        { category, group, name, mode },
+        `${name}_${dateStr}`,
+      );
+  const beginTime =
+    replayConfigValue.begin_time.split(' ')[1] || getNanoDateString(begin_time);
+  const endTime =
+    replayConfigValue.end_time.split(' ')[1] ||
+    (end_time
+      ? getNanoDateString(end_time)
+      : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
+  const processId = getProcessIdByKfLocation({ category, group, name, mode });
+  const enableMatcher = replayConfigValue.enable_matcher || false;
+
+  return {
+    category,
+    group,
+    beginTime,
+    endTime,
+    logPath,
+    logLevel: replayConfigValue.log_level || '-l info',
+    sessionName: name || '',
+    filePath: replayConfigValue.file_path || '',
+    processId,
+    enableMatcher: enableMatcher.toString(),
+    replayPreLoading: replayPreLoading.value,
+  };
+});
+const isShowReplayAction: ComputedRef<boolean> = computed(() => {
+  return (
+    currentSession.value &&
+    (testCase.value.replayEnabled[currentSession.value.category] ||
+      (currentSession.value.category === 'system' &&
+        currentSession.value.name === 'ledger'))
   );
 });
-
-const nowTime = ref(BigInt(new Date().getTime()) * 1000000n);
-const currentTime = ref(BigInt(new Date().getTime()) * 1000000n);
-
-watchEffect(() => {
-  const updateNowTime = () => {
-    nowTime.value = BigInt(new Date().getTime()) * 1000000n;
-    setTimeout(updateNowTime, 1000);
-  };
-
-  updateNowTime();
+const isShowVisualAction = computed(() => {
+  return !!currentSession.value && currentSession.value.category === 'strategy';
 });
-const currentSessionKey = ref('');
-const currentSessionId = ref(-1);
+const { searchKeyword, tableData } =
+  useTableSearchKeyword<KungfuApi.SessionResolved>(sessions, [
+    'sessionName',
+    'category',
+    'group',
+    'name',
+  ]);
 
-const currentSession = computed(() => {
-  if (currentSessionKey.value && Object.keys(sessionsMap.value).length) {
-    return sessionsMap.value[currentSessionKey.value];
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
+const currentMenuList = ref<('event' | 'visual' | 'replay')[]>(['event']);
+const menus = computed(() => [
+  ...(isShowReplayAction.value
+    ? [
+        {
+          key: 'event',
+          title: t('journalConfig.Event'),
+          icon: UnorderedListOutlined,
+        },
+        {
+          key: 'replay',
+          title: t('journalConfig.replay'),
+          icon: HistoryOutlined,
+        },
+      ]
+    : [
+        {
+          key: 'event',
+          title: t('journalConfig.Event'),
+          icon: UnorderedListOutlined,
+        },
+      ]),
+]);
+const isCurrentMenuItem = (key: 'event' | 'visual' | 'replay') => {
+  if (currentMenuList.value.includes(key) && key === 'replay') {
+    return (
+      currentSession.value &&
+      (testCase.value.replayEnabled[currentSession.value.category] ||
+        (currentSession.value.category === 'system' &&
+          currentSession.value.name === 'ledger'))
+    );
+  } else {
+    return currentMenuList.value.includes(key);
   }
+};
+const visualVisible = ref<boolean>(false);
+const boardStyle = localStorage.getItem('boardStyle')
+  ? JSON.parse(localStorage.getItem('boardStyle') as string)
+  : {};
 
-  return null;
-});
-
-const currentSessionTitle = computed(() => {
-  if (currentSession.value) {
-    return `${currentSession.value.session_id_resolved}`;
-  }
-
-  return '';
-});
-
-const currentCategoryData = computed(() => {
-  return dealCategory(currentSession.value?.category);
-});
-
-const currentMenuList = ref<('event' | 'visual')[]>(['event']);
-const menus = [
-  {
-    key: 'event',
-    title: t('journalConfig.Event'),
-    icon: UnorderedListOutlined,
+const journalHeadStyle = ref<KungfuApi.BoardStyle>(
+  boardStyle['journalHead'] || {
+    height: '20%',
   },
-  // {
-  //   key: 'visual',
-  //   title: t('journalConfig.Visual'),
-  //   icon: LineChartOutlined,
-  // },
-];
-
-const isCurrentMenuItem = (key: 'event' | 'visual') =>
-  currentMenuList.value.includes(key);
+);
+const journalContentStyle = ref<KungfuApi.BoardStyle>(
+  boardStyle['journalContent'] || {
+    height: '80%',
+  },
+);
 
 const exportFileName = computed(() => {
   if (currentSession.value) {
     return `${
-      currentSession.value.session_id_resolved
-    }_${currentSession.value.begin_time_resolved
+      currentSession.value.sessionName
+    }_${currentSession.value.beginTimeResolved
       .split('.')[0]
       .split(':')
       .join('-')}`;
@@ -216,179 +393,262 @@ const exportFileName = computed(() => {
   return 'session';
 });
 
-const sessionColumns = getSessionColumns();
+const customRow = (record: KungfuApi.SessionResolved) => {
+  return {
+    onClick: async () => {
+      setCurrentSession(record);
 
-watch(
-  () => sessions.value,
-  () => {
-    journalStore.setSessions(sessions.value);
-    allLocations.value = io.getAllLocations();
-    SourceAndDestNameMap.value = dealsessionsToMap(allLocations.value);
-  },
-  {
-    deep: true,
-  },
-);
+      if (replayPramas.value.processId) {
+        stopLoadingInterval();
+        const config = localStorage.getItem('replaySetting');
+        const replaySetting = config ? JSON.parse(config) : {};
+        replayConfig.value = {
+          session_info: '',
+          category: '',
+          group: 'default',
+          begin_time: '',
+          end_time: '',
+          log_level: replaySetting.log_level || '-l info',
+          session_name: '',
+          file_path: '',
+          enable_matcher: false,
+        };
 
-watch(
-  () => mdSession.value?.end_time,
-  () => {
-    getMdSessions();
-  },
-);
-
-watch(
-  () => currentSession.value,
-  (newSession) => {
-    if (!newSession) return;
-
-    const { begin_time, end_time } = newSession;
-    beginTime.value = begin_time;
-    endTime.value = end_time ?? 0n;
-  },
-);
-
-const onUpdateCurrentTime = (value: bigint) => {
-  currentTime.value = value;
+        updateLogLevel();
+      }
+    },
+  };
 };
 
-const dealsessionsToMap = (sessions: Record<string, LocationRseolved>) => {
-  const SourceAndDestNameMap: Record<string, LocationRseolved> = {};
-  Object.values(sessions).forEach((item) => {
-    SourceAndDestNameMap[item.uid] = item;
-  });
-  return ransformObject(SourceAndDestNameMap);
-};
-const ransformObject = (obj: Record<string, LocationRseolved>) => {
-  const output: Record<string, string> = {};
-
-  for (const key in obj) {
-    // eslint-disable-next-line no-prototype-builtins
-    if (obj.hasOwnProperty(key)) {
-      const item = obj[key];
-      output[key] = `${item.category}/${item.group}/${item.name}/${item.mode}`;
-    }
-  }
-  output['0'] = 'public';
-
-  return output;
-};
-
-const getSessions = () => {
-  return currentLocation
-    ? sessionStore.getSessionsForLocation(currentLocation)
-    : sessionStore.getAllSessions();
-};
-
-const getMdSessions = () => {
-  const sessions = sessionStore.getAllSessions();
-  if (!sessions) {
-    mdSession.value = null;
-    return null;
-  }
-  const mdSessions = sessions.filter((item) => item.name === 'sim');
-  const mdRuningSessions = mdSessions.filter(
-    (item) => item.end_time === BigInt(0),
+const mouseMoveHandler = (event: MouseEvent) => {
+  const journalHeadDom = ref<HTMLElement | null>(
+    document.querySelector('.kf-journal-head-warp'),
   );
-  if (mdRuningSessions.length) {
-    mdSession.value = mdRuningSessions[mdRuningSessions.length - 1];
-    return mdRuningSessions[mdRuningSessions.length - 1];
+  const journalContentDom = ref<HTMLElement | null>(
+    document.querySelector('.kf-journal-content'),
+  );
+
+  if (!journalHeadDom.value || !journalContentDom.value) return;
+
+  const container = document.querySelector('.kf-journal-view__wrap');
+  if (!container) return;
+  const div = container.getBoundingClientRect();
+
+  const leftHeight = event.clientY;
+  const rightHeight = window.innerHeight - event.clientY - 5;
+
+  journalHeadStyle.value = {
+    height: `${(100 * leftHeight) / div.height}%`,
+    flex: 'unset',
+  };
+  journalContentStyle.value = {
+    height: `${(100 * rightHeight) / div.height}%`,
+    flex: 'unset',
+  };
+};
+const mouseUpHandler = () => {
+  if (visualVisible.value) {
+    entryVisualzationRef.value?.handleResize(true);
   }
-  mdSession.value = mdSessions[0];
-  return mdSession.value;
+  localStorage.setItem(
+    'boardStyle',
+    JSON.stringify({
+      journalHead: journalHeadStyle.value,
+      journalContent: journalContentStyle.value,
+    }),
+  );
+
+  document.removeEventListener('mousemove', mouseMoveHandler);
+  document.removeEventListener('mouseup', mouseUpHandler);
+};
+const mouseDownHandler = (event: MouseEvent) => {
+  document.addEventListener('mousemove', mouseMoveHandler);
+  document.addEventListener('mouseup', mouseUpHandler);
 };
 
-const loadSessions = (gotSessions?: KungfuApi.Session[]) => {
-  const currentSessions = gotSessions ?? getSessions();
-  if (currentSessions?.length) {
-    sessionsMap.value = dealSessionsToMap(currentSessions.reverse());
-    nextTick(() => {
-      if (!gotSessions && sessions.value.length) {
-        const { index, begin_time } = sessions.value[0];
+onMounted(async () => {
+  currentWindow = getCurrentWindow();
+  const {
+    operator: originOperator,
+    strategy: originStategy,
+    td: originTd,
+  } = await getAllKfConfigOriginData();
+  operator.value = originOperator;
+  strategy.value = originStategy;
+  td.value = originTd;
 
-        currentSessionKey.value = `${begin_time}`;
-        currentSessionId.value = index;
-      }
-    });
-  }
-};
-
-const startCheckSessionsStatus = () => {
-  setTimerPromiseTask(async () => {
-    let hasNewSession = false;
-    const currentSessions = getSessions();
-    const sessionsStatusMap = currentSessions?.reduce((map, session) => {
-      const key = `${session.begin_time}`;
-      map[key] = session.end_time === 0n ? false : session.end_time;
-      if (!(key in sessionsMap.value)) {
-        hasNewSession = true;
-      }
-      return map;
-    }, {});
-    if (hasNewSession) {
-      loadSessions(currentSessions);
-      getMdSessions();
-      return;
-    }
-
-    toRaw(runningSessions.value).forEach((session) => {
-      const currentKey = `${session.begin_time}`;
-      const currentEndTime = sessionsStatusMap?.[currentKey];
-
-      if (currentEndTime) {
-        sessionsMap.value[currentKey].end_time = currentEndTime;
-        sessionsMap.value[currentKey].end_time_resolved = dealKfTime(
-          getAbs<bigint>(currentEndTime),
-        );
-        sessionsMap.value[currentKey].status = SessionStatusEnum.Finished;
-      }
-    });
-  }, 1000);
-};
-
-onMounted(() => {
-  loadSessions();
+  await setSessions();
   removeLoadingMask();
-  startCheckSessionsStatus();
-  getMdSessions();
 });
 
-const handleSelectSession = ({ row }) => {
-  currentSessionId.value = row.index;
-  currentSessionKey.value = row.begin_time + '';
-};
+onUnmounted(() => {
+  currentWindow?.destroy();
+});
 
-const onExportJournalData = (
+watch(
+  () => journalReplayflag.value,
+  (val) => {
+    if (val) {
+      if (currentSession.value) {
+        const dateStr = getYearMonthDay();
+        const location = {
+          category: currentSession.value.category,
+          group: currentSession.value.group,
+          name: currentSession.value.name,
+          mode: replayConfig.value.enable_matcher ? 'backtest' : 'replay',
+        };
+        const logPath = replayConfig.value.enable_matcher
+          ? buildProcessBacktestPath(location, `${location.name}_${dateStr}`)
+          : buildProcessReplayPath(location, `${location.name}_${dateStr}`);
+
+        ensureFileSync(logPath);
+        outputFile(logPath, '')
+          .then(() => {
+            if (currentWindow) {
+              ipcEmit('clear-process', {
+                processId: (replayPramas.value.processId || '') as string,
+              })
+                .then(() => {
+                  const pawin =
+                    currentWindow && currentWindow.getParentWindow();
+                  if (pawin) {
+                    pawin.webContents.send('startReplay', {
+                      replayProcessParams: replayProcessParams.value,
+                    });
+                    currentMenuList.value = ['replay'];
+                  }
+                })
+                .catch((err) => {
+                  console.error(err);
+                });
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      }
+    }
+  },
+);
+
+function updateLogLevel() {
+  delayMilliSeconds(0).then(() => {
+    replayRef.value?.updateLogLevel();
+  });
+}
+
+const onJournalActionsData = (
   exportData: (fileName: string, exportData: KungfuApi.FrameResolved[]) => void,
 ) => {
-  exportData(exportFileName.value, eventDashBoard.value.frameDataList);
+  exportData(exportFileName.value, currentFrameList.value);
 };
+const dealLocation = async () => {
+  const { value: currentSessionValue } = currentSession;
+  if (!currentSessionValue) {
+    messagePrompt().error(t('replay.please_select_session'));
+    return;
+  }
 
+  const { category, group, name, mode, location_uid } = currentSessionValue;
+  const locationResolved = {
+    category,
+    group,
+    name,
+    mode,
+    location_uid,
+    value: '',
+  };
+
+  const { processStatusWithDetail } = await listProcessStatus();
+  const processId = getProcessIdByKfLocation({
+    category,
+    group,
+    name,
+    mode,
+  });
+
+  const processStatusDetail = processStatusWithDetail[processId];
+  if (!processStatusDetail && name === 'strategy' && group !== 'default') {
+    messagePrompt().error(t('replay.process_not_found'));
+    return;
+  }
+
+  switch (category) {
+    case 'operator':
+      if (group === 'default') {
+        const operatorValue = operator.value;
+        if (operatorValue.length === 0) {
+          messagePrompt().error(t('replay.process_has_not_been_started'));
+          return;
+        }
+        const operatorMatch = operatorValue.find(
+          (item) => item.location_uid === location_uid,
+        );
+        if (operatorMatch) {
+          locationResolved.value = operatorMatch.value;
+        }
+      }
+      break;
+    case 'strategy':
+      if (group === 'default') {
+        const strategyValue = strategy.value;
+        if (strategyValue.length === 0) {
+          messagePrompt().error(t('replay.process_has_not_been_started'));
+          return;
+        }
+        const strategyMatch = strategyValue.find(
+          (item) => item.location_uid === location_uid,
+        );
+        if (strategyMatch) {
+          locationResolved.value = strategyMatch.value;
+        }
+      }
+      break;
+    case 'td':
+      if (td.value.length === 0) {
+        messagePrompt().error(t('replay.process_has_not_been_started'));
+        return;
+      }
+      break;
+    case 'system':
+      if (name !== 'ledger') {
+        messagePrompt().error(t('replay.process_can_not_replay'));
+        return;
+      }
+      break;
+    default:
+      messagePrompt().error(t('replay.process_can_not_replay'));
+      return;
+  }
+
+  handleOpenReplayConfirmView(locationResolved, currentSessionValue);
+};
 const dealRowClassName = (row) => {
-  return `${row.begin_time}` === currentSessionKey.value
-    ? 'kf-current-table-select'
+  return row.begin_time === currentSessionKey.value
+    ? 'current-global-kfLocation'
     : '';
 };
+
+function onEntryVisualization(visible: boolean) {
+  visualVisible.value = visible;
+}
 </script>
 
 <style lang="less">
+@import '@kungfu-trader/kungfu-app/src/renderer/assets/less/coverAnt.less';
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/base.less';
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/public.less';
-@import '@kungfu-trader/kungfu-app/src/renderer/assets/less/coverAnt.less';
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/variables.less';
 
 #app {
   width: 100%;
   height: 100%;
-  font-family: Consolas, Monaco, Lucida Console, Liberation Mono,
-    DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  :deep(.ant-slider-track .ant-slider-step) {
-    border-color: #fff !important;
-    color: #fff !important;
-    background-color: #fff !important;
+
+  .default-log-view_warp .ant-layout .kf-dashboard__body {
+    background-color: transparent;
   }
 
   .ant-layout {
@@ -402,48 +662,81 @@ const dealRowClassName = (row) => {
       display: flex;
       flex-direction: column;
 
-      .kf-dashboard__header {
-        .kf-dashboard-item__warp {
-          .search-in-table__warp {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            font-size: 12px;
-            margin-right: 4px;
-
-            .search-int-table__item {
-              margin: 0 4px;
-            }
-          }
-        }
+      .ant-table-body {
+        max-height: 100% !important;
       }
 
-      .kf-journal-session__wrap {
-        flex: 0 0 300px;
-        height: 300px;
-        width: 60%;
-        margin: auto;
-        padding: 32px 0;
-        box-sizing: border-box;
+      .gutter {
+        cursor: row-resize;
+        width: 100%;
+        height: 4px !important;
+        flex: 0 0 4px;
+      }
+
+      .gutter:hover {
+        background-color: #333;
+      }
+
+      .gutter:active {
+        background-color: #333;
+      }
+
+      .kf-journal-content {
+        flex: 1 1 80%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        z-index: 99;
+      }
+      .kf-journal-head-warp {
+        flex: 1 1 20%;
+        width: 100%;
+
+        .kf-journal-session__warp {
+          width: 60%;
+          height: 100%;
+          margin: auto;
+          padding-top: 8px;
+          box-sizing: border-box;
+
+          .ant-empty {
+            height: auto;
+            margin-top: 48px;
+          }
+        }
+        .session-name__warp {
+          word-break: break-all;
+        }
+
+        .kf-journal-visualization {
+          width: 100%;
+          height: 100%;
+          padding-top: 8px;
+          box-sizing: border-box;
+          z-index: 1;
+        }
       }
 
       .kf-journal-control-bar {
         flex: 0 0 50px;
         height: 50px;
         background-color: #1d1d1d;
-        padding: 5px 20px;
+        padding: 5px 16px;
         margin-bottom: 2px;
         display: flex;
         align-items: center;
         justify-content: space-between;
 
         .kf-journal-bar-title {
+          max-width: 300px;
           font-size: 14px;
           margin-right: 16px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .kf-journal-time-slider {
-          max-width: 560px;
           flex: 0 1 560px;
         }
       }

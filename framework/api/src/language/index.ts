@@ -4,7 +4,7 @@ import zh_CN from './zh-CN';
 import en_US from './en-US';
 import path from 'path';
 import fse from 'fs-extra';
-import { KF_HOME_BASE_DIR_RESOLVE } from '../config/homePathConfig';
+import { KF_CONFIG_PATH, KF_CONFIG_DEFAULT_PATH } from '../config/pathConfig';
 
 export const getExtraLanguage = () => {
   const languagePath = path.join(
@@ -50,24 +50,26 @@ const canLog =
 
 // 默认语言
 export const langDefault = process.env.LANG_ENV ?? 'zh-CN';
-let settingLanguage;
 const extraLanguage = getExtraLanguage();
 const mergeCNLanguage = getMergeCNLanguage();
 const mergeENLanguage = getMergeENLanguage();
-const kfConfigPath = path.join(
-  KF_HOME_BASE_DIR_RESOLVE,
-  'home',
-  'config',
-  'kfConfig.json',
-);
 
-if (fse.existsSync(kfConfigPath)) {
-  const globalSettingJson = fse.readJSONSync(kfConfigPath) as Record<
+export const getGlobalSettingLanguage = () => {
+  let configPath = KF_CONFIG_DEFAULT_PATH;
+  if (fse.existsSync(KF_CONFIG_PATH)) {
+    configPath = KF_CONFIG_PATH;
+  } else {
+    configPath = KF_CONFIG_DEFAULT_PATH;
+  }
+
+  const globalSettingJson = fse.readJSONSync(configPath) as Record<
     string,
     Record<string, KungfuApi.KfConfigValue>
-  >; // 不直接使用 getKfGlobalSettingsValue 和 KF_CONFIG_PATH 是因为会形成循环引用，会报错
-  settingLanguage = globalSettingJson?.system?.language ?? langDefault;
-}
+  >; // 不直接使用 getKfGlobalSettingsValue 是因为会形成循环引用，会报错
+  return globalSettingJson?.system?.language ?? langDefault;
+};
+
+const settingLanguage = getGlobalSettingLanguage();
 
 // 语言库
 const messages = {

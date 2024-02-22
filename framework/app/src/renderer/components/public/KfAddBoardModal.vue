@@ -4,6 +4,7 @@ import { computed, getCurrentInstance, onMounted, ref } from 'vue';
 import { messagePrompt, useModalVisible } from '../../assets/methods/uiUtils';
 import { useGlobalStore } from '../../pages/index/store/global';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { useBoards } from '../../pages/index/store/board';
 const { t } = VueI18n.global;
 
 const { success, error } = messagePrompt();
@@ -23,7 +24,11 @@ const { isLanguageKeyAvailable } = useLanguage();
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 const availKfBoards = ref<string[]>([]);
 const selectedBoard = ref<string>('');
-const { boardsMap } = storeToRefs(useGlobalStore());
+const { currentBoardsStoreId } = storeToRefs(useGlobalStore());
+const { getBoardsStoreById } = useBoards();
+const useBoardsStore = getBoardsStoreById(currentBoardsStoreId.value);
+const { boardsMap } = storeToRefs(useBoardsStore());
+const { addBoardFromEmpty, addBoardByContentId } = useBoardsStore();
 const addedBoards = computed(() => {
   return boardsMap.value[props.targetBoardId]?.contents || [];
 });
@@ -44,17 +49,19 @@ onMounted(() => {
   }
 });
 
-function handleComfirm() {
+function handleConfirm() {
   if (!selectedBoard.value) {
     error(t('select_board'));
     return;
   }
 
   if (props.targetBoardId === 0) {
-    if (!boardsMap.value[0]) return error(t('add_board_error'));
+    if (!boardsMap.value[0]) {
+      error(t('add_board_error'));
+      return;
+    }
 
-    useGlobalStore()
-      .addBoardFromEmpty(selectedBoard.value)
+    addBoardFromEmpty(selectedBoard.value)
       .then(() => {
         success();
         closeModal();
@@ -75,8 +82,7 @@ function handleComfirm() {
     return;
   }
 
-  useGlobalStore()
-    .addBoardByContentId(props.targetBoardId, selectedBoard.value)
+  addBoardByContentId(props.targetBoardId, selectedBoard.value)
     .then(() => {
       success();
       closeModal();
@@ -94,7 +100,7 @@ function handleComfirm() {
     :title="$t('add_board')"
     :destroy-on-close="true"
     @cancel="closeModal"
-    @ok="handleComfirm"
+    @ok="handleConfirm"
   >
     <div class="kf-add-board__content">
       <a-radio-group v-model:value="selectedBoard">

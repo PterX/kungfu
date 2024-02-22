@@ -10,7 +10,7 @@
 #define KUNGFU_DATETIME_FORMAT "%F %T"
 #define KUNGFU_TIMESTAMP_FORMAT "%F %T.%N"
 #define KUNGFU_TRADING_DAY_FORMAT "%Y%m%d"
-#define KUNGFU_HISTORY_DAY_FORMAT "%Y-%m-%d"
+#define KUNGFU_HISTORY_DAY_FORMAT "%Y-%m-%d %H:%M:%S"
 
 namespace kungfu::yijinjing {
 struct time_unit {
@@ -74,6 +74,12 @@ public:
    * @return start time of today in nano seconds
    */
   static int64_t today_start();
+
+  /**
+   * Start time of trading day (yesterday 16:00:00) in nano seconds.
+   * @return start time of trading day in nano seconds
+   */
+  static int64_t trading_day_start();
 
   /**
    * Parse string time to nano time.

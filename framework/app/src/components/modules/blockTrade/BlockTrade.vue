@@ -1,37 +1,53 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import { getConfigSettings } from './config';
 import { RuleObject } from 'ant-design-vue/lib/form';
-import { makeOrderByBlockMessage } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
-  getProcessIdByKfLocation,
-  initFormStateByConfig,
+  makeOrderByBlockMessage,
+  isShotable,
   transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   useCurrentGlobalKfLocation,
   useMakeOrderSubscribe,
   useProcessStatusDetailData,
+  useActiveInstruments,
+  useFormCurrentState,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from './utils';
-import { HedgeFlagEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import {
+  HedgeFlagEnum,
+  InstrumentTypeEnum,
+  OffsetEnum,
+  SideEnum,
+} from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { error } = messagePrompt();
+const { globalSetting } = storeToRefs(useGlobalStore());
+const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
+const boardRef = ref();
+const makeOrderRef = ref();
 const { processStatusData } = useProcessStatusDetailData();
 
 const {
@@ -39,15 +55,49 @@ const {
   currentCategoryData,
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
+const { currentAccountLocation, curInstrumentResolved } =
+  useFormCurrentState(formState);
 useMakeOrderSubscribe(formState);
+
+useKeyboardControlContainerStyle(
+  'BlockTrade',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+  boardRef,
+  formRef,
+);
+
+const getResolvedOffset = (
+  offset: OffsetEnum,
+  side: SideEnum,
+  instrumentType: InstrumentTypeEnum,
+) => {
+  if (isShotable(instrumentType)) {
+    if (offset !== undefined) {
+      return offset;
+    }
+  }
+  return side === 0 ? 0 : 1;
+};
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
     return getConfigSettings();
   }
 
+  let step = 0.0001,
+    pricePrecision = 4;
+  if (curInstrumentResolved.value) {
+    const { instrumentId, exchangeId } = curInstrumentResolved.value;
+    const { price_tick, price_precision } = getPriceTickAndPrecision(
+      instrumentId,
+      exchangeId,
+    );
+    step = price_tick;
+    pricePrecision = price_precision;
+  }
+
   const { category } = currentGlobalKfLocation.value;
-  return getConfigSettings(category);
+  return getConfigSettings(category, pricePrecision, step);
 });
 
 function numberValidator(_rule: RuleObject, value: string | number) {
@@ -59,10 +109,6 @@ function numberValidator(_rule: RuleObject, value: string | number) {
 }
 
 const rules = {
-  opponent_seat: {
-    validator: numberValidator,
-    trigger: 'change',
-  },
   match_number: {
     validator: numberValidator,
     trigger: 'change',
@@ -115,29 +161,28 @@ function handleMakeOrder() {
         volume: +volume,
         price_type: +price_type,
         side: +side,
-        offset: +(offset !== undefined ? offset : +side === 0 ? 0 : 1),
+        offset: getResolvedOffset(offset, +side, +instrumentType),
         hedge_flag: HedgeFlagEnum.Speculation,
         is_swap: !!is_swap,
         parent_id: 0n,
+        contract_id: '',
       };
 
       const blockMessage: KungfuApi.BlockMessage = {
-        opponent_seat: +opponent_seat || 0,
+        opponent_seat: opponent_seat || '',
         match_number: match_number || '',
         is_specific: !!is_specific,
         insert_time: 0n,
         block_id: 0n,
       };
 
-      if (!currentGlobalKfLocation.value) {
-        error(t('location_error'));
+      if (!currentAccountLocation.value) {
         return;
       }
 
-      const tdProcessId =
-        currentGlobalKfLocation.value?.category === 'td'
-          ? getProcessIdByKfLocation(currentGlobalKfLocation.value)
-          : `td_${account_id.toString()}`;
+      const tdProcessId = currentAccountLocation.value
+        ? getProcessIdByKfLocation(currentAccountLocation.value)
+        : `td_${account_id.toString()}`;
 
       if (processStatusData.value[tdProcessId] !== 'online') {
         error(
@@ -145,18 +190,23 @@ function handleMakeOrder() {
         );
         return;
       }
+      if (!globalSetting.value?.trade?.skipConfirmMakeOrder) {
+        const flag = await confirmModal(
+          t('tradingConfig.place_confirm'),
+          dealOrderPlaceVNode({ ...makeOrderInput, ...blockMessage }, 1),
+        );
 
-      const flag = await confirmModal(
-        t('tradingConfig.place_confirm'),
-        dealOrderPlaceVNode({ ...makeOrderInput, ...blockMessage }, 1),
-      );
-      if (!flag) return;
+        if (!flag) {
+          makeOrderRef.value?.focus();
+          return;
+        }
+      }
 
       makeOrderByBlockMessage(
         window.watcher,
         blockMessage,
         makeOrderInput,
-        currentGlobalKfLocation.value,
+        currentAccountLocation.value,
         tdProcessId.toAccountId(),
       ).catch((err) => {
         error(err.message);
@@ -169,7 +219,11 @@ function handleMakeOrder() {
 </script>
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @board-size-change="handleBodySizeChange">
+    <KfDashboard
+      ref="boardRef"
+      tabindex="0"
+      @board-size-change="handleBodySizeChange"
+    >
       <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
@@ -185,7 +239,11 @@ function handleMakeOrder() {
       </template>
       <template #header>
         <KfDashboardItem>
-          <a-button size="small" @click="handleResetMakeOrderForm">
+          <a-button
+            tabindex="-2"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
             {{ $t('blockTradeConfig.reset_order') }}
           </a-button>
         </KfDashboardItem>
@@ -202,7 +260,7 @@ function handleMakeOrder() {
             :rules="rules"
           ></KfConfigSettingsForm>
         </div>
-        <div class="make-order-btns">
+        <div ref="makeOrderRef" class="make-order-btns">
           <a-button size="small" @click="handleMakeOrder">
             {{ $t('blockTradeConfig.place_order') }}
           </a-button>
@@ -251,16 +309,20 @@ function handleMakeOrder() {
     }
   }
 }
+
 .modal-node {
   .root-node {
     display: flex;
     flex-wrap: nowrap;
+
     .green {
       color: @green-base !important;
     }
+
     .red {
       color: @red-base !important;
     }
+
     .order-number {
       flex: 1;
       margin-top: 10%;

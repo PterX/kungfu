@@ -34,6 +34,7 @@ include_directories(src/include)
 
 ##########################################################################
 
+
 set(KUNGFU_BUILD_DIR ${CMAKE_BINARY_DIR})
 set(KUNGFU_BUILD_LIBRARY_DIR ${KUNGFU_BUILD_DIR}/${CMAKE_BUILD_TYPE})
 

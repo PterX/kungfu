@@ -5,23 +5,23 @@ import {
   KfLayoutTargetDirectionClassName,
 } from '@kungfu-trader/kungfu-app/src/typings/enums';
 import {
-  getIdByKfLocation,
-  getKfExtensionConfig,
   getKfUIExtensionConfig,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  getKfExtensionConfig,
+} from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getAllKfConfigOriginData,
   getAllRiskSettingList,
   getSubscribedInstruments,
   getTdGroups,
   getAllBaskets,
-  getAllBasketInstruments,
 } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   Pm2ProcessStatusDetailData,
   Pm2ProcessStatusData,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
+  BasketTypeEnum,
   BrokerStateStatusTypes,
   KfCategoryTypes,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -33,6 +33,7 @@ import {
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
 interface GlobalState {
+  currentBoardsStoreId: string;
   boardsMap: KfLayout.BoardsMap;
   dragedContentData: KfLayout.ContentData | null;
   isBoardDragging: boolean;
@@ -44,7 +45,6 @@ interface GlobalState {
   strategyList: KungfuApi.KfConfig[];
   operatorList: KungfuApi.KfConfig[];
   basketList: KungfuApi.Basket[];
-  basketInstrumentList: KungfuApi.BasketInstrument[];
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -62,6 +62,10 @@ interface GlobalState {
 
   globalSetting: Record<string, Record<string, KungfuApi.KfConfigValue>>;
 
+  testCase: {
+    replayEnabled: Partial<Record<KfCategoryTypes | 'ledger', boolean>>;
+  };
+
   currentGlobalKfLocation:
     | KungfuApi.KfLocation
     | KungfuApi.KfConfig
@@ -77,24 +81,32 @@ interface GlobalState {
     side?: SideEnum;
     offset?: OffsetEnum;
   };
+
+  tdFilter: ((td: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) | null;
 }
 
 export const useGlobalStore = defineStore('global', {
   state: (): GlobalState => {
     return {
+      currentBoardsStoreId: 'main',
       boardsMap: {},
       dragedContentData: null,
       isBoardDragging: false,
-      extConfigs: toRaw<KungfuApi.KfExtConfigs>({}),
+      extConfigs: toRaw<KungfuApi.KfExtConfigs>({
+        td: {},
+        md: {},
+        strategy: {},
+        operator: {},
+        system: {},
+      }),
       uiExtConfigs: toRaw<KungfuApi.KfUIExtConfigs>({}),
-
+      tdFilter: null,
       tdList: [],
       tdGroupList: [],
       mdList: [],
       strategyList: [],
       operatorList: [],
       basketList: [],
-      basketInstrumentList: [],
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -110,6 +122,15 @@ export const useGlobalStore = defineStore('global', {
       riskSettings: [],
 
       globalSetting: {},
+
+      testCase: {
+        replayEnabled: {
+          td: false,
+          ledger: true,
+          strategy: true,
+          operator: true,
+        },
+      },
 
       currentGlobalKfLocation: null,
       orderBookCurrentInstrument: undefined,
@@ -147,6 +168,10 @@ export const useGlobalStore = defineStore('global', {
       instrumentsMap: Record<string, KungfuApi.InstrumentResolved>,
     ) {
       this.instrumentsMap = toRaw(instrumentsMap);
+    },
+
+    setTestCase(key: KfCategoryTypes | 'ledger', value: boolean) {
+      this.testCase.replayEnabled[key] = value;
     },
 
     setCurrentGlobalKfLocation(
@@ -194,8 +219,12 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setKfConfigList() {
-      return getAllKfConfigOriginData().then((res) => {
-        const { md, td, strategy, operator } = res;
+      return getAllKfConfigOriginData(window.watcher).then((res) => {
+        const { md, strategy, operator } = res;
+        let { td } = res;
+        if (this.tdFilter) {
+          td = this.tdFilter(td);
+        }
         this.mdList = md;
         this.tdList = td;
         this.strategyList = strategy;
@@ -230,25 +259,21 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setRiskSettingList() {
-      return getAllRiskSettingList().then((res) => {
+      return getAllRiskSettingList(window.watcher).then((res) => {
         this.riskSettings = res;
       });
     },
 
     setBasketList() {
-      return getAllBaskets().then((basketList) => {
-        this.basketList = basketList;
-      });
-    },
-
-    setBasketInstrumentList() {
-      return getAllBasketInstruments().then((basketInstrumentList) => {
-        this.basketInstrumentList = basketInstrumentList;
+      return getAllBaskets(window.watcher).then((basketList) => {
+        this.basketList = basketList.filter(
+          (item) => item.basket_type === BasketTypeEnum.Custom,
+        );
       });
     },
 
     checkCurrentGlobalKfLocationExisted() {
-      if (this.currentGlobalKfLocation === null) {
+      if (!this.currentGlobalKfLocation) {
         return false;
       }
 
@@ -261,7 +286,6 @@ export const useGlobalStore = defineStore('global', {
         strategy: this.strategyList,
         system: [],
         operator: [],
-        daemon: [],
       };
 
       const targetKfConfigs: KungfuApi.KfConfig[] =
@@ -291,7 +315,7 @@ export const useGlobalStore = defineStore('global', {
 
     setDefaultCurrentGlobalKfLocation() {
       if (
-        this.currentGlobalKfLocation === null ||
+        !this.currentGlobalKfLocation ||
         !this.checkCurrentGlobalKfLocationExisted()
       ) {
         if (this.tdList.length) {
@@ -318,11 +342,15 @@ export const useGlobalStore = defineStore('global', {
 
     setKfUIExtConfigs() {
       return getKfUIExtensionConfig().then(
-        (KfExtConfig: KungfuApi.KfUIExtConfigs) => {
-          this.uiExtConfigs = toRaw(KfExtConfig);
-          return KfExtConfig;
+        (kfUiExtConfig: KungfuApi.KfUIExtConfigs) => {
+          this.uiExtConfigs = toRaw(kfUiExtConfig);
+          return kfUiExtConfig;
         },
       );
+    },
+
+    setTdFilter(tdFilter: (tds: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) {
+      this.tdFilter = tdFilter;
     },
 
     markIsBoardDragging(status: boolean) {

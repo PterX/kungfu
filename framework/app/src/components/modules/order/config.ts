@@ -1,5 +1,8 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  isTdStrategyCategory,
+  buildTableColumnSorterWithStrike,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -38,7 +41,7 @@ export const getColumns = (
         type: 'string',
         name: '',
         dataIndex: 'side',
-        width: 40,
+        width: 80,
       },
       {
         type: 'string',
@@ -49,15 +52,16 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.limit_price'),
-        dataIndex: 'limit_price',
+        dataIndex: 'limit_price_resolved',
         width: 120,
+        align: 'right',
         sorter: buildSorter('limit_price'),
       },
       {
         type: 'number',
         name: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
         dataIndex: 'volume_left',
-        width: 120,
+        width: 140,
         sorter: (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) => {
           return +Number(a.volume_left) - +Number(b.volume_left);
         },
@@ -65,8 +69,9 @@ export const getColumns = (
       {
         type: 'number',
         name: t('orderConfig.avg_price'),
-        dataIndex: 'avg_price',
+        dataIndex: 'avg_price_resolved',
         width: 120,
+        align: 'right',
         sorter: buildSorter('avg_price'),
       },
       {
@@ -80,14 +85,22 @@ export const getColumns = (
         name: t('orderConfig.latency_system'),
         dataIndex: 'latency_system',
         width: 90,
-        sorter: buildSorter('latency_system'),
+        align: 'right',
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.OrderResolved>(
+          'num',
+          'latency_system',
+        ),
       },
       {
         type: 'number',
         name: t('orderConfig.latency_network'),
         dataIndex: 'latency_network',
         width: 90,
-        sorter: buildSorter('latency_network'),
+        align: 'right',
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.OrderResolved>(
+          'num',
+          'latency_network',
+        ),
       },
       {
         name:
@@ -116,7 +129,7 @@ export const getColumns = (
             {
               name: '',
               dataIndex: 'actions',
-              width: 60,
+              width: 120,
             },
           ]),
     ]);
@@ -128,12 +141,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   },
   {
     name: '',
-    dataIndex: 'side',
+    dataIndex: 'sideName',
     width: 40,
   },
   {
     name: '',
-    dataIndex: 'offset',
+    dataIndex: 'offsetName',
     width: 40,
   },
   {

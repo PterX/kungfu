@@ -32,12 +32,11 @@ constexpr auto make_storage_ptr = [](const std::string &db_file, const auto &typ
     return [&](auto key) {
       using DataType = typename decltype(+types[key])::type;
       auto data_accessors = boost::hana::accessors<DataType>();
-      [[maybe_unused]] DataType *image = {}; // workaround for visual studio 17.4 sake
       auto columns = boost::hana::transform(data_accessors, [&](auto it) {
         auto name = boost::hana::first(it);
         [[maybe_unused]] auto accessor = boost::hana::second(it);
         auto member_pointer = member_pointer_trait<decltype(accessor)>().pointer();
-        using MemberType = std::decay_t<decltype(accessor(*image))>;
+        using MemberType = std::decay_t<decltype(accessor(DataType{}))>;
         return sqlite_orm::make_column(name.c_str(), member_pointer,
                                        sqlite_orm::default_value(make_default<MemberType>()));
       });
@@ -76,6 +75,10 @@ template <typename DataType> struct time_spec<DataType, std::enable_if_t<not Dat
   static std::vector<DataType> get_all(StateStoragePtr &storage, int64_t, int64_t) {
     return storage->get_all<DataType>();
   };
+
+  static std::vector<DataType> get_all(StateStoragePtr &storage, int64_t, int64_t, int limit) {
+    return storage->get_all<DataType>();
+  };
 };
 
 template <typename DataType> struct time_spec<DataType, std::enable_if_t<DataType::has_timestamp>> {
@@ -86,6 +89,17 @@ template <typename DataType> struct time_spec<DataType, std::enable_if_t<DataTyp
     auto ts = member_pointer_trait<decltype(accessor)>().pointer();
     return storage->get_all<DataType>(sqlite_orm::where(
         sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from), sqlite_orm::lesser_or_equal(ts, to))));
+  };
+
+  static std::vector<DataType> get_all(StateStoragePtr &storage, int64_t from, int64_t to, int limit) {
+    auto comparator = [](auto it) { return DataType::timestamp_key.value() == boost::hana::first(it); };
+    auto just = boost::hana::find_if(boost::hana::accessors<DataType>(), comparator);
+    [[maybe_unused]] auto accessor = boost::hana::second(*just);
+    auto ts = member_pointer_trait<decltype(accessor)>().pointer();
+
+    return storage->get_all<DataType>(sqlite_orm::where(sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from),
+                                                                         sqlite_orm::lesser_or_equal(ts, to))),
+                                      sqlite_orm::order_by(ts).desc(), sqlite_orm::limit(limit));
   };
 };
 
@@ -111,6 +125,40 @@ public:
     });
   }
 
+  template <typename TargetType> void restore_to(TargetType &target, uint32_t dest) {
+    ensure_storage(dest);
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest));
+    });
+  }
+
+  template <typename TargetType> void restore_to(TargetType &target, uint32_t dest, int limit) {
+    ensure_storage(dest);
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest), limit);
+    });
+  }
+
+  template <typename TargetType, typename DataTypes>
+  void restore_to(DataTypes datatypes, TargetType &target, uint32_t dest) {
+    ensure_storage(dest);
+    boost::hana::for_each(datatypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest));
+    });
+  }
+
+  template <typename TargetType, typename DataTypes>
+  void restore_to(DataTypes datatypes, TargetType &target, uint32_t dest, int limit) {
+    ensure_storage(dest);
+    boost::hana::for_each(datatypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      restore<DataType>(target, dest, storage_map_.at(dest), limit);
+    });
+  }
+
   template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
     ensure_storage(event->dest());
     storage_map_.at(event->dest())->replace(event->template data<DataType>());
@@ -119,6 +167,11 @@ public:
   template <typename DataType> void operator<<(const state<DataType> &s) {
     ensure_storage(s.dest);
     storage_map_.at(s.dest)->replace(s.data);
+  }
+
+  template <typename DataType> void replace_range(uint32_t dest, const std::vector<DataType> &v) {
+    ensure_storage(dest);
+    storage_map_.at(dest)->replace_range(v.begin(), v.end());
   }
 
   template <typename DataType> void operator-=(const typed_event_ptr<DataType> &event) {
@@ -138,8 +191,17 @@ private:
 
   template <typename DataType>
   void restore(const yijinjing::journal::writer_ptr &writer, uint32_t dest, StateStoragePtr &storage) {
-    for (auto &data : time_spec<DataType>::get_all(storage, yijinjing::time::today_start(), INT64_MAX)) {
-      writer->write(0, data);
+    auto from = yijinjing::time::today_start();
+    for (auto &data : time_spec<DataType>::get_all(storage, from, INT64_MAX)) {
+      writer->write_as(0, data, location_->uid, dest);
+    }
+  }
+
+  template <typename DataType>
+  void restore(const yijinjing::journal::writer_ptr &writer, uint32_t dest, StateStoragePtr &storage, int limit) {
+    auto from = yijinjing::time::today_start();
+    for (auto &data : time_spec<DataType>::get_all(storage, from, INT64_MAX, limit)) {
+      writer->write_as(0, data, location_->uid, dest);
     }
   }
 
@@ -149,7 +211,16 @@ private:
       bank << state(location_->uid, dest, from, data);
     }
   }
+
+  template <typename DataType>
+  void restore(yijinjing::cache::bank &bank, uint32_t dest, StateStoragePtr &storage, int limit) {
+    auto from = yijinjing::time::today_start();
+    for (auto &data : time_spec<DataType>::get_all(storage, from, INT64_MAX, limit)) {
+      bank << state(location_->uid, dest, from, data);
+    }
+  }
 };
+
 DECLARE_PTR(shift)
 } // namespace kungfu::yijinjing::cache
 

@@ -11,26 +11,33 @@ import minimist from 'minimist';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
+
 import {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  BankOutlined,
+  EyeOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 import { getColumns } from './config';
 import path from 'path';
 import {
   getIfProcessRunning,
   getIfProcessStopping,
-  getStrategyKfLocationByProcessId,
   fromProcessArgsToKfConfigItems,
-  kfConfigItemsToArgsByPrimaryForShow,
-  dealTradingTaskName,
   getTaskListFromProcessStatusData,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealTradingTaskName } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import {
+  getStrategyKfLocationByProcessId,
+  parseTaskSettingsFromEnv,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfConfigItemsToArgsByShowArgForShow } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   graceStopProcess,
   Pm2ProcessStatusDetail,
+  Pm2ProcessStatusDetailResolved,
   startTask,
 } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
@@ -40,6 +47,7 @@ import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useProcessStatusDetailData,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -51,6 +59,7 @@ import { storeToRefs } from 'pinia';
 import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
+
 const columns = getColumns();
 const { success, error } = messagePrompt();
 const { extConfigs } = useExtConfigsRelated();
@@ -62,6 +71,14 @@ const tradingTaskPropsInject = inject(
   BuiltinComponentInjectKeysMap.TradingTask,
   {},
 );
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 
 const { handleOpenSetTradingTaskModal } = useTradingTask();
 const { handleRemoveKfConfig } = useAddUpdateRemoveKfConfig();
@@ -75,11 +92,20 @@ const taskList = computed(() => {
   const taskPrefixs = taskTypeKeys.value.map((item) => {
     return `strategy_${item}`;
   });
-  const tasksResolved = getTaskListFromProcessStatusData(
-    taskPrefixs,
-    processStatusDetailData.value,
-    tradingTaskPropsInject?.taskSorter,
-  );
+  const tasksResolved: Pm2ProcessStatusDetailResolved[] =
+    getTaskListFromProcessStatusData(
+      taskPrefixs,
+      processStatusDetailData.value,
+      tradingTaskPropsInject?.taskSorter,
+    ).map((item) => {
+      return {
+        ...item,
+        name_resolved: dealTradingTaskName(
+          item.name as string,
+          extConfigs.value,
+        ),
+      };
+    });
 
   if (tradingTaskPropsInject?.taskFilter) {
     return tasksResolved.filter((item) =>
@@ -90,7 +116,11 @@ const taskList = computed(() => {
   return tasksResolved;
 });
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<Pm2ProcessStatusDetail>(taskList, ['name', 'args']);
+  useTableSearchKeyword<Pm2ProcessStatusDetailResolved>(taskList, [
+    'name',
+    'args',
+    'name_resolved',
+  ]);
 
 const { dealRowClassName, setCurrentGlobalKfLocation } =
   useCurrentGlobalKfLocation(window.watcher);
@@ -140,9 +170,9 @@ function handleSwitchProcessStatusResolved(
   }
 
   const extKey = taskLocation.group;
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['strategy'] || {})[
-    extKey
-  ];
+  const extConfig: KungfuApi.KfStrategyExtConfig = (extConfigs.value[
+    'strategy'
+  ] || {})[extKey];
 
   if (!extConfig) {
     error(`${extKey} ${t('tradingTaskConfig.plugin_inexistence')}`);
@@ -256,23 +286,12 @@ function resolveArgs(record: Pm2ProcessStatusDetail) {
 
   const configSettings = parseTaskSettingsFromEnv(record.config_settings);
   const formState = fromProcessArgsToKfConfigItems(record.args || []);
-  const argsForShow = kfConfigItemsToArgsByPrimaryForShow(
+  const argsForShow = kfConfigItemsToArgsByShowArgForShow(
     configSettings,
     formState,
   );
   taskArgsData[name] = argsForShow;
   return argsForShow;
-}
-
-function parseTaskSettingsFromEnv(configSettingsEnv = '[]') {
-  let configSettings: KungfuApi.KfConfigItem[] = [];
-
-  try {
-    configSettings = JSON.parse(configSettingsEnv) as KungfuApi.KfConfigItem[];
-  } catch (err) {
-    console.error((<Error>err).message);
-  }
-  return configSettings;
 }
 
 const strategyStateMap: Record<string, string> = {};
@@ -313,7 +332,10 @@ function getProcessStatusName(
             style="width: 120px"
           />
         </KfDashboardItem>
-        <KfDashboardItem v-for="config in TradingTaskViewComponentConfigs">
+        <KfDashboardItem
+          v-for="config in TradingTaskViewComponentConfigs"
+          :key="config.key"
+        >
           <component :is="config.key"></component>
         </KfDashboardItem>
         <KfDashboardItem>
@@ -340,7 +362,7 @@ function getProcessStatusName(
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            {{ dealTradingTaskName(record.name, extConfigs) }}
+            {{ record.name_resolved }}
           </template>
           <template v-else-if="column.dataIndex === 'processStatus'">
             <a-switch
@@ -360,12 +382,18 @@ function getProcessStatusName(
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">
-              <BankOutlined
+              <HistoryOutlined
                 style="font-size: 12px"
+                @click.stop="
+                  handleOpenViewResolved(record, handleOpenReplayConfirmView)
+                "
+              ></HistoryOutlined>
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="
                   handleOpenViewResolved(record, handleOpenJournalView)
                 "
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenViewResolved(record, handleOpenLogview)"
@@ -397,6 +425,21 @@ function getProcessStatusName(
       :ext-filter="tradingTaskPropsInject?.strategyFilter"
       @confirm="handleOpenSetTradingTaskModal('add', $event, globalFormState)"
     ></KfSetExtensionModal>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :can-backtest="true"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">

@@ -3,11 +3,11 @@ import { ref, onMounted, computed, getCurrentInstance } from 'vue';
 
 import {
   getInstrumentTypeData,
-  getStrategyExtTypeData,
-  getExtConfigList,
   isTdMd,
   isOperator,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getStrategyExtTypeData } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   KfCategoryTypes,
@@ -43,9 +43,12 @@ const app = getCurrentInstance();
 const { extConfigs } = useExtConfigsRelated();
 const selectedExtension = ref<string>('');
 const availExtensionList = computed(() => {
-  return getExtConfigList(extConfigs.value, props.extensionType).filter(
-    (extConfig) => props.extFilter(extConfig),
-  );
+  return (
+    getExtConfigList(
+      extConfigs.value,
+      props.extensionType,
+    ) as KungfuApi.KfExtConfig[]
+  ).filter((extConfig) => props.extFilter(extConfig));
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
@@ -69,9 +72,13 @@ onMounted(() => {
   if (selectedExtension.value === '') {
     if (availExtensionList.value.length) {
       const packageJSON = readRootPackageJsonSync();
-      const extension = packageJSON.appConfig?.defaultExtension?.Td;
+      let extension = '';
+      if (packageJSON.appConfig?.defaultExtension) {
+        extension =
+          packageJSON.appConfig?.defaultExtension[props.extensionType];
+      }
       for (let i = 0; i < availExtensionList.value.length; i++) {
-        if (availExtensionList.value[i].name === extension) {
+        if (availExtensionList.value[i].key === extension) {
           selectedExtension.value = availExtensionList.value[i].key;
           return;
         }

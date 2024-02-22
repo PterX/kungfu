@@ -6,30 +6,28 @@
     ></backward-outlined>
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: end">
-        {{ timeStrs[0] }}
+        {{ timeRange[0] }}
       </span>
     </div>
     <a-slider
       ref="slider"
-      v-model:value="curTime"
-      v-dragging="{ onMouseDown: handleMouseDown, onMouseUp: handleMouseUp }"
+      v-model:value="currentTimeResolved"
       class="kf-time-slider"
       :class="{
         'kf-time-slider-handler-focus-1': false,
         'kf-time-slider-handler-focus-2': true,
       }"
       :tooltip-visible="toolTipVisable"
-      :min="nano2millionSecond(props.beginTime)"
-      :max="nano2millionSecond(props.nowTime)"
-      :step="nano2millionSecond(step)"
+      :get-tooltip-popup-container="getTooltipPopupContainer"
+      :min="nano2millionSecond(currentSessionBeginTime)"
+      :max="maxTime"
+      :step="nano2millionSecond(props.step)"
       :tip-formatter="tipFormatter"
-      @after-change="onAfterChange"
-      @mousedown="handleMouseDown"
-      @mouseup="handleMouseUp"
+      @after-change="() => onAfterChange()"
     />
     <div class="kf-time-slider-time">
       <span class="kf-time-slider-text" style="text-align: start">
-        {{ timeStrs[1] }}
+        {{ timeRange[1] }}
       </span>
     </div>
     <forward-outlined
@@ -40,91 +38,41 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-
+import { computed, nextTick, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { ForwardOutlined, BackwardOutlined } from '@ant-design/icons-vue';
 import { SessionStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { useNow } from '../utils';
+import { useJournalStore } from '../store/journalStore';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 const props = withDefaults(
   defineProps<{
-    currentSession: KungfuApi.SessionResolved | null;
-    currentTime: bigint; // 当前只支持纳秒级别的时间
-    nowTime: bigint;
-    beginTime: bigint;
-    endTime: bigint;
     step: number;
-    stick: boolean;
   }>(),
   {
     step: 10000000, // step 为纳秒级别， 默认为10毫秒
   },
 );
 
-const emit = defineEmits<{
-  (e: 'update:currentTime', value: bigint): void;
-}>();
-const toolTipVisable = ref(false);
+const {
+  currentSession,
+  currentTime,
+  currentSessionBeginTime,
+  currentSessionEndTime,
+  currentLoadedLastestFrameGenTime,
+} = storeToRefs(useJournalStore());
+const { setCurrentTime } = useJournalStore();
+const { now } = useNow();
+
+const toolTipVisable = ref(true);
 const SCALE = 1000000;
 const BIGINT_SCALE = BigInt(SCALE);
 const TEN_SECOND = BigInt(10000000000);
-const isDragging = ref<boolean>(false);
 const slider = ref();
+const currentTimeResolved = ref(0);
 
-onMounted(() => {
-  window.addEventListener('mouseup', globalMouseUp);
-  nextTick(() => {
-    setTimeout(() => {
-      toolTipVisable.value = true;
-    }, 2000);
-  });
-});
-
-onUnmounted(() => {
-  window.removeEventListener('mouseup', globalMouseUp);
-});
-
-const handleMouseDown = () => {
-  isDragging.value = true;
-};
-
-const handleMouseUp = () => {
-  isDragging.value = false;
-};
-
-const globalMouseUp = () => {
-  if (isDragging.value) {
-    isDragging.value = false;
-  }
-};
-
-const handleTimeBack = () => {
-  if (props.currentTime - TEN_SECOND < props.beginTime) {
-    curTime.value = nano2millionSecond(props.beginTime);
-    onAfterChange(curTime.value);
-    return;
-  }
-  curTime.value = nano2millionSecond(props.currentTime - TEN_SECOND);
-  onAfterChange(curTime.value);
-};
-const handleTimeForward = () => {
-  if (props.currentSession?.status === SessionStatusEnum.Finished) {
-    if (props.currentTime + TEN_SECOND > props.endTime) {
-      curTime.value = nano2millionSecond(props.endTime);
-      onAfterChange(curTime.value);
-      return;
-    }
-  } else {
-    if (props.currentTime + TEN_SECOND > props.nowTime) {
-      curTime.value = nano2millionSecond(props.nowTime);
-      onAfterChange(curTime.value);
-      return;
-    }
-  }
-
-  curTime.value = nano2millionSecond(props.currentTime + TEN_SECOND);
-  onAfterChange(curTime.value);
-};
 const nano2millionSecond = (number: bigint | number) => {
   if (typeof number === 'bigint') {
     return Number(number / BIGINT_SCALE);
@@ -133,68 +81,77 @@ const nano2millionSecond = (number: bigint | number) => {
   }
 };
 
-const kfTimeCached = new Map();
-const customDealKftime = (time: bigint) => {
-  if (!kfTimeCached.has(time)) kfTimeCached.set(time, dealKfTime(time));
-  return kfTimeCached.get(time);
+watch(
+  currentTime,
+  (newVal) => {
+    delayMilliSeconds(0).then(() => {
+      currentTimeResolved.value = nano2millionSecond(newVal);
+    });
+  },
+  {
+    immediate: true,
+  },
+);
+
+const onAfterChange = (() => {
+  let isProcessing = false;
+
+  return () => {
+    if (isProcessing) return;
+
+    isProcessing = true;
+
+    nextTick(() => {
+      //触发blur事件,解决slider组件失焦时自动触发onAfterChange的bug
+      (document.activeElement as HTMLElement).blur();
+      setCurrentTime(million2nanoSecond(currentTimeResolved.value));
+      isProcessing = false;
+    });
+  };
+})();
+
+const currentSessionEndTimeResolved = computed(() => {
+  if (currentSession.value?.status === SessionStatusEnum.Finished) {
+    return currentSessionEndTime.value;
+  } else {
+    return now.value;
+  }
+});
+const maxTime = computed(() => {
+  return nano2millionSecond(currentSessionEndTimeResolved.value);
+});
+
+const timeRange = computed(() => {
+  return [
+    dealKfTime(currentSessionBeginTime.value, false),
+    dealKfTime(currentSessionEndTimeResolved.value, false),
+  ];
+});
+
+const handleTimeBack = () => {
+  if (currentTime.value - TEN_SECOND < currentSessionBeginTime.value) {
+    setCurrentTime(currentSessionBeginTime.value);
+    return;
+  }
+  setCurrentTime(currentTime.value - TEN_SECOND);
+};
+
+const handleTimeForward = () => {
+  setCurrentTime(currentLoadedLastestFrameGenTime.value);
 };
 
 const million2nanoSecond = (number: number) => {
   return BigInt(number * SCALE);
 };
 
-const curTime = ref(nano2millionSecond(props.nowTime));
-
-const timeStrs = ref([
-  customDealKftime(props.beginTime),
-  customDealKftime(props.nowTime),
-]);
-
-watch(
-  () => props.nowTime,
-  () => {
-    timeStrs.value = [
-      customDealKftime(props.beginTime),
-      customDealKftime(props.endTime || props.nowTime),
-    ];
-  },
-);
-watch(
-  () => props.beginTime,
-  () => {
-    timeStrs.value = [
-      customDealKftime(props.beginTime),
-      customDealKftime(props.endTime || props.nowTime),
-    ];
-  },
-);
-
-watch(
-  () => props.currentTime,
-  () => {
-    curTime.value = nano2millionSecond(props.currentTime);
-  },
-);
-
 const tipFormatter = (num: number) => {
-  return dealKfTime(BigInt(num * SCALE));
+  return dealKfTime(BigInt(num.kfRound()) * BIGINT_SCALE);
 };
 
-const dealUpdateTime = (time: number) => {
-  return million2nanoSecond(time);
-};
-
-const onAfterChange = (value: number) => {
-  emit('update:currentTime', dealUpdateTime(value));
-};
+const getTooltipPopupContainer = (trigger: HTMLElement): HTMLElement => trigger;
 </script>
 
 <style lang="less">
-:deep(.ant-slider-track .ant-slider-step) {
-  border-color: #fff !important;
-  color: #fff !important;
-  background-color: #fff !important;
-}
 .kf-time-slider__wrap {
   display: flex;
   align-items: center;
@@ -231,13 +188,13 @@ const onAfterChange = (value: number) => {
 
   .kf-time-slider-handler-focus-1 {
     .ant-slider-handle-1 {
-      border-color: #faad14;
+      border-color: aqua;
     }
   }
 
   .kf-time-slider-handler-focus-2 {
     .ant-slider-handle-2 {
-      border-color: #faad14;
+      border-color: aqua;
     }
   }
 

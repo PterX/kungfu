@@ -7,12 +7,18 @@ import {
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import {
+  dealKfPrice,
+  dealKfDecimalPrecision,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
   dealOffset,
   dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';
 
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const props = withDefaults(
   defineProps<{
     visible: boolean;
@@ -50,7 +56,7 @@ const tradeLatencyStats = computed(() => {
   const stats = new Stats().push(...tradeLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };
@@ -82,10 +88,8 @@ const priceVolumeStats = computed(() => {
         }
 
         priceVolumeData[id].price.push(trade.price);
-        priceVolumeData[id].volume.push(+Number(trade.volume));
-        priceVolumeData[id].priceByVolume.push(
-          +Number(trade.volume) * trade.price,
-        );
+        priceVolumeData[id].volume.push(trade.volume);
+        priceVolumeData[id].priceByVolume.push(trade.volume * trade.price);
         return priceVolumeData;
       },
       {} as Record<string, PriceVolumeStatItem>,
@@ -93,8 +97,10 @@ const priceVolumeStats = computed(() => {
 
   const priceVolumeDataResolved: Array<{
     instrumentId_exchangeId: string;
-    side: KungfuApi.KfTradeValueCommonData;
-    offset: KungfuApi.KfTradeValueCommonData;
+    sideName: string;
+    sideColor: KungfuApi.AntInKungfuColorTypes;
+    offsetName: string;
+    offsetColor: KungfuApi.AntInKungfuColorTypes;
     mean: string;
     min: string;
     max: string;
@@ -102,20 +108,30 @@ const priceVolumeStats = computed(() => {
   }> = Object.keys(priceVolumeData)
     .map((id) => {
       const [instrumentId, exchangeId, side, offset] = id.split('_');
-      const priceStats = new Stats().push(...priceVolumeData[id].price);
-      const priceSum = priceVolumeData[id].priceByVolume.reduce(
-        (a, b) => a + b,
+      const { price_precision } = getPriceTickAndPrecision(
+        instrumentId,
+        exchangeId,
       );
-      const volumeSum = priceVolumeData[id].volume.reduce((a, b) => a + b);
+      const priceStats = new Stats().push(...priceVolumeData[id].price);
+      const priceSum = dealKfDecimalPrecision(
+        priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
+      );
+      const volumeSum = dealKfDecimalPrecision(
+        priceVolumeData[id].volume.reduce((a, b) => a + b),
+      );
       const range = priceStats.range();
+      const sideReolved = dealSide(+side);
+      const offsetResolved = dealOffset(+offset);
       return {
         id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        side: dealSide(+side),
-        offset: dealOffset(+offset),
-        mean: Number(priceSum / volumeSum).toFixed(2),
-        min: range[0].toFixed(2),
-        max: range[1].toFixed(2),
+        sideName: sideReolved.name,
+        sideColor: sideReolved.color || 'default',
+        offsetName: offsetResolved.name,
+        offsetColor: offsetResolved.color || 'default',
+        mean: dealKfPrice(priceSum / volumeSum, price_precision),
+        min: dealKfPrice(range[0], price_precision),
+        max: dealKfPrice(range[1], price_precision),
         volume: volumeSum.toString(),
       };
     })
@@ -128,8 +144,8 @@ const priceVolumeStats = computed(() => {
 
 const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
   'instrumentId_exchangeId',
-  'side',
-  'offset',
+  'sideName',
+  'offsetName',
   'mean',
   'min',
   'max',
@@ -176,14 +192,14 @@ const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
           :columns="statisColums"
         >
           <template #default="{ column, item }">
-            <template v-if="column.dataIndex === 'side'">
-              <span :class="`color-${item.side.color}`">
-                {{ item.side.name }}
+            <template v-if="column.dataIndex === 'sideName'">
+              <span :class="`color-${item.sideColor}`">
+                {{ item.sideName }}
               </span>
             </template>
-            <template v-else-if="column.dataIndex === 'offset'">
-              <span :class="`color-${item.offset.color}`">
-                {{ item.offset.name }}
+            <template v-else-if="column.dataIndex === 'offsetName'">
+              <span :class="`color-${item.offsetColor}`">
+                {{ item.offsetName }}
               </span>
             </template>
           </template>

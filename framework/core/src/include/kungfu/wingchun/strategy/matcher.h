@@ -8,16 +8,6 @@
 #include <kungfu/yijinjing/practice/apprentice.h>
 #include <unordered_map>
 
-namespace std {
-// template <typename DataType> struct hash<kungfu::data<DataType>> {
-//   std::size_t operator()(const kungfu::data<DataType> &value) { return value.uid(); }
-// };
-// template <typename DataType, std::enable_if_t<std::is_base_of<DataType, kungfu::data<DataType>>::value>...>
-// struct hash<DataType> {
-//   std::size_t operator()(const DataType &value) { return value.uid(); }
-// };
-
-}
 namespace kungfu::wingchun::strategy {
 FORWARD_DECLARE_CLASS_PTR(Runner)
 class Matcher : public std::enable_shared_from_this<Matcher> {
@@ -37,6 +27,11 @@ public:
   //@param transaction       逐笔成交数据
   virtual void on_transaction(const longfist::types::Transaction &transaction){};
 
+  // 行情数据更新回调
+  // @param tree              行情数据
+  // @param location          数据来源
+  virtual void on_tree(const longfist::types::Tree &tree){};
+
   // 订单信息更新回调
   //@param order             订单信息数据
   virtual void on_order_input(const longfist::types::OrderInput &order_input){};
@@ -51,18 +46,29 @@ public:
 
   void update_order_action_error(const longfist::types::OrderActionError &error);
 
+  std::pair<uint32_t, uint32_t> get_source_dest(uint64_t order_id) { return order_ids_.at(order_id); };
+
+  book::Bookkeeper *get_bookkeeper() const { return bookkeeper_; };
+
   int64_t now() const { return app_->now(); };
+
+  std::string get_config() const { return config_; };
 
 private:
   friend void set_runner(Matcher &matcher, Runner *runner);
+  friend void init_matcher(Matcher &matcher, book::Bookkeeper *bookkeeper, const std::string &matcher_config);
+  friend void add_order_id(Matcher &matcher, uint64_t order_id, uint32_t source, uint32_t dest);
+  friend void remove_order_id(Matcher &matcher, uint64_t order_id);
   yijinjing::practice::apprentice *app_;
+  book::Bookkeeper *bookkeeper_;
+  std::unordered_map<uint64_t, std::pair<uint32_t, uint32_t>> order_ids_; // <order_id, std::pair<source, dest>>
+  std::string config_{"{}"};
 };
 DECLARE_PTR(Matcher)
 
 class BasicMatcher : public Matcher {
 public:
   typedef std::unordered_map<uint64_t, longfist::types::Order> OrderMap;
-  // typedef std::unordered_map<longfist::types::InstrumentKey, longfist::types::Quote> QuoteMap;
   typedef std::unordered_map<uint32_t, longfist::types::Quote> QuoteMap;
 
   virtual void on_quote(const longfist::types::Quote &quote) override;

@@ -23,13 +23,18 @@ import {
   Modal,
   Form,
   Select,
+  TreeSelect,
   Menu,
   Tag,
+  Table,
+  TimePicker,
+  Switch,
 } from 'ant-design-vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
+import { loadCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 const app = createApp(App);
-
 app
   .use(store)
   .use(Layout)
@@ -45,12 +50,18 @@ app
   .use(Tree)
   .use(Modal)
   .use(Select)
+  .use(TreeSelect)
   .use(Form)
   .use(Menu)
   .use(Slider)
   .use(Tag)
+  .use(Table)
+  .use(TimePicker)
+  .use(Switch)
   .use(VueVirtualScroller);
 
 app.use(VueI18n);
 app.directive('dragging', dragging);
-app.mount('#app');
+app.config.globalProperties.$globalBus = globalBus;
+
+loadCustomFont().then(() => app.mount('#app'));

@@ -11,11 +11,13 @@
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
@@ -24,7 +26,9 @@ using namespace kungfu::yijinjing::nanomsg;
 namespace kungfu::yijinjing::practice {
 
 inline std::string encode(const io_device_ptr &io_device) {
-  return fmt::format("{:08x}", io_device->get_live_home()->uid);
+  auto home_uid =
+      io_device->get_home()->mode == mode::BACKTEST ? io_device->get_home()->uid : io_device->get_live_home()->uid;
+  return fmt::format("{:08x}", home_uid);
 }
 
 hero::hero(io_device_ptr io_device)
@@ -32,16 +36,17 @@ hero::hero(io_device_ptr io_device)
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
       master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
-      io_device_(std::move(io_device)), now_(0) {
+      io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
   os::handle_os_signals(this);
-  util::set_error_log_dir(get_locator()->layout_dir(
-      get_home(),
-      layout::LOG)); // get_io_device()->get_home()->locator->layout_file(get_io_device()->get_home(),layout::LOG,
-  add_location(0, get_io_device()->get_home());
+  util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
+  add_location(0, get_io_device()->get_live_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
+  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
+    add_location(0, l);
+  }
   reader_ = io_device_->open_reader_to_subscribe();
 }
 
@@ -55,23 +60,30 @@ hero::~hero() {
 
 bool hero::is_usable() { return io_device_->is_usable(); }
 
-void hero::setup() {
+bool hero::setup() {
   io_device_->setup();
+  SPDLOG_DEBUG("io setup done");
   events_ = observable<>::create<event_ptr>([this](auto &s) { delegate_produce(this, s); }) | holdon();
   now_ = get_begin_time();
   react();
   live_ = true;
+  return true;
 }
 
-void hero::step() {
+void hero::pre_setup() {}
+
+void hero::step(uint32_t step_limit) {
   continual_ = false;
+  step_limit_ = step_limit;
   events_.connect(cs_);
 }
 
 void hero::run() {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
-  SPDLOG_TRACE("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  SPDLOG_DEBUG("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  pre_setup();
   setup();
+  SPDLOG_DEBUG("app setup done");
   continual_ = true;
   events_.connect(cs_);
   on_exit();
@@ -90,7 +102,10 @@ int64_t hero::now() const { return now_; }
 
 void hero::set_now(int64_t now) { now_ = now; }
 
-void hero::set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
+void hero::set_begin_time(int64_t begin_time) {
+  begin_time_ = begin_time;
+  io_device_->set_begin_time(begin_time);
+}
 
 int64_t hero::get_begin_time() const { return begin_time_; }
 
@@ -114,13 +129,42 @@ uint32_t hero::get_live_home_uid() const { return get_io_device()->get_live_home
 
 [[maybe_unused]] reader_ptr hero::get_reader() const { return reader_; }
 
-bool hero::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
+bool hero::has_writer(uint32_t dest_id) const {
+  if (util::get_thread_id() != main_thread_id_) {
+    return has_band_writer(dest_id) or writers_.find(dest_id) != writers_.end();
+  }
+  return writers_.find(dest_id) != writers_.end();
+}
 
 writer_ptr hero::get_writer(uint32_t dest_id) const {
+  if (util::get_thread_id() != main_thread_id_) {
+    try {
+      return get_band_writer(dest_id);
+    } catch (const std::exception &e) {
+      SPDLOG_WARN("Unexpected exception by get_band_writer for dest_id {}:{}, {}", dest_id, get_location_uname(dest_id),
+                  e.what());
+    }
+  } else if (band_writers_.find(dest_id) != band_writers_.end()) {
+    return band_writers_.at(dest_id);
+  }
+
   if (writers_.find(dest_id) == writers_.end()) {
     SPDLOG_ERROR("no writer for {}", get_location_uname(dest_id));
   }
   return writers_.at(dest_id);
+}
+
+bool hero::has_band_writer(uint32_t dest_id) const {
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  return band_writers_.find(dest_id) != band_writers_.end();
+}
+
+writer_ptr hero::get_band_writer(uint32_t dest_id) const {
+  std::lock_guard<std::mutex> lk(band_mtx_);
+  if (band_writers_.find(dest_id) == band_writers_.end()) {
+    SPDLOG_ERROR("no band writer for {}", get_location_uname(dest_id));
+  }
+  return band_writers_.at(dest_id);
 }
 
 [[maybe_unused]] const WriterMap &hero::get_writers() const { return writers_; }
@@ -130,6 +174,10 @@ bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != loc
 location_ptr hero::get_location(uint32_t uid) const {
   if (not has_location(uid)) {
     SPDLOG_ERROR("no location {} in locations_", uid);
+  }
+
+  if (location::PUBLIC == uid or location::SYNC == uid) {
+    return nullptr;
   }
 
   assert(has_location(uid));
@@ -172,7 +220,7 @@ const Channel &hero::get_channel(uint64_t hash) const {
 
 const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
 
-const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &hero::get_locations() const { return locations_; }
+const std::unordered_map<uint32_t, data::location_ptr> &hero::get_locations() const { return locations_; }
 
 bool hero::has_band(uint32_t source, uint32_t dest) const { return has_band(make_source_dest_hash(source, dest)); }
 
@@ -242,10 +290,7 @@ void hero::remove_location(int64_t trigger_time, uint32_t location_uid) { locati
 
 void hero::register_location(int64_t, const Register &register_data) {
   uint32_t location_uid = register_data.location_uid;
-  auto result = registry_.try_emplace(location_uid, register_data);
-  if (result.second) {
-    SPDLOG_TRACE("location [{:08x}] {} up", location_uid, get_location_uname(location_uid));
-  }
+  registry_.insert_or_assign(location_uid, register_data);
 }
 
 void hero::deregister_location(int64_t, const uint32_t location_uid) {
@@ -307,33 +352,40 @@ void hero::deregister_band(uint32_t source_id) {
   }
 }
 
-void hero::require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
-  do_require_read_from<RequestReadFrom>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
+void hero::require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                             uint64_t page_size) {
+  do_require_read_from<RequestReadFrom>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time, page_size);
 }
 
-void hero::require_read_from_public(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
-  do_require_read_from<RequestReadFromPublic>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
+void hero::require_read_from_public(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                                    uint64_t page_size) {
+  do_require_read_from<RequestReadFromPublic>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time,
+                                              page_size);
 }
 
-void hero::require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time) {
-  do_require_read_from<RequestReadFromSync>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time);
+void hero::require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                                  uint64_t page_size) {
+  do_require_read_from<RequestReadFromSync>(get_writer(dest_id), trigger_time, dest_id, source_id, from_time,
+                                            page_size);
 }
 
-void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id) {
+void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id, uint64_t page_size) {
   if (not check_location_exists(source_id, dest_id)) {
     return;
   }
   auto writer = get_writer(source_id);
   RequestWriteTo &msg = writer->open_data<RequestWriteTo>(trigger_time);
   msg.dest_id = dest_id;
+  msg.page_size = page_size;
   writer->close_data();
 }
 
-void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                                 const yijinjing::data::location_ptr &location) const {
+void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id, const data::location_ptr &location,
+                                 uint64_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);
+  msg.page_size = page_size;
   writer->write(trigger_time, msg);
 }
 
@@ -342,6 +394,7 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
     do {
       live_ = drain(sb) && live_;
       on_active();
+      cleanup_reader_disjoin(); // subclass may call disjoin in on_active
     } while (continual_ and live_);
   } catch (...) {
     live_ = false;
@@ -353,34 +406,48 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
 }
 
 void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
-  if (not bypass and io_device_->get_home()->mode == mode::LIVE and io_device_->get_observer()->wait()) {
-    const std::string &notice = io_device_->get_observer()->get_notice();
-    now_ = time::now_in_nano();
-    if (notice.length() > 2) {
-      sb.on_next(std::make_shared<nanomsg_json>(notice));
-    } else if (notify) {
-      on_notify();
-    }
+  if (bypass or io_device_->get_home()->mode != mode::LIVE) {
+    return;
+  }
+
+  auto rc = notify ? io_device_->get_observer()->wait() : io_device_->get_observer()->nonblock_wait();
+  if (not rc)
+    return;
+
+  const std::string &notice = io_device_->get_observer()->get_notice();
+  now_ = time::now_in_nano();
+  if (notice.length() > 2) {
+    const auto frame = std::make_shared<nanomsg_json>(notice);
+    io_device_->get_bus()->set_trigger_frame(frame);
+    sb.on_next(frame);
+    cleanup_reader_disjoin(); // socket frame may call disjoin
+  } else if (notify) {
+    on_notify();
   }
 }
 
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_notice(false, true, sb);
-  bool is_lazy = io_device_->is_lazy();
-  bool is_low_latency = io_device_->is_low_latency();
-  bool bypass = is_lazy or !is_low_latency;
-  while (live_ and reader_->data_available()) {
-    deal_notice(bypass, false, sb);
-    if (reader_->current_frame()->gen_time() <= end_time_) {
-      int64_t frame_time = reader_->current_frame()->gen_time();
+  bool bypass = io_device_->is_lazy() and is_low_latency();
+  deal_notice(bypass, true, sb);
+  for (std::size_t step_count = 0;                                                             //
+       live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); //
+       step_count++) {
+    deal_notice(io_device_->is_lazy(), false, sb);
+    const frame_ptr frame = reader_->current_frame();
+    io_device_->get_bus()->set_trigger_frame(frame);
+    if (frame->gen_time() <= end_time_) {
+      int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {
         now_ = frame_time;
       }
-      sb.on_next(reader_->current_frame());
+      if (is_reactable(frame)) {
+        sb.on_next(frame);
+      }
       on_frame();
       reader_->next();
+      cleanup_reader_disjoin();
     } else {
-      SPDLOG_INFO("reached journal end {}", time::strftime(reader_->current_frame()->gen_time()));
+      SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
       return false;
     }
   }
@@ -401,4 +468,35 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
   instance->produce(subscriber);
 #endif
 }
+
+bool hero::is_reactable(const event_ptr &event) { return true; }
+
+void hero::disjoin(uint32_t location_uid) { disjoin_uids_.insert(location_uid); }
+
+void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
+  disjoin_channels_.insert({location_uid, dest_id});
+}
+
+void hero::cleanup_reader_disjoin() {
+  /**
+   * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
+   * 1. It may release current reading journal, causing segmentation violation or memory crash,
+   * 2. It may change reader_->current_ to another journal, leading to reader->next() in wrong journal,
+   * 3. It poses a risk of processing the current frame multiple times.
+   * Consequently, reader_->disjoin  should only be invoked after events_ stream over,
+   * specifically when the current frame dealt over and reader_->next() called.
+   */
+
+  for (uint32_t uid : disjoin_uids_) {
+    reader_->disjoin(uid);
+  }
+  for (auto &pair : disjoin_channels_) {
+    if (has_location(pair.first)) {
+      reader_->disjoin(get_location(pair.first), pair.second);
+    }
+  }
+  disjoin_uids_.clear();
+  disjoin_channels_.clear();
+}
+
 } // namespace kungfu::yijinjing::practice

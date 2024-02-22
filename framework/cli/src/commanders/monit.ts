@@ -2,13 +2,8 @@ import { selectTargetKfConfig } from '../assets/methods/utils';
 import monitor from '../components/monitor';
 import tradingDataMonitor from '../components/tradingDataMonitor';
 import { globalState } from '../assets/actions/globalState';
-import {
-  dealAppStates,
-  setTimerPromiseTask,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-
-// it is so important, because inquirer event will conflict with blessed
-process.stdin.removeAllListeners('data');
+import { dealAppStates } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export const monitPrompt = async (list: boolean) => {
   const { watcher } = await import(
@@ -34,6 +29,15 @@ export const monitPrompt = async (list: boolean) => {
     clearTimeout(timer);
   }, 1000);
 
+  process.on('SIGINT', () => {
+    watcher?.quit();
+    process.exit();
+  });
+
+  process.on('exit', () => {
+    watcher?.quit();
+  });
+
   if (list) {
     const kfConfig = await selectTargetKfConfig(true);
 
@@ -41,7 +45,11 @@ export const monitPrompt = async (list: boolean) => {
       throw new Error('target is illegal kfLocation');
     }
 
+    // it is so important, because inquirer event will conflict with blessed
+    process.stdin.removeAllListeners('data');
     return tradingDataMonitor(kfConfig);
   }
+
+  process.stdin.removeAllListeners('data');
   return monitor();
 };

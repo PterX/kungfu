@@ -2,11 +2,14 @@
 import Icon, {
   ClusterOutlined,
   FileTextOutlined,
-  BankOutlined,
+  HistoryOutlined,
+  EyeOutlined,
 } from '@ant-design/icons-vue';
+import { storeToRefs } from 'pinia';
 import { notification } from 'ant-design-vue';
 
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
 
 import {
   computed,
@@ -15,38 +18,47 @@ import {
   onMounted,
   onBeforeUnmount,
   getCurrentInstance,
+  nextTick,
 } from 'vue';
 import { SystemProcessName } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   getInstrumentTypeColor,
   handleOpenLogview,
   handleOpenJournalView,
+  onClickOutside,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   getKfCategoryData,
   getIfProcessRunning,
-  getProcessIdByKfLocation,
   getPropertyFromProcessStatusDetailDataByKfLocation,
   getIfProcessStopping,
   isTdMd,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
+  buildMasterLocation,
+  buildLedgerLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
+import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
   handleSwitchProcessStatusGenerator,
   useAllKfConfigData,
   useExtConfigsRelated,
   useProcessStatusDetailData,
+  useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
+
+const { testCase } = storeToRefs(useGlobalStore());
 
 const app = getCurrentInstance();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const processControllerBoardVisible = ref<boolean>(false);
 const categoryList: KfCategoryTypes[] = [
   'system',
-  'daemon',
   'td',
   'md',
   'operator',
@@ -59,7 +71,17 @@ const {
   processStatusDetailData,
   getProcessStatusName,
 } = useProcessStatusDetailData();
+
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
 const { tdExtTypeMap, mdExtTypeMap } = useExtConfigsRelated();
+
+let canBacktest = false;
 
 let isClosingWindow = false;
 let isRestartSystem = 0;
@@ -129,16 +151,50 @@ watch(appStates, (newAppStates, oldAppStates) => {
 });
 
 const mainStatusWell = computed(() => {
-  const masterIsLive = processStatusData.value['master'] === 'online';
-  const ledgerIsLive = processStatusData.value['ledger'] === 'online';
+  const masterLocation = buildMasterLocation();
+  const ledgerLocation = buildLedgerLocation();
+  const masterIsLive =
+    processStatusData.value[getProcessIdByKfLocation(masterLocation)] ===
+    'online';
+  const ledgerIsLive =
+    processStatusData.value[getProcessIdByKfLocation(ledgerLocation)] ===
+    'online';
   return masterIsLive && ledgerIsLive;
 });
+
+const getContainer = () => {
+  const el = document.querySelector('.kf-layout > section');
+
+  return el;
+};
 
 function handleOpenProcessControllerBoard(): void {
   processControllerBoardVisible.value = true;
 }
 
+function handleClickReplay(config: KungfuApi.KfLocation) {
+  canBacktest = config.category === 'strategy';
+  nextTick(() => {
+    handleOpenReplayConfirmView(config);
+  });
+}
+
 const prefixMap = ref({});
+
+watch(
+  () => processControllerBoardVisible.value,
+  (newVal) => {
+    if (newVal) {
+      const deregister = onClickOutside(
+        '.kf-process-status-controller-board__warp > .ant-drawer-content-wrapper',
+        () => {
+          processControllerBoardVisible.value = false;
+          deregister?.();
+        },
+      );
+    }
+  },
+);
 
 watch(
   () => allKfConfigData,
@@ -191,6 +247,7 @@ onMounted(() => {
       :width="650"
       class="kf-process-status-controller-board__warp"
       :title="$t('baseConfig.control_center')"
+      :get-container="getContainer"
       placement="right"
     >
       <div
@@ -201,8 +258,9 @@ onMounted(() => {
         <template v-if="allKfConfigData[category].length">
           <div class="kf-config-list">
             <div
-              class="kf-config-item"
               v-for="config in allKfConfigData[category]"
+              :key="config"
+              class="kf-config-item"
             >
               <div class="process-info">
                 <div class="category info-item">
@@ -214,24 +272,33 @@ onMounted(() => {
                   class="process-id info-item"
                   v-if="config.category === 'system'"
                 >
-                  {{ (SystemProcessName[config.name] || {}).name || '' }}
+                  {{
+                    (SystemProcessName[config.name] || { name: config.name })
+                      .name || ''
+                  }}
                 </div>
                 <div
                   class="process-id info-item"
                   v-else-if="config.category !== 'strategy'"
                 >
-                  <a-tag
-                    v-if="isTdMd(config.category)"
-                    :color="
-                      getInstrumentTypeColor(
-                        tdExtTypeMap[config.group] ||
-                          mdExtTypeMap[config.group],
-                      )
-                    "
-                  >
-                    {{ config.group }}
-                  </a-tag>
-                  {{ config.name }}
+                  <div class="item">
+                    <div>
+                      <a-tag
+                        v-if="isTdMd(config.category)"
+                        :color="
+                          getInstrumentTypeColor(
+                            tdExtTypeMap[config.group] ||
+                              mdExtTypeMap[config.group],
+                          )
+                        "
+                      >
+                        {{ config.group }}
+                      </a-tag>
+                    </div>
+                    <div>
+                      {{ config.name }}
+                    </div>
+                  </div>
                 </div>
                 <div class="process-id info-item" v-else>
                   {{ config.name }}
@@ -296,10 +363,18 @@ onMounted(() => {
                 }}
               </div>
               <div class="actions kf-actions__warp">
-                <BankOutlined
+                <HistoryOutlined
+                  v-if="
+                    testCase.replayEnabled[config.category] ||
+                    (config.category === 'system' && config.name === 'ledger')
+                  "
                   style="font-size: 12px"
+                  @click.stop="handleClickReplay(config)"
+                ></HistoryOutlined>
+                <EyeOutlined
+                  style="font-size: 14px"
                   @click.stop="handleOpenJournalView(config)"
-                ></BankOutlined>
+                ></EyeOutlined>
                 <FileTextOutlined
                   @click="handleOpenLogview(config)"
                   style="font-size: 14px"
@@ -310,6 +385,21 @@ onMounted(() => {
         </template>
       </div>
     </a-drawer>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :can-backtest="canBacktest"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 
@@ -333,6 +423,8 @@ onMounted(() => {
 }
 
 .kf-process-status-controller-board__warp {
+  height: calc(100% - 28px);
+
   .process-controller-item {
     margin-bottom: 24px;
 
@@ -354,9 +446,20 @@ onMounted(() => {
         justify-content: flex-start;
         align-items: center;
         margin-right: 8px;
+        word-break: break-all;
+
+        .process-id {
+          width: 112px;
+        }
 
         .info-item {
           margin-right: 8px;
+
+          .item {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+          }
 
           &.category {
             width: 70px;
@@ -381,7 +484,9 @@ onMounted(() => {
       }
 
       .actions {
-        width: 60px;
+        display: flex;
+        justify-content: flex-end;
+        width: 90px;
       }
     }
   }

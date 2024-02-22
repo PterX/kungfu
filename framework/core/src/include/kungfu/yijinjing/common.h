@@ -17,6 +17,7 @@
 
 namespace kungfu {
 namespace yijinjing {
+
 /** size related */
 constexpr int KB = 1024;
 constexpr int MB = KB * KB;
@@ -30,7 +31,7 @@ class resource {
 public:
   virtual bool is_usable() = 0;
 
-  virtual void setup() = 0;
+  virtual bool setup() = 0;
 };
 
 class publisher : public resource {
@@ -39,7 +40,7 @@ public:
 
   virtual int notify() = 0;
 
-  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) = 0;
+  virtual int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) = 0;
 };
 
 DECLARE_PTR(publisher)
@@ -49,6 +50,8 @@ public:
   virtual ~observer() = default;
 
   virtual bool wait() = 0;
+
+  virtual bool nonblock_wait() = 0;
 
   [[nodiscard]] virtual int get_recv_timeout() const = 0;
 
@@ -76,7 +79,8 @@ public:
 
   [[nodiscard]] virtual std::string get_env(const std::string &name) const;
 
-  [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout) const;
+  [[nodiscard]] virtual std::string layout_dir(const location_ptr &location, longfist::enums::layout layout,
+                                               bool create_not_exist = true) const;
 
   [[nodiscard]] virtual std::string layout_file(const location_ptr &location, longfist::enums::layout layout,
                                                 const std::string &name) const;
@@ -190,10 +194,12 @@ template <typename EventType>
 static constexpr auto instanceof
     = []() { return filter([](const event_ptr &event) { return dynamic_cast<EventType *>(event.get()) != nullptr; }); };
 
+static constexpr auto is_custom_event = [](const event_ptr &event) -> bool {
+  return event->msg_type() > 0 and longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
+};
+
 static constexpr auto is_custom = []() {
-  return filter([](const event_ptr &event) {
-    return longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
-  });
+  return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
 template <typename... Ts>

@@ -42,8 +42,9 @@ class PyLocator : public locator {
     PYBIND11_OVERLOAD(std::string, locator, get_env, name);
   }
 
-  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l) const override {
-    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l);
+  [[nodiscard]] std::string layout_dir(const location_ptr &location, layout l,
+                                       bool create_not_exist = true) const override {
+    PYBIND11_OVERLOAD(std::string, locator, layout_dir, location, l, create_not_exist);
   }
 
   [[nodiscard]] std::string layout_file(const location_ptr &location, layout l,
@@ -80,6 +81,8 @@ public:
 
   [[nodiscard]] uint32_t source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, source); }
 
+  [[nodiscard]] uint32_t initial_source() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, initial_source); }
+
   [[nodiscard]] uint32_t dest() const override { PYBIND11_OVERLOAD_PURE(int64_t, event, dest); }
 };
 
@@ -87,8 +90,8 @@ class PyPublisher : public publisher {
 public:
   int notify() override { PYBIND11_OVERLOAD_PURE(int, publisher, notify); }
 
-  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK) override {
-    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags);
+  int publish(const std::string &json_message, int flags = NNG_FLAG_NONBLOCK, bool no_exception = false) override {
+    PYBIND11_OVERLOAD_PURE(int, publisher, publish, json_message, flags, no_exception);
   }
 };
 
@@ -113,8 +116,12 @@ public:
 
   void on_exit() override { PYBIND11_OVERLOAD(void, master, on_exit); }
 
-  void on_register(const event_ptr &event, const Register &register_data) override {
-    PYBIND11_OVERLOAD_PURE(void, master, on_register, event, register_data);
+  void on_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(void, master, on_register, gen_time, register_data);
+  }
+
+  bool check_register(int64_t gen_time, const Register &register_data) override {
+    PYBIND11_OVERLOAD_PURE(bool, master, check_register, gen_time, register_data);
   }
 
   void on_interval_check(int64_t nanotime) override {
@@ -136,6 +143,7 @@ void bind(pybind11::module &&m) {
 
   // nanosecond-time related
   m.def("now_in_nano", &time::now_in_nano);
+  m.def("today_start", &time::today_start);
   m.def("strftime", &time::strftime, py::arg("nanotime"), py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
   m.def("strptime", py::overload_cast<const std::string &, const std::string &>(&time::strptime), py::arg("timestr"),
         py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
@@ -170,6 +178,7 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("msg_type", &event::msg_type)
       .def_property_readonly("data_length", &event::data_length)
       .def_property_readonly("data_as_bytes", &event::data_as_bytes)
+      .def_property_readonly("data_as_byte_array", &event::data_as_byte_array)
       .def_property_readonly("data_as_string", &event::data_as_string)
       .def("to_string", &event::to_string);
   boost::hana::for_each(AllDataTypes, [&](auto pair) {
@@ -205,6 +214,7 @@ void bind(pybind11::module &&m) {
       .def("get_env", &locator::get_env)
       .def("layout_dir", &locator::layout_dir)
       .def("layout_file", &locator::layout_file)
+      .def("get_root", &locator::get_root)
       .def("list_page_id", &locator::list_page_id)
       .def("list_locations", &locator::list_locations, py::arg("category") = "*", py::arg("group") = "*",
            py::arg("name") = "*", py::arg("mode") = "*")
@@ -220,7 +230,7 @@ void bind(pybind11::module &&m) {
       .def("listen", &socket::listen, py::arg("url"), py::arg("flags") = 0)
       .def("dial", &socket::dial, py::arg("url"), py::arg("flags") = 0)
       .def("close", &socket::close)
-      .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0)
+      .def("send", &socket::send, py::arg("msg"), py::arg("flags") = 0, py::arg("no_exception") = false)
       .def("recv", &socket::recv_msg, py::arg("flags") = 0)
       .def("last_message", &socket::last_message);
 
@@ -233,20 +243,27 @@ void bind(pybind11::module &&m) {
       .def("get_notice", &observer::get_notice);
 
   py::class_<reader, reader_ptr>(m, "reader")
+      .def(py::init<bool, bool, bus_ptr>())
+      .def(py::init<const reader &>())
       .def("subscribe", &reader::join)
       .def("current_frame", &reader::current_frame)
       .def("seek_to_time", &reader::seek_to_time)
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
-      .def("join", &reader::join)
-      .def("disjoin", &reader::disjoin)
+      .def("join", &reader::join, py::arg("location"), py::arg("dest_id"), py::arg("from_time"),
+           py::arg("page_size") = 0, py::arg("priority") = Priority::Low)
+      .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
+      .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
       .def("disjoin_channel", &reader::disjoin_channel);
 
-  py::class_<bus, bus_ptr>(m, "bus").def("on_load_page", &bus::on_load_page);
+  py::class_<bus, bus_ptr>(m, "bus").def(py::init<bool>()).def("on_load_page", &bus::on_load_page);
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
-  writer_class.def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &>())
+  writer_class
+      .def(py::init<const data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &, uint32_t>())
       .def("current_frame_uid", &writer::current_frame_uid)
+      .def("get_location", &writer::get_location)
+      .def("get_dest", &writer::get_dest)
       .def("copy_frame", &writer::copy_frame)
       .def("mark", &writer::mark)
       .def("mark_at", &writer::mark_at)
@@ -264,6 +281,7 @@ void bind(pybind11::module &&m) {
       .def_property_readonly("publisher", &sink::get_publisher)
       .def_property_readonly("bus", &sink::get_bus)
       .def("put", &sink::put)
+      .def("find_page_size", &sink::find_page_size)
       .def("close", &sink::close);
 
   py::class_<null_sink, sink, std::shared_ptr<null_sink>>(m, "null_sink").def(py::init<>());
@@ -350,29 +368,45 @@ void bind(pybind11::module &&m) {
   });
 
   py::class_<master, PyMaster>(m, "master")
-      .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
-           py::arg("bypass_cached") = false)
+      .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency") = false)
       .def_property_readonly("io_device", &master::get_io_device)
       .def_property_readonly("home", &master::get_home)
       .def_property_readonly("live", &master::is_live)
+      .def("get_begin_time", &master::get_begin_time)
+      .def("get_end_time", &master::get_end_time)
+      .def("get_home_uid", &master::get_home_uid)
+      .def("get_home_uname", &master::get_home_uname)
       .def("now", &master::now)
       .def("run", &master::run)
+      .def("pre_setup", &master::pre_setup)
       .def("setup", &master::setup)
       .def("step", &master::step)
+      .def("is_live", &master::is_live)
       .def("on_exit", &master::on_exit)
       .def("on_register", &master::on_register)
+      .def("check_register", &master::check_register)
       .def("on_interval_check", &master::on_interval_check)
       .def("deregister_app", &master::deregister_app);
 
   py::class_<apprentice, PyApprentice, apprentice_ptr>(m, "apprentice")
-      .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency") = false)
+      .def(py::init<location_ptr, bool, std::string>(), py::arg("home"), py::arg("low_latency") = false,
+           py::arg("arguments") = "{}")
       .def_property_readonly("io_device", &apprentice::get_io_device)
       .def_property_readonly("home", &apprentice::get_home)
       .def_property_readonly("live", &apprentice::is_live)
       .def("set_begin_time", &apprentice::set_begin_time)
       .def("set_end_time", &apprentice::set_end_time)
+      .def("get_begin_time", &apprentice::get_begin_time)
+      .def("get_end_time", &apprentice::get_end_time)
+      .def("get_location", &apprentice::get_location)
+      .def("get_home_uid", &apprentice::get_home_uid)
+      .def("get_home_uname", &apprentice::get_home_uname)
+      .def("now", &apprentice::now)
       .def("run", &apprentice::run)
+      .def("pre_setup", &master::pre_setup)
       .def("setup", &apprentice::setup)
-      .def("step", &apprentice::step);
+      .def("step", &apprentice::step)
+      .def("is_live", &apprentice::is_live)
+      .def("on_exit", &apprentice::on_exit);
 }
 } // namespace kungfu::yijinjing

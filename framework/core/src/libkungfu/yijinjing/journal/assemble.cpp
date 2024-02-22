@@ -22,6 +22,10 @@ publisher_ptr sink::get_publisher() { return publisher_; }
 
 bus_ptr sink::get_bus() { return bus_; }
 
+uint64_t sink::find_page_size(const data::location_ptr &location, uint32_t dest_id) {
+  return reader::find_page_size(location, dest_id);
+}
+
 copy_sink::copy_sink(data::locator_ptr locator) : sink(), locator_(std::move(locator)) {}
 
 void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const frame_ptr &frame) {
@@ -29,15 +33,26 @@ void copy_sink::put(const data::location_ptr &location, uint32_t dest_id, const 
   auto &writers = pair.first->second;
   if (writers.find(dest_id) == writers.end()) {
     auto target_location = data::location::make_shared(*location, locator_);
+    auto page_size = find_page_size(target_location, dest_id);
     writers.try_emplace(dest_id, std::make_shared<writer>(target_location, dest_id, true, get_publisher(), false,
-                                                          std::make_shared<bus>(false)));
+                                                          std::make_shared<bus>(false), page_size));
   }
   writers.at(dest_id)->copy_frame(frame);
 }
 
-assemble::assemble(const std::string &mode, const std::string &category, const std::string &group,
-                   const std::string &name)
-    : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {}
+assemble::assemble(const data::locator_ptr &locator, const std::string &mode, const std::string &category,
+                   const std::string &group, const std::string &name)
+    : mode_(mode), category_(category), group_(group), name_(name), publisher_(std::make_shared<noop_publisher>()) {
+  locators_.push_back(locator);
+  readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
+  auto reader = readers_.back();
+  for (auto &location : locator->list_locations(category, group, name, mode)) {
+    for (auto dest_id : locator->list_location_dest(location)) {
+      reader->join(location, dest_id, 0);
+    }
+  }
+  sort();
+}
 
 assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::string &mode, const std::string &category,
                    const std::string &group, const std::string &name)
@@ -49,6 +64,52 @@ assemble::assemble(const std::vector<data::locator_ptr> &locators, const std::st
     for (auto &location : locator->list_locations(category, group, name, mode)) {
       for (auto dest_id : locator->list_location_dest(location)) {
         reader->join(location, dest_id, 0);
+      }
+    }
+  }
+  sort();
+}
+
+assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
+                   int64_t from_time)
+    : mode_("*"), category_("*"), group_("*"), name_("*"), publisher_(std::make_shared<noop_publisher>()) {
+  from_time_ = from_time;
+  locators_.clear();
+  readers_.clear();
+  data::locator_ptr l = source_location->locator;
+  locators_.push_back(source_location->locator);
+  readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
+  auto reader = readers_.front();
+
+  // join channel
+  if (assemble_mode & AssembleMode::Channel) {
+    reader->join(source_location, dest_id, from_time);
+  }
+
+  // join all journal dest of location
+  if (assemble_mode & AssembleMode::Write) {
+    for (auto dest : l->list_location_dest(source_location)) {
+      reader->join(source_location, dest, from_time);
+    }
+  }
+
+  // scan all locations, join dest_id or PUBLIC
+  bool b_read = assemble_mode & AssembleMode::Read;
+  bool b_public = assemble_mode & AssembleMode::Public;
+  bool b_sync = assemble_mode & AssembleMode::Sync;
+  bool b_all = assemble_mode & AssembleMode::All;
+  if (b_read or b_public or b_all) {
+    for (auto &location : l->list_locations("*", "*", "*", "*")) {
+      for (auto dest : l->list_location_dest(location)) {
+        if (b_all) {
+          reader->join(location, dest, from_time);
+        } else if (b_read and dest == dest_id) {
+          reader->join(location, dest_id, from_time);
+        } else if (b_public and dest == data::location::PUBLIC) {
+          reader->join(location, data::location::PUBLIC, from_time);
+        } else if (b_sync and dest == data::location::SYNC) {
+          reader->join(location, data::location::SYNC, from_time);
+        }
       }
     }
   }
@@ -139,7 +200,7 @@ bool assemble::data_available() {
 }
 
 void assemble::next() {
-  if (current_reader_ and current_reader_->data_available()) {
+  if (current_reader_) {
     current_reader_->next();
   }
   sort();
@@ -157,55 +218,6 @@ void assemble::sort() {
       current_reader_ = reader;
     }
   }
-}
-using namespace kungfu::longfist::enums;
-using namespace kungfu::longfist::types;
-using namespace sqlite_orm;
-
-assemble::assemble(const data::location_ptr &source_location, uint32_t dest_id, uint32_t assemble_mode,
-                   int64_t from_time)
-    : assemble() {
-  from_time_ = from_time;
-  locators_.clear();
-  readers_.clear();
-  data::locator_ptr l = source_location->locator;
-  locators_.push_back(source_location->locator);
-  readers_.push_back(std::make_shared<reader>(true, false, std::make_shared<bus>(false)));
-  auto reader = readers_.front();
-
-  // join channel
-  if (assemble_mode & AssembleMode::Channel) {
-    reader->join(source_location, dest_id, from_time);
-  }
-
-  // join all journal dest of location
-  if (assemble_mode & AssembleMode::Write) {
-    for (auto dest : l->list_location_dest(source_location)) {
-      reader->join(source_location, dest, from_time);
-    }
-  }
-
-  // scan all locations, join dest_id or PUBLIC
-  bool b_read = assemble_mode & AssembleMode::Read;
-  bool b_public = assemble_mode & AssembleMode::Public;
-  bool b_sync = assemble_mode & AssembleMode::Sync;
-  bool b_all = assemble_mode & AssembleMode::All;
-  if (b_read or b_public or b_all) {
-    for (auto &location : l->list_locations("*", "*", "*", "*")) {
-      for (auto dest : l->list_location_dest(location)) {
-        if (b_all) {
-          reader->join(location, dest, from_time);
-        } else if (b_read and dest == dest_id) {
-          reader->join(location, dest_id, from_time);
-        } else if (b_public and dest == data::location::PUBLIC) {
-          reader->join(location, data::location::PUBLIC, from_time);
-        } else if (b_sync and dest == data::location::SYNC) {
-          reader->join(location, data::location::SYNC, from_time);
-        }
-      }
-    }
-  }
-  sort();
 }
 
 [[maybe_unused]] void assemble::seek_to_time(int64_t nano_time) {
@@ -258,6 +270,12 @@ void assemble::disjoin(uint32_t location_uid) {
 void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   for (auto &reader : readers_) {
     reader->disjoin_channel(location_uid, dest_id);
+  }
+}
+
+void assemble::move_to_time(int64_t nano_time) {
+  while (data_available() and current_frame()->trigger_time() < nano_time) {
+    next();
   }
 }
 

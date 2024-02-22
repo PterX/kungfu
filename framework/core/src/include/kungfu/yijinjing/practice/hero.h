@@ -22,8 +22,8 @@ namespace kungfu::yijinjing::practice {
 
 inline yijinjing::data::location_ptr make_system_location(const std::string &group, const std::string &name,
                                                           const data::locator_ptr &locator) {
-  return yijinjing::data::location::make_shared(longfist::enums::mode::LIVE, longfist::enums::category::SYSTEM, group,
-                                                name, locator);
+  return yijinjing::data::location::make_shared(locator->get_dir_mode(), longfist::enums::category::SYSTEM, group, name,
+                                                locator);
 }
 
 typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
@@ -36,9 +36,11 @@ public:
 
   bool is_usable() override;
 
-  void setup() override;
+  virtual void pre_setup();
 
-  void step();
+  bool setup() override;
+
+  void step(uint32_t count = 0);
 
   void run();
 
@@ -78,9 +80,13 @@ public:
 
   [[maybe_unused]] [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
-  bool has_writer(uint32_t dest_id) const;
+  virtual bool has_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+  [[nodiscard]] virtual yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
+
+  bool has_band_writer(uint32_t dest_id) const;
+
+  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
 
   [[maybe_unused]] [[nodiscard]] const WriterMap &get_writers() const;
 
@@ -120,6 +126,8 @@ public:
 
   virtual void on_exit();
 
+  virtual bool is_reactable(const event_ptr &event);
+
   void request_deregister() {
     continual_ = false;
     live_ = false;
@@ -133,11 +141,45 @@ public:
 
   const rx::connectable_observable<event_ptr> &get_events() const;
 
+  void disjoin(uint32_t location_uid);
+
+  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+
+  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
+  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
+  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
+    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      if (DataType::tag == event->msg_type()) {
+        receiver << typed_event_ptr<DataType>(event);
+      }
+    });
+  };
+
 protected:
   int64_t begin_time_;
   int64_t end_time_;
   yijinjing::journal::reader_ptr reader_;
   WriterMap writers_ = {};
+  WriterMap band_writers_ = {};
+  mutable std::mutex band_mtx_{};
+  const size_t main_thread_id_{};
 
   rx::connectable_observable<event_ptr> events_ = {};
 
@@ -169,22 +211,27 @@ protected:
 
   void deregister_band(uint32_t source_id);
 
-  void require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time);
+  void require_read_from(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                         uint64_t page_size = 0);
 
-  void require_read_from_public(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time);
+  void require_read_from_public(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                                uint64_t page_size = 0);
 
-  void require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time);
+  void require_read_from_sync(int64_t trigger_time, uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                              uint64_t page_size = 0);
 
-  void require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id);
+  void require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t dest_id, uint64_t page_size = 0);
 
-  void require_write_to_band(int64_t trigger_time, uint32_t source_id,
-                             const yijinjing::data::location_ptr &location) const;
+  void require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
+                             uint64_t page_size = 0) const;
 
   virtual void react() = 0;
 
   virtual void on_active() = 0;
 
   virtual void on_frame() = 0;
+
+  void cleanup_reader_disjoin();
 
 private:
   yijinjing::io_device_ptr io_device_;
@@ -195,9 +242,12 @@ private:
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
+  std::set<uint32_t> disjoin_uids_ = {};
+  std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
 
   volatile bool continual_ = true;
   volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
 
@@ -207,11 +257,13 @@ private:
 
   template <typename T>
   std::enable_if_t<T::reflect> do_require_read_from(yijinjing::journal::writer_ptr &&writer, int64_t trigger_time,
-                                                    uint32_t dest_id, uint32_t source_id, int64_t from_time) {
+                                                    uint32_t dest_id, uint32_t source_id, int64_t from_time,
+                                                    uint64_t page_size = 0) {
     if (check_location_exists(source_id, dest_id)) {
       T &msg = writer->template open_data<T>(trigger_time);
       msg.source_id = source_id;
       msg.from_time = from_time;
+      msg.page_size = page_size;
       writer->close_data();
     }
   }

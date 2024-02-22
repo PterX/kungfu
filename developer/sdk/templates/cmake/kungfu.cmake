@@ -27,7 +27,11 @@ macro(kungfu_setup MODULE_NAME)
   <%_ sources.forEach((dir, i) => { _%>
   aux_source_directory("<%- dir %>" SOURCE_<%- i %>)
   <%_ }); _%>
-  set(SOURCES <%= extraSource %> <%= sources.map((dir, i) => '${SOURCE_' + i + '}').join(' ') %>)
+  <%_ externalSources.forEach((dir, i) => { _%>
+  include_directories("<%- dir %>")
+  aux_source_directory("<%- dir %>" EXTERNAL_SOURCE_<%- i %>)
+  <%_ }); _%>
+  set(SOURCES <%= extraSource %> <%= sources.map((dir, i) => '${SOURCE_' + i + '}').join(' ') %> <%= externalSources.map((dir, i) => '${EXTERNAL_SOURCE_' + i + '}').join(' ') %>)
 
   set(BUILD_OUTPUT_DIR "${PROJECT_BINARY_DIR}/target")
 

@@ -1,5 +1,6 @@
 import { Proc } from 'pm2';
-import { kfLogger } from '../utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
 
 export type PreStartProcessMethod = (
   kfLocation: KungfuApi.DerivedKfLocation,
@@ -13,35 +14,28 @@ export class PreStartProcessHooks {
       {
         get(target: Record<string, PreStartProcessMethod[]>, prop: string) {
           const locationPairs = prop.split('_');
-          if (locationPairs.length != 3) {
+          if (locationPairs.length != 4) {
             kfLogger.warn(`Invalid hook key: ${prop}`);
             return [];
           }
+          const [category, group, name, mode] = prop.split('_');
+          const originalKeys: [string, string, string, string] = [
+            category,
+            group,
+            name,
+            mode,
+          ];
 
-          const [category, group, name] = prop.split('_');
-          if (
-            target[`${category}_${group}_${name}`] &&
-            target[`${category}_${group}_${name}`].length
-          ) {
-            return target[`${category}_${group}_${name}`];
-          } else if (
-            target[`${category}_*_${name}`] &&
-            target[`${category}_*_${name}`].length
-          ) {
-            return target[`${category}_*_${name}`];
-          } else if (
-            target[`${category}_${group}_*`] &&
-            target[`${category}_${group}_*`].length
-          ) {
-            return target[`${category}_${group}_*`];
-          } else if (
-            target[`${category}_*_*`] &&
-            target[`${category}_*_*`].length
-          ) {
-            return target[`${category}_*_*`];
-          }
+          const findMatchingKey = () => {
+            for (const key of generateLocationCombinations(originalKeys)) {
+              if (target[key]) {
+                return target[key];
+              }
+            }
+            return [];
+          };
 
-          return [];
+          return findMatchingKey();
         },
 
         set(
@@ -67,18 +61,18 @@ export class PreStartProcessHooks {
     kfLocation: KungfuApi.DerivedKfLocation,
     method: PreStartProcessMethod,
   ) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     Reflect.set(this.hooks, key, method);
   }
 
   trigger(kfLocation: KungfuApi.DerivedKfLocation) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     return Promise.all(
       Reflect.get(this.hooks, key).map((method) => method(kfLocation)),
     ).catch((err) => {
-      console.warn(<Error>err);
+      kfLogger.warn(<Error>err);
     });
   }
 }

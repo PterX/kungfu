@@ -100,6 +100,10 @@ void bind_tool(pybind11::module &m) {
     virtual void wait_release_location(const yijinjing::data::location_ptr &location) override {
       PYBIND11_OVERLOAD(void, SliceIndexer, wait_release_location, location);
     }
+
+    virtual void sync_save_location(const yijinjing::data::location_ptr &location) override {
+      PYBIND11_OVERLOAD(void, SliceIndexer, sync_save_location, location);
+    }
   };
 
   py::class_<SliceIndexer, PySliceIndexer, SliceIndexer_ptr>(m, "SliceIndexer")
@@ -113,21 +117,24 @@ void bind_tool(pybind11::module &m) {
       .def("submit_acquire_location", &SliceIndexer::submit_acquire_location)
       .def("submit_release_location", &SliceIndexer::submit_release_location)
       .def("wait_acquire_location", &SliceIndexer::wait_acquire_location)
-      .def("wait_release_location", &SliceIndexer::wait_release_location);
+      .def("wait_release_location", &SliceIndexer::wait_release_location)
+      .def("sync_save_location", &SliceIndexer::sync_save_location);
 
   py::class_<DayIndexer, SliceIndexer, std::shared_ptr<DayIndexer>>(m, "DayIndexer")
       .def(py::init<int64_t, int64_t>(), py::arg("begin_time"), py::arg("end_time"));
 
   auto slice_tool_class = py::class_<SliceTool, std::shared_ptr<SliceTool>>(m, "SliceTool")
-                              .def(py::init<category, std::string, std::string, SliceIndexer_ptr, bool, std::string>(),
+                              .def(py::init<category, std::string, std::string, SliceIndexer_ptr, bool, std::string, std::size_t>(),
                                    py::arg("category"), py::arg("group"), py::arg("name"), py::arg("indexer"),
-                                   py::arg("override") = true, py::arg("arguments") = "")
+                                   py::arg("override") = true, py::arg("arguments") = "{}", py::arg("size") = 128)
                               .def_property_readonly("begin_time", &SliceTool::get_begin_time)
                               .def_property_readonly("end_time", &SliceTool::get_end_time)
                               .def_property_readonly("arguments", &SliceTool::get_arguments)
                               .def("run", &SliceTool::run)
                               .def("find_md_slice_location", &SliceTool::find_md_slice_location)
+                              .def("get_md_slice_end_time", &SliceTool::get_md_slice_end_time)
                               .def("find_operator_slice_location", &SliceTool::find_operator_slice_location)
+                              .def("get_operator_slice_end_time", &SliceTool::get_operator_slice_end_time)
                               .def("next", &SliceTool::next)
                               .def("data_available", &SliceTool::data_available)
                               .def("current_frame", &SliceTool::current_frame)

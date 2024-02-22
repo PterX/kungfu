@@ -9,7 +9,7 @@
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/practice/hero.h>
-#include <tuple>
+#include <unordered_map>
 
 namespace kungfu::wingchun::tool {
 
@@ -19,7 +19,7 @@ public:
   SliceTool(longfist::enums::category category, std::string group, std::string name, SliceIndexer_ptr indexer,
             bool overwrite = true, std::string arguments = "{}", std::size_t size = 128);
 
-  virtual ~SliceTool() = default;
+  virtual ~SliceTool();
 
   int64_t get_begin_time() const { return indexer_->get_begin_time(); }
 
@@ -27,15 +27,14 @@ public:
 
   std::string get_arguments() const { return arguments_; }
 
-  //   yijinjing::data::location_ptr get_location() const { return cache_location_; }
-
   virtual void run(){};
 
   template <typename DataType, std::enable_if_t<longfist::is_market_data<DataType>()>...>
   void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const DataType &data) {
     valid_time(gen_time, trigger_time);
     auto md_location = find_md_slice_location(gen_time, data.instrument_id, data.exchange_id, DataType::tag);
-    auto writer = get_writer(md_location, dest_id);
+    auto end_time = get_md_slice_end_time(gen_time, data.instrument_id, data.exchange_id, DataType::tag);
+    auto writer = get_writer(md_location, dest_id, end_time);
     writer->write_at(gen_time, trigger_time, data);
   }
 
@@ -43,6 +42,7 @@ public:
   void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const DataType &data) {
     valid_time(gen_time, trigger_time);
     auto op_location = find_operator_slice_location(gen_time);
+    auto end_time = find_operator_slice_location(gen_time);
     auto writer = get_writer(op_location, dest_id);
     writer->write_at(gen_time, trigger_time, data);
   }
@@ -81,7 +81,8 @@ protected:
   std::string name_;
   SliceIndexer_ptr indexer_;
   bool overwrite_;
-  std::map<std::tuple<std::string, uint32_t>, yijinjing::practice::WriterMap> writer_maps_;
+  std::unordered_map<yijinjing::data::location, yijinjing::practice::WriterMap> writer_maps_;
+  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
   yijinjing::journal::reader_ptr reader_;
   mutable int64_t last_gen_time_;
   const std::string arguments_;

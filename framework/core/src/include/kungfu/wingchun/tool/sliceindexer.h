@@ -37,6 +37,8 @@ public:
 
   virtual void wait_release_location(const yijinjing::data::location_ptr &location) {}
 
+  virtual void sync_save_location(const yijinjing::data::location_ptr &location) {}
+
 private:
   int64_t begin_time_;
   int64_t end_time_;

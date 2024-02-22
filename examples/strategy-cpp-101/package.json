@@ -22,7 +22,7 @@
   },
   "kungfuBuild": {
     "cpp": {
-      "gtestEnabled": true,
+      "gtestEnabled": false,
       "target": "bind/python",
       "links": {
         "windows": [],

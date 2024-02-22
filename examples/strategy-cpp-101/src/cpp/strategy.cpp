@@ -15,7 +15,7 @@ KUNGFU_MAIN_STRATEGY(KungfuStrategy101) {
 public:
   KungfuStrategy101() = default;
   ~KungfuStrategy101() = default;
-  int x = 100;
+
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
@@ -56,91 +56,5 @@ public:
     SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
     SPDLOG_WARN("on_custom_data length: {}", length);
     SPDLOG_WARN("now_in_nano: {}", time::strftime(time::now_in_nano()));
-    context->now();
   }
 };
-
-constexpr int add(int a, int b) { return a + b; }
-
-TEST(MathFunctionsTest, AddPositiveNumbers) { EXPECT_EQ(add(1, 2), -3); }
-
-TEST(MathFunctionsTest, AddNegativeNumbers) { EXPECT_EQ(add(-1, -2), -3); }
-
-TEST(MathFunctionsTest, AddMixedNumbers) { EXPECT_EQ(add(-1, 1), 0); }
-
-struct A {
-  int x = 100;
-  char cs[100];
-};
-
-struct A double_A(struct A &x) {
-  x.x *= 2;
-  return x;
-}
-
-class KungfuStrategy101Test : public ::testing::Test {
-protected:
-  KungfuStrategy101 st;
-  Context_ptr context_;
-
-  void SetUp() override {
-    // 在这里可以设置一些初始状态
-  }
-
-  void TearDown() override {
-    // 在这里可以进行清理工作
-  }
-};
-
-TEST(KungfuStrategy101, MultipliesXByTwo) {
-  A a;
-  strcpy(a.cs, "test string");
-
-  A result = double_A(a);
-
-  EXPECT_EQ(result.x, 2001);
-  EXPECT_STREQ(result.cs, "test string");
-
-  KungfuStrategy101 st{};
-  EXPECT_EQ(st.x, 100);
-  EXPECT_EQ(st.x, 101);
-}
-
-TEST_F(KungfuStrategy101Test, MultipliesXByTwo) {
-  st.on_custom_data(context_, 10086, {'1', '2', '3', '4', '5', '6'}, 100,
-                    location::make_shared(mode::LIVE, category::STRATEGY, "deno", "test", std::shared_ptr<locator>()),
-                    110);
-}
-
-class MyInterface {
-public:
-  virtual ~MyInterface() {}
-  virtual void DoSomething() { SPDLOG_INFO("de something"); };
-};
-
-class MockMyInterface : public MyInterface, public KungfuStrategy101 {
-public:
-  Context_ptr context_;
-  MOCK_METHOD(void, DoSomething, (), (override));
-  MOCK_METHOD(void, on_synthetic_data,
-              (Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location, uint32_t dest),
-              (override));
-  MOCK_METHOD(void, on_custom_data,
-              (Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
-               const kungfu::yijinjing::data::location_ptr &location, uint32_t dest),
-              (override));
-};
-
-TEST(MyMockTest, TestDoSomething) {
-  MockMyInterface mock;
-  EXPECT_CALL(mock, DoSomething);
-  EXPECT_CALL(mock, DoSomething);
-  EXPECT_CALL(mock, on_custom_data);
-  EXPECT_CALL(mock, on_synthetic_data);
-
-  // 在这里，我们触发模拟对象的行为
-  mock.DoSomething();
-  mock.DoSomething();
-  mock.on_synthetic_data(mock.context_, SyntheticData{}, {}, {});
-  mock.on_synthetic_data(mock.context_, SyntheticData{}, {}, 2);
-}

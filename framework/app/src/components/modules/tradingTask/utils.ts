@@ -1,4 +1,11 @@
-import { getCurrentInstance, onBeforeUnmount, onMounted, ref, Ref } from 'vue';
+import {
+  getCurrentInstance,
+  onBeforeUnmount,
+  onDeactivated,
+  onMounted,
+  ref,
+  Ref,
+} from 'vue';
 import path from 'path';
 import {
   useExtConfigsRelated,
@@ -174,6 +181,10 @@ export const useTradingTask = (): {
       });
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }

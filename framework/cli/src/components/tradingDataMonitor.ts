@@ -21,10 +21,8 @@ import {
   reqCancelAllOrders,
   tradesObservable,
 } from '../assets/actions/tradingData';
-import {
-  dealKfPrice,
-  setTimerPromiseTask,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { initBusEvent } from '../assets/actions/busEvent';
 
 // 定义全局变量
@@ -265,7 +263,7 @@ export class TradingDataDashboard extends Dashboard {
       'orderTable',
       'tradeTable',
     ];
-    this.screen.key(['left', 'right'], (ch: string, key: { name: string }) => {
+    this.screen.key(['left', 'right'], (_ch: string, key: { name: string }) => {
       key.name === 'left' ? i-- : i++;
       if (i === 6) i = 0;
       if (i === -1) i = 5;

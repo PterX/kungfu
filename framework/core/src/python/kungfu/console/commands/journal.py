@@ -18,7 +18,6 @@ from kungfu.yijinjing import LOG_PATTERN, ARCHIVE_PREFIX
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import create_logger
-from kungfu.yijinjing.locator import Locator
 from kungfu.yijinjing.sinks.archive import ArchiveSink
 from kungfu.yijinjing.utils import prune_layout_files, prue_layout_dirs_before_timestamp
 
@@ -170,7 +169,7 @@ def trace(ctx, session_id, io_type, csv):
 @journal_command_context
 def clean(ctx, archive, dry):
     search_path = os.path.join(
-        ctx.runtime_dir, "*", "*", "*", "journal", "*", "*.journal"
+        ctx.runtime_dir, "journal", "*", "*", "*", "*", "*.journal"
     )
     journal_files = glob.glob(search_path)
     if dry:
@@ -208,12 +207,20 @@ def clean(ctx, archive, dry):
 )
 @journal_command_context
 def archive(ctx, format, mode):
+    ctx.logger.info("archiving start")
     os.chdir(ctx.archive_dir)
     today_date = yjj.strftime(yjj.now_in_nano(), "%Y-%m-%d")
+    tomorrow_date = yjj.strftime(yjj.now_in_nano() + 24 * 60 * 60 * 10**9, "%Y-%m-%d")
+    reindex_start = yjj.now_in_nano()
+    update_index_db(ctx)
+    reindex_end = yjj.now_in_nano()
+    ctx.logger.info(f"reindex takes {reindex_end - reindex_start} ns")
 
     if mode == "delete":
         today_start = yjj.strptime(today_date, "%Y-%m-%d")
         today_start_timestamp = today_start / 10**9
+        tomorrow_start = yjj.strptime(tomorrow_date, "%Y-%m-%d")
+        tomorrow_start_timestamp = tomorrow_start / 10**9
         ctx.logger.info(
             f"pruning runtime logs before {yjj.strftime(today_start, '%Y-%m-%d %H:%M:%S')}"
         )
@@ -221,10 +228,10 @@ def archive(ctx, format, mode):
             ctx.runtime_dir, "log", "live", today_start_timestamp
         )
         ctx.logger.info(
-            f"pruning runtime journals before {yjj.strftime(today_start, '%Y-%m-%d %H:%M:%S')}"
+            f"pruning runtime journals before {yjj.strftime(tomorrow_start, '%Y-%m-%d %H:%M:%S')}"
         )
         prue_layout_dirs_before_timestamp(
-            ctx.runtime_dir, "journal", "live", today_start_timestamp
+            ctx.runtime_dir, "journal", "live", tomorrow_start_timestamp
         )
         ctx.logger.info("archive done (delete mode)")
         return
@@ -243,7 +250,9 @@ def archive(ctx, format, mode):
         os.makedirs(today_temp_path)
 
     ctx.logger.info("exporting journals")
-    yjj.assemble([ctx.runtime_locator, Locator(today_temp_path)]) >> ArchiveSink(ctx)
+    yjj.assemble([ctx.runtime_locator, yjj.locator(today_temp_path)]) >> ArchiveSink(
+        ctx
+    )
     shutil.rmtree(today_temp_path)
 
     ctx.logger.info("exporting logs")
@@ -256,7 +265,6 @@ def archive(ctx, format, mode):
             filter(os.path.isdir, sorted(os.listdir(os.curdir))),
         )
     )
-    update_index_db(ctx)
 
     ctx.logger.info("pruning runtime logs")
     prune_layout_files(ctx.runtime_dir, "log", "live")
@@ -276,7 +284,7 @@ def list_archive(ctx):
 
 
 def export_logs(ctx, src_dir, dst_dir):
-    search_path = os.path.join(src_dir, "*", "*", "*", "log", "live", "*.log")
+    search_path = os.path.join(src_dir, "log", "*", "*", "*", "live", "*.log")
     for log_file in glob.glob(search_path):
         match = LOG_PATTERN.match(log_file[len(src_dir) + 1 :])
         if match:

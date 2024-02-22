@@ -1,8 +1,12 @@
-import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
+import {
+  hashInstrumentFactorUKey,
+  hashInstrumentUKey,
+} from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   DirectionEnum,
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 interface AccountingUsage {
   intrumentType: InstrumentTypeEnum;
@@ -27,22 +31,21 @@ export const AccountingInstrumentDefaultValue = {
 export const getInstrumentDefaultValue = (
   value,
   key: keyof typeof AccountingInstrumentDefaultValue,
+  customDefaultValue?,
 ) => {
-  return value || AccountingInstrumentDefaultValue[key];
+  return value || customDefaultValue || AccountingInstrumentDefaultValue[key];
 };
 
-class BaseAccountingUsage implements AccountingUsage {
+abstract class BaseAccountingUsage implements AccountingUsage {
   intrumentType: InstrumentTypeEnum;
   constructor(intrumentType: InstrumentTypeEnum) {
     this.intrumentType = intrumentType;
   }
 
-  getTradeAmount(
+  abstract getTradeAmount(
     _watcher: KungfuApi.Watcher,
     _instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-  ): number | null {
-    throw Error('have to overwrite this function');
-  }
+  ): number | null;
 
   getInstrumentInWatcher(
     watcher: KungfuApi.Watcher,
@@ -52,13 +55,25 @@ class BaseAccountingUsage implements AccountingUsage {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
     return watcher.ledger.Instrument[ukey] as KungfuApi.Instrument | null;
   }
+
+  getInstrumentFactorInWatcher(
+    watcher: KungfuApi.Watcher,
+    instrumentId: string,
+    exchangeId: string,
+    accountUID: number,
+  ) {
+    const ukey = hashInstrumentFactorUKey(instrumentId, exchangeId, accountUID);
+    return watcher.ledger.InstrumentFactor[
+      ukey
+    ] as KungfuApi.InstrumentFactor | null;
+  }
 }
 
 function calcTradeAmountWithNoting(
   instrumentForAccounting: KungfuApi.InstrumentForAccounting,
 ) {
   const { price, volume } = instrumentForAccounting;
-  return price * volume;
+  return dealKfDecimalPrecision(price * volume);
 }
 
 class DefaultAccountingUsage extends BaseAccountingUsage {
@@ -74,14 +89,23 @@ class DefaultAccountingUsage extends BaseAccountingUsage {
   }
 }
 
-function calcTradeAmountOnlyWithExchangeRate(
+function calcTradeAmountForMain(
   instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-  instrument: KungfuApi.Instrument | null,
+  instrumentFactor: KungfuApi.InstrumentFactor | null,
 ) {
-  const { price, volume } = instrumentForAccounting;
-  const { exchange_rate } = instrument || {};
-  return (
-    price * volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+  const { price, volume, direction } = instrumentForAccounting;
+  const { exchange_rate, long_margin_ratio, short_margin_ratio } =
+    instrumentFactor || {};
+  const marginRatio =
+    direction === DirectionEnum.Long
+      ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio', 1)
+      : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio', 1);
+
+  return dealKfDecimalPrecision(
+    price *
+      volume *
+      marginRatio *
+      getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
   );
 }
 
@@ -96,10 +120,15 @@ class StockAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { instrumentId, exchangeId } = instrumentForAccounting;
-    return calcTradeAmountOnlyWithExchangeRate(
+    const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
+    return calcTradeAmountForMain(
       instrumentForAccounting,
-      this.getInstrumentInWatcher(watcher, instrumentId, exchangeId),
+      this.getInstrumentFactorInWatcher(
+        watcher,
+        instrumentId,
+        exchangeId,
+        accountUID,
+      ),
     );
   }
 }
@@ -115,10 +144,15 @@ class BondAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { instrumentId, exchangeId } = instrumentForAccounting;
-    return calcTradeAmountOnlyWithExchangeRate(
+    const { instrumentId, exchangeId, accountUID } = instrumentForAccounting;
+    return calcTradeAmountForMain(
       instrumentForAccounting,
-      this.getInstrumentInWatcher(watcher, instrumentId, exchangeId),
+      this.getInstrumentFactorInWatcher(
+        watcher,
+        instrumentId,
+        exchangeId,
+        accountUID,
+      ),
     );
   }
 }
@@ -134,7 +168,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
   ) {
     if (!instrumentForAccounting) return null;
 
-    const { price, volume, direction, instrumentId, exchangeId } =
+    const { price, volume, direction, instrumentId, exchangeId, accountUID } =
       instrumentForAccounting;
 
     const instrument = this.getInstrumentInWatcher(
@@ -143,28 +177,39 @@ class FutureAccountingUsage extends BaseAccountingUsage {
       exchangeId,
     );
 
-    const {
-      contract_multiplier,
-      long_margin_ratio,
-      short_margin_ratio,
-      exchange_rate,
-    } = instrument || {};
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+      accountUID,
+    );
+
+    const { contract_multiplier } = instrument || {};
+
+    const { long_margin_ratio, short_margin_ratio, exchange_rate } =
+      instrumentFactor || {};
 
     if (direction === DirectionEnum.Long) {
-      return (
+      return dealKfDecimalPrecision(
         price *
-        volume *
-        getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier') *
-        getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio') *
-        getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+          volume *
+          getInstrumentDefaultValue(
+            contract_multiplier,
+            'contract_multiplier',
+          ) *
+          getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio') *
+          getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
       );
     } else if (direction === DirectionEnum.Short) {
-      return (
+      return dealKfDecimalPrecision(
         price *
-        volume *
-        getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier') *
-        getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio') *
-        getInstrumentDefaultValue(exchange_rate, 'exchange_rate')
+          volume *
+          getInstrumentDefaultValue(
+            contract_multiplier,
+            'contract_multiplier',
+          ) *
+          getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio') *
+          getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
       );
     }
 
@@ -181,16 +226,20 @@ class RepoAccountingUsage extends BaseAccountingUsage {
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
   ) {
-    const { volume, instrumentId, exchangeId } = instrumentForAccounting;
+    const { volume, instrumentId, exchangeId, accountUID } =
+      instrumentForAccounting;
 
-    const instrument = this.getInstrumentInWatcher(
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
       watcher,
       instrumentId,
       exchangeId,
+      accountUID,
     );
 
-    const { exchange_rate } = instrument || {};
-    return volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate');
+    const { exchange_rate } = instrumentFactor || {};
+    return dealKfDecimalPrecision(
+      volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
+    );
   }
 }
 

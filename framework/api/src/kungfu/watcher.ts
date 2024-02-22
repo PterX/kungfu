@@ -1,15 +1,17 @@
 import { getRendererProcessId, kf } from './index';
-import { KF_RUNTIME_DIR } from '../config/pathConfig';
+import { KF_RUNTIME_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import {
-  booleanProcessEnv,
-  kfLogger,
   setTimerPromiseTask,
-} from '../utils/busiUtils';
+  // statTime,
+  // statTimeEnd,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {
-    if (process.env.APP_TYPE !== 'daemon') {
+    if (process.env.APP_TYPE !== 'service') {
       if (process.env.APP_TYPE !== 'cli') {
         return null;
       }
@@ -47,13 +49,19 @@ export const watcher = ((): KungfuApi.Watcher | null => {
   const refreshTradingDataBeforeSync =
     process.env.REFRESH_LEDGER_BEFORE_SYNC ?? false;
 
+  const bypassRefreshBook =
+    process.env.BY_PASS_REFRESHBOOK ??
+    globalSetting?.performance?.bypassRefreshBook ??
+    false;
+
   const millisecondsSleepAfterStep =
-    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 100;
+    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 50;
 
   kfLogger.info('bypassRestore', bypassRestore);
   kfLogger.info('bypassAccounting', bypassAccounting);
   kfLogger.info('bypassTradingData', bypassTradingData);
   kfLogger.info('refreshTradingDataBeforeSync', refreshTradingDataBeforeSync);
+  kfLogger.info('bypassRefreshBook', bypassRefreshBook);
   kfLogger.info('millisecondsSleepAfterStep', millisecondsSleepAfterStep);
 
   return kf.watcher(
@@ -63,6 +71,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     !!bypassAccounting,
     !!bypassTradingData,
     !!refreshTradingDataBeforeSync,
+    !!bypassRefreshBook,
     +millisecondsSleepAfterStep,
   );
 })();
@@ -78,10 +87,8 @@ export const startWatcherSyncTask = (
 ) => {
   if (watcher === null) return;
   return setTimerPromiseTask(async () => {
-    if (watcher.isLive() && watcher.isStarted()) {
-      watcher.sync();
-      callback && (await callback(watcher));
-    }
+    watcher.sync();
+    callback && (await callback(watcher));
     return true;
   }, interval);
 };

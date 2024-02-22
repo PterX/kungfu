@@ -19,7 +19,48 @@
 #define KUNGFU_SETUP_LOGGER(location, name) kungfu::yijinjing::log::copy_log_settings(location, name)
 #endif // KUNGFU_SETUP_LOGGER
 
+#define KF_LOG_TRACE                                                                                                   \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_TRACE
+#define KF_LOG_DEBUG                                                                                                   \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_DEBUG
+#define KF_LOG_INFO                                                                                                    \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_INFO
+#define KF_LOG_WARN                                                                                                    \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_WARN
+#define KF_LOG_ERROR                                                                                                   \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_ERROR
+#define KF_LOG_CRITICAL                                                                                                \
+  if (kungfu::yijinjing::log::is_signal_log())                                                                         \
+  SPDLOG_CRITICAL
+
 namespace kungfu::yijinjing::log {
+
+bool is_log_frame();
+
+void set_trigger_frame_uid(uint64_t frame_uid);
+
+void set_trigger_source_id(uint32_t source_id);
+
+void set_trigger_dest_id(uint32_t dest_id);
+
+void set_trigger_msg_type(int32_t msg_type);
+
+uint64_t get_trigger_frame_uid();
+
+uint32_t get_trigger_source_id();
+
+uint32_t get_trigger_dest_id();
+
+int32_t get_trigger_msg_type();
+
+void disable_signal_log();
+
+bool is_signal_log();
 
 std::shared_ptr<spdlog::logger> get_main_logger();
 

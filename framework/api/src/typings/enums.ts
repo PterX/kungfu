@@ -1,4 +1,4 @@
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 export enum BrokerStateStatusEnum {
   Pending = 0,
@@ -49,6 +49,27 @@ export enum InstrumentTypeEnum {
 }
 export type InstrumentTypes = keyof typeof InstrumentTypeEnum;
 
+export enum ContractTypeEnum {
+  CrdBuyContract, //融资合约
+  CrdSellContract, //融券合约
+  CrdBuyInterest, //融资利息
+  CrdSellFee, //融券费用
+  CapitalRightsCompensation, //资金权益补偿
+  ShareRightsCompensation, //股份权益补偿
+  OverdueInterest, //逾期罚息
+  BadDebtInterest, //坏账罚息
+  Capital0ccupationFee, //资金占用费
+  ManagementFee, //管理费
+}
+
+export type ContractTypes = keyof typeof ContractTypeEnum;
+
+export enum CloseOutFlagEnum {
+  NotCloseOut, //未了結
+  Closeout, //了結
+  InitNotc1o, //初始化未了結
+}
+
 export enum BasketVolumeTypeEnum {
   Unknown,
   Quantity,
@@ -56,6 +77,44 @@ export enum BasketVolumeTypeEnum {
 }
 
 export type BasketVolumeTypes = keyof typeof BasketVolumeTypeEnum;
+
+export enum BasketTypeEnum {
+  Custom,
+  ETF,
+}
+
+export enum ETFTypeEnum {
+  LocalETF, // 本市ETF
+  CrossCountryETF, // 跨境ETF
+  CrossMarketETF, // 跨市ETF
+  CurrencyETF, // 货币ETF
+  PhysicalBondETF, // 实物债券ETF
+  CommodityETF, // 商品ETF
+  CashBondETF, // 现金债券ETF
+  Unknown,
+}
+
+export enum ETFStatusEnum {
+  Forbid, // 不允许申购也不允许赎回
+  Allow, // 允许申购和赎回
+  PurchaseOnly, // 只允许申购
+  RedemptionOnly, // 只允许赎回
+  Unknown,
+}
+
+// ETF成分股信息,标志改成分股是否可以由现金替代
+export enum CashReplaceFlagEnum {
+  UnReplace, // 不可替代
+  EnReplace, // 可以替代
+  MustReplace, // 必须替代
+  UnSSEReplace, // 非沪市退补现金替代
+  UnSSEMustReplace, // 非沪市必须现金替代
+  UnSSESZEReplace, // 非沪深退补现金替代
+  UnSSESZEMustReplace, // 非沪深必须现金替代
+  UnHKReplace, // 港市退补现金替代
+  UnHKMustReplace, // 港市必须现金替代
+  Unknown,
+}
 
 export enum PriceLevelEnum {
   Latest, // 最新价
@@ -76,7 +135,18 @@ export enum PriceLevelEnum {
 
 export type PriceLevelTypes = keyof typeof PriceLevelEnum;
 
+export type TdMdExtTypes = InstrumentTypes;
+
 export type StrategyExtTypes = 'trade' | 'default' | 'unknown';
+
+export type SystemExtTypes = 'service';
+
+export type KfExtConfigTypes = TdMdExtTypes | StrategyExtTypes | SystemExtTypes;
+
+export enum ExtRunForEnvTypesEnum {
+  Ui = 'ui',
+  Cli = 'cli',
+}
 
 export enum HedgeFlagEnum {
   Speculation,
@@ -95,6 +165,9 @@ export enum PriceTypeEnum {
   ReverseBest,
   Fak,
   Fok,
+  EnhancedLimit,
+  AtAuctionLimit,
+  AtAuction,
   Unknown,
 }
 
@@ -109,9 +182,13 @@ export enum VolumeConditionEnum {
 export type VolumeConditionTypes = keyof typeof VolumeConditionEnum;
 
 export enum TimeConditionEnum {
-  IOC,
-  GFD,
-  GTC,
+  IOC, // 立即完成，否则撤销
+  GFD, // 当日有效
+  GTC, // 撤销前有效
+  GFS, // 本节有效
+  GTD, // 指定日期前有效
+  GFA, // 集合竞价有效
+  Unknown,
 }
 
 export type TimeConditionTypes = keyof typeof TimeConditionEnum;
@@ -128,6 +205,7 @@ export enum OffsetEnum {
   Close,
   CloseToday,
   CloseYest,
+  Unknown = 99,
 }
 
 export type OffsetTypes = keyof typeof OffsetEnum;
@@ -152,6 +230,8 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  GuaranteeStockBuy,
+  GuaranteeStockSell,
   Unknown = 99,
 }
 
@@ -179,16 +259,23 @@ export enum OrderStatusEnum {
   PartialFilledNotActive,
   PartialFilledActive,
   Lost,
+  Cancelling,
+  Pause,
+  PendingSettlement,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
 
-export enum BasketOrderStatusEnum {
-  Unknown,
-  Pending,
-  PartialFilledNotActive, // 部分成交已结束
-  PartialFilledActive, // 部分成交未结束
-  Filled,
+export enum KfExtTypeEnum {
+  Unknown = 'unknown',
+  Broker = 'broker',
+  Task = 'task',
+  Operator = 'operator',
+  Service = 'service',
+  UI = 'ui',
+  Matcher = 'matcher',
+  Indexer = 'indexer',
+  Example = 'example',
 }
 
 export enum KfCategoryEnum {
@@ -197,7 +284,6 @@ export enum KfCategoryEnum {
   strategy,
   system,
   operator,
-  daemon,
 }
 
 export type KfCategoryTypes = keyof typeof KfCategoryEnum;
@@ -208,9 +294,11 @@ export type KfUIExtLocatorTypes =
   | 'board'
   | 'global_setting'
   | 'make_order'
-  | 'trading_task_view';
+  | 'trading_task_view'
+  | 'strategy_header_right'
+  | 'extension_manager_use';
 
-export type KfExtConfigTypes = 'form' | '';
+export type KfExhibitConfigTypes = 'form' | '';
 
 export enum KfModeEnum {
   live,
@@ -227,7 +315,19 @@ export enum HistoryDateEnum {
 }
 
 export enum OrderActionFlagEnum {
+  Cancel, // 普通撤单
+  TriggerCancel, // 预埋撤单
+}
+
+export enum AlgoOrderActionFlagEnum {
   Cancel,
+  Start,
+  Stop,
+}
+
+export enum OrderTriggerFlag {
+  TriggerInsert, // 预埋下单
+  TriggerCancel, // 预埋撤单
 }
 
 export enum FutureArbitrageCodeEnum {
@@ -257,71 +357,6 @@ export enum SessionStatusEnum {
   Finished,
 }
 
-export enum FrameMsgTypeEnum {
-  PageEnd = 10000,
-  SessionStart = 10001,
-  SessionEnd = 10002,
-  Time = 10003,
-  Ping = 10008,
-  Pong = 10009,
-  RequestStop = 10024,
-  RequestStart = 10025,
-  ResetBookRequest = 400,
-  MirrorPositionsRequest = 401,
-  AssetRequest = 402,
-  PositionRequest = 403,
-  AssetSync = 404,
-  PositionSync = 405,
-  KeepPositionsRequest = 406,
-  RebuildPositionsRequest = 407,
-  InstrumentEnd = 802,
-  Config = 10005,
-  TimeValue = 20000,
-  TimeKeyValue = 20001,
-  StrategyStateUpdate = 20002,
-  OperatorStateUpdate = 20003,
-  Commission = 10006,
-  RiskSetting = 10007,
-  Session = 10010,
-  Location = 10026,
-  Register = 10011,
-  Deregister = 10012,
-  CacheReset = 10013,
-  BrokerStateUpdate = 10014,
-  RequestReadFrom = 10021,
-  RequestReadFromPublic = 10022,
-  RequestReadFromSync = 10031,
-  RequestWriteTo = 10023,
-  Channel = 10028,
-  ChannelRequest = 10029,
-  TimeRequest = 10004,
-  TimeReset = 10100,
-  Instrument = 209,
-  InstrumentKey = 210,
-  CustomSubscribe = 303,
-  Quote = 101,
-  Entrust = 102,
-  Transaction = 103,
-  OrderInput = 201,
-  BlockMessage = 207,
-  OrderAction = 202,
-  OrderActionError = 216,
-  Order = 203,
-  HistoryOrder = 212,
-  Trade = 204,
-  HistoryTrade = 213,
-  Position = 205,
-  PositionEnd = 800,
-  Asset = 206,
-  AssetMargin = 211,
-  OrderStat = 215,
-  SyntheticData = 301,
-  RequestHistoryOrder = 10029,
-  RequestHistoryTrade = 10030,
-  RequestHistoryOrderError = 10031,
-  RequestHistoryTradeError = 10032,
-}
-
 export enum AddOperatorTypeEnum {
   File,
   Extension,
@@ -339,4 +374,51 @@ export enum CurrencyEnum {
   SGD, // 新加坡元
   MYR, // 马来西亚吉特
   CEN, // 美分
+}
+
+export enum OrderTriggerTypeEnum {
+  Immediately, // 立即
+  Touch, // 止损
+  TouchProfit, // 止赢
+  ParkedOrder, // 预埋单
+  LastPriceGreaterThanStopPrice, // 最新价大于条件价
+  LastPriceGreaterEqualStopPrice, // 最新价大于等于条件价
+  LastPriceLesserThanStopPrice, // 最新价小于条件价
+  LastPriceLesserEqualStopPrice, // 最新价小于等于条件价
+  AskPriceGreaterThanStopPrice, // 卖一价大于条件价
+  AskPriceGreaterEqualStopPrice, // 卖一价大于等于条件价
+  AskPriceLesserThanStopPrice, // 卖一价小于条件价
+  AskPriceLesserEqualStopPrice, // 卖一价小于等于条件价
+  BidPriceGreaterThanStopPrice, // 买一价大于条件价
+  BidPriceGreaterEqualStopPrice, // 买一价大于等于条件价
+  BidPriceLesserThanStopPrice, // 买一价小于条件价
+  BidPriceLesserEqualStopPrice, // 买一价小于等于条件价
+}
+
+// 预埋单类型
+export enum OrderTriggerConfigTypeEnum {
+  CancelOrder,
+  MakeOrder,
+}
+
+export enum OrderTriggerStatusEnum {
+  Unknown,
+  Pending = OrderStatusEnum.Pending, // 等待中
+  Submitted = OrderStatusEnum.Submitted, // 未触发
+  Filled = OrderStatusEnum.Filled, // 已触发
+  Cancelled = OrderStatusEnum.Cancelled, // 已取消
+  Error = OrderStatusEnum.Error, // 错误
+  Cancelling = OrderStatusEnum.Cancelling, // 待撤
+}
+
+export enum FundTransEnum {
+  Pending,
+  Success,
+  Error,
+}
+
+export enum FundTransTypeEnum {
+  BetweenNodes = 'between_nodes',
+  TrancIn = 'tranc_in',
+  TrancOut = 'tranc_out',
 }

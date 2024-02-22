@@ -1,24 +1,6 @@
 import os from 'os';
 import path from 'path';
 
-const getHomePath = (): string => {
-  switch (os.platform()) {
-    case 'darwin':
-      return path.join(
-        os.homedir(),
-        'Library',
-        'Application Support',
-        'kungfu',
-      );
-    case 'win32':
-      return path.join(os.homedir(), 'AppData', 'Roaming', 'kungfu');
-    case 'linux':
-      return path.join(os.homedir(), '.config', 'kungfu');
-    default:
-      throw new Error(`Unsupported platform ${os.platform()}`);
-  }
-};
-
 if (process.env.APP_TYPE === 'main' || process.env.APP_TYPE === 'renderer') {
   // globalThis.__kfResourcesPath 是一个容易出错的问题, 需要每个调用pathconfig的进程都需要注册这个值
   globalThis.__kfResourcesPath = process.resourcesPath;
@@ -37,7 +19,25 @@ if (process.env.NODE_ENV === 'development') {
     path.join(globalThis.__kfResourcesPath, 'app', 'dist', 'public');
 }
 
-export const KF_HOME_BASE_DIR_RESOLVE: string = getHomePath();
+export const getDefaultHomeDir = (): string => {
+  switch (os.platform()) {
+    case 'darwin':
+      return path.join(
+        os.homedir(),
+        'Library',
+        'Application Support',
+        'kungfu',
+      );
+    case 'win32':
+      return path.join(os.homedir(), 'AppData', 'Roaming', 'kungfu');
+    case 'linux':
+      return path.join(os.homedir(), '.config', 'kungfu');
+    default:
+      throw new Error(`Unsupported platform ${os.platform()}`);
+  }
+};
+
+export const KF_DEFAULT_HOME_ROOT_DIR = getDefaultHomeDir();
 
 if (process.env.APP_TYPE === 'renderer') {
   console.log('process.env.NODE_ENV', process.env.NODE_ENV);

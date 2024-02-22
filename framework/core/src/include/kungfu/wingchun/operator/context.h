@@ -4,6 +4,8 @@
 #define WINGCHUN_OPERATOR_CONTEXT_H
 
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/book/bookkeeper.h>
+#include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -27,33 +29,61 @@ public:
   virtual int64_t now() const = 0;
 
   /**
+   * Get location_uid of current process
+   * @return location_uid
+   */
+  virtual uint32_t get_home_uid() const = 0;
+
+  /**
    * Get config from database.
    * @return  config of current location_uid
    */
   virtual const std::string get_config() const = 0;
 
   /**
+   * Get arguments kfc run -a
+   * @return string of arguments
+   */
+
+  virtual std::string get_arguments() { return app_.get_arguments(); };
+
+  /**
    * Add one shot timer callback.
    * @param nanotime when to call in nano seconds
    * @param callback callback function
    */
-  virtual void add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
+  virtual int32_t add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) = 0;
 
   /**
    * Add periodically callback.
    * @param duration duration in nano seconds
    * @param callback callback function
    */
-  virtual void add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+  virtual int32_t add_time_interval(int64_t duration, const std::function<void(event_ptr)> &callback) = 0;
+
+  /**
+   * Clear timer
+   * @param timer_id id of timer, return by add_timer and add_time_interval
+   */
+  virtual void clear_timer(int32_t timer_id) = 0;
 
   /**
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange ID
    */
   virtual void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                         const std::string &exchange_ids) = 0;
+                         const std::string &exchange_id) = 0;
+
+  /**
+   * Unubscribe market data.
+   * @param source MD group
+   * @param instrument_ids instrument IDs
+   * @param exchange_id exchange ID
+   */
+  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                           const std::string &exchange_id){};
 
   /**
    * Subscribe all from given MD
@@ -95,15 +125,44 @@ public:
    */
   virtual broker::Client &get_broker_client() = 0;
 
+  /**
+   * Get bookkeeper.
+   * @return bookkeeper reference
+   */
+  virtual book::Bookkeeper &get_bookkeeper() = 0;
+
+  /**
+   *
+   * @param location_uid
+   * @return location_ptr of location_uid
+   */
+  virtual yijinjing::data::location_ptr get_location(uint32_t location_uid) = 0;
+
+  /**
+   *
+   * @param resume_policy
+   * @return void
+   */
+  virtual void set_resume_policy(longfist::enums::ResumePolicy resume_policy){};
+
+  /**
+   *
+   * @return longfist::enums::ResumePolicy
+   */
+  virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
+  bool started_ = false;
 
   virtual void on_start(){};
+
   virtual void prepare(const event_ptr &event) = 0;
 
 private:
   friend void enable(Context &context) { context.on_start(); }
+
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
 };
 } // namespace kungfu::wingchun::op

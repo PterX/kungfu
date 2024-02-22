@@ -83,31 +83,44 @@ Session &session_builder::open_session(const location_ptr &source_location, int6
   session.begin_time = time;
   session.end_time = 0;
   session.update_time = time;
-  session_storage_->replace(session);
+  try {
+    session_storage_->replace(session);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to open_session replace {} {}", session.to_string(), ex.what());
+  }
   return session;
 }
 
 void session_builder::close_session(const location_ptr &source_location, int64_t time) {
   std::lock_guard<std::mutex> lock(update_session_mutex_);
   if (live_sessions_.find(source_location->uid) == live_sessions_.end()) {
+    SPDLOG_WARN("no location {} [{:08x}] {} in live_sessions_", source_location->uid, source_location->uid,
+                source_location->uname);
     return;
   }
 
   auto &session = live_sessions_.at(source_location->uid);
   session.end_time = time;
   session.update_time = time;
-  session_storage_->replace(session);
+  try {
+    session_storage_->replace(session);
+  } catch (const std::exception &ex) {
+    SPDLOG_ERROR("failed to close_session replace {} {}", session.to_string(), ex.what());
+  }
 }
 
-SessionMap &session_builder::close_all_sessions(int64_t time) {
+void session_builder::close_all_sessions(int64_t time) {
   std::lock_guard<std::mutex> lock(update_session_mutex_);
   for (auto &pair : live_sessions_) {
     auto &session = pair.second;
     session.end_time = time;
     session.update_time = time;
-    session_storage_->replace(session);
+    try {
+      session_storage_->replace(session);
+    } catch (const std::exception &ex) {
+      SPDLOG_ERROR("failed to close_all_sessions replace {} {}", session.to_string(), ex.what());
+    }
   }
-  return live_sessions_;
 }
 
 void session_builder::update_session(const frame_ptr &frame) {
@@ -196,5 +209,10 @@ void session_builder::update_session(const frame_ptr &frame) {
                            : session.end_time;
     session_storage_->replace(session);
   }
+}
+
+SessionMap &session_builder::get_all_sessions() {
+  std::lock_guard<std::mutex> lock(update_session_mutex_);
+  return live_sessions_;
 }
 } // namespace kungfu::yijinjing::index

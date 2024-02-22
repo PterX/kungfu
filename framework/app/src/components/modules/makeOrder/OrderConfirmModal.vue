@@ -3,10 +3,11 @@ import {
   messagePrompt,
   useModalVisible,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { ref, toRefs, computed, getCurrentInstance } from 'vue';
+import { ref, toRefs, computed, getCurrentInstance, onMounted } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
 const { error } = messagePrompt();
@@ -29,8 +30,18 @@ defineEmits<{
   (e: 'close'): void;
 }>();
 
+const everyVolumeInput = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  if (everyVolumeInput.value) {
+    everyVolumeInput.value.focus();
+  }
+});
+
 const orderNumber = computed(() => {
-  return volume.value ? Math.floor(+curOrderVolume.value / +volume.value) : 0;
+  return volume.value
+    ? Math.floor(dealKfDecimalPrecision(curOrderVolume.value / volume.value))
+    : 0;
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
@@ -51,10 +62,10 @@ function handleConfirm() {
     error(t('tradingConfig.no_empty'));
     return;
   }
-  const remainder: number = curOrderVolume.value % +volume.value; // 剩余数量
-  const volumeList: number[] = new Array(+orderNumber.value).fill(
-    +volume.value,
-  );
+  const remainder: number = dealKfDecimalPrecision(
+    curOrderVolume.value % volume.value,
+  ); // 剩余数量
+  const volumeList: number[] = new Array(+orderNumber.value).fill(volume.value);
 
   if (remainder !== 0) {
     volumeList.push(remainder);
@@ -84,6 +95,7 @@ function handleConfirm() {
         <a-input-group compact style="margin-top: 10px" class="input-content">
           <span>{{ $t('tradingConfig.every_volume') }}:</span>
           <a-input-number
+            ref="everyVolumeInput"
             class="input-number"
             :precision="0"
             step="1"

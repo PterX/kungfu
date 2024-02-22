@@ -2,19 +2,17 @@
 
 import json
 import kungfu
-import re
+
 
 from kungfu.wingchun.constants import *
 
 wc = kungfu.__binding__.wingchun
 
 get_instrument_type = wc.utils.get_instrument_type
+get_instrument_product = wc.utils.get_instrument_product
 is_valid_price = wc.utils.is_valid_price
 hash_instrument = wc.utils.hash_instrument
-
-
-def is_final_status(order_status):
-    return int(order_status) in AllFinalOrderStatus
+hash_product = wc.utils.hash_product
 
 
 def get_position_effect(instrument_type, side, offset):
@@ -42,11 +40,6 @@ def get_position_effect(instrument_type, side, offset):
                 instrument_type, side, offset
             )
         )
-
-
-def get_product_id(instrument_id):
-    p = re.compile("([a-zA-Z]+)\d+")
-    return p.findall(instrument_id)[0]
 
 
 class WCEncoder(json.JSONEncoder):

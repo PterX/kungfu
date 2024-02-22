@@ -98,9 +98,9 @@ public:
     OptionsAll = 0x3F
   } StackWalkOptions;
 
-  StackWalker(int options = OptionsAll, // 'int' is by design, to combine the enum-flags
-              LPCSTR szSymPath = NULL, DWORD dwProcessId = GetCurrentProcessId(),
-              HANDLE hProcess = GetCurrentProcess());
+  explicit StackWalker(int options = OptionsAll, // 'int' is by design, to combine the enum-flags
+                       LPCSTR szSymPath = nullptr, DWORD dwProcessId = GetCurrentProcessId(),
+                       HANDLE hProcess = GetCurrentProcess());
   StackWalker(DWORD dwProcessId, HANDLE hProcess);
   virtual ~StackWalker();
 
@@ -111,9 +111,9 @@ public:
 
   BOOL LoadModules();
 
-  BOOL ShowCallstack(HANDLE hThread = GetCurrentThread(), const CONTEXT *context = NULL,
-                     PReadProcessMemoryRoutine readMemoryFunction = NULL,
-                     LPVOID pUserData = NULL // optional to identify some data in the 'readMemoryFunction'-callback
+  BOOL ShowCallstack(HANDLE hThread = GetCurrentThread(), const CONTEXT *context = nullptr,
+                     PReadProcessMemoryRoutine readMemoryFunction = nullptr,
+                     LPVOID pUserData = nullptr // optional to identify some data in the 'readMemoryFunction'-callback
   );
 
   BOOL ShowObject(LPVOID pObject);
@@ -133,7 +133,7 @@ public:
   size_t current_stack_size();              // 返回当前栈的大小
   void print_stack_bound(std::ostream &st); // 打印堆栈边界
 
-  void show_callstack(std::ostream &os, const void *context = NULL);
+  void show_callstack(std::ostream &os, const void *context = nullptr);
 
   //----堆栈信息的函数
   bool dll_address_to_library_name(address addr, char *buf, int buflen, int *offset);

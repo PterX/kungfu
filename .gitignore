@@ -35,6 +35,7 @@ dist/
 
 # Debug related
 debug-example/
+.cache/
 
 # assemble demo result
 *.csv

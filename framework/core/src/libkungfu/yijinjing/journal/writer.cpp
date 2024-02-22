@@ -8,27 +8,51 @@
 namespace kungfu::yijinjing::journal {
 using namespace longfist::types;
 
-constexpr uint32_t PAGE_ID_TRANC = 0xFFFF0000;
-constexpr uint32_t FRAME_ID_TRANC = 0x0000FFFF;
+constexpr uint32_t PAGE_ID_TRANC = 0xFF000000;
+constexpr uint32_t FRAME_ID_TRANC = 0x00FFFFFF;
+
+inline size_t verify_cpu_word_length(size_t length) {
+  return ((length + (sizeof(uintptr_t) - 1)) & ~(sizeof(uintptr_t) - 1));
+}
 
 writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
                bool low_latency, const bus_ptr &bus)
-    : frame_id_base_(uint64_t(location->uid xor dest_id) << 32u),
-      journal_(location, dest_id, true, lazy, low_latency, bus), publisher_(std::move(publisher)), size_to_write_(0),
+    : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
+      journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id)),
+      publisher_(std::move(publisher)), size_to_write_(0), last_gen_time_(0),
       writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
   journal_.seek_to_time(time::now_in_nano());
 }
 
+writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+               bool low_latency, const bus_ptr &bus, uint64_t page_size)
+    : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
+      journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id, page_size)),
+      publisher_(std::move(publisher)), size_to_write_(0), last_gen_time_(0),
+      writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
+  journal_.seek_to_time(time::now_in_nano());
+}
+
+writer::writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+               bool low_latency, const bus_ptr &bus, uint64_t page_size, int64_t begin_time)
+    : frame_id_base_(static_cast<uint64_t>(location->uid xor dest_id) << 32u),
+      journal_(location, dest_id, true, lazy, low_latency, bus, page::find_page_size(location, dest_id, page_size)),
+      publisher_(std::move(publisher)), size_to_write_(0), last_gen_time_(0),
+      writer_start_time_32int_(time::nano_hashed(time::now_in_nano())) {
+  journal_.seek_to_time(begin_time);
+}
+
 uint64_t writer::current_frame_uid() {
-  uint32_t page_part = (journal_.page_->page_id_ << 16u) & PAGE_ID_TRANC;
+  uint32_t page_part = (journal_.page_->page_id_ << 24u) & PAGE_ID_TRANC;
   uint32_t frame_part = journal_.page_frame_nb_ & FRAME_ID_TRANC;
   // frame_id_base is used for get account id while canceling order
   return frame_id_base_ | ((page_part | frame_part) xor writer_start_time_32int_);
 }
 
-frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t data_length) {
+frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t data_length) {
+  data_length = verify_cpu_word_length(data_length);
   int64_t start_time = time::now_in_nano();
-  while (not writer_mutex_.try_lock()) {
+  while (not writer_mtx_.try_lock()) {
     if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
       throw journal_error("Can not lock writer for " + journal_.location_->uname);
     }
@@ -42,12 +66,14 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, uint32_t da
   frame->set_trigger_time(trigger_time);
   frame->set_msg_type(msg_type);
   frame->set_source(journal_.location_->uid);
+  frame->set_initial_source(journal_.location_->uid);
   frame->set_dest(journal_.dest_id_);
   size_to_write_ = data_length;
   return frame;
 }
 
 void writer::close_frame(size_t data_length, int64_t gen_time) {
+  data_length = verify_cpu_word_length(data_length);
   assert(size_to_write_ >= data_length);
   auto frame = journal_.current_frame();
   auto next_frame_address = frame->address() + frame->header_length() + data_length;
@@ -56,10 +82,20 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   frame->set_gen_time(gen_time);
   last_gen_time_ = gen_time;
   frame->set_data_length(data_length);
+  frame->set_frame_uid(current_frame_uid());
+  frame->set_trigger_frame_uid(journal_.bus_->get_trigger_frame_uid());
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
+  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    if (frame->msg_type() == DataType::tag) {
+      SPDLOG_TRACE("source: {}, dest: {}, msg_type: {}, data: {}", frame->source(), frame->dest(), frame->msg_type(),
+                   frame->data<DataType>().to_string());
+    }
+  });
+
   journal_.next();
-  writer_mutex_.unlock();
+  writer_mtx_.unlock();
   publisher_->notify();
 }
 
@@ -113,26 +149,10 @@ void writer::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t so
 
 void writer::close_data(int64_t gen_time) { close_frame(size_to_write_, gen_time); }
 
-void writer::close_page(int64_t trigger_time) {
-  page_ptr last_page = journal_.page_;
+void writer::close_page(int64_t trigger_time) { journal_.close_page(trigger_time, last_gen_time_); }
 
-  // must load_next_page before mark PageEnd::tag,
-  // or reader of other process may read next page before it created
-  journal_.load_next_page();
+void writer::release_page() { journal_.release_page(); }
 
-  frame last_page_frame;
-  last_page_frame.set_address(last_page->last_frame_address());
-  last_page_frame.move_to_next();
-  last_page_frame.set_header_length();
-  last_page_frame.set_trigger_time(trigger_time);
-  last_page_frame.set_msg_type(longfist::types::PageEnd::tag);
-  last_page_frame.set_source(journal_.location_->uid);
-  last_page_frame.set_dest(journal_.dest_id_);
-  last_page_frame.set_gen_time(last_gen_time_);
-  last_page_frame.set_data_length(0);
-  last_page->set_last_frame_position(last_page_frame.address() - last_page->address());
-}
-
-bool writer::release_page() { return journal_.release_page(); }
+void writer::preload_next_page() { journal_.preload_next_page(); }
 
 } // namespace kungfu::yijinjing::journal

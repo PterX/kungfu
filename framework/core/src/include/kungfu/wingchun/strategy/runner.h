@@ -17,9 +17,9 @@ namespace kungfu::wingchun::strategy {
 class Runner : public yijinjing::practice::apprentice {
 public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
-         longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
+         longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
-  ~Runner() = default;
+  ~Runner() override = default;
 
   [[nodiscard]] Context_ptr get_context() const;
 
@@ -27,7 +27,21 @@ public:
 
   void set_matcher(const Matcher_ptr &matcher);
 
+  void set_from_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_to_indexer(const tool::SliceIndexer_ptr &indexer);
+
+  void set_report(const tool::Report_ptr &report);
+
+  tool::Report_ptr get_report() const;
+
+  void set_time_interval(int64_t time_interval);
+
+  void set_backtest_config(const std::string &backtest_config);
+
   void on_exit() override;
+
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   void react() override;
@@ -52,7 +66,12 @@ private:
   std::vector<Strategy_ptr> strategies_ = {};
   Context_ptr context_;
   Matcher_ptr matcher_;
-  const std::string arguments_;
+  tool::SliceIndexer_ptr from_indexer_;
+  tool::SliceIndexer_ptr to_indexer_;
+  tool::Report_ptr report_;
+  int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
+  std::string backtest_config_;
+  bool has_post_started_ = false;
 
   void inspect_channel(const event_ptr &event);
 
@@ -80,13 +99,24 @@ private:
     }
   }
 
-  template <typename OnMethod = void (Strategy::*)(Context_ptr &, uint32_t, const std::vector<uint8_t> &, uint32_t,
-                                                   const kungfu::yijinjing::data::location_ptr &)>
-  void invoke(OnMethod method, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
-              const kungfu::yijinjing::data::location_ptr &location) {
+  template <typename TradingData,
+            typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &,
+                                                   const kungfu::yijinjing::data::location_ptr &, uint32_t)>
+  void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location,
+              uint32_t dest) {
     auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, msg_type, data, length, location);
+      (*strategy.*method)(context, data, location, dest);
+    }
+  }
+
+  template <typename OnMethod = void (Strategy::*)(Context_ptr &, uint32_t, const std::vector<uint8_t> &, uint32_t,
+                                                   const kungfu::yijinjing::data::location_ptr &, uint32_t)>
+  void invoke(OnMethod method, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
+              const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) {
+    auto context = std::dynamic_pointer_cast<Context>(context_);
+    for (const auto &strategy : strategies_) {
+      (*strategy.*method)(context, msg_type, data, length, location, dest);
     }
   }
 
@@ -99,9 +129,6 @@ private:
     void on_position_sync_reset(const wingchun::book::Book &old_book, const wingchun::book::Book &new_book) override;
 
     void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset) override;
-
-    void on_asset_margin_sync_reset(const longfist::types::AssetMargin &old_asset_margin,
-                                    const longfist::types::AssetMargin &new_asset_margin) override;
 
   private:
     Runner &runner_;

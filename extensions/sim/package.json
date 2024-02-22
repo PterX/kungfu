@@ -26,7 +26,7 @@
     "clean": "kfs extension clean",
     "format": "node ../../framework/core/.gyp/run-format-python.js src",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
-    "package": "kfs project package"
+    "package": "kfs extension package"
   },
   "dependencies": {
     "@kungfu-trader/kungfu-core": "^3.0.0-alpha.0"
@@ -95,7 +95,12 @@
             "errMsg": "sim.match_mode_error",
             "required": true
           }
-        ]
+        ],
+        "order_trigger": {
+          "MakeOrder": true,
+          "CancelOrder": true
+        },
+        "supportEtf": true
       },
       "md": {
         "type": "multi"

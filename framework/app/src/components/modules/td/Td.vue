@@ -1,19 +1,31 @@
 <script setup lang="ts">
 import { ref, computed, toRefs, onMounted, toRaw } from 'vue';
+import { storeToRefs } from 'pinia';
 
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfProcessStatus.vue';
 import KfSetExtensionModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetExtensionModal.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
+import KfReplaySettingModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfReplaySettingModal.vue';
+import FundTransModal from './FundTransModal.vue';
 import Icon, {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  BankOutlined,
+  EyeOutlined,
+  ReloadOutlined,
+  PayCircleOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 
-import { categoryRegisterConfig, getColumns } from './config';
+import {
+  categoryRegisterConfig,
+  getColumns,
+  getFundTransKey,
+  getAssetDetailShowList,
+  assetMarginDetailShowList,
+} from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
@@ -33,15 +45,21 @@ import {
   useAllKfConfigData,
   useTdGroups,
   useAssets,
-  useAssetMargins,
+  useReplay,
+  showTradingDataDetail,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
-  dealAssetPrice,
-  getIdByKfLocation,
   getIfProcessRunning,
   getIfProcessStopping,
-  getProcessIdByKfLocation,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  buildTableColumnSorterWithStrike,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import {
   addTdGroup,
@@ -52,22 +70,20 @@ import SetTdGroupModal from './SetTdGroupModal.vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { storeToRefs } from 'pinia';
+import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const handleSwitchProcessStatus = handleSwitchProcessStatusGenerator();
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
-const { globalSetting } = storeToRefs(useGlobalStore());
-const isShowAssetMargin = computed(() => {
-  return !!globalSetting.value?.trade?.assetMargin;
-});
+const { testCase } = storeToRefs(useGlobalStore());
 
 globalThis.HookKeeper.getHooks().dealTradingData.register(
   {
     category: categoryRegisterConfig.category,
     group: '*',
     name: '*',
+    mode: '*',
   },
   categoryRegisterConfig,
 );
@@ -77,7 +93,7 @@ const setTdModalVisible = ref<boolean>(false);
 const setTdConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('Td'),
-  config: {} as KungfuApi.KfExtConfig,
+  config: {} as KungfuApi.KfTdExtConfig,
 });
 
 const currentSelectedSourceId = ref<string>('');
@@ -85,7 +101,7 @@ const { extConfigs, tdExtTypeMap } = useExtConfigsRelated();
 const { td } = toRefs(useAllKfConfigData());
 const tdIdList = computed(() => {
   return td.value.map(
-    (item: KungfuApi.KfLocation): string => `${item.group}_${item.name}`,
+    (item: KungfuApi.KfLocation): string => `${item.group}-${item.name}`,
   );
 });
 const {
@@ -102,6 +118,14 @@ const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
   processStatusData,
 );
 
+const {
+  replayConfig,
+  setReplayModalVisible,
+  sessionOptions,
+  handleOpenReplayConfirmView,
+  handleReplayModal,
+} = useReplay();
+
 const tdGroupDataLoaded = ref<boolean>(false);
 const addTdGroupModalVisble = ref<boolean>(false);
 const setTdGroupModalVisble = ref<boolean>(false);
@@ -109,9 +133,29 @@ const tdGroup = useTdGroups();
 const tdGroupNames = computed(() => {
   return tdGroup.value.map((item) => item.name);
 });
+
 const addTdGroupConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
   type: 'add',
   title: t('tdConfig.account_group'),
+  config: {} as KungfuApi.KfTdExtConfig,
+});
+
+const currentAccout: {
+  source: string;
+  transfer_type: FundTransTypeEnum;
+  config: KungfuApi.KfConfig | null;
+  avail: number;
+} = {
+  source: '',
+  transfer_type: FundTransTypeEnum.BetweenNodes,
+  config: null,
+  avail: 0,
+};
+const setFundTransModeModalVisible = ref<boolean>(false);
+const setFundTransConfigModalVisible = ref<boolean>(false);
+const setFundTransConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
+  type: 'custom',
+  title: t('Td'),
   config: {} as KungfuApi.KfExtConfig,
 });
 
@@ -150,14 +194,27 @@ const tableDataResolved = computed(() => {
   return [...Object.values(tdGroupResolved), ...tdResolved];
 });
 
+const hasTableData = computed(() => tableDataResolved.value.length > 0);
+
 const { getAssetsByKfConfig, getAssetsByTdGroup } = useAssets();
-const { getAssetMarginsByKfConfig, getAssetMarginsByTdGroup } =
-  useAssetMargins();
 const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = computed(() => {
-  const sorter = (dataIndex) => {
+  const sorter = (dataIndex: keyof KungfuApi.Asset) => {
+    return buildTableColumnSorterWithStrike<
+      KungfuApi.KfConfig,
+      KungfuApi.Asset
+    >('num', dataIndex, (kfConfig: KungfuApi.KfConfig) => {
+      const { assets } = storeToRefs(useGlobalStore());
+      const processId = getProcessIdByKfLocation(kfConfig);
+      return assets.value[processId]
+        ? assets.value[processId][dataIndex]
+        : '--';
+    });
+  };
+
+  const marginSorter = (dataIndex) => {
     return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
       return (
         (+Number(getAssetsByKfConfig(a)[dataIndex as keyof KungfuApi.Asset]) ||
@@ -168,44 +225,57 @@ const columns = computed(() => {
     };
   };
 
-  const marginSorter = (dataIndex) => {
-    return (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => {
-      return (
-        (+Number(
-          getAssetMarginsByKfConfig(a)[
-            dataIndex as keyof KungfuApi.AssetMargin
-          ],
-        ) || 0) -
-        (+Number(
-          getAssetMarginsByKfConfig(b)[
-            dataIndex as keyof KungfuApi.AssetMargin
-          ],
-        ) || 0)
-      );
-    };
-  };
-
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       sorter,
       marginSorter,
-      isShowAssetMargin.value,
     );
   }
 
-  return getColumns(
-    currentGlobalKfLocation.value,
-    sorter,
-    marginSorter,
-    isShowAssetMargin.value,
-  );
+  return getColumns(currentGlobalKfLocation.value, sorter, marginSorter);
 });
+
+const customRowResolved = (
+  record: KungfuApi.KfLocation | KungfuApi.KfConfig,
+) => {
+  if (record.category === 'tdGroup') {
+    return customRow(record);
+  }
+
+  const allAssetDetailList = [
+    ...getAssetDetailShowList(),
+    ...assetMarginDetailShowList,
+  ];
+  const assetGetter = () =>
+    allAssetDetailList.reduce((assetDetails, assetInfo) => {
+      assetDetails[assetInfo.key] = dealKfPrice(
+        getAssetsByKfConfig(record)[assetInfo.key],
+      );
+      return assetDetails;
+    }, {} as Record<string, string>);
+  return {
+    ...customRow(record),
+    onMousedown: (event: MouseEvent) => {
+      if (event.button === 2) {
+        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], {
+          collateral_ratio: (str) => {
+            if (str === '--') {
+              return str;
+            } else {
+              return ((Number(str) || 0) * 100).kfToFixed(1) + '%';
+            }
+          },
+        });
+      }
+    },
+  };
+};
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
@@ -223,7 +293,7 @@ async function handleOpenSetTdModal(
   selectedSource: string,
   tdConfig?: KungfuApi.KfConfig,
 ) {
-  const extConfig: KungfuApi.KfExtConfig = (extConfigs.value['td'] || {})[
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
     selectedSource
   ];
 
@@ -245,6 +315,7 @@ async function handleOpenSetTdModal(
         category: 'td',
         group: selectedSource,
         name: '*',
+        mode: '*',
       },
       extConfig,
     );
@@ -275,7 +346,15 @@ function handleOpenAddTdGroupDialog(type: KungfuApi.ModalChangeType) {
     name: t('tdConfig.td_group'),
     category: 'tdGroup',
     key: 'TdGroup',
+    silent: true,
+    access: {},
+    assets: {},
     extPath: '',
+    version: '',
+    description: '',
+    dependencies: {},
+    readmePath: '',
+    releaseNotePath: '',
     settings: [
       {
         key: 'td_group_name',
@@ -289,6 +368,97 @@ function handleOpenAddTdGroupDialog(type: KungfuApi.ModalChangeType) {
   };
   addTdGroupConfigPayload.value.initValue = undefined;
   addTdGroupModalVisble.value = true;
+}
+
+function handleFundTransModeDialog(config: KungfuApi.KfConfig) {
+  if (getProcessStatusName(config) !== 'Ready') return;
+  currentAccout.source = config.group;
+  currentAccout.config = config;
+  currentAccout.avail = getAssetsByKfConfig(config).avail;
+  setFundTransModeModalVisible.value = true;
+}
+
+function handleOpenSetFundTransModal(type: FundTransTypeEnum) {
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
+    currentAccout.source
+  ];
+  if (!extConfig || !extConfig.fundTrans) {
+    error(
+      t('fundTrans.config_error', {
+        td: currentAccout.source,
+      }),
+    );
+    return;
+  }
+
+  const selectFundTransConfig = extConfig.fundTrans[type];
+  currentAccout.transfer_type = type;
+  setTdConfigPayload.value.initValue = undefined;
+  setFundTransConfigPayload.value.title = t('fundTrans.modal_title');
+  setFundTransConfigPayload.value.config = {
+    type: [],
+    name: t('fundTrans.modal_title'),
+    category: 'td',
+    key: currentAccout.source,
+    silent: true,
+    access: {},
+    assets: {},
+    extPath: '',
+    version: '',
+    description: '',
+    dependencies: {},
+    readmePath: '',
+    releaseNotePath: '',
+    settings: selectFundTransConfig.settings,
+  };
+
+  setFundTransConfigModalVisible.value = true;
+}
+
+function handleConfirmFundTrans(formState) {
+  const watcher = window.watcher as KungfuApi.Watcher;
+  const formStateResolved = {
+    ...formState,
+    key: getFundTransKey(currentAccout.transfer_type),
+    update_time: '',
+  };
+
+  const message: KungfuApi.TimeKeyValue = {
+    key: watcher.now().toString(),
+    update_time: watcher.now(),
+    value: JSON.stringify(formStateResolved),
+    tag_a: getFundTransKey(null),
+    tag_b: '',
+    tag_c: '',
+    source: 0,
+    dest: 0,
+    uid_key: '',
+  };
+  const fundTransResult = watcher.issueCustomData(
+    message,
+    currentAccout.config as KungfuApi.KfConfig,
+  );
+
+  if (
+    formState.source &&
+    formState.target &&
+    formState.source === formState.target
+  ) {
+    error('');
+    return;
+  }
+
+  if (fundTransResult) {
+    success();
+  } else {
+    error(t('fundTrans.tip_error'));
+  }
+}
+
+function dealDisabledColor(config: KungfuApi.KfConfig) {
+  return getProcessStatusName(config) === 'Ready'
+    ? 'rgba(255, 255, 255, 1)'
+    : 'rgba(255, 255, 255, 0.35)';
 }
 
 function handleConfirmAddUpdateTdGroup(
@@ -366,6 +536,26 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       error(err.message || t('operation_failed'));
     });
 }
+
+function handleRequestPosition() {
+  const res = window.watcher.requestPosition(window.watcher);
+  if (res) {
+    success(t('operation_success'));
+  } else {
+    error(t('operation_failed'));
+  }
+}
+
+function isShowFundTransIcon(location: KungfuApi.KfConfig) {
+  if (!location) return false;
+  const extConfig: KungfuApi.KfTdExtConfig = (extConfigs.value['td'] || {})[
+    location.group
+  ];
+
+  if (!extConfig || JSON.stringify(extConfig.fundTrans) === '{}') return false;
+
+  return true;
+}
 </script>
 
 <template>
@@ -386,6 +576,13 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
           ></a-switch>
         </KfDashboardItem>
         <KfDashboardItem>
+          <a-button size="small" @click="handleRequestPosition">
+            <template #icon>
+              <ReloadOutlined style="font-size: 14px" />
+            </template>
+          </a-button>
+        </KfDashboardItem>
+        <KfDashboardItem>
           <a-button size="small" @click="handleOpenAddTdGroupDialog('add')">
             {{ $t('tdConfig.add_group_placeholder') }}
           </a-button>
@@ -402,14 +599,29 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       </template>
       <a-table
         v-if="tdGroupDataLoaded"
-        class="kf-ant-table"
+        :class="{
+          'has-data': hasTableData,
+          'kf-ant-table': true,
+          'kf-ant-table-sorter': true,
+        }"
         :columns="columns"
         :data-source="tableDataResolved"
         size="small"
         :pagination="false"
         :scroll="{ y: dashboardBodyHeight - 4 }"
         :row-class-name="dealRowClassName"
-        :custom-row="customRow"
+        :customHeaderRow="
+          (_column, _index) => {
+            return {
+              style: {
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              },
+            };
+          }
+        "
+        :custom-row="customRowResolved"
         :default-expand-all-rows="true"
         :empty-text="$t('empty_text')"
       >
@@ -431,7 +643,7 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
               >
                 {{ record.group }}
               </a-tag>
-              <span>
+              <span style="user-select: text">
                 {{ record.name }}
               </span>
               <Icon
@@ -491,44 +703,44 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
                             "
             ></a-switch>
           </template>
-          <template v-else-if="column.dataIndex === 'unrealizedPnl'">
+          <template v-else-if="column.dataIndex === 'unrealized_pnl'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).unrealized_pnl)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).unrealized_pnl)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByTdGroup(record).unrealized_pnl)"
+              :num="dealKfPrice(getAssetsByTdGroup(record).unrealized_pnl)"
             ></KfBlinkNum>
           </template>
-          <template v-else-if="column.dataIndex === 'marketValue'">
+          <template v-else-if="column.dataIndex === 'market_value'">
             <KfBlinkNum
               v-if="record.category === 'td'"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).market_value)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).market_value)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealAssetPrice(getAssetsByTdGroup(record).market_value)"
+              :num="dealKfPrice(getAssetsByTdGroup(record).market_value)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'margin'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               :num="
-                dealAssetPrice(
+                dealKfPrice(
                   getAssetsByKfConfig(record).margin ||
-                    getAssetMarginsByKfConfig(record).margin,
+                    getAssetsByKfConfig(record).margin,
                 )
               "
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
               :num="
-                dealAssetPrice(
+                dealKfPrice(
                   getAssetsByTdGroup(record).margin ||
-                    getAssetMarginsByTdGroup(record).margin,
+                    getAssetsByTdGroup(record).margin,
                 )
               "
             ></KfBlinkNum>
@@ -537,66 +749,137 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).avail)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).avail)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealAssetPrice(getAssetsByTdGroup(record).avail)"
+              :num="dealKfPrice(getAssetsByTdGroup(record).avail)"
             ></KfBlinkNum>
           </template>
-          <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'avail_margin'"
-          >
+          <template v-else-if="column.dataIndex === 'frozen_cash'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="
-                dealAssetPrice(getAssetMarginsByKfConfig(record).avail_margin)
-              "
+              :num="dealKfPrice(getAssetsByKfConfig(record).frozen_cash)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="
-                dealAssetPrice(getAssetMarginsByTdGroup(record).avail_margin)
-              "
+              :num="dealKfPrice(getAssetsByTdGroup(record).frozen_cash)"
             ></KfBlinkNum>
           </template>
-          <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'cash_debt'"
-          >
+          <template v-else-if="column.dataIndex === 'short_cash'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetMarginsByKfConfig(record).cash_debt)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).short_cash)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealAssetPrice(getAssetMarginsByTdGroup(record).cash_debt)"
+              :num="dealKfPrice(getAssetsByTdGroup(record).short_cash)"
             ></KfBlinkNum>
           </template>
-          <template
-            v-else-if="isShowAssetMargin && column.dataIndex === 'total_asset'"
-          >
+          <template v-else-if="column.dataIndex === 'collateral_ratio'">
+            <span v-if="record.category === 'td'">
+              {{
+                getAssetsByKfConfig(record).collateral_ratio ||
+                getAssetsByKfConfig(record).collateral_ratio === 0
+                  ? `${(
+                      getAssetsByKfConfig(record).collateral_ratio * 100
+                    ).kfToFixed(1)}%`
+                  : '--'
+              }}
+            </span>
+            <span v-else-if="record.category === 'tdGroup'">{{ '--' }}</span>
+          </template>
+          <template v-else-if="column.dataIndex === 'avail_margin'">
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="
-                dealAssetPrice(getAssetMarginsByKfConfig(record).total_asset)
-              "
+              :num="dealKfPrice(getAssetsByKfConfig(record).avail_margin)"
             ></KfBlinkNum>
             <KfBlinkNum
-              v-else-if="isShowAssetMargin && record.category === 'tdGroup'"
-              :num="
-                dealAssetPrice(getAssetMarginsByTdGroup(record).total_asset)
-              "
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealKfPrice(getAssetsByTdGroup(record).avail_margin)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'total_debt'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="dealKfPrice(getAssetsByKfConfig(record).total_debt)"
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealKfPrice(getAssetsByTdGroup(record).total_debt)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'net_assets'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="dealKfPrice(getAssetsByKfConfig(record).net_assets)"
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealKfPrice(getAssetsByTdGroup(record).net_assets)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'long_total_debt'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="dealKfPrice(getAssetsByKfConfig(record).long_total_debt)"
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealKfPrice(getAssetsByTdGroup(record).long_total_debt)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'short_total_debt'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="dealKfPrice(getAssetsByKfConfig(record).short_total_debt)"
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealKfPrice(getAssetsByTdGroup(record).short_total_debt)"
+            ></KfBlinkNum>
+          </template>
+          <template v-else-if="column.dataIndex === 'cash_debt'">
+            <KfBlinkNum
+              v-if="record.category === 'td'"
+              mode="compare-zero"
+              :num="dealKfPrice(getAssetsByKfConfig(record).cash_debt)"
+            ></KfBlinkNum>
+            <KfBlinkNum
+              v-else-if="record.category === 'tdGroup'"
+              :num="dealKfPrice(getAssetsByTdGroup(record).cash_debt)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div v-if="record.category === 'td'" class="kf-actions__warp">
-              <BankOutlined
+              <HistoryOutlined
+                v-if="testCase.replayEnabled[record.category]"
                 style="font-size: 12px"
+                @click.stop="
+                  handleOpenReplayConfirmView(record as KungfuApi.KfConfig)
+                "
+              ></HistoryOutlined>
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
+              <!-- TODO -->
+              <PayCircleOutlined
+                v-if="isShowFundTransIcon(record as KungfuApi.KfConfig)"
+                :style="{
+                  color: dealDisabledColor(record as KungfuApi.KfConfig),
+                }"
+                @click.stop="
+                  handleFundTransModeDialog(record as KungfuApi.KfConfig)
+                "
+              />
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"
@@ -636,6 +919,11 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       extension-type="td"
       @confirm="handleOpenSetTdModal('add', $event)"
     ></KfSetExtensionModal>
+    <FundTransModal
+      v-if="setFundTransModeModalVisible"
+      v-model:visible="setFundTransModeModalVisible"
+      @confirm="handleOpenSetFundTransModal"
+    ></FundTransModal>
     <KfSetByConfigModal
       v-if="setTdModalVisible"
       v-model:visible="setTdModalVisible"
@@ -653,15 +941,39 @@ function handleRemoveTd(item: KungfuApi.KfConfig) {
       :primary-key-avoid-repeat-compare-target="tdGroupNames"
       @confirm="({ formState }) => handleConfirmAddUpdateTdGroup(formState)"
     ></KfSetByConfigModal>
+    <KfSetByConfigModal
+      v-if="setFundTransConfigModalVisible"
+      v-model:visible="setFundTransConfigModalVisible"
+      :payload="setFundTransConfigPayload"
+      @confirm="({ formState }) => handleConfirmFundTrans(formState)"
+    ></KfSetByConfigModal>
     <SetTdGroupModal
       v-if="setTdGroupModalVisble"
       v-model:visible="setTdGroupModalVisble"
     ></SetTdGroupModal>
+    <KfReplaySettingModal
+      v-if="setReplayModalVisible"
+      :width="520"
+      v-model:visible="setReplayModalVisible"
+      :session-options="sessionOptions"
+      :session-info="replayConfig.session_info"
+      :begin-time="replayConfig.begin_time.split(' ')[1]"
+      :end-time="
+        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
+      "
+      :log-level="replayConfig.log_level"
+      @close="setReplayModalVisible = false"
+      @confirm="(event) => handleReplayModal(event)"
+    ></KfReplaySettingModal>
   </div>
 </template>
 <style lang="less">
 .kf-td__warp {
   height: 100%;
+
+  .has-data .ant-table-tbody > tr > td:first-child > div {
+    display: flow-root;
+  }
 
   .td-name__warp {
     word-break: break-all;

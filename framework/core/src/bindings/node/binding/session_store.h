@@ -32,7 +32,7 @@ private:
     size_t session_size = sessions.size();
     auto list = Napi::Array::New(info.Env(), session_size);
     for (int i = 0; i < session_size; i++) {
-      auto &session = sessions[i];
+      const auto &session = sessions[i];
       auto session_obj = Napi::Object::New(info.Env());
       set(session, session_obj);
       session_obj.Set(Napi::String::New(info.Env(), "index"), Napi::Number::New(info.Env(), i));

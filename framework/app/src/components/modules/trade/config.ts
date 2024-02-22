@@ -1,5 +1,8 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  isTdStrategyCategory,
+  buildTableColumnSorterWithStrike,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -45,7 +48,7 @@ export const getColumns = (
         type: 'string',
         name: '',
         dataIndex: 'side',
-        width: 40,
+        width: 80,
       },
       {
         type: 'string',
@@ -56,8 +59,9 @@ export const getColumns = (
       {
         type: 'number',
         name: t('tradeConfig.price'),
-        dataIndex: 'price',
+        dataIndex: 'price_resolved',
         width: 120,
+        align: 'right',
         sorter: buildSorter('price'),
       },
       {
@@ -65,6 +69,7 @@ export const getColumns = (
         name: t('tradeConfig.volume'),
         dataIndex: 'volume',
         width: 60,
+        align: 'right',
         sorter: buildSorter('volume'),
       },
       {
@@ -72,8 +77,11 @@ export const getColumns = (
         name: t('tradeConfig.latency_trade'),
         dataIndex: 'latency_trade',
         width: 90,
-        sorter: (a: KungfuApi.TradeResolved, b: KungfuApi.TradeResolved) =>
-          +a.latency_trade - +b.latency_trade,
+        align: 'right',
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.TradeResolved>(
+          'num',
+          'latency_trade',
+        ),
       },
       {
         name:
@@ -105,12 +113,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   },
   {
     name: '',
-    dataIndex: 'side',
+    dataIndex: 'sideName',
     width: 40,
   },
   {
     name: '',
-    dataIndex: 'offset',
+    dataIndex: 'offsetName',
     width: 40,
   },
   {

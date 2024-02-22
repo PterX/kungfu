@@ -16,15 +16,25 @@ type PromptInputType =
   | 'checkbox'
   | 'password'
   | 'editor'
-  | 'path';
+  | 'path'
+  | 'autocomplete'
+  | 'checkbox-plus'
+  | 'file-path';
 
 interface PromptQuestion {
   type: PromptInputType;
   name: string;
   default?: KungfuApi.KfConfigValue;
+  pageSize?: number;
+  highlight?: boolean;
+  searchable?: boolean;
   choices: (string | number)[];
   message: string;
+  cwd?: string;
+  directoryOnly?: boolean;
+  source?: (answers: PromptAnswer, input: string) => Promise<string[]>;
   validate: (value: KungfuApi.KfConfigValue) => Promise<Error | boolean>;
+  filter: (value: KungfuApi.KfConfigValue) => KungfuApi.KfConfigValue;
 }
 
 interface ProcessListItem {

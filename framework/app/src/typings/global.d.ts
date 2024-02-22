@@ -1,5 +1,4 @@
 import { Subject } from 'rxjs';
-import { StoreDefinition } from 'pinia';
 import { Locale } from 'ant-design-vue/es/locale-provider';
 
 declare module '@vue/runtime-core' {

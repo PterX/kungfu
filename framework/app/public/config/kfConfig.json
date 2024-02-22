@@ -2,17 +2,27 @@
   "performance": {
     "rocket": false,
     "bypassAccounting": false,
-    "bypassTradingData": false
+    "bypassTradingData": false,
+    "bypassRefreshBook": false,
+    "verifyLocation": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },
   "system": {
     "logLevel": "-l info",
+    "logFrame": false,
     "autoRestartTd": true,
     "language": "zh-CN",
-    "bypassArchive": false
+    "bypassArchive": false,
+    "bypassArchiveDev": false
   },
   "code": { "tabSpaceType": "SPACES", "tabSpaceSize": "TWOINDENT" },
-  "trade": { "sound": true, "fatFinger": 0, "close": 100 },
+  "trade": {
+    "sound": true,
+    "fatFinger": 0,
+    "close": 100,
+    "posTableColumns": ["yesterday_volume", "today_volume"],
+    "skipSyncPosition": false
+  },
   "update": { "isCheckVersion": true }
 }

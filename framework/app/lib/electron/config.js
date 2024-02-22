@@ -5,7 +5,6 @@ const kungfuCore = require('@kungfu-trader/kungfu-core/package.json');
 const {
   getAppDir,
   getKfcDir,
-  getCoreDir,
   getExtensionDirs,
   findPackageRoot,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
@@ -14,7 +13,6 @@ const isWindows = os.platform() === 'win32';
 const appDir = getAppDir();
 const vsDepsDir = path.join(appDir, 'public', 'vsDeps');
 const kfcDir = getKfcDir();
-const coreDir = getCoreDir();
 const extensionDirs = getExtensionDirs(true);
 const root = findPackageRoot();
 console.log(`-- Package root ${root}`);
@@ -42,6 +40,9 @@ const appLibPackageMergeJson = require(path.join(
   'package.merge.json',
 ));
 const appLibPackageJsonPath = path.join(appLibPackageJsonDir, 'package.json');
+
+const ifZipTargetEnable = (platform) =>
+  rootPackageJson?.kungfuCraft?.zipTargetEnable?.[platform] !== false;
 
 fse.writeJsonSync(appLibPackageJsonPath, {
   ...rootPackageJson,
@@ -138,18 +139,15 @@ module.exports = {
         ]
       : []),
     {
-      from: `${coreDir}/build/python/dist`,
-      to: 'app/dist/public/python',
-      filter: ['*.whl'],
-    },
-    {
       from: appDir,
       to: 'app/dist',
       filter: [
         'public/config',
         'public/key',
         'public/logo',
+        'public/fonts',
         'public/keywords',
+        'public/fonts',
         'public/music',
         'public/language',
         ...(fse.existsSync(defaultInstrumentsJson)
@@ -214,7 +212,7 @@ module.exports = {
   mac: {
     icon: icnsLogoPathResolved,
     type: 'distribution',
-    target: ['dmg', 'zip'],
+    target: ['dmg', ...(ifZipTargetEnable('mac') ? ['zip'] : [])],
   },
   win: {
     icon: icoLogoPathResolved,
@@ -223,15 +221,19 @@ module.exports = {
         target: 'nsis',
         arch: ['x64'],
       },
-      {
-        target: 'zip',
-        arch: ['x64'],
-      },
+      ...(ifZipTargetEnable('win')
+        ? [
+            {
+              target: 'zip',
+              arch: ['x64'],
+            },
+          ]
+        : []),
     ],
   },
   linux: {
     icon: icnsLogoPathResolved,
-    target: ['rpm', 'appimage', 'zip'],
+    target: ['rpm', 'appimage', ...(ifZipTargetEnable('linux') ? ['zip'] : [])],
     executableName: 'Kungfu.app',
   },
   nsis: {

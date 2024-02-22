@@ -8,10 +8,11 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
+  dealSide,
   dealOffset,
   dealOrderStatus,
-  dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { WellFinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 export class OrderTable extends Table {
@@ -94,7 +95,9 @@ export class OrderTable extends Table {
           side,
           offset,
           order.limit_price,
-          `${order.volume - order.volume_left}/${order.volume}`,
+          `${dealKfDecimalPrecision(
+            order.volume - order.volume_left,
+          )}/${dealKfDecimalPrecision(order.volume)}`,
           orderStatus,
           last,
           order.latency_system,

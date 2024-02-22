@@ -52,10 +52,10 @@ public:
   }
 
   void pre_start(Context_ptr & context) override {
-    SPDLOG_INFO("preparing operator");
     try {
       nlohmann::json j_obj = nlohmann::json::parse(context->get_config());
       SPDLOG_INFO("preparing operator");
+      SPDLOG_INFO("j_obj: {}", j_obj.dump());
       std::string source = j_obj["source"];
       auto j_instruments = j_obj["instruments"];
       time_interval_ = j_obj["period"].get<int>() * kungfu::yijinjing::time_unit::NANOSECONDS_PER_SECOND;
@@ -73,18 +73,20 @@ public:
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("operator started"); }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("Quote: {}", quote.to_string());
     auto instrument_key = kungfu::wingchun::hash_instrument(quote.instrument_id, quote.exchange_id);
     auto pair = bars_.try_emplace(instrument_key);
     auto &bar = pair.first->second;
     if (pair.second) {
       bar.instrument_id = quote.instrument_id.to_string();
       bar.exchange_id = quote.exchange_id.to_string();
+      bar.instrument_type = quote.instrument_type;
       auto current_time = context->now();
       bar.start_time = current_time - current_time % time_interval_;
       bar.end_time = bar.start_time + time_interval_;
     }
-    if (quote.data_time >= bar.start_time && quote.data_time <= bar.end_time) {
+    if (context->now() >= bar.start_time && context->now() <= bar.end_time) {
       if (bar.tick_count == 0) {
         bar.high = quote.last_price;
         bar.low = quote.last_price;
@@ -98,15 +100,17 @@ public:
       bar.low = std::min(bar.low, quote.last_price);
       bar.close = quote.last_price;
     }
-    if (quote.data_time >= bar.end_time) {
+    if (context->now() >= bar.end_time) {
       context->publish_synthetic_data(fmt::format("{}_{}", bar.instrument_id, time_interval_),
                                       nlohmann::json(bar).dump());
+      SPDLOG_INFO("publish_synthetic_data {} {}", fmt::format("{}_{}", bar.instrument_id, time_interval_),
+                  nlohmann::json(bar).dump());
       bar.start_time = bar.end_time;
-      while (bar.start_time + time_interval_ < quote.data_time) {
+      while (bar.start_time + time_interval_ < context->now()) {
         bar.start_time += time_interval_;
       }
       bar.end_time = bar.start_time + time_interval_;
-      if (bar.start_time <= quote.data_time) {
+      if (bar.start_time <= context->now()) {
         bar.tick_count = 1;
         bar.start_volume = quote.volume;
         bar.volume = 0;

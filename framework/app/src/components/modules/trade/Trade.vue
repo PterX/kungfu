@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
-  dealKfPrice,
-  dealSide,
   dealOffset,
-  delayMilliSeconds,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -27,7 +26,8 @@ import {
   computed,
   getCurrentInstance,
   onBeforeUnmount,
-  onMounted,
+  onActivated,
+  onDeactivated,
   ref,
   toRaw,
   watch,
@@ -36,7 +36,7 @@ import { getColumns } from './config';
 import {
   dealTrade,
   getKungfuHistoryData,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
 import {
   showTradingDataDetail,
@@ -53,14 +53,23 @@ const { handleBodySizeChange } = useDashboardBodySize();
 const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.TradeResolved>(trades, [
-    'order_id',
-    'trade_id',
-    'instrument_id',
-    'exchange_id',
-    'source_uname',
-    'dest_uname',
-  ]);
+  useTableSearchKeyword<KungfuApi.TradeResolved>(
+    trades,
+    [
+      'order_id',
+      'trade_id',
+      'instrument_id',
+      'side',
+      'offset',
+      'exchange_id',
+      'source_uname',
+      'dest_uname',
+    ],
+    {
+      side: (item) => dealSide(Number(item)).name,
+      offset: (item) => dealOffset(Number(item)).name,
+    },
+  );
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 
@@ -74,13 +83,13 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
 
 const columns = computed(() => {
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',
         group: '*',
         name: '*',
-        mode: 'live',
+        mode: '*',
       },
       !!historyDate.value,
     );
@@ -89,54 +98,53 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-onMounted(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (historyDate.value) {
-          return;
-        }
+onActivated(() => {
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
+    (watcher: KungfuApi.Watcher) => {
+      if (historyDate.value) {
+        return;
+      }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+      if (!currentGlobalKfLocation.value) return;
 
-        const tradesResolved =
-          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-            watcher,
-            currentGlobalKfLocation.value,
-            watcher.ledger.Trade,
-            'trade',
-          ) as KungfuApi.Trade[];
+      const tradesResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          watcher,
+          currentGlobalKfLocation.value,
+          watcher.ledger.Trade,
+          'trade',
+        ) as KungfuApi.Trade[];
 
-        const tempAllTrades = toRaw(
-          tradesResolved.map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-              0.001,
-            );
+      const tempAllTrades = toRaw(
+        tradesResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+          );
 
-            return toRaw(
-              dealTrade(
-                watcher,
-                item,
-                watcher.ledger.OrderStat,
-                false,
-                price_precision,
-              ),
-            );
-          }),
-        );
-        allTrades.value = tempAllTrades;
-        trades.value = tempAllTrades.slice(0, 2000);
-      },
-    );
+          return toRaw(
+            dealTrade(
+              watcher,
+              item,
+              watcher.ledger.OrderStat,
+              false,
+              price_precision,
+            ),
+          );
+        }),
+      );
+      allTrades.value = tempAllTrades;
+      trades.value = tempAllTrades.slice(0, 2000);
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 watch(currentGlobalKfLocation, () => {
@@ -150,9 +158,7 @@ watch(historyDate, async (newDate) => {
     return;
   }
 
-  if (currentGlobalKfLocation.value === null) {
-    return;
-  }
+  if (!currentGlobalKfLocation.value) return;
 
   trades.value = [];
   allTrades.value = [];
@@ -160,6 +166,7 @@ watch(historyDate, async (newDate) => {
   delayMilliSeconds(500)
     .then(() =>
       getKungfuHistoryData(
+        window.watcher,
         newDate.format(),
         HistoryDateEnum.naturalDate,
         'Trade',
@@ -184,7 +191,6 @@ watch(historyDate, async (newDate) => {
           const { price_precision } = getPriceTickAndPrecision(
             item.instrument_id,
             item.exchange_id,
-            0.001,
           );
 
           return toRaw(
@@ -220,7 +226,7 @@ function handleShowTradingDataDetail({
   event: MouseEvent;
   row: KungfuApi.TradingDataItem;
 }) {
-  showTradingDataDetail(row as KungfuApi.TradeResolved, '成交');
+  showTradingDataDetail(row, '成交');
 }
 </script>
 <template>
@@ -300,9 +306,6 @@ function handleShowTradingDataDetail({
             <span :class="`color-${dealOffset(item.offset).color}`">
               {{ dealOffset(item.offset).name }}
             </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'price'">
-            {{ dealKfPrice(item.price, item.price_precision) }}
           </template>
           <template v-else-if="column.dataIndex === 'source_uname'">
             <span :class="[`color-${item.source_resolved_data.color}`]">

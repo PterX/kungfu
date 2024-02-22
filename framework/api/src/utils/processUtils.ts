@@ -6,37 +6,63 @@ import { Proc, ProcessDescription, StartOptions } from 'pm2';
 import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
 import find from 'find-process';
+import { ensureFileSync } from 'fs-extra';
 
 import {
-  kfLogger,
-  dealSpaceInPath,
-  setTimerPromiseTask,
-  flattenExtensionModuleDirs,
-  getProcessIdByKfLocation,
   getIfProcessRunning,
   getIfProcessDeleted,
-  delayMilliSeconds,
   isTdMdOperatorStrategy,
   deleteNNFiles,
+  removeDBIfNeed,
+  removeJournalIfNeed,
 } from '../utils/busiUtils';
+import {
+  flattenExtensionModuleDirs,
+  getKfExtOriginConfigsByType,
+} from '../utils/extUtils';
+import {
+  setTimerPromiseTask,
+  getProcessIdByKfLocation,
+  findSoAndPydFiles,
+  dealSpaceInPath,
+  delayMilliSeconds,
+} from '../utils/commonUtils';
+import { kfLogger } from '../utils/logUtils';
 import {
   buildProcessLogPath,
   EXTENSION_DIRS,
   KFC_DIR,
+  KF_CONFIG_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
+  buildRuntimeChildDirByType,
 } from '../config/pathConfig';
+
 import { getKfGlobalSettingsValue } from '../config/globalSettings';
+import { KfModeTypes } from '../typings/enums';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 import { Observable } from 'rxjs';
+import {
+  booleanProcessEnv,
+  ifKfDev,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  buildMasterLocation,
+  buildLedgerLocation,
+  buildMasterProcessId,
+  buildLedgerProcessId,
+  buildDzxyProcessId,
+} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
+import { getAppRuntimeDirName } from './fileUtils';
+import { getKfCommission } from '../kungfu/commission';
+import { buildArchiveProcessId } from './systemUtils';
 const { t } = VueI18n.global;
 
 process.env.PM2_HOME = path.resolve(os.homedir(), '.pm2');
-const numCPUs = os.cpus() ? os.cpus().length : 1;
 const isWin = os.platform() === 'win32';
-const isLinux = os.platform() === 'linux';
 const locale = getUserLocale().replace(/-/g, '_');
 
 interface FindProcessResult {
@@ -45,15 +71,17 @@ interface FindProcessResult {
   uid?: number;
   gid?: number;
   name: string;
+  bin?: string;
   cmd?: string;
   username?: string;
 }
 
 export const findProcessByKeyword = (
-  processName: string,
+  processName: string | RegExp,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
   const userid = os.userInfo().uid;
-  return find('name', processName, true).then((processList) => {
+  return find('name', processName, strict).then((processList) => {
     return processList.filter((item) => {
       return item.uid ? item.uid == userid : true;
     });
@@ -61,16 +89,20 @@ export const findProcessByKeyword = (
 };
 
 export const findProcessByKeywordsByFindProcess = (
-  tasks: string[],
+  tasks: Array<string | RegExp>,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
-  return Promise.all(tasks.map((key) => findProcessByKeyword(key))).then(
-    (results) => {
-      return results.reduce((pre, processList) => {
-        pre = [...pre, ...processList];
-        return pre;
-      }, []);
-    },
-  );
+  return Promise.all(
+    tasks.map((key) => findProcessByKeyword(key, strict)),
+  ).then((results) => {
+    return results.reduce((pre, processList) => {
+      const prePids = pre.map((p) => p.pid);
+      processList.forEach((process) => {
+        if (!prePids.includes(process.pid)) pre.push(process);
+      });
+      return pre;
+    }, []);
+  });
 };
 
 /***
@@ -79,7 +111,7 @@ export const findProcessByKeywordsByFindProcess = (
  *  ***/
 
 // export const findProcessByKeywordsByTaskList = (
-//   tasks: string[],
+//   tasks: Array<string | RegExp>,
 // ): Promise<FindProcessResult[]> => {
 //   const username = os.userInfo().username;
 //   const tasklist = require('tasklist');
@@ -98,81 +130,173 @@ export const findProcessByKeywordsByFindProcess = (
 // };
 
 export const findProcessByKeywords = (
-  tasks: string[],
+  tasks: Array<string | RegExp>,
+  strict = true,
 ): Promise<FindProcessResult[]> => {
-  return findProcessByKeywordsByFindProcess(tasks);
+  return findProcessByKeywordsByFindProcess(tasks, strict);
 };
 
-export const forceKill = (tasks: string[]): Promise<void> => {
-  return findProcessByKeywords(tasks).then((processList) => {
+export const forceKill = (pids: number[]) => {
+  return fkill(pids, {
+    force: true,
+    tree: isWin ? true : false,
+    ignoreCase: true,
+    silent: process.env.NODE_ENV === 'development' ? true : false,
+  }).catch((err) => {
+    kfLogger.warn((<Error>err).message);
+  });
+};
+export const forceKillByKeyWords = (
+  tasks: Array<string | RegExp>,
+  strict = true,
+): Promise<void> => {
+  return findProcessByKeywords(tasks, strict).then((processList) => {
     const pids = processList.map((item) => item.pid);
 
-    kfLogger.info('Target to force kill processList ', processList);
-    return fkill(pids, {
-      force: true,
-      tree: isWin ? true : false,
-      ignoreCase: true,
-      silent: process.env.NODE_ENV === 'development' ? true : false,
-    }).catch((err) => {
-      kfLogger.warn((<Error>err).message);
-    });
+    kfLogger.info(
+      `Target to force kill processList about [${tasks.join(', ')}]: `,
+      JSON.stringify(processList),
+    );
+    return forceKill(pids);
   });
 };
 
 const kfcName = isWin ? 'kfc.exe' : 'kfc';
+const appDirName = getAppRuntimeDirName();
+const appDirNameRegExp = new RegExp(appDirName, 'i');
 
-export const killKfc = (): Promise<void> =>
-  new Promise((resolve) => {
-    forceKill([kfcName]).finally(() => resolve());
-  });
-
-export const killKungfu = () => {
-  if (isLinux) {
-    return forceKill(['kungfu']);
-  }
-
-  return Promise.resolve(true);
+const isCurrentProcess = (pro: FindProcessResult) => {
+  return pro.pid === process.pid;
 };
 
-export const killExtra = () => forceKill([kfcName, 'pm2']);
+const isAppProcess = (pro: FindProcessResult) => {
+  if (process.env.APP_TYPE === 'main') {
+    if (pro.ppid === process.pid) return false;
 
-export function KillAll(): Promise<void> {
-  //不需要加killdaemon
+    return (
+      pro.name.match(appDirNameRegExp) ||
+      appDirName.match(new RegExp(pro.name, 'i'))
+    );
+  }
+
+  return false;
+};
+
+const isProcessBelongsToCurrentApp = (pro: FindProcessResult) => {
+  if (pro.bin && pro.bin.match(appDirNameRegExp)) return true;
+
+  if (pro.cmd) {
+    const cmds = pro.cmd.trim().split(' ');
+    const bin = cmds[0];
+    if (bin.match(appDirNameRegExp)) return true;
+  }
+
+  return false;
+};
+
+export const killKfc = (byCurrentApp = false): Promise<void> => {
+  const isKfDev = ifKfDev();
   return new Promise((resolve) => {
-    pm2Kill()
-      .catch((err) => kfLogger.error(err))
+    findProcessByKeywords([kfcName], false)
+      .then((processList) => {
+        const processes = processList.filter((item) => {
+          if (isCurrentProcess(item)) return false;
+          if (isKfDev) return true;
+          if (byCurrentApp) return isProcessBelongsToCurrentApp(item);
+          return true;
+        });
+        const pids = processes.map((item) => item.pid);
+
+        kfLogger.info(
+          `Target to force kill processList about [${kfcName}]: `,
+          JSON.stringify(processes),
+        );
+        return forceKill(pids);
+      })
+      .catch((err) => {
+        kfLogger.error(err);
+      })
       .finally(() => {
-        killKfc()
-          .catch((err) => kfLogger.error(err))
-          .finally(() => {
-            killKungfu()
-              .catch((err) => kfLogger.error(err))
-              .finally(() => {
-                killExtra()
-                  .catch((err) => kfLogger.error(err))
-                  .finally(() => {
-                    deleteNNFiles()
-                      .catch((err) => kfLogger.error(err))
-                      .finally(() => {
-                        resolve();
-                      });
-                  });
-              });
-          });
+        resolve();
       });
   });
-}
+};
+
+export const killKungfuApp = (): Promise<void> => {
+  return new Promise((resolve) => {
+    findProcessByKeywords([appDirNameRegExp], false)
+      .then((processList) => {
+        const processes = processList.filter((item) => {
+          if (isCurrentProcess(item)) return false;
+          return isAppProcess(item);
+        });
+        const pids = processes.map((item) => item.pid);
+
+        kfLogger.info(
+          `Target to force kill processList about [${appDirName}]: `,
+          JSON.stringify(processes),
+        );
+        return forceKill(pids);
+      })
+      .catch((err) => {
+        kfLogger.error(err);
+      })
+      .finally(() => {
+        resolve();
+      });
+  });
+};
+
+export const killPm2 = (): Promise<void> => {
+  return new Promise((resolve) => {
+    findProcessByKeywords(['pm2'], false)
+      .then((processList) => {
+        const pids = processList
+          // for win pm2 daemon
+          // TODO: except every kungfu client has own pm2 daemon
+          //
+          // .filter((item) => {
+          //   if (item.cmd) {
+          //     const cmds = item.cmd.trim().split(' ');
+          //     const opt = cmds.slice(1).join();
+          //     if (opt.includes(appDirName) && opt.includes('pm2')) return true;
+          //   }
+          //
+          //   return false;
+          // })
+          //
+          // but now, have to kill the all global daemons
+          .map((item) => item.pid);
+
+        kfLogger.info(
+          `Target to force kill processList about [pm2]: `,
+          JSON.stringify(processList),
+        );
+        return forceKill(pids);
+      })
+      .catch((err) => {
+        kfLogger.error(err);
+      })
+      .finally(() => {
+        resolve();
+      });
+  });
+};
+
+export const killExtra = (withApp: boolean, withPm2 = true, withKfc = true) => {
+  const promises: Array<Promise<void>> = [];
+  if (withApp) promises.push(killKungfuApp());
+  if (withPm2) promises.push(killPm2());
+  if (withKfc) promises.push(killKfc());
+
+  if (promises.length) {
+    return Promise.all(promises);
+  }
+
+  return Promise.resolve();
+};
 
 //===================== pm2 start =======================
-
-export type Pm2ProcessStatusTypes =
-  | 'online'
-  | 'stopping'
-  | 'stopped'
-  | 'launching'
-  | 'errored'
-  | 'waiting restart'
-  | 'one-launch-status';
 
 export type Pm2ProcessStatusData = Record<
   string,
@@ -191,6 +315,10 @@ export interface Pm2ProcessStatusDetail {
   cwd: Pm2Env['pm_cwd'];
   config_settings: string;
   args: string[];
+}
+
+export interface Pm2ProcessStatusDetailResolved extends Pm2ProcessStatusDetail {
+  name_resolved?: string;
 }
 
 export type Pm2ProcessStatusDetailData = Record<string, Pm2ProcessStatusDetail>;
@@ -398,6 +526,26 @@ export function pm2LaunchBus(cb: (err: Error, pm2_bus: Pm2Bus) => void) {
   pm2.launchBus(cb);
 }
 
+type KfcEnvOptType<T> =
+  | T
+  | {
+      value: T;
+      prefix?: 'ENV' | 'ARG';
+    };
+
+export interface KfcEnvs {
+  verifyLocation?: KfcEnvOptType<boolean>;
+  logFrame?: KfcEnvOptType<boolean>;
+  bypassCached?: KfcEnvOptType<boolean>;
+  bypassAccounting?: KfcEnvOptType<boolean>;
+  bypassRefreshBook?: KfcEnvOptType<boolean>;
+  bypassSyncAsset?: KfcEnvOptType<boolean>;
+  bypassSyncPosition?: KfcEnvOptType<boolean>;
+  keepPage?: KfcEnvOptType<boolean>;
+  preload?: KfcEnvOptType<boolean>;
+  maxPreCreateSize?: KfcEnvOptType<number>;
+}
+
 export const startProcess = async (
   options: Pm2StartOptions,
 ): Promise<Proc | void> => {
@@ -405,9 +553,17 @@ export const startProcess = async (
   options = await (globalThis.HookKeeper as KfHookKeeper)
     .getHooks()
     .resolveStartOptions.trigger(
-      { category: '*', group: '*', name: '*' } as KungfuApi.DerivedKfLocation,
+      {
+        category: '*',
+        group: '*',
+        name: '*',
+        mode: '*',
+      } as KungfuApi.DerivedKfLocation,
       options,
     );
+
+  const filePath = buildProcessLogPath(options.name);
+  ensureFileSync(filePath);
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
     args: options.args, //有问题吗？
@@ -419,7 +575,7 @@ export const startProcess = async (
     merge_logs: true,
     log_date_format: 'YYYY-MM-DD HH:mm:ss',
     autorestart: options.autorestart || false,
-    max_restarts: options.max_restarts || 1,
+    max_restarts: options.max_restarts || (options.autorestart ? 1 : 0),
     min_uptime: 3600000, //该时间段内最大启动次数max_restarts, 如果超过则不重启, 如果没超过, 则一直重启
     restart_delay: 1000,
     watch: options.watch || false,
@@ -433,8 +589,10 @@ export const startProcess = async (
         .join(path.delimiter),
       KFC_DIR: process.env.KFC_DIR || '',
       CLI_DIR: process.env.CLI_DIR || '',
+      IS_KF_DEV: ifKfDev() ? 'true' : '',
       KF_HOME: dealSpaceInPath(KF_HOME),
       KF_RUNTIME_DIR: dealSpaceInPath(KF_RUNTIME_DIR),
+      KF_CONFIG_DIR: dealSpaceInPath(KF_CONFIG_DIR),
       LANG: `${locale}.UTF-8`,
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf8',
@@ -448,6 +606,7 @@ export const startProcess = async (
       UI_EXT_TYPE: '',
       BY_PASS_ACCOUNTING: '',
       BY_PASS_TRADINGDATA: '',
+      BY_PASS_REFRESHBOOK: '',
       BY_PASS_RESTORE: '',
     },
   };
@@ -652,10 +811,78 @@ function buildProcessStatus(pList: ProcessDescription[]): Pm2ProcessStatusData {
   }, {} as Pm2ProcessStatusData);
 }
 
-function getRocketParams(args: string, ifRocket: boolean) {
+async function getBacktestArgs(isEnableMatcher: boolean) {
+  const extOriginConfigs = await getKfExtOriginConfigsByType();
+  let matcherPath = '';
+  let indexerPath = '';
+
+  if (extOriginConfigs) {
+    const { matcher, indexer } = extOriginConfigs;
+
+    if (indexer) {
+      for (const key of Object.keys(indexer)) {
+        if (indexer[key]['useFor']?.includes('replay')) {
+          const files = await findSoAndPydFiles(indexer[key].extPath);
+          if (files.length > 0) {
+            indexerPath = files[0];
+            break;
+          }
+        }
+      }
+    }
+
+    if (matcher) {
+      for (const key of Object.keys(matcher)) {
+        if (matcher[key].extPath) {
+          const files = await findSoAndPydFiles(matcher[key].extPath);
+          if (files.length > 0) {
+            matcherPath = files[0];
+            break;
+          }
+        }
+      }
+    }
+  }
+  if (!isEnableMatcher) {
+    kfLogger.warn('matcher is not enable');
+  }
+
+  return isEnableMatcher
+    ? `-M '${matcherPath}' --from_indexer '${indexerPath}'`
+    : '';
+}
+
+async function getBackTestConfigPath(group: string, name: string) {
+  const cwd = dealSpaceInPath(
+    path.join(buildRuntimeChildDirByType('resources'), 'strategy', group, name),
+  );
+
+  await fse.ensureDir(cwd);
+
+  if (globalThis.watcher) {
+    const instruments = globalThis.watcher.ledger.Instrument.list();
+    const commissions = await getKfCommission(globalThis.watcher);
+
+    const backtestConfigJson = {
+      Commission: {
+        default: commissions || [],
+      },
+      Instrument: {
+        default: instruments || [],
+      },
+    };
+
+    const backtestConfigPath = path.join(cwd, 'backtest_config.json');
+    await fse.writeJson(backtestConfigPath, backtestConfigJson);
+    return backtestConfigPath;
+  }
+  return '';
+}
+
+function buildRocketParams(args: string, ifRocket: boolean) {
   let rocket = ifRocket ? '-x' : '';
 
-  if (numCPUs <= 4) {
+  if (!booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE)) {
     rocket = '';
   }
 
@@ -670,12 +897,97 @@ function getRocketParams(args: string, ifRocket: boolean) {
   return rocket;
 }
 
-function buildArgs(args: string): string {
+function buildKfcEnv(env: KfcEnvs) {
+  return Object.keys(env)
+    .map((key) => {
+      const opt = env[key as keyof KfcEnvs];
+      if (!opt) return null;
+
+      const isOptObj = typeof opt === 'object';
+      const value = isOptObj ? opt.value : opt;
+      const isValueBool = typeof value === 'boolean';
+      const defaultPrefix = isValueBool ? 'ENV' : 'ARG';
+      const prefix = isOptObj ? opt.prefix || defaultPrefix : defaultPrefix;
+
+      const valueResolved = isValueBool ? '' : ` ${value}`;
+      const keyResolved = key.replaceAll(
+        /(?<!^)[A-Z]/g,
+        (s) => '-' + s.toLowerCase(),
+      );
+      return `-${prefix}-${keyResolved}${valueResolved}`;
+    })
+    .filter((i) => !!i)
+    .join(' ');
+}
+
+function buildKfcArgs(options: {
+  prefix?: string;
+  logLevel?: string;
+  extensionDirs?: string;
+  location?: KungfuApi.KfLocation;
+  extraArgs?: string;
+  args?: string;
+  suffix?: string;
+  env?: KfcEnvs;
+}): string {
   const globalSetting = getKfGlobalSettingsValue();
-  const logLevel: string = globalSetting?.system?.logLevel ?? '';
+  const logLevel: string =
+    options.logLevel || (globalSetting?.system?.logLevel ?? '');
   const ifRocket = globalSetting?.performance?.rocket ?? false;
-  const rocket = getRocketParams(args, ifRocket);
-  return [logLevel, args, rocket].join(' ');
+  const verifyLocation = globalSetting?.system?.verifyLocation ?? false;
+  const logFrame = globalSetting?.system?.logFrame ?? false;
+
+  const fullArgsArray: string[] = [
+    buildKfcEnv({
+      verifyLocation,
+    }),
+  ];
+
+  if (options.prefix) {
+    fullArgsArray.push(options.prefix);
+  }
+
+  if (logLevel) {
+    fullArgsArray.push(logLevel);
+  }
+  if (options.extensionDirs) {
+    fullArgsArray.push(`-X ${options.extensionDirs}`);
+  }
+
+  if (options.location) {
+    const locationArgs = `run -c ${options.location.category} -g ${options.location.group} -n ${options.location.name} -m ${options.location.mode}`;
+    fullArgsArray.push(locationArgs);
+  }
+  if (options.extraArgs) {
+    fullArgsArray.push(options.extraArgs);
+  }
+
+  if (options.args) {
+    fullArgsArray.push(`-a '${options.args}'`);
+  }
+
+  if (options.suffix) {
+    fullArgsArray.push(options.suffix);
+  }
+
+  fullArgsArray.push(
+    buildKfcEnv({
+      logFrame,
+    }),
+  );
+
+  if (options.env) {
+    fullArgsArray.push(
+      buildKfcEnv({
+        logFrame,
+      }),
+      buildKfcEnv(options.env),
+    );
+  }
+
+  const fullArgs = fullArgsArray.join(' ');
+  const rocket = buildRocketParams(fullArgs, ifRocket);
+  return [fullArgs, rocket].join(' ');
 }
 
 //循环获取processStatus
@@ -698,12 +1010,20 @@ function startGetProcessStatusByName(
 
 //================ business related start ===============
 
-export async function isAllMainProcessRunning() {
+export async function isAllMainProcessRunning(onlyMaster = false) {
   const { processStatus } = await listProcessStatus();
+  kfLogger.info('isAllMainProcessRunning', processStatus);
+
+  const masterProcessId = buildMasterProcessId();
+  const ledgerProcessId = buildLedgerProcessId();
+
+  if (onlyMaster) {
+    return getIfProcessRunning(processStatus, masterProcessId);
+  }
 
   return (
-    getIfProcessRunning(processStatus, 'master') &&
-    getIfProcessRunning(processStatus, 'ledger')
+    getIfProcessRunning(processStatus, masterProcessId) &&
+    getIfProcessRunning(processStatus, ledgerProcessId)
   );
 }
 
@@ -711,25 +1031,41 @@ export function startArchiveMakeTask(
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
 ) {
   const globalSetting = getKfGlobalSettingsValue();
+  const ProcessId = buildArchiveProcessId();
   const bypassArchive = globalSetting?.system?.bypassArchive ?? false;
+  const bypassArchiveDev = globalSetting?.system?.bypassArchiveDev ?? false;
+
+  if (bypassArchiveDev) {
+    cb?.('online');
+    return delayMilliSeconds(2000).then(() => {
+      cb?.('stopped');
+      kfLogger.info('Completely pass the archive for dev');
+    });
+  }
+
   return startProcessGetStatusUntilStop(
     {
-      name: 'archive',
-      args: buildArgs(`journal archive ${bypassArchive ? '-m delete' : ''}`),
+      name: ProcessId,
+      args: buildKfcArgs({
+        extraArgs: `journal archive ${bypassArchive ? '-m delete' : ''}`,
+      }),
     },
     cb,
   );
 }
 
 export const startMaster = async (force = false): Promise<void> => {
-  const processName = 'master';
+  const location = buildMasterLocation();
+  const ProcessId = getProcessIdByKfLocation(location);
 
   try {
-    await preStartProcess(processName, force);
+    await preStartProcess(ProcessId, force);
     if (force) await killKfc();
-    const args = buildArgs('run -c system -g master -n master');
+    const args = buildKfcArgs({
+      location,
+    });
     await startProcess({
-      name: processName,
+      name: ProcessId,
       args,
       force,
       env: {
@@ -742,16 +1078,51 @@ export const startMaster = async (force = false): Promise<void> => {
 };
 
 //启动ledger
-export const startLedger = async (force = false): Promise<void> => {
-  const processName = 'ledger';
-
+export const startLedger = async (
+  force = false,
+  mode: KfModeTypes = 'live',
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
+): Promise<void> => {
+  const isReplay = mode === 'replay';
+  let args = '';
+  const location = buildLedgerLocation(mode);
+  const ProcessId = getProcessIdByKfLocation(location);
   try {
-    await preStartProcess(processName, force);
-    const args = buildArgs('run -c system -g service -n ledger');
+    !isReplay ? await preStartProcess(ProcessId, force) : '';
+    const globalSetting = getKfGlobalSettingsValue();
+    const bypassRefreshBook =
+      booleanProcessEnv(process.env.BY_PASS_REFRESHBOOK) ??
+      globalSetting?.performance?.bypassRefreshBook ??
+      false;
+    const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;
+
+    if (isReplay && replayConfig) {
+      args = buildKfcArgs({
+        logLevel: replayConfig.log_level,
+        location,
+        suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+        env: {
+          bypassRefreshBook,
+        },
+      });
+    } else {
+      args = buildKfcArgs({
+        location,
+        env: {
+          bypassRefreshBook,
+        },
+      });
+    }
+
     await startProcess({
-      name: processName,
+      name: ProcessId,
       args,
       force,
+      env: skipSyncPosition
+        ? {
+            KF_SKIP_SYNC_POSITION: 'true',
+          }
+        : {},
     });
   } catch (err: unknown) {
     kfLogger.error((<Error>err).message);
@@ -759,10 +1130,10 @@ export const startLedger = async (force = false): Promise<void> => {
 };
 
 async function preStartProcess(
-  processName: string,
+  processId: string,
   force = false,
 ): Promise<void> {
-  const processOrError = await pm2Describe(processName);
+  const processOrError = await pm2Describe(processId);
   if (processOrError instanceof Error) {
     kfLogger.error(processOrError.message);
     throw processOrError;
@@ -773,7 +1144,7 @@ async function preStartProcess(
   ).length;
 
   if (!force && isProcessAlive) {
-    const err = new Error(`kungfu ${processName} is alive`);
+    const err = new Error(`kungfu ${processId} is alive`);
     kfLogger.error(err);
     return Promise.reject(err);
   }
@@ -783,24 +1154,35 @@ async function preStartProcess(
 
 //启动md
 export const startMd = async (
-  sourceId: string,
   kfConfig: KungfuApi.DerivedKfLocation,
 ): Promise<Proc | void> => {
+  const processId = getProcessIdByKfLocation(kfConfig);
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
-  const args = buildArgs(
-    `-X "${extDirs
+  const args = buildKfcArgs({
+    extensionDirs: `"${extDirs
       .map((dir) => dealSpaceInPath(path.dirname(dir)))
-      .join(path.delimiter)}" run -c md -g "${sourceId}" -n "${sourceId}"`,
-  );
+      .join(path.delimiter)}"`,
+    location: {
+      category: 'md',
+      group: `"${kfConfig.group}"`,
+      name: `"${kfConfig.name}"`,
+      mode: 'live',
+    },
+  });
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'md', sourceId, sourceId),
+    path.join(
+      buildRuntimeChildDirByType('resources'),
+      'md',
+      kfConfig.group,
+      kfConfig.name,
+    ),
   );
   await fse.ensureDir(cwd);
   const options =
     await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
       kfConfig,
       {
-        name: `md_${sourceId}`,
+        name: processId,
         cwd,
         script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
         args,
@@ -819,19 +1201,52 @@ export const startMd = async (
 export const startTd = async (
   accountId: string,
   kfConfig: KungfuApi.DerivedKfLocation,
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const mode = kfConfig.mode || 'live';
   const globalSetting = getKfGlobalSettingsValue();
-  const autorestart = globalSetting?.system?.autoRestartTd ?? true;
+  let autorestart = globalSetting?.system?.autoRestartTd ?? true;
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const { source, id } = (accountId || '').parseSourceAccountId();
-  const args = buildArgs(
-    `-X "${extDirs
-      .map((dir) => dealSpaceInPath(path.dirname(dir)))
-      .join(path.delimiter)}" run -c td -g "${source}" -n "${id}"`,
+  let args = '';
+  let fullProcessId = '';
+
+  const cwd = dealSpaceInPath(
+    path.join(buildRuntimeChildDirByType('resources'), 'td', source, id),
   );
-  const cwd = dealSpaceInPath(path.join(KF_RUNTIME_DIR, 'td', source, id));
   await fse.ensureDir(cwd);
-  const fullProcessId = `td_${accountId}`;
+
+  if (mode === 'replay' && replayConfig) {
+    autorestart = false;
+    const location = {
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    };
+    args = buildKfcArgs({
+      logLevel: replayConfig.log_level,
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      location,
+      suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+    });
+    fullProcessId = getProcessIdByKfLocation(location);
+  } else {
+    args = buildKfcArgs({
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      location: {
+        category: 'td',
+        group: `"${kfConfig.group}"`,
+        name: `"${kfConfig.name}"`,
+        mode: mode,
+      },
+    });
+    fullProcessId = getProcessIdByKfLocation(kfConfig);
+  }
   const options =
     await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
       kfConfig,
@@ -860,23 +1275,72 @@ export const startTask = async (
   soPath: string,
   args: string,
   configSettings: KungfuApi.KfConfigItem[],
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const mode = taskLocation.mode || 'live';
+  const isReplay = mode === 'replay' || mode === 'backtest';
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
-  const argsResolved: string = buildArgs(
-    `-X "${extDirs
-      .map((dir) => dealSpaceInPath(path.dirname(dir)))
-      .join(path.delimiter)}" run -c strategy -g "${taskLocation.group}" -n "${
-      taskLocation.name
-    }" '${soPath}' -a '${args}'`, // args is a JSON string
-  );
+  let argsResolved = '';
+  const processId = getProcessIdByKfLocation({
+    category: taskLocation.category,
+    group: taskLocation.group,
+    name: taskLocation.name,
+    mode,
+  });
+
+  if (isReplay && replayConfig) {
+    let backtestArgs = '';
+    let backtestConfigPath = '';
+    if (mode === 'backtest') {
+      backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
+      if (backtestArgs) {
+        backtestConfigPath = await getBackTestConfigPath(
+          replayConfig.group,
+          replayConfig.session_name,
+        );
+      }
+    }
+
+    argsResolved = buildKfcArgs({
+      logLevel: replayConfig.log_level,
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      location: {
+        category: 'strategy',
+        group: `"${taskLocation.group}"`,
+        name: `"${taskLocation.name}"`,
+        mode: mode,
+      },
+      args: `${args}`,
+      extraArgs: `${
+        backtestConfigPath ? `-B '${backtestConfigPath}'` : ''
+      } '${soPath}'`,
+      suffix: `${backtestArgs} -b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+    });
+  } else {
+    argsResolved = buildKfcArgs({
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      location: {
+        category: 'strategy',
+        group: `"${taskLocation.group}"`,
+        name: `"${taskLocation.name}"`,
+        mode: 'live',
+      },
+      args: `${args}`,
+      extraArgs: `'${soPath}'`,
+    });
+  }
 
   return startProcess({
-    name: getProcessIdByKfLocation(taskLocation),
+    name: processId,
     args: argsResolved,
     env: {
       CONFIG_SETTING: JSON.stringify(configSettings),
     },
-    force: true,
+    force: !isReplay,
   }).catch((err) => {
     kfLogger.error(err);
   });
@@ -884,19 +1348,54 @@ export const startTask = async (
 
 export const startOperatorByExt = async (
   kfConfig: KungfuApi.DerivedKfLocation,
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ) => {
+  const mode = kfConfig.mode || 'live';
+  const isReplay = mode === 'replay';
+  let args = '';
+  let fullProcessId = '';
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const { group, name } = kfConfig;
-  const args = buildArgs(
-    `-X "${extDirs
-      .map((dir) => dealSpaceInPath(path.dirname(dir)))
-      .join(path.delimiter)}" run -c operator -g "${group}" -n "${name}"`,
-  );
+
   const cwd = dealSpaceInPath(
-    path.join(KF_RUNTIME_DIR, 'operator', group, name),
+    path.join(buildRuntimeChildDirByType('resources'), 'operator', group, name),
   );
   await fse.ensureDir(cwd);
-  const fullProcessId = `operator_${group}_${name}`;
+  if (isReplay && replayConfig) {
+    args = buildKfcArgs({
+      logLevel: replayConfig.log_level,
+      location: {
+        category: 'operator',
+        group: `"${group}"`,
+        name: `"${name}"`,
+        mode: mode,
+      },
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+      suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
+    });
+
+    fullProcessId = getProcessIdByKfLocation({
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    });
+  } else {
+    args = buildKfcArgs({
+      location: {
+        category: 'operator',
+        group: `"${group}"`,
+        name: `"${name}"`,
+        mode: mode,
+      },
+      extensionDirs: `"${extDirs
+        .map((dir) => dealSpaceInPath(path.dirname(dir)))
+        .join(path.delimiter)}"`,
+    });
+    fullProcessId = getProcessIdByKfLocation(kfConfig);
+  }
   const options =
     await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
       kfConfig,
@@ -915,23 +1414,15 @@ export const startOperatorByExt = async (
 };
 
 export const startStrategyOperatorByLocalPython = async (
-  category: 'strategy' | 'operator',
-  name: string,
+  KfLocation: KungfuApi.KfLocation,
   filePath: string,
   pythonPath: string,
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
-  const baseArgs = [
-    'run',
-    '-c',
-    category,
-    '-g',
-    'default',
-    '-n',
-    name,
-    `'${filePath}'`,
-  ].join(' ');
-  const baseArgsResolved = buildArgs(baseArgs);
-  const args = ['-m', 'kungfu', baseArgsResolved].join(' ');
+  const mode = KfLocation.mode || 'live';
+  const isReplay = mode === 'replay' || mode === 'backtest';
+  let args = '';
+  let fullProcessId = '';
 
   if (!pythonPath.trim()) {
     return Promise.reject(new Error('No local python path!'));
@@ -945,8 +1436,51 @@ export const startStrategyOperatorByLocalPython = async (
     .slice(fullPythonPathList.length - 1)
     .join('/');
 
+  if (isReplay && replayConfig) {
+    let backtestArgs = '';
+    let backtestConfigPath = '';
+    if (mode === 'backtest') {
+      backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
+      if (backtestArgs) {
+        backtestConfigPath = await getBackTestConfigPath(
+          replayConfig.group,
+          replayConfig.session_name,
+        );
+      }
+    }
+
+    args = buildKfcArgs({
+      prefix: '-m kungfu',
+      logLevel: replayConfig.log_level,
+      location: {
+        category: replayConfig.category,
+        group: replayConfig.group,
+        name: replayConfig.session_name,
+        mode: mode,
+      },
+      suffix: `${backtestConfigPath ? `-B '${backtestConfigPath}'` : ''} '${
+        replayConfig.file_path
+      }' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${
+        replayConfig.end_time
+      }'`,
+    });
+    fullProcessId = getProcessIdByKfLocation({
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    });
+  } else {
+    args = buildKfcArgs({
+      prefix: '-m kungfu',
+      location: KfLocation,
+      suffix: `'${filePath}'`,
+    });
+    fullProcessId = getProcessIdByKfLocation(KfLocation);
+  }
+
   return startProcess({
-    name: `${category}_${name}`,
+    name: fullProcessId,
     args,
     cwd: `${dealSpaceInPath(pythonFolder)}`,
     script: `${pythonFile}`,
@@ -958,40 +1492,104 @@ export const startStrategyOperatorByLocalPython = async (
 
 //启动strategy
 export const startStrategyOperator = async (
-  category: 'strategy' | 'operator',
-  id: string,
+  kfLocation: KungfuApi.KfLocation,
   filePath: string,
+  replayConfig?: KungfuApi.ReplayConfigOrigin,
 ): Promise<Proc | void> => {
+  const { category, mode } = kfLocation;
+  const processId = getProcessIdByKfLocation(kfLocation);
+  const isReplay = mode === 'replay' || mode === 'backtest';
   filePath = dealSpaceInPath(filePath);
   const globalSetting = getKfGlobalSettingsValue();
   const ifLocalPython = globalSetting?.strategy?.python ?? false;
   const pythonPath = globalSetting?.strategy?.pythonPath ?? '';
-  const strategyOperatorIdResolved = `${category}_${id}`;
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    const { processStatus } = await listProcessStatus();
-    if (!getIfProcessDeleted(processStatus, strategyOperatorIdResolved)) {
-      kfLogger.info(`Clear existed ${category} ${strategyOperatorIdResolved}`);
-      await deleteProcess(strategyOperatorIdResolved);
+    if (!isReplay) {
+      const { processStatus } = await listProcessStatus();
+      if (!getIfProcessDeleted(processStatus, processId)) {
+        kfLogger.info(`Clear existed ${category} ${processId}`);
+        await deleteProcess(processId);
+      }
     }
   } catch (err) {
     kfLogger.warn(err);
   }
 
+  if (isReplay && replayConfig) {
+    if (
+      replayConfig.category === 'operator' &&
+      replayConfig.group !== 'default'
+    ) {
+      return startOperatorByExt(
+        {
+          category: replayConfig.category,
+          group: replayConfig.group,
+          name: replayConfig.session_name,
+          mode: mode,
+        },
+        replayConfig,
+      );
+    }
+    const processId = getProcessIdByKfLocation({
+      category: replayConfig.category,
+      group: replayConfig.group,
+      name: replayConfig.session_name,
+      mode: mode,
+    });
+    if (ifLocalPython && replayConfig.file_path.endsWith('.py')) {
+      return startStrategyOperatorByLocalPython(
+        kfLocation,
+        filePath,
+        pythonPath,
+        replayConfig,
+      );
+    } else {
+      let backtestArgs = '';
+      let backtestConfigPath = '';
+      if (mode === 'backtest') {
+        backtestArgs = await getBacktestArgs(replayConfig.enable_matcher);
+        if (backtestArgs) {
+          backtestConfigPath = await getBackTestConfigPath(
+            replayConfig.group,
+            replayConfig.session_name,
+          );
+        }
+      }
+      const args = buildKfcArgs({
+        logLevel: replayConfig.log_level,
+        location: {
+          category: replayConfig.category,
+          group: replayConfig.group,
+          name: replayConfig.session_name,
+          mode: mode,
+        },
+        suffix: `${backtestConfigPath ? `-B '${backtestConfigPath}'` : ''} '${
+          replayConfig.file_path
+        }' ${backtestArgs} -b '${replayConfig.begin_time}' -e '${
+          replayConfig.end_time
+        }'`,
+      });
+      return startProcess({
+        name: processId,
+        args,
+        force: true,
+      }).catch((err) => {
+        kfLogger.error(err);
+      });
+    }
+  }
+
   if (ifLocalPython && filePath.endsWith('.py')) {
-    return startStrategyOperatorByLocalPython(
-      category,
-      id,
-      filePath,
-      pythonPath,
-    );
+    return startStrategyOperatorByLocalPython(kfLocation, filePath, pythonPath);
   } else {
-    const args = buildArgs(
-      `run -c ${category} -g default -n '${id}' '${filePath}'`,
-    );
+    const args = buildKfcArgs({
+      location: kfLocation,
+      suffix: `'${filePath}'`,
+    });
     return startProcess({
-      name: strategyOperatorIdResolved,
+      name: processId,
       args,
       force: true,
     }).catch((err) => {
@@ -1001,8 +1599,10 @@ export const startStrategyOperator = async (
 };
 
 export const startDzxy = () => {
+  const ProcessId = buildDzxyProcessId();
+
   return startProcess({
-    name: 'dzxy',
+    name: ProcessId,
     args: '',
     cwd: process.env.CLI_DIR,
     script: 'dzxy.js',
@@ -1018,20 +1618,60 @@ export const startDzxy = () => {
   });
 };
 
-export const startExtDaemon = (name: string, cwd: string, script: string) => {
-  return startProcess({
-    name,
-    args: '',
-    cwd,
-    script,
-    interpreter: path.join(KFC_DIR, kfcName),
-    force: true,
-    watch: process.env.NODE_ENV === 'production' ? false : true,
-    env: {
-      KFC_AS_VARIANT: 'node',
-    },
-    kill_timeout: 500,
-  }).catch((err) => {
+export const startExtService = async (
+  location: KungfuApi.KfExtServiceLocation,
+) => {
+  const { name, cwd, script } = location;
+  const processId = getProcessIdByKfLocation(location);
+
+  const getExtServicePm2Options = async (): Promise<Pm2StartOptions> => {
+    if (script.endsWith('.js')) {
+      return {
+        name: processId,
+        args: '',
+        cwd,
+        script,
+        interpreter: path.join(KFC_DIR, kfcName),
+        force: true,
+        watch: process.env.NODE_ENV === 'production' ? false : true,
+        env: {
+          KFC_AS_VARIANT: 'node',
+        },
+        kill_timeout: 500,
+      };
+    } else {
+      const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
+      const args = buildKfcArgs({
+        extensionDirs: `"${
+          cwd ||
+          extDirs
+            .map((dir) => dealSpaceInPath(path.dirname(dir)))
+            .join(path.delimiter)
+        }"`,
+        location: {
+          category: 'system',
+          group: 'service',
+          name: `"${name}"`,
+          mode: 'live',
+        },
+      });
+      return {
+        name: processId,
+        cwd,
+        script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
+        args,
+        force: true,
+      };
+    }
+  };
+
+  let options = await getExtServicePm2Options();
+  options = await globalThis.HookKeeper.getHooks().resolveStartOptions.trigger(
+    location,
+    options,
+  );
+
+  return startProcess(options).catch((err) => {
     kfLogger.error(err);
   });
 };
@@ -1040,7 +1680,9 @@ export const startCustomProcess = (
   targetName: string,
   params: string,
 ): Promise<Proc | void> => {
-  const args = buildArgs(`${targetName} ${params}`);
+  const args = buildKfcArgs({
+    extraArgs: `${targetName} ${params}`,
+  });
   return startProcess({
     name: targetName,
     args,
@@ -1088,5 +1730,53 @@ export const processStatusDataObservable = () => {
     );
   });
 };
+
+export const initClean = async (withApp: boolean, withPm2: boolean) => {
+  try {
+    // have to be killExtra, otherwise main process starting takes too long
+    await killExtra(withApp, withPm2);
+    await deleteNNFiles();
+    await removeDBIfNeed();
+    await removeJournalIfNeed();
+  } catch (err) {
+    kfLogger.error('initClean error: ', err);
+  }
+};
+
+function promiseWithTimeout<T>(
+  promise: Promise<T | T[]>,
+  ms = 15000,
+): Promise<T | T[]> {
+  return Promise.race([
+    promise,
+    new Promise<T | T[]>((_, reject) => {
+      setTimeout(() => {
+        reject(`${promise} Timed out in ${ms}ms.`);
+      }, ms);
+    }),
+  ]);
+}
+
+export function quitClean(): Promise<void> {
+  //不需要加kill daemon
+  return new Promise((resolve) => {
+    //防止pm2 kill失败, 导致kungfu无法退出
+    promiseWithTimeout(pm2Kill())
+      .catch((err) => kfLogger.error('quitClean pm2Kill error: ', err))
+      .finally(() => {
+        killExtra(false)
+          .catch((err) => kfLogger.error('quitClean killExtra error: ', err))
+          .finally(() => {
+            delayMilliSeconds(1000).then(() => {
+              deleteNNFiles()
+                .catch((err) => kfLogger.error(err))
+                .finally(() => {
+                  resolve();
+                });
+            });
+          });
+      });
+  });
+}
 
 //================ business related end =================

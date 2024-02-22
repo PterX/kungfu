@@ -6,7 +6,6 @@
 #include <kungfu/yijinjing/journal/common.h>
 
 namespace kungfu::yijinjing::journal {
-
 /**
  * Basic memory unit,
  * holds header / data / errorMsg (if needs)
@@ -32,6 +31,8 @@ struct frame : event {
 
   [[nodiscard]] uint32_t source() const override { return header_->source; }
 
+  [[nodiscard]] uint32_t initial_source() const override { return header_->initial_source; }
+
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
   [[nodiscard]] const void *data_address() const override {
@@ -42,9 +43,21 @@ struct frame : event {
     return reinterpret_cast<char *>(address() + header_length());
   }
 
-  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes()); }
+  [[nodiscard]] std::vector<uint8_t> data_as_byte_array() const override {
+    return {data_as_bytes(), data_as_bytes() + data_length()};
+  }
 
-  [[nodiscard]] std::string to_string() const override { return std::string(reinterpret_cast<char *>(address())); }
+  [[nodiscard]] std::string data_as_string() const override { return std::string{data_as_bytes(), data_length()}; }
+
+  [[nodiscard]] std::string to_string() const override { return std::string{reinterpret_cast<char *>(address())}; }
+
+  [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
+
+  [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
+
+  [[nodiscard]] uint64_t frame_uid() const override { return header_->frame_uid; }
+
+  [[nodiscard]] uint64_t trigger_frame_uid() const override { return header_->trigger_frame_uid; }
 
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
@@ -53,8 +66,6 @@ struct frame : event {
   }
 
 private:
-  /** address with type,
-   * will keep moving forward until change page */
   longfist::types::frame_header *header_ = nullptr;
 
   frame() = default;
@@ -73,16 +84,46 @@ private:
 
   void set_msg_type(int32_t msg_type) { header_->msg_type = msg_type; }
 
+  void set_data_type(longfist::enums::FrameDataType data_type) { header_->data_type = data_type; }
+
   void set_source(uint32_t source) { header_->source = source; }
+
+  void set_initial_source(uint32_t initial_source) { header_->initial_source = initial_source; }
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
 
-  void copy(frame &source) { memcpy(header_, source.header_, source.frame_length()); }
+  void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
+
+  void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
+
+  void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
+
+  friend struct cloned_frame;
 
   friend class journal;
 
   friend class writer;
-};
-} // namespace kungfu::yijinjing::journal
 
+  friend class replay_writer;
+};
+
+struct cloned_frame : frame {
+  cloned_frame() : frame() {}
+
+  ~cloned_frame() override { free(header_); };
+
+  void copy(frame &from) {
+    header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(from.frame_length()));
+    memset(header_, 0, from.frame_length());
+    memcpy(header_, from.header_, from.frame_length());
+  }
+
+  void open(uint32_t data_length) {
+    auto frame_length = sizeof(longfist::types::frame_header) + data_length;
+    header_ = reinterpret_cast<longfist::types::frame_header *>(malloc(frame_length));
+    memset(header_, 0, frame_length);
+  }
+};
+
+} // namespace kungfu::yijinjing::journal
 #endif // KUNGFU_YIJINJING_FRAME_H

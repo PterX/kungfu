@@ -1,5 +1,6 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { buildTableColumnSorterWithStrike } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -15,6 +16,7 @@ const buildStrSorter =
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
+  lastPriceSorter: (a: KungfuApi.Position, b: KungfuApi.Position) => number,
 ): KfTradingDataTableHeaderConfig[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'position')
@@ -26,7 +28,7 @@ export const getColumns = (
         sorter: buildStrSorter('instrument_id_resolved'),
         width: 140,
       },
-      ...(isTdStrategyCategory(kfLocation.category)
+      ...(isTd(kfLocation.category)
         ? []
         : [
             {
@@ -45,9 +47,34 @@ export const getColumns = (
       },
       {
         type: 'number',
+        name: t('posGlobalConfig.static_yesterday'),
+        dataIndex: 'static_yesterday',
+        flex: 1,
+        align: 'right',
+        sorter: buildSorter('static_yesterday'),
+      },
+      {
+        type: 'number',
+        name: t('posGlobalConfig.open_volume'),
+        dataIndex: 'open_volume',
+        flex: 1,
+        align: 'right',
+        sorter: buildSorter('open_volume'),
+      },
+      {
+        type: 'number',
+        name: t('posGlobalConfig.close_volume'),
+        dataIndex: 'close_volume',
+        flex: 1,
+        align: 'right',
+        sorter: buildSorter('close_volume'),
+      },
+      {
+        type: 'number',
         name: t('posGlobalConfig.yesterday_volume'),
         dataIndex: 'yesterday_volume',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('yesterday_volume'),
       },
       {
@@ -55,6 +82,7 @@ export const getColumns = (
         name: t('posGlobalConfig.today_volume'),
         dataIndex: 'today_volume',
         flex: 1,
+        align: 'right',
         sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
           const deltaA = a.volume - a.yesterday_volume;
           const deltaB = b.volume - b.yesterday_volume;
@@ -66,6 +94,7 @@ export const getColumns = (
         name: t('posGlobalConfig.sum_volume'),
         dataIndex: 'volume',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('volume'),
       },
       {
@@ -73,6 +102,7 @@ export const getColumns = (
         name: t('posGlobalConfig.frozen_volume'),
         dataIndex: 'frozen_total',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('frozen_total'),
       },
       {
@@ -80,28 +110,38 @@ export const getColumns = (
         name: t('posGlobalConfig.closable_volume'),
         dataIndex: 'closable_volume',
         flex: 1,
+        align: 'right',
         sorter: buildSorter('closable_volume'),
       },
 
       {
         type: 'number',
         name: t('posGlobalConfig.avg_open_price'),
-        dataIndex: 'avg_open_price',
+        dataIndex: 'avg_open_price_resolved',
         flex: 1.2,
-        sorter: buildSorter('avg_open_price'),
+        align: 'right',
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
+          'num',
+          'avg_open_price_resolved',
+        ),
       },
       {
         type: 'number',
         name: t('posGlobalConfig.last_price'),
-        dataIndex: 'last_price',
+        dataIndex: 'last_price_resolved',
         flex: 1.5,
-        sorter: buildSorter('last_price'),
+        align: 'right',
+        sorter: lastPriceSorter,
       },
       {
         type: 'number',
         name: t('posGlobalConfig.unrealized_pnl'),
-        dataIndex: 'unrealized_pnl',
+        dataIndex: 'unrealized_pnl_resolved',
         flex: 1.5,
-        sorter: buildSorter('unrealized_pnl'),
+        align: 'right',
+        sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
+          'num',
+          'unrealized_pnl_resolved',
+        ),
       },
     ]);

@@ -4,14 +4,13 @@
   "version": "3.0.0-alpha.0",
   "description": "KungFu Operator 101 - Python Demo",
   "license": "Apache-2.0",
-  "private": true,
   "kungfuConfig": {
     "key": "KungfuOperator101Python"
   },
   "scripts": {
-    "clean": "kfs  operator clean",
-    "build": "kfs operator build",
-    "package": "kfs operator package",
+    "clean": "kfs  extension clean",
+    "build": "kfs extension build",
+    "package": "kfs extension package",
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "devDependencies": {

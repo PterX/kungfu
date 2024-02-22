@@ -1,3 +1,5 @@
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/strategy.h>
@@ -7,6 +9,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun::strategy;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing;
 int i = 0;
 KUNGFU_MAIN_STRATEGY(KungfuStrategy101) {
 public:
@@ -16,46 +19,24 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
+
     context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});
-    // context->subscribe_operator("bar", "my-bar");
+    context->subscribe("xtp", {"600009"}, {"SSE"});
   }
 
-  void post_start(Context_ptr & context) override {
-    SPDLOG_INFO("strategy started");
-    // auto &runtime = dynamic_cast<RuntimeContext &>(*context);
-    // auto &bookkeeper = runtime.get_bookkeeper();
-    // auto &books = bookkeeper.get_books();
-    // for (const auto &pair : books) {
-    //   auto &book = pair.second;
-    //   SPDLOG_INFO("book asset: {}", book->asset.to_string());
-    // }
-    auto l_ptr = location::make_shared(mode::LIVE, category::MD, "sim", "sim", std::make_shared<locator>());
-    kungfu::yijinjing::journal::assemble asb(l_ptr, location::PUBLIC, AssembleMode::All);
-    auto headers = asb.read_headers(Location{});
-    for (const auto &head : headers) {
-      SPDLOG_INFO("head: {}", head.to_string());
-    }
-    kungfu::yijinjing::journal::assemble asb2(l_ptr, location::PUBLIC, AssembleMode::All);
-    auto locations = asb2.read_bytes<Location>();
-    SPDLOG_INFO("locations.length: {}", locations.size());
-    for (const auto &loc : locations) {
-      SPDLOG_INFO("locaton byte: {}", std::string(loc.second.begin(), loc.second.end()));
-    }
-    kungfu::yijinjing::journal::assemble asb3(l_ptr, location::PUBLIC, AssembleMode::All);
-    auto l3 = asb3.read_all<Location>();
-    SPDLOG_INFO("locations.length: {}", l3.size());
-    for (const auto &loc : l3) {
-      SPDLOG_INFO("l3 : {}", loc.to_string());
-    }
-  }
+  void post_start(Context_ptr & context) override { SPDLOG_INFO("strategy started"); }
 
-  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location) override {
+  void on_quote(Context_ptr & context, const Quote &quote, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
   }
 
-  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location)
-      override {
+  void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("on tree: {}", tree.to_string());
+  }
+
+  void on_synthetic_data(Context_ptr & context, const SyntheticData &synthetic_data, const location_ptr &location,
+                         uint32_t dest) override {
     SPDLOG_INFO("on_synthetic_data: {} ", synthetic_data.to_string());
   }
 
@@ -69,14 +50,11 @@ public:
     SPDLOG_INFO("on operator state changed: {}", operator_state_update.to_string());
   };
 
-  void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location) override {
-    SPDLOG_INFO("on tree: {}", tree.to_string());
-  }
-
   void on_custom_data(Context_ptr & context, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
-                      const kungfu::yijinjing::data::location_ptr &location) override {
+                      const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
     SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
     SPDLOG_WARN("on_custom_data length: {}", length);
+    SPDLOG_WARN("now_in_nano: {}", time::strftime(time::now_in_nano()));
   }
 };

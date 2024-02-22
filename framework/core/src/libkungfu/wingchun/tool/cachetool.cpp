@@ -22,18 +22,18 @@ int64_t CacheTool::parse_time(const std::string &time_string) {
   return time_stamp;
 }
 
-CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, std::string start_time,
+CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, std::string begin_time,
                      std::string end_time, locator_ptr locator, bool overwrite)
-    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(parse_time(start_time)),
+    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(parse_time(begin_time)),
       end_time_(parse_time(end_time)), last_gen_time_(begin_time_), last_read_gen_time_(begin_time_),
       locator_(std::move(locator)) {
   init(overwrite);
 }
 
-CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, int64_t start_time,
+CacheTool::CacheTool(longfist::enums::category c, std::string group, std::string name, int64_t begin_time,
                      int64_t end_time, locator_ptr locator, bool overwrite)
-    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(start_time), end_time_(end_time),
-      last_gen_time_(start_time), last_read_gen_time_(end_time), locator_(std::move(locator)) {
+    : category_(c), group_(std::move(group)), name_(std::move(name)), begin_time_(begin_time), end_time_(end_time),
+      last_gen_time_(begin_time), last_read_gen_time_(end_time), locator_(std::move(locator)) {
   init(overwrite);
 }
 
@@ -72,7 +72,7 @@ bool CacheTool::data_available() const { return reader_->data_available(); }
 
 void CacheTool::init(bool overwrite) {
   if (end_time_ < begin_time_ or begin_time_ < 0) {
-    throw wingchun_error(fmt::format("invalid time interval: start_time={} later than end_time={}",
+    throw wingchun_error(fmt::format("invalid time interval: begin_time={} later than end_time={}",
                                      time::strftime(begin_time_), time::strftime(end_time_)));
   }
   uint32_t cache_uid = hash_backtest_cache(name_, begin_time_, end_time_);

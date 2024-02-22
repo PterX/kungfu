@@ -5,6 +5,8 @@ import { DealTradingTableHooks } from './dealTradingTableHook';
 import resolveExtConfigHook from './resolveExtConfigHook';
 import { PrefixHooks } from './prefixHooks';
 import { DealBoardsMapHook } from './dealBoardsMapHook';
+import { LifeCycleHook } from './lifeCycleHook';
+import { ProcessActionHook } from './processActionHook';
 export interface KfHooks {
   prestart: PreStartProcessHooks;
   resolveStartOptions: typeof resolveStartOptionsHook;
@@ -13,6 +15,8 @@ export interface KfHooks {
   resolveExtConfig: typeof resolveExtConfigHook;
   prefix: PrefixHooks;
   dealBoardsMap: DealBoardsMapHook;
+  lifeCycle: LifeCycleHook;
+  processAction: ProcessActionHook;
 }
 
 export class KfHookKeeper {
@@ -27,6 +31,8 @@ export class KfHookKeeper {
       resolveExtConfig: resolveExtConfigHook,
       prefix: new PrefixHooks(),
       dealBoardsMap: new DealBoardsMapHook(),
+      lifeCycle: new LifeCycleHook(),
+      processAction: new ProcessActionHook(),
     };
   }
 

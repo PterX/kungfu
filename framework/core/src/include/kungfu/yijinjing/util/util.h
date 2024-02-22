@@ -21,7 +21,17 @@ namespace kungfu::yijinjing::util {
  */
 uint32_t hash_32(const unsigned char *key, int32_t length, uint32_t seed = KUNGFU_HASH_SEED);
 
+uint64_t hash_64(const unsigned char *key, int32_t length, uint32_t seed = KUNGFU_HASH_SEED);
+
 uint32_t hash_str_32(const std::string &key, uint32_t seed = KUNGFU_HASH_SEED);
+
+uint64_t hash_str_64(const std::string &key, uint32_t seed = KUNGFU_HASH_SEED);
+
+std::string hash_string_32(const std::string &key, uint32_t seed = KUNGFU_HASH_SEED);
+
+std::string hash_string_64(const std::string &key, uint32_t seed = KUNGFU_HASH_SEED);
+
+std::string hash_string_128(const std::string &key, uint32_t seed = KUNGFU_HASH_SEED);
 
 void color_print(const std::string &level, const std::string &log);
 

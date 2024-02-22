@@ -5,12 +5,12 @@
 //
 
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
+#include <kungfu/yijinjing/util/rocks.h>
 #include <kungfu/yijinjing/util/util.h>
 
 using namespace kungfu::rx;
@@ -34,20 +34,25 @@ inline std::string encode(const io_device_ptr &io_device) {
 hero::hero(io_device_ptr io_device)
     : begin_time_(time::now_in_nano()), end_time_(INT64_MAX),
       master_home_location_(make_system_location("master", "master", io_device->get_locator())),
-      master_cmd_location_(make_system_location("master", encode(io_device), io_device->get_locator())),
+      master_cmd_location_(
+          make_system_location("master", encode(io_device), io_device->get_locator(), io_device->get_home()->seed)),
       ledger_home_location_(make_system_location("service", "ledger", io_device->get_locator())),
       io_device_(std::move(io_device)), now_(0), main_thread_id_(util::get_thread_id()) {
 
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
+  reader_ = io_device_->open_reader_to_subscribe();
+  ensure_master_rocksdb();
+  read_location_from_rocksdb();
   add_location(0, get_io_device()->get_live_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
-  for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
-    add_location(0, l);
+  if (get_home()->mode != mode::LIVE) {
+    for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
+      add_location(0, l);
+    }
   }
-  reader_ = io_device_->open_reader_to_subscribe();
 }
 
 hero::~hero() {
@@ -56,6 +61,8 @@ hero::~hero() {
   io_device_.reset();
   ensure_sqlite_shutdown();
   os::reset_hero_instance();
+  clear_rocksdb(&master_db_);
+  clear_rocksdb(&app_db_);
 }
 
 bool hero::is_usable() { return io_device_->is_usable(); }
@@ -280,7 +287,14 @@ bool hero::check_location_live(uint32_t source_id, uint32_t dest_id) const {
   return true;
 }
 
-void hero::add_location(int64_t, const location_ptr &location) { locations_.try_emplace(location->uid, location); }
+void hero::add_location(int64_t, const location_ptr &location) {
+  location_uid64s_.insert(std::to_string(location->uid64));
+  bool write_rocks = locations_.try_emplace(location->uid, location).second |
+                     location64s_.try_emplace(location->uid64, location).second;
+  if (write_rocks) {
+    write_location_to_rocksdb(location);
+  }
+}
 
 void hero::add_location(int64_t trigger_time, const Location &location) {
   add_location(trigger_time, data::location::make_shared(location, get_locator()));
@@ -497,6 +511,178 @@ void hero::cleanup_reader_disjoin() {
   }
   disjoin_uids_.clear();
   disjoin_channels_.clear();
+}
+
+rocksdb::DB *hero::get_master_rocksdb() const {
+  static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
+  SPDLOG_DEBUG("get_master_rocksdb from dir: {}", master_db_dir);
+  if (io_device_->is_lazy()) {
+    std::lock_guard<std::mutex> lk(master_db_mtx_);
+    clear_rocksdb(&master_db_);
+    rocksdb::Status status = rocks::open_db(master_db_dir, &master_db_, false);
+    if (not status.ok()) {
+      const std::string msg = fmt::format("OpenForReadOnly for {} failed, {}", master_db_dir, status.ToString());
+      SPDLOG_INFO(msg);
+      throw yijinjing_error(msg);
+    }
+  } else {
+    if (nullptr == master_db_) {
+      std::lock_guard<std::mutex> lk(master_db_mtx_);
+      if (nullptr != master_db_) {
+        return master_db_;
+      }
+      rocksdb::Status status = rocks::open_db(master_db_dir, &master_db_, true);
+      if (not status.ok()) {
+        const std::string msg = fmt::format("Open for {} failed, {}", master_db_dir, status.ToString());
+        SPDLOG_ERROR(msg);
+        throw yijinjing_error(msg);
+      }
+    }
+  }
+  return master_db_;
+}
+
+rocksdb::DB *hero::get_app_rocksdb() const {
+  if (not io_device_->is_lazy()) {
+    return get_master_rocksdb();
+  }
+  if (nullptr == app_db_) {
+    std::lock_guard<std::mutex> lk(app_db_mtx_);
+    if (nullptr != app_db_) {
+      return app_db_;
+    }
+    rocksdb::Status status = rocks::open_db(get_locator()->layout_dir(get_home(), layout::MAP), &app_db_, true);
+    if (not status.ok()) {
+      const std::string msg =
+          fmt::format("Open for {} failed, {}", get_locator()->layout_dir(get_home(), layout::MAP), status.ToString());
+      SPDLOG_ERROR(msg);
+      throw yijinjing_error(msg);
+    }
+  }
+  return app_db_;
+}
+
+std::string hero::get_master_kv(const std::string &key) const {
+  std::string value{};
+  rocksdb::Status status = rocks::get_kv(key, value, get_master_rocksdb());
+  if (not status.ok()) {
+    SPDLOG_DEBUG("get key:{} failed, {}", key, status.ToString());
+  }
+  return value;
+}
+
+void hero::put_master_kv(const std::string &key, const std::string &value) const {
+  if (io_device_->is_lazy()) {
+    return;
+  }
+  rocksdb::Status status = rocks::put_kv(key, value, get_master_rocksdb());
+  if (not status.ok()) {
+    SPDLOG_ERROR("put key:{} value: {}, failed, {}", key, value, status.ToString());
+  }
+}
+
+std::string hero::get_app_kv(const std::string &key) const {
+  std::string value{};
+  rocksdb::Status status = rocks::get_kv(key, value, get_app_rocksdb());
+  if (not status.ok()) {
+    SPDLOG_ERROR("get key:{} failed, {}", key, status.ToString());
+  }
+  return value;
+}
+
+void hero::put_app_kv(const std::string &key, const std::string &value) const {
+  rocksdb::Status status = rocks::put_kv(key, value, get_app_rocksdb());
+  if (not status.ok()) {
+    SPDLOG_ERROR("put key:{} value: {}, failed, {}", key, value, status.ToString());
+  }
+}
+
+void hero::ensure_master_rocksdb() const {
+  static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
+  try {
+    get_master_rocksdb();
+  } catch (const std::exception &e) {
+    SPDLOG_DEBUG("catch exception: {}", e.what());
+    std::lock_guard<std::mutex> lk(master_db_mtx_);
+    rocks::open_db(get_locator()->layout_dir(get_master_home_location(), layout::MAP), &master_db_, true);
+    clear_rocksdb(&master_db_);
+  }
+}
+
+std::map<std::string, std::string> hero::get_master_kvs(const std::set<std::string> &keys) const {
+  return rocks::get_kvs(keys, get_master_rocksdb());
+}
+
+std::map<std::string, std::string> hero::get_app_kvs(const std::set<std::string> &keys) const {
+  return rocks::get_kvs(keys, get_app_rocksdb());
+}
+
+void hero::put_master_kvs(const std::map<std::string, std::string> &kvs) const {
+  if (io_device_->is_lazy()) {
+    return;
+  }
+
+  rocksdb::Status status = rocks::put_kvs(kvs, get_master_rocksdb());
+  if (not status.ok()) {
+    SPDLOG_ERROR("Write failed, {}", status.ToString());
+  }
+}
+
+void hero::put_app_kvs(const std::map<std::string, std::string> &kvs) const {
+  rocksdb::Status status = rocks::put_kvs(kvs, get_app_rocksdb());
+  if (not status.ok()) {
+    SPDLOG_ERROR("Write failed, {}", status.ToString());
+  }
+}
+
+void hero::write_location_to_rocksdb(const location_ptr &location) {
+  if (io_device_->is_lazy()) {
+    return;
+  }
+
+  const std::string str_uid32 = std::to_string(location->uid);
+  const std::string str_uid64 = std::to_string(location->uid64);
+  location_uid64s_.insert(str_uid64);
+
+  nlohmann::json json_array;
+  for (const auto &uid : location_uid64s_) {
+    json_array.push_back(uid);
+  }
+  nlohmann::json json_obj;
+  json_obj[LOCATION_KEYS] = json_array;
+
+  rocksdb::WriteBatch batch;
+  batch.Put(str_uid32, location->uname);
+  batch.Put(location->uname, std::to_string(location->seed));
+  batch.Put(str_uid64, location->to_string());
+  batch.Put(LOCATION_KEYS, json_obj.dump());
+  rocks::put_kvs(batch, get_master_rocksdb());
+}
+
+void hero::read_location_from_rocksdb() {
+  std::string str_location_uid64s_json = get_master_kv(LOCATION_KEYS);
+  SPDLOG_DEBUG("str_location_uid64s_json: {}", str_location_uid64s_json);
+  if (str_location_uid64s_json.empty()) {
+    return;
+  }
+  auto location_uid64s_json = nlohmann::json::parse(str_location_uid64s_json);
+  if (location_uid64s_json.contains(LOCATION_KEYS) && location_uid64s_json[LOCATION_KEYS].is_array()) {
+    for (const std::string uid64 : location_uid64s_json[LOCATION_KEYS]) {
+      location_uid64s_.insert(uid64);
+    }
+    std::map<std::string, std::string> map_str_location64s_ = get_master_kvs(location_uid64s_);
+    for (const auto &pair : map_str_location64s_) {
+      const location_ptr location = location::make_shared(Location{pair.second}, get_locator());
+      SPDLOG_DEBUG("location: {}", location->to_string());
+      locations_.try_emplace(location->uid, location);
+      location64s_.try_emplace(location->uid64, location);
+    }
+  }
+}
+
+void hero::clear_rocksdb(rocksdb::DB **db) {
+  delete *db;
+  *db = nullptr;
 }
 
 } // namespace kungfu::yijinjing::practice

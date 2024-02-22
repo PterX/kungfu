@@ -13,6 +13,7 @@
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
+#include <kungfu/yijinjing/util/rocks.h>
 
 #ifndef KUNGFU_SETUP_LOG
 #define KUNGFU_SETUP_LOG() kungfu::yijinjing::log::copy_log_settings(get_home(), get_home()->name)
@@ -21,9 +22,10 @@
 namespace kungfu::yijinjing::practice {
 
 inline yijinjing::data::location_ptr make_system_location(const std::string &group, const std::string &name,
-                                                          const data::locator_ptr &locator) {
+                                                          const data::locator_ptr &locator,
+                                                          uint32_t seed = KUNGFU_HASH_SEED) {
   return yijinjing::data::location::make_shared(locator->get_dir_mode(), longfist::enums::category::SYSTEM, group, name,
-                                                locator);
+                                                locator, seed);
 }
 
 typedef std::unordered_map<uint32_t, yijinjing::journal::writer_ptr> WriterMap;
@@ -128,6 +130,32 @@ public:
 
   virtual bool is_reactable(const event_ptr &event);
 
+  void ensure_master_rocksdb() const;
+
+  rocksdb::DB *get_master_rocksdb() const;
+
+  rocksdb::DB *get_app_rocksdb() const;
+
+  std::string get_master_kv(const std::string &key) const;
+
+  std::map<std::string, std::string> get_master_kvs(const std::set<std::string> &keys) const;
+
+  void put_master_kv(const std::string &key, const std::string &value) const;
+
+  void put_master_kvs(const std::map<std::string, std::string> &kvs) const;
+
+  std::string get_app_kv(const std::string &key) const;
+
+  std::map<std::string, std::string> get_app_kvs(const std::set<std::string> &keys) const;
+
+  void put_app_kv(const std::string &key, const std::string &value) const;
+
+  void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
+
+  void write_location_to_rocksdb(const data::location_ptr &location);
+
+  void read_location_from_rocksdb();
+
   void request_deregister() {
     continual_ = false;
     live_ = false;
@@ -180,6 +208,7 @@ protected:
   WriterMap band_writers_ = {};
   mutable std::mutex band_mtx_{};
   const size_t main_thread_id_{};
+  std::set<std::string> location_uid64s_ = {};
 
   rx::connectable_observable<event_ptr> events_ = {};
 
@@ -237,10 +266,16 @@ private:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;
+  mutable rocksdb::DB *master_db_ = {};
+  mutable rocksdb::DB *app_db_ = {};
+  mutable std::mutex master_db_mtx_ = {};
+  mutable std::mutex app_db_mtx_ = {};
+  inline static std::string LOCATION_KEYS = "location_uid64";
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
   std::unordered_map<uint32_t, yijinjing::data::location_ptr> locations_ = {};
+  std::unordered_map<uint64_t, yijinjing::data::location_ptr> location64s_ = {};
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
   std::set<uint32_t> disjoin_uids_ = {};
   std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
@@ -269,6 +304,8 @@ private:
   }
 
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
+
+  static void clear_rocksdb(rocksdb::DB **db);
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_HERO_H

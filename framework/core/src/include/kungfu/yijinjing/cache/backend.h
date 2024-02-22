@@ -41,7 +41,8 @@ constexpr auto make_storage_ptr = [](const std::string &db_file, const auto &typ
                                        sqlite_orm::default_value(make_default<MemberType>()));
       });
       auto pk_members = boost::hana::transform(DataType::primary_keys, [&](auto pk) {
-        auto pk_member = boost::hana::find_if(data_accessors, hana::on(boost::hana::equal.to(pk), boost::hana::first));
+        auto pk_member =
+            boost::hana::find_if(data_accessors, hana::on(boost::hana::equal_t::to(pk), boost::hana::first));
         [[maybe_unused]] auto accessor = boost::hana::second(*pk_member);
         return member_pointer_trait<decltype(accessor)>().pointer();
       });

@@ -72,6 +72,8 @@ public:
 
   void set_begin_time(int64_t begin_time) { begin_time_ = begin_time; }
 
+  void update_seed(uint32_t seed);
+
 protected:
   data::location_ptr home_;
   data::location_ptr live_home_;

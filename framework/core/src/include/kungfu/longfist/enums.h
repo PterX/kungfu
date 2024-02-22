@@ -115,13 +115,14 @@ inline category get_category_by_name(const std::string &name) {
     return category::SYSTEM;
 }
 
-enum class layout : int8_t { JOURNAL, SQLITE, NANOMSG, LOG };
+enum class layout : int8_t { JOURNAL, SQLITE, NANOMSG, LOG, MAP };
 
 KF_JSON_SERIALIZE_ENUM(layout, {
                                    {layout::JOURNAL, "JOURNAL"},
                                    {layout::SQLITE, "SQLITE"},
                                    {layout::NANOMSG, "NANOMSG"},
                                    {layout::LOG, "LOG"},
+                                   {layout::MAP, "MAP"},
                                })
 
 inline std::string get_layout_name(layout l) {
@@ -132,6 +133,8 @@ inline std::string get_layout_name(layout l) {
     return "db";
   case layout::NANOMSG:
     return "nn";
+  case layout::MAP:
+    return "map";
   case layout::LOG:
   default:
     return "log";

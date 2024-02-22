@@ -107,7 +107,8 @@ void master::register_app(const event_ptr &event) {
 
   auto now = time::now_in_nano();
   auto uid_str = fmt::format("{:08x}", app_location->uid);
-  auto master_cmd_location = location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator);
+  auto master_cmd_location =
+      location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, home->locator, app_location->seed);
   SPDLOG_INFO("registering location {} uname {} uid {}, master_cmd_location {} uid {}", uid_str, app_location->uname,
               app_location->uid, master_cmd_location->uname, master_cmd_location->uid);
   try_add_location(event->gen_time(), master_cmd_location);
@@ -154,6 +155,7 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   }
 
   auto location = get_location(app_location_uid);
+  SPDLOG_DEBUG("location: {}", location->to_string());
   SPDLOG_INFO("app {} gone", location->uname);
   if (has_writer(app_location_uid)) {
     get_writer(app_location_uid)->mark(trigger_time, SessionEnd::tag);
@@ -164,7 +166,9 @@ void master::deregister_app(int64_t trigger_time, uint32_t app_location_uid) {
   disjoin(app_location_uid);
   writers_.erase(app_location_uid);
   timer_tasks_.erase(app_location_uid);
-  get_writer(location::PUBLIC)->write(trigger_time, location->to<Deregister>());
+  const Deregister deregister = location->to<Deregister>();
+  SPDLOG_DEBUG("Deregister: {}", deregister.to_string());
+  get_writer(location::PUBLIC)->write(trigger_time, deregister);
   cached_.close_session(location, time::now_in_nano());
 }
 

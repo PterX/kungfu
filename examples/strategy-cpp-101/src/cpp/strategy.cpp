@@ -1,3 +1,5 @@
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <kungfu/wingchun/extension.h>
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/strategy.h>
@@ -7,6 +9,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 using namespace kungfu::wingchun::strategy;
 using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing;
 int i = 0;
 KUNGFU_MAIN_STRATEGY(KungfuStrategy101) {
 public:
@@ -52,5 +55,6 @@ public:
     SPDLOG_WARN("on_custom_data msg_type: {}", msg_type);
     SPDLOG_WARN("on_custom_data data: {}", reinterpret_cast<const char *>(data.data()));
     SPDLOG_WARN("on_custom_data length: {}", length);
+    SPDLOG_WARN("now_in_nano: {}", time::strftime(time::now_in_nano()));
   }
 };

@@ -51,7 +51,7 @@ endif()
 ##########################################################################
 
 if (NOT DEFINED ENV{KUNGFU_BUILD_SKIP_LIBKUNGFU} OR NOT $ENV{KUNGFU_BUILD_SKIP_LIBKUNGFU})
-  message(STATUS "Enabled libkungfu")
+  message(STATUS "Enabled libkungfu")  
   add_subdirectory(src/libkungfu)
 endif()
 

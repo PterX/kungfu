@@ -198,6 +198,8 @@ void apprentice::on_register(int64_t trigger_time, const Register &register_data
 }
 
 void apprentice::on_deregister(const event_ptr &event) {
+  const auto &deregister = event->data<Deregister>();
+  SPDLOG_DEBUG("deregister: {}", deregister.to_string());
   uint32_t location_uid = event->data<Deregister>().location_uid;
   SPDLOG_DEBUG("deregister app {}", get_location_uname(location_uid));
   if (location_uid == get_live_home_uid()) {
@@ -287,12 +289,14 @@ void apprentice::checkin() {
   register_data.category = home->category;
   register_data.group = home->group;
   register_data.name = home->name;
+  register_data.seed = home->seed;
   register_data.location_uid = home->uid;
+  register_data.uid64 = home->uid64;
   register_data.pid = GETPID();
   register_data.checkin_time = now;
   register_data.last_active_time = now;
 
-  SPDLOG_INFO("app checkin");
+  SPDLOG_INFO("app checkin Register: {}", register_data.to_string());
 
   auto try_register = [&]() {
     return get_io_device()->get_publisher()->publish(

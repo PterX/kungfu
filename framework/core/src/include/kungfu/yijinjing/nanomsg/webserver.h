@@ -79,10 +79,6 @@ private:
   uint64_t stream_id_;
   void cancel();
   std::mutex mtx_;
-  std::thread asm_read_thread_;
-  kungfu::yijinjing::journal::assemble_ptr asm_read_ = nullptr;
-  void thread_read_data(kungfu::longfist::types::RequestRemoteData data);
-
 public:
   // the first vector is used for callback function receive data, the second vector is used for cache the data have
   // received when call get_data(), will return the
@@ -188,6 +184,7 @@ public:
   ~stream_manage();
   int publish(uint64_t stream_id, const std::string &msg);
   std::vector<std::string> &get_notice(uint64_t stream_id);
+  void clear_notice(uint64_t stream_id);
   stream_ptr get_stream_by_id(uint64_t stream_id);
   std::unordered_map<uint64_t, stream_ptr> &get_all_streams();
   void add_stream(nng_stream *s);

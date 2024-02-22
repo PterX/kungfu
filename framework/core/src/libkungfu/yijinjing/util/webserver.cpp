@@ -3,6 +3,7 @@
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/nanomsg/webserver.h>
+#include <kungfu/yijinjing/nanomsg/socket.h>
 #include <thread>
 
 using namespace kungfu::yijinjing::nanomsg;
@@ -49,24 +50,6 @@ void stream::start_recv() {
   SPDLOG_DEBUG("end start_recv");
 }
 
-void stream::thread_read_data(kungfu::longfist::types::RequestRemoteData request) {
-  if (!asm_read_) {
-    // location_ptr loc = std::make_shared<location>(,std::make_shared<remote_locator>());
-    asm_read_ =
-        std::make_shared<assemble>(std::make_shared<kungfu::yijinjing::data::locator>(), get_mode_name(request.mode),
-                                   get_category_name(request.category), request.group, request.name);
-  } else {
-    auto data_read = asm_read_->read_datas(request.type, request.query_num, time::now_in_nano());
-    for (auto data_pair : data_read) {
-      std::string data_str(data_pair.second.begin(), data_pair.second.end());
-      stream_send(data_str);
-    }
-    RemoteDataEnd end;
-    end.req_nums = asm_read_->get_num();
-    stream_send(end.to_string());
-    asm_read_->reset_num();
-  }
-}
 
 void stream::stream_recv_cb() {
   SPDLOG_DEBUG("stream_recv_cb");
@@ -76,34 +59,10 @@ void stream::stream_recv_cb() {
   switch (rv) {
   case 0: {
     {
-      // 处理数据，Request/cancelorder/insertorder
-      // 落盘？发送？ 多个cancel?
       std::string data((char *)rec_buffer_.data(), len);
-      // 1、如果是RequestRemote 则创建Assemble对象，然后发送数据
-      // 2、如果是Insert/CancelOrder或其他信号，则放进缓冲区，由drain处理
-      // 后续可以判断OrderAction即时处理相关信号
-      auto frame = std::make_shared<nanomsg_json>(data);
-      if (frame->msg_type() == kungfu::longfist::types::RequestRemoteData::tag) {
-        auto data_str = frame->data_as_string();
-        RequestRemoteData request_data(data_str.c_str(), data_str.length());
-        thread_read_data(request_data);
-        /*
-        //will be blocked in this function
-        auto f = std::async(std::launch::async, [&]{
-          //judge is remote_locator?
-          yijinjing::journal::assemble
-        asm_read(std::move(locator()),request_data.mode,request_data.category,request_data.group,request_data.name);})
-        */
-      }
-      /*
-      else if(frame->msg_type() == kungfu::longfist::types::OrderAction::tag){
-        get_writer()->write();
-      }
-      */
-      else {
-        std::lock_guard<std::mutex> lock(mtx_);
-        data_received_.emplace_back((char *)rec_buffer_.data(), len);
-      }
+      SPDLOG_DEBUG("recv data:{}",data);
+      std::lock_guard<std::mutex> lock(mtx_);
+      data_received_.emplace_back((char *)rec_buffer_.data(), len);
     }
     start_recv();
     break;
@@ -318,15 +277,22 @@ stream_manage::stream_manage() {}
 stream_manage::~stream_manage() {}
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
+  SPDLOG_DEBUG("publish msg:{}",msg);
   if (!streams_.contains(stream_id)) {
+    SPDLOG_DEBUG("publish failed");
     return -1;
   }
   streams_.at(stream_id)->stream_send(msg);
+  SPDLOG_DEBUG("publish success");
   return 0;
 }
 std::vector<std::string> &stream_manage::get_notice(uint64_t stream_id) {
   return streams_.find(stream_id)->second->data_received_;
 }
+void stream_manage::clear_notice(uint64_t stream_id){
+  streams_.find(stream_id)->second->data_received_.clear();
+}
+
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) { return streams_.find(stream_id)->second; }
 std::unordered_map<uint64_t, stream_ptr> &stream_manage::get_all_streams() { return streams_; }
 
@@ -335,7 +301,10 @@ void stream_manage::add_stream(nng_stream *s) {
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
 }
-void stream_manage::add_stream(stream_ptr s) { streams_.emplace(s->get_stream_id(), s); }
+void stream_manage::add_stream(stream_ptr s) {
+  SPDLOG_DEBUG("add_stream");
+  streams_.emplace(s->get_stream_id(), s);
+}
 
 /*
 webclient::webclient(const std::string &address, std::function<void(webclient &, const std::string &)> message,

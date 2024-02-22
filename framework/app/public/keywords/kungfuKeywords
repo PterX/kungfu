@@ -194,6 +194,7 @@ close_today_volume
 location_uid
 type
 resume_time
+query_num
 data_time
 turnover
 pre_open_interest

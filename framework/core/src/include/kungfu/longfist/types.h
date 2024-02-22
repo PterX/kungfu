@@ -637,7 +637,8 @@ KF_DEFINE_PACK_TYPE(                                                  //
     (uint32_t, type),        //
     (std::string, data),     //
     (uint64_t, resume_time), //
-    (uint64_t, query_num)    //
+    (uint64_t, query_num),    //
+    (uint64_t, stream_id)    //
 );
 KF_DEFINE_PACK_TYPE(                               //
     RemoteDataEnd, 308, PK(req_nums), PERPETUAL(), //

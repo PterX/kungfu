@@ -122,11 +122,11 @@ DECLARE_PTR(io_device_console)
 
 class io_device_network : public resource {
 public:
-  io_device_network(){stream_manager_ = std::make_shared<kungfu::yijinjing::webserver::stream_manage>();};
+  io_device_network() { stream_manager_ = std::make_shared<kungfu::yijinjing::webserver::stream_manage>(); };
   ~io_device_network(){};
   bool is_usable() { return true; };
   bool setup() { return true; };
-  kungfu::yijinjing::webserver::stream_manage_ptr get_stream_manager(){return stream_manager_;};
+  kungfu::yijinjing::webserver::stream_manage_ptr get_stream_manager() { return stream_manager_; };
   /*
   journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
   if (home_->mode != mode::REPLAY) {
@@ -148,11 +148,10 @@ public:
   io_device_network_server(const std::string &address, const std::vector<std::string> &paths)
       : http_server_(std::make_shared<kungfu::yijinjing::webserver::http_server>(address)) {
     for (auto path : paths) {
-      http_server_->add_websocket(stream_manager_,path, true);
+      http_server_->add_websocket(stream_manager_, path, true);
     }
   };
   ~io_device_network_server(){};
-
 
 private:
   kungfu::yijinjing::webserver::http_server_ptr http_server_;
@@ -164,12 +163,13 @@ class io_device_network_client : public io_device_network {
 public:
   io_device_network_client(){};
   ~io_device_network_client(){};
-  //TODO: how to stand return connect failed?
-  uint64_t connect_remote(const std::string& address){
-    auto client = std::make_shared<kungfu::yijinjing::webserver::webclient>(stream_manager_,address);
+  // TODO: how to stand return connect failed?
+  uint64_t connect_remote(const std::string &address) {
+    auto client = std::make_shared<kungfu::yijinjing::webserver::webclient>(stream_manager_, address);
     webclients_.emplace_back(client);
     return client->get_stream_id();
   };
+
 private:
   std::vector<kungfu::yijinjing::webserver::webclient_ptr> webclients_;
 };

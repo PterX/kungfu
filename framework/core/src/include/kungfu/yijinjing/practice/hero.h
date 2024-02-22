@@ -12,9 +12,8 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
-#include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/nanomsg/webserver.h>
-
+#include <kungfu/yijinjing/time.h>
 
 #ifndef KUNGFU_SETUP_LOG
 #define KUNGFU_SETUP_LOG() kungfu::yijinjing::log::copy_log_settings(get_home(), get_home()->name)
@@ -242,7 +241,6 @@ protected:
   virtual void on_frame() = 0;
 
   void on_frame_done();
-
 
 protected:
   virtual bool drain(const rx::subscriber<event_ptr> &sb);

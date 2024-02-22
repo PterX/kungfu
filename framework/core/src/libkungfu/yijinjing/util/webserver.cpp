@@ -1,8 +1,8 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/common.h>
-#include <kungfu/yijinjing/nanomsg/webserver.h>
-#include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/journal/assemble.h>
+#include <kungfu/yijinjing/nanomsg/socket.h>
+#include <kungfu/yijinjing/nanomsg/webserver.h>
 #include <thread>
 
 using namespace kungfu::yijinjing::nanomsg;
@@ -49,14 +49,15 @@ void stream::start_recv() {
   SPDLOG_DEBUG("end start_recv");
 }
 
-void stream::thread_read_data(kungfu::longfist::types::RequestRemoteData request){
-  if(!asm_read_){
-    //location_ptr loc = std::make_shared<location>(,std::make_shared<remote_locator>());
-    asm_read_ = std::make_shared<assemble>(std::make_shared<kungfu::yijinjing::data::locator>(),get_mode_name(request.mode),get_category_name(request.category),request.group,request.name);
-  }
-  else{
-    auto data_read = asm_read_->read_datas(request.type,request.query_num,time::now_in_nano());
-    for(auto data_pair:data_read){
+void stream::thread_read_data(kungfu::longfist::types::RequestRemoteData request) {
+  if (!asm_read_) {
+    // location_ptr loc = std::make_shared<location>(,std::make_shared<remote_locator>());
+    asm_read_ =
+        std::make_shared<assemble>(std::make_shared<kungfu::yijinjing::data::locator>(), get_mode_name(request.mode),
+                                   get_category_name(request.category), request.group, request.name);
+  } else {
+    auto data_read = asm_read_->read_datas(request.type, request.query_num, time::now_in_nano());
+    for (auto data_pair : data_read) {
       std::string data_str(data_pair.second.begin(), data_pair.second.end());
       stream_send(data_str);
     }
@@ -72,17 +73,17 @@ void stream::stream_recv_cb() {
   int rv = nng_aio_result(aio_recv_);
 
   auto len = nng_aio_count(aio_recv_);
-  switch (rv) { 
+  switch (rv) {
   case 0: {
     {
-      //处理数据，Request/cancelorder/insertorder
-      //落盘？发送？ 多个cancel?
+      // 处理数据，Request/cancelorder/insertorder
+      // 落盘？发送？ 多个cancel?
       std::string data((char *)rec_buffer_.data(), len);
       // 1、如果是RequestRemote 则创建Assemble对象，然后发送数据
       // 2、如果是Insert/CancelOrder或其他信号，则放进缓冲区，由drain处理
-      //后续可以判断OrderAction即时处理相关信号
+      // 后续可以判断OrderAction即时处理相关信号
       auto frame = std::make_shared<nanomsg_json>(data);
-      if(frame->msg_type() == kungfu::longfist::types::RequestRemoteData::tag){
+      if (frame->msg_type() == kungfu::longfist::types::RequestRemoteData::tag) {
         auto data_str = frame->data_as_string();
         RequestRemoteData request_data(data_str.c_str(), data_str.length());
         thread_read_data(request_data);
@@ -90,7 +91,8 @@ void stream::stream_recv_cb() {
         //will be blocked in this function
         auto f = std::async(std::launch::async, [&]{
           //judge is remote_locator?
-          yijinjing::journal::assemble asm_read(std::move(locator()),request_data.mode,request_data.category,request_data.group,request_data.name);})
+          yijinjing::journal::assemble
+        asm_read(std::move(locator()),request_data.mode,request_data.category,request_data.group,request_data.name);})
         */
       }
       /*
@@ -98,7 +100,7 @@ void stream::stream_recv_cb() {
         get_writer()->write();
       }
       */
-      else{
+      else {
         std::lock_guard<std::mutex> lock(mtx_);
         data_received_.emplace_back((char *)rec_buffer_.data(), len);
       }
@@ -138,10 +140,10 @@ void stream::cancel() {
   nng_aio_wait(aio_send_);
 }
 
-webserver::webserver(stream_manage_ptr stream_manager,const nng_url *base_url, const std::string &path, const bool is_text_mode,
-                     const size_t max_num_connections)
-    : stream_manager_(stream_manager),base_url_(base_url), path_(path), is_text_mode_(is_text_mode), max_num_connections_(max_num_connections),
-      num_connected_(0) {
+webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, const std::string &path,
+                     const bool is_text_mode, const size_t max_num_connections)
+    : stream_manager_(stream_manager), base_url_(base_url), path_(path), is_text_mode_(is_text_mode),
+      max_num_connections_(max_num_connections), num_connected_(0) {
   SPDLOG_DEBUG("webserver");
 
   int rv;
@@ -232,8 +234,10 @@ http_server::~http_server() {
   }
 }
 
-void http_server::add_websocket(stream_manage_ptr stream_manager,const std::string &path, bool is_text_mode, const size_t max_num_connections) {
-  auto websocket = std::shared_ptr<webserver>(new webserver(stream_manager, url_, path, is_text_mode, max_num_connections));
+void http_server::add_websocket(stream_manage_ptr stream_manager, const std::string &path, bool is_text_mode,
+                                const size_t max_num_connections) {
+  auto websocket =
+      std::shared_ptr<webserver>(new webserver(stream_manager, url_, path, is_text_mode, max_num_connections));
   const auto id = websockets_.empty() ? 1 : websockets_.rbegin()->first + 1;
   websockets_.emplace(std::make_pair(id, std::move(websocket)));
   return;
@@ -272,7 +276,8 @@ int http_server::port() {
   return ntohs(addr.s_in.sa_port);
 }
 
-webclient::webclient(stream_manage_ptr stream_manager, const std::string &address, std::function<void(webclient &, const std::string &)> message,
+webclient::webclient(stream_manage_ptr stream_manager, const std::string &address,
+                     std::function<void(webclient &, const std::string &)> message,
                      std::function<void(webclient &)> open, std::function<void(webclient &, const std::string &)> error,
                      std::function<void(webclient &)> close, const bool is_text_mode)
     : stream_manager_(stream_manager), on_message(message), on_open(open), on_error(error), on_close(close) {
@@ -301,16 +306,14 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
     fatal("dial", rv);
   }
   nng_stream *s = (nng_stream *)nng_aio_get_output(aio_dialer, 0);
-  auto temp_stream = std::make_shared<stream>(s,generate_stream_id(s));
+  auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   stream_ = temp_stream;
   stream_manager_->add_stream(temp_stream);
 }
 
-webclient::~webclient() {
-SPDLOG_DEBUG("~webclient");
-}
+webclient::~webclient() { SPDLOG_DEBUG("~webclient"); }
 
-uint64_t webclient::get_stream_id(){return stream_->get_stream_id();}
+uint64_t webclient::get_stream_id() { return stream_->get_stream_id(); }
 stream_manage::stream_manage() {}
 stream_manage::~stream_manage() {}
 
@@ -329,12 +332,10 @@ std::unordered_map<uint64_t, stream_ptr> &stream_manage::get_all_streams() { ret
 
 void stream_manage::add_stream(nng_stream *s) {
   SPDLOG_DEBUG("add_stream");
-  auto temp_stream = std::make_shared<stream>(s,generate_stream_id(s));
+  auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
 }
-void stream_manage::add_stream(stream_ptr s) {
-  streams_.emplace(s->get_stream_id(), s);
-}
+void stream_manage::add_stream(stream_ptr s) { streams_.emplace(s->get_stream_id(), s); }
 
 /*
 webclient::webclient(const std::string &address, std::function<void(webclient &, const std::string &)> message,

@@ -115,8 +115,8 @@ public:
 
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> read_bytes(int32_t msg_type,
                                                                                          int64_t end_time = INT64_MAX);
-  std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> read_datas(int32_t msg_type, uint64_t nums_to_read,
-                                                                                         int64_t end_time = INT64_MAX);
+  std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
+  read_datas(int32_t msg_type, uint64_t nums_to_read, int64_t end_time = INT64_MAX);
 
   template <typename T>
   [[maybe_unused]] std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>

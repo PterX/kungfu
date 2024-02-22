@@ -35,7 +35,7 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
         }
         for (auto dest_id : get_locator()->list_location_dest(target_location)) {
           auto uid_str = fmt::format("{:08x}", target_location->uid);
-          auto master_cmd_location =  
+          auto master_cmd_location =
               location::make_shared(mode::LIVE, category::SYSTEM, "master", uid_str, get_locator());
           if (dest_id == master_cmd_location->uid) {
             if (page::check_page_existed(target_location, dest_id)) {

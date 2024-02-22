@@ -626,22 +626,22 @@ KF_DEFINE_PACK_TYPE(                                                         //
     (int64_t, trigger_time)                                                  // 写入时间
 );
 
-KF_DEFINE_PACK_TYPE(                                                         //
+KF_DEFINE_PACK_TYPE(                                                  //
     RequestRemoteData, 307, PK(location_uid), TIMESTAMP(resume_time), //
-    (uint32_t, location_uid),                                 //
-    (enums::category, category),                              //
-    (enums::mode, mode),                                      //
-    (std::string, group),                                     //
-    (std::string, name),                                      //
+    (uint32_t, location_uid),                                         //
+    (enums::category, category),                                      //
+    (enums::mode, mode),                                              //
+    (std::string, group),                                             //
+    (std::string, name),                                              //
     //(enums::RemoteDataType, type),                          //
-    (uint32_t, type),                            //
-    (std::string, data),                                      //
-    (uint64_t, resume_time),                                  //
-    (uint64_t, query_num)                                      //
+    (uint32_t, type),        //
+    (std::string, data),     //
+    (uint64_t, resume_time), //
+    (uint64_t, query_num)    //
 );
-KF_DEFINE_PACK_TYPE(                                        //
-    RemoteDataEnd, 308, PK(req_nums), PERPETUAL(),          //
-    (uint32_t, req_nums)                                    //
+KF_DEFINE_PACK_TYPE(                               //
+    RemoteDataEnd, 308, PK(req_nums), PERPETUAL(), //
+    (uint32_t, req_nums)                           //
 );
 
 KF_DEFINE_PACK_TYPE(                                         //
@@ -1058,38 +1058,38 @@ KF_DEFINE_PACK_TYPE(                                                   //
     (uint64_t, page_size)                                              //
 );
 
-KF_DEFINE_PACK_TYPE(                                                    //
-    RemoteRequestReadFrom, 10310, PK(source_id), PERPETUAL(),           //
-    (uint32_t, source_id),                          //source_location
-    (int64_t, from_time),                           //
-    (uint64_t, page_size),                          //
-    (uint64_t, stream_id)                          //
-);
-
-KF_DEFINE_PACK_TYPE(                                                  //
-    RemoteRequestReadFromPublic, 10311, PK(source_id), PERPETUAL(),   //
-    (uint32_t, source_id),                          //source_location
-    (int64_t, from_time),                           //
-    (uint64_t, page_size),                          //
-    (uint64_t, stream_id)                          //
-);
-
-KF_DEFINE_PACK_TYPE(                                           //
-    RemoteRequestWriteTo, 10312, PK(dest_id), PERPETUAL(),    //
-    (uint32_t, dest_id),                            //
-    (uint64_t, page_size),                          //
-    (uint64_t, stream_id)                          //
+KF_DEFINE_PACK_TYPE(                                          //
+    RemoteRequestReadFrom, 10310, PK(source_id), PERPETUAL(), //
+    (uint32_t, source_id),                                    // source_location
+    (int64_t, from_time),                                     //
+    (uint64_t, page_size),                                    //
+    (uint64_t, stream_id)                                     //
 );
 
 KF_DEFINE_PACK_TYPE(                                                //
-    RemoteRequestConnect, 10313, PK(address), PERPETUAL(),          //
-    (std::string, address)                                          //
+    RemoteRequestReadFromPublic, 10311, PK(source_id), PERPETUAL(), //
+    (uint32_t, source_id),                                          // source_location
+    (int64_t, from_time),                                           //
+    (uint64_t, page_size),                                          //
+    (uint64_t, stream_id)                                           //
 );
 
-KF_DEFINE_PACK_TYPE(                                               //
-    RemoteConnectInfo, 10314, PK(stream_id), PERPETUAL(),          //
-    (uint64_t, stream_id),                                         //
-    (std::string, error_msg)                                       //
+KF_DEFINE_PACK_TYPE(                                       //
+    RemoteRequestWriteTo, 10312, PK(dest_id), PERPETUAL(), //
+    (uint32_t, dest_id),                                   //
+    (uint64_t, page_size),                                 //
+    (uint64_t, stream_id)                                  //
+);
+
+KF_DEFINE_PACK_TYPE(                                       //
+    RemoteRequestConnect, 10313, PK(address), PERPETUAL(), //
+    (std::string, address)                                 //
+);
+
+KF_DEFINE_PACK_TYPE(                                      //
+    RemoteConnectInfo, 10314, PK(stream_id), PERPETUAL(), //
+    (uint64_t, stream_id),                                //
+    (std::string, error_msg)                              //
 );
 
 KF_DEFINE_PACK_TYPE(                         //

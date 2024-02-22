@@ -238,10 +238,10 @@ void assemble::sort() {
   return v;
 }
 
-std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> assemble::read_datas(int32_t msg_type, uint64_t nums_to_read,
-                                                                                                 int64_t end_time) {
+std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
+assemble::read_datas(int32_t msg_type, uint64_t nums_to_read, int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
-  for( int i = 0; i< nums_to_read && data_available(); i++) {
+  for (int i = 0; i < nums_to_read && data_available(); i++) {
     if (msg_type == 0 or
         current_frame()->msg_type() == msg_type && current_page()->get_version() == __JOURNAL_VERSION__) {
       const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
@@ -260,7 +260,6 @@ std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> asse
     data_read_num++;
   }
   return v;
-
 }
 
 std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> assemble::read_bytes(int32_t msg_type,
@@ -304,12 +303,8 @@ void assemble::move_to_time(int64_t nano_time) {
   }
 }
 
-void assemble::reset_num(){
-  data_read_num = 0;
-}
+void assemble::reset_num() { data_read_num = 0; }
 
-uint32_t assemble::get_num(){
-  return data_read_num;
-}
+uint32_t assemble::get_num() { return data_read_num; }
 
 } // namespace kungfu::yijinjing::journal

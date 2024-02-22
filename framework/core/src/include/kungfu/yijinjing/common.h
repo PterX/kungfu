@@ -217,7 +217,6 @@ static constexpr auto is_custom = []() {
   return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
-
 template <typename... Ts>
 static constexpr auto event_filter_any = [](auto member) {
   return [=](Ts... arg) {

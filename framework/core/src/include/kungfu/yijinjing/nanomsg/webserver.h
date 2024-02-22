@@ -4,7 +4,6 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/journal/assemble.h>
 
-
 #include <nng/nng.h>
 #include <nng/supplemental/http/http.h>
 
@@ -83,12 +82,13 @@ private:
   std::thread asm_read_thread_;
   kungfu::yijinjing::journal::assemble_ptr asm_read_ = nullptr;
   void thread_read_data(kungfu::longfist::types::RequestRemoteData data);
+
 public:
   // the first vector is used for callback function receive data, the second vector is used for cache the data have
   // received when call get_data(), will return the
   std::vector<std::string> data_received_;       // used for receive data
   std::vector<std::string> data_received_cache_; // cache data_received
-  stream(nng_stream* s, uint64_t stream_id, uint32_t buffer_size = 32768);
+  stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size = 32768);
   ~stream();
   void start_recv();
   void stream_recv_cb();
@@ -96,7 +96,6 @@ public:
   uint64_t get_stream_id();
 };
 DECLARE_PTR(stream)
-
 
 class webserver {
 private:
@@ -111,7 +110,7 @@ private:
 public:
   stream_manage_ptr stream_manager_;
   // std::map<int, std::shared_ptr<stream>> streams_;
-  webserver(stream_manage_ptr stream_manager,const nng_url *base_url, const std::string &path, const bool is_text_mode,
+  webserver(stream_manage_ptr stream_manager, const nng_url *base_url, const std::string &path, const bool is_text_mode,
             const size_t max_num_connections);
   ~webserver();
   void start_listening();
@@ -132,7 +131,8 @@ public:
   std::map<int, std::shared_ptr<webserver>> websockets_;
   http_server(const std::string address);
   ~http_server();
-  void add_websocket(stream_manage_ptr stream_manager, const std::string &path, bool is_text_mode, const size_t max_num_connections = 0);
+  void add_websocket(stream_manage_ptr stream_manager, const std::string &path, bool is_text_mode,
+                     const size_t max_num_connections = 0);
   void remove_websocket(int id);
   void start();
   int port();
@@ -162,11 +162,14 @@ private:
 
 class webclient {
 public:
-  webclient(stream_manage_ptr stream_manager,const std::string &address, std::function<void(webclient &, const std::string &)> message = nullptr,
-            std::function<void(webclient &)> open = nullptr, std::function<void(webclient &, const std::string &)> error = nullptr,
+  webclient(stream_manage_ptr stream_manager, const std::string &address,
+            std::function<void(webclient &, const std::string &)> message = nullptr,
+            std::function<void(webclient &)> open = nullptr,
+            std::function<void(webclient &, const std::string &)> error = nullptr,
             std::function<void(webclient &)> close = nullptr, const bool is_text_mode = true);
   ~webclient();
   uint64_t get_stream_id();
+
 private:
   stream_manage_ptr stream_manager_;
   stream_ptr stream_;
@@ -189,6 +192,7 @@ public:
   std::unordered_map<uint64_t, stream_ptr> &get_all_streams();
   void add_stream(nng_stream *s);
   void add_stream(stream_ptr s);
+
 private:
   std::unordered_map<uint64_t, stream_ptr> streams_;
 };

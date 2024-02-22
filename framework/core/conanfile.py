@@ -69,7 +69,7 @@ class KungfuCoreConan(ConanFile):
         else environ["CONAN_VS_TOOLSET"],
         "with_yarn": False,
     }
-    if tools.detected_os()!="Windows":
+    if tools.detected_os() != "Windows":
         default_options["nng:fPIC"] = True
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"

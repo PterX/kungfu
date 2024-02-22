@@ -21,7 +21,7 @@ public:
                            Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
                            tool::Report_ptr report, int64_t time_interval, std::string backtest_config);
 
-  ~BacktestContext() override;             
+  ~BacktestContext() override;
 
   /**
    * checked_ is strated started.
@@ -377,7 +377,7 @@ private:
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
 
-  enum class SliceState {Idle, Acquiring, Acquired, Releasing, Released};
+  enum class SliceState { Idle, Acquiring, Acquired, Releasing, Released };
   struct SliceReferenceState {
     SliceState state;
     int reference_count;
@@ -385,8 +385,6 @@ private:
   std::unordered_map<yijinjing::data::location, SliceReferenceState> slice_reference_states_;
   void subscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
   void unsubscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
-
-
 };
 
 DECLARE_PTR(BacktestContext)

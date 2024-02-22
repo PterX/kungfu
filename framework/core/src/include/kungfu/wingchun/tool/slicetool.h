@@ -53,7 +53,7 @@ public:
   yijinjing::data::location_ptr find_operator_slice_location(int64_t nano_time) const;
 
   int64_t get_md_slice_end_time(int64_t nano_time, const std::string &instrument_id, const std::string &exchange_id,
-                                        int32_t data_type) const;
+                                int32_t data_type) const;
 
   int64_t get_operator_slice_end_time(int64_t nano_time) const;
 
@@ -65,7 +65,8 @@ public:
 
   yijinjing::journal::frame_ptr current_frame() const;
 
-  yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id, int64_t end_time=INT64_MAX);
+  yijinjing::journal::writer_ptr get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id,
+                                            int64_t end_time = INT64_MAX);
 
 protected:
   void write_raw_at(yijinjing::data::location_ptr location, int64_t gen_time, int64_t trigger_time, uint32_t dest_id,
@@ -73,8 +74,6 @@ protected:
 
   void write_raw_at_as(yijinjing::data::location_ptr location, int64_t gen_time, int64_t trigger_time, uint32_t source,
                        uint32_t dest_id, int32_t msg_type, uintptr_t data, uint32_t length);
-
-
 
   longfist::enums::category category_;
   std::string group_;

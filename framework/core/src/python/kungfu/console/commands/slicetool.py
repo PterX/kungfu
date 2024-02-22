@@ -32,7 +32,11 @@ yjj = kungfu.__binding__.yijinjing
 @click.option("-g", "--group", type=str, required=True, help="source")
 @click.option("-n", "--name", type=str, required=True, help="source")
 @click.option(
-    "-t", "--tool_path", type=str, required=True, help="path to tool dynamic library or py script"
+    "-t",
+    "--tool_path",
+    type=str,
+    required=True,
+    help="path to tool dynamic library or py script",
 )
 @click.option(
     "-i",
@@ -118,6 +122,12 @@ def slicetool(
         tool_script = getattr(module, "run")
         tool_script(
             wc.SliceTool(
-                kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments, size
+                kfj.CATEGORIES[category],
+                group,
+                name,
+                indexer,
+                overwrite,
+                arguments,
+                size,
             )
         )

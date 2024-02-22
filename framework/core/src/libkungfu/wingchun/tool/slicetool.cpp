@@ -19,8 +19,7 @@ SliceTool::SliceTool(longfist::enums::category c, std::string group, std::string
                      bool overwrite, std::string arguments, size_t size)
     : category_(c), group_(std::move(group)), name_(std::move(name)), indexer_(std::move(indexer)),
       overwrite_(overwrite), last_gen_time_(indexer_->get_begin_time()), arguments_(std::move(arguments)),
-      reader_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))),
-      size_(size) {
+      reader_(std::make_shared<reader>(true, false, std::make_shared<bus>(false))), size_(size) {
   KUNGFU_SETUP_LOGGER(yijinjing::data::location::make_shared(mode::DATA, category::SYSTEM, group, name,
                                                              std::make_shared<yijinjing::data::locator>()),
                       name);
@@ -36,7 +35,7 @@ SliceTool::~SliceTool() {
   for (auto it = lease_locations_.begin(); it != lease_locations_.end();) {
     for (const auto &expired_location : it->second) {
       SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",
-                    expired_location->locator->get_root(), expired_location->uname);
+                   expired_location->locator->get_root(), expired_location->uname);
       for (auto dest_id : expired_location->locator->list_location_dest(expired_location)) {
         reader_->disjoin(expired_location, dest_id);
       }
@@ -95,7 +94,7 @@ frame_ptr SliceTool::current_frame() const {
   return frame;
 }
 
-void SliceTool::next() { 
+void SliceTool::next() {
   const auto &frame = current_frame();
   int64_t now_time = frame->gen_time();
   for (auto it = lease_locations_.begin(); it != lease_locations_.end();) {
@@ -114,13 +113,13 @@ void SliceTool::next() {
       break;
     }
   }
-  reader_->next(); 
+  reader_->next();
 }
 
 bool SliceTool::data_available() const { return reader_->data_available(); }
 
 writer_ptr SliceTool::get_writer(const yijinjing::data::location_ptr &location, uint32_t dest_id, int64_t end_time) {
-  if (writer_maps_.find(*location) == writer_maps_.end() ) {
+  if (writer_maps_.find(*location) == writer_maps_.end()) {
     if (overwrite_) {
       std::string slice_dir = location->locator->layout_dir(location, layout::JOURNAL);
       fs::remove_all(slice_dir);
@@ -132,8 +131,9 @@ writer_ptr SliceTool::get_writer(const yijinjing::data::location_ptr &location, 
 
   auto &writer_map = writer_maps_[*location];
   if (writer_map.find(dest_id) == writer_map.end()) {
-    writer_map[dest_id] = std::make_shared<yijinjing::journal::writer>(
-        location, dest_id, true, std::make_shared<noop_publisher>(), false, std::make_shared<yijinjing::journal::bus>(false), size_);
+    writer_map[dest_id] =
+        std::make_shared<yijinjing::journal::writer>(location, dest_id, true, std::make_shared<noop_publisher>(), false,
+                                                     std::make_shared<yijinjing::journal::bus>(false), size_);
     join(location, dest_id, indexer_->get_begin_time());
   }
   return writer_map[dest_id];

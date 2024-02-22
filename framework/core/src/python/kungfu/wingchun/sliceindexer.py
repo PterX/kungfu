@@ -112,28 +112,16 @@ class SliceIndexer(wc.SliceIndexer):
         )
 
     def submit_acquire_location(self, location):
-        return self.__call_proxy(
-            self._submit_acquire_location, self.ctx, location
-        )
-    
+        return self.__call_proxy(self._submit_acquire_location, self.ctx, location)
+
     def wait_acquire_location(self, location):
-        return self.__call_proxy(
-            self._wait_acquire_location, self.ctx, location
-        )
-        
+        return self.__call_proxy(self._wait_acquire_location, self.ctx, location)
+
     def submit_release_location(self, location):
-        return self.__call_proxy(
-            self._submit_release_location, self.ctx, location
-        )
-        
+        return self.__call_proxy(self._submit_release_location, self.ctx, location)
+
     def wait_release_location(self, location):
-        return self.__call_proxy(
-            self._wait_release_location, self.ctx, location
-        )
+        return self.__call_proxy(self._wait_release_location, self.ctx, location)
 
     def sync_save_location(self, location):
-        return self.__call_proxy(
-            self._sync_save_location, self.ctx, location
-        )
-        
-    
+        return self.__call_proxy(self._sync_save_location, self.ctx, location)

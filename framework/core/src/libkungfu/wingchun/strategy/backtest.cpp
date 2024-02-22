@@ -42,12 +42,12 @@ BacktestContext::~BacktestContext() {
   // TODO use C++20 range
   // TODO deconstructor not called ?
   SPDLOG_TRACE("unreleased sliced location checking.");
-  
+
   for (const auto &[slice_location_obj, reference_state] : slice_reference_states_) {
     if (reference_state.reference_count > 0 or reference_state.state != SliceState::Released) {
       auto slice_location = std::make_shared<location>(slice_location_obj);
       SPDLOG_WARN("sliced location locator={}, location={} reference count={} is not released, now releasing",
-                   slice_location->locator->get_root(), slice_location->uname, reference_state.reference_count);
+                  slice_location->locator->get_root(), slice_location->uname, reference_state.reference_count);
       unreleased_locations.push_back(slice_location);
       from_indexer_->submit_release_location(slice_location);
     }
@@ -55,7 +55,7 @@ BacktestContext::~BacktestContext() {
   std::for_each(unreleased_locations.begin(), unreleased_locations.end(), [this](const auto &slice_location) {
     from_indexer_->wait_release_location(slice_location);
     SPDLOG_TRACE("sliced location locator={}, location={} released.", slice_location->locator->get_root(),
-                slice_location->uname);
+                 slice_location->uname);
   });
 }
 
@@ -204,73 +204,76 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
     }
     boost::hana::for_each(longfist::MarketDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
-        int64_t slice_begin_time = app_.now();
-        int64_t slice_end_time{INT64_MAX};
-        do {
-          auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
-                                                                  exchange_id, DataType::tag);
-          slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
-                                                                exchange_id, DataType::tag);
-          if (not md_location)
-            continue;
-          subscribe_slice(md_location, slice_begin_time, slice_end_time - slice_begin_time); 
-          broker_client_.subscribe(md_location, exchange_id, instrument_id);
-        } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
-      });
+      int64_t slice_begin_time = app_.now();
+      int64_t slice_end_time{INT64_MAX};
+      do {
+        auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
+                                                                 exchange_id, DataType::tag);
+        slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
+                                                              exchange_id, DataType::tag);
+        if (not md_location)
+          continue;
+        subscribe_slice(md_location, slice_begin_time, slice_end_time - slice_begin_time);
+        broker_client_.subscribe(md_location, exchange_id, instrument_id);
+      } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+    });
   }
 }
 
 void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_t nanotime, int64_t offset) {
   auto confirm_callback = [=, this](event_ptr event) {
-    auto & reference_count = slice_reference_states_[*slice_location];
+    auto &reference_count = slice_reference_states_[*slice_location];
     switch (reference_count.state) {
-      case SliceState::Acquiring:
-        from_indexer_->wait_acquire_location(slice_location);
-        reference_count.state = SliceState::Acquired;
-        assert(reference_count.reference_count == 0);
+    case SliceState::Acquiring:
+      from_indexer_->wait_acquire_location(slice_location);
+      reference_count.state = SliceState::Acquired;
+      assert(reference_count.reference_count == 0);
 
-        if (slice_location->locator->list_page_id(slice_location, location::PUBLIC).empty()) {
+      if (slice_location->locator->list_page_id(slice_location, location::PUBLIC).empty()) {
         SPDLOG_WARN("failed to subscribe data between {} and {}, md public journal in locator={}, location={} "
                     "not exists",
                     time::strftime(nanotime), time::strftime(nanotime + offset), slice_location->locator->get_root(),
                     slice_location->uname);
-        }
-        add_location(app_, slice_location);
-        for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
-          SPDLOG_TRACE("subscribed dest {}, locator={}, location={}", dest_id, slice_location->locator->get_root(),
-                      slice_location->uname);
-          app_.get_reader()->join(slice_location, dest_id, nanotime);
-        }
-      case SliceState::Acquired:
-        reference_count.reference_count += 1;
-        break;
-      default:
-        SPDLOG_ERROR(" probably failed to acquire data between {} and {}, public journal in locator={}, location={} "
-                      "not exists",
-                      time::strftime(nanotime), time::strftime(nanotime + offset),
-                      slice_location->locator->get_root(), slice_location->uname);
-        SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm acquiring stage.", static_cast<int>(reference_count.state), reference_count.reference_count);
-        return;
+      }
+      add_location(app_, slice_location);
+      for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
+        SPDLOG_TRACE("subscribed dest {}, locator={}, location={}", dest_id, slice_location->locator->get_root(),
+                     slice_location->uname);
+        app_.get_reader()->join(slice_location, dest_id, nanotime);
+      }
+    case SliceState::Acquired:
+      reference_count.reference_count += 1;
+      break;
+    default:
+      SPDLOG_ERROR(" probably failed to acquire data between {} and {}, public journal in locator={}, location={} "
+                   "not exists",
+                   time::strftime(nanotime), time::strftime(nanotime + offset), slice_location->locator->get_root(),
+                   slice_location->uname);
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm acquiring stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
     }
     unsubscribe_slice(slice_location, nanotime + offset, offset);
   };
   auto submit_callback = [=, this](event_ptr event) {
-    auto & reference_count = slice_reference_states_[*slice_location];
+    auto &reference_count = slice_reference_states_[*slice_location];
     switch (reference_count.state) {
-      case SliceState::Idle:
-        from_indexer_->submit_acquire_location(slice_location);
-        reference_count.state = SliceState::Acquiring;
-      case SliceState::Acquiring:
-        add_timer(nanotime, confirm_callback);
-        break;
-      case SliceState::Acquired:
-        SPDLOG_WARN("slice data between {} and {} is already acquired with reference count={}, public journal in locator={}, location={}",
-                    time::strftime(nanotime), time::strftime(nanotime + offset), reference_count.reference_count, slice_location->locator->get_root(),
-                    slice_location->uname);
-        break;
-      default:
-        SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit acquiring stage.", static_cast<int>(reference_count.state), reference_count.reference_count);
-        return;
+    case SliceState::Idle:
+      from_indexer_->submit_acquire_location(slice_location);
+      reference_count.state = SliceState::Acquiring;
+    case SliceState::Acquiring:
+      add_timer(nanotime, confirm_callback);
+      break;
+    case SliceState::Acquired:
+      SPDLOG_WARN("slice data between {} and {} is already acquired with reference count={}, public journal in "
+                  "locator={}, location={}",
+                  time::strftime(nanotime), time::strftime(nanotime + offset), reference_count.reference_count,
+                  slice_location->locator->get_root(), slice_location->uname);
+      break;
+    default:
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit acquiring stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
     }
   };
   add_timer(nanotime - offset, submit_callback);
@@ -278,43 +281,45 @@ void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_
 
 void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int64_t nanotime, int64_t offset) {
   auto confirm_callback = [=, this](event_ptr event) {
-    auto & reference_count = slice_reference_states_[*slice_location];
+    auto &reference_count = slice_reference_states_[*slice_location];
     switch (reference_count.state) {
-      case SliceState::Releasing:
-        from_indexer_->wait_release_location(slice_location);
-        reference_count.state = SliceState::Released;
+    case SliceState::Releasing:
+      from_indexer_->wait_release_location(slice_location);
+      reference_count.state = SliceState::Released;
 
-        SPDLOG_TRACE("disjoining sliced location expired, locator={}, location={} at {}",
-                          slice_location->locator->get_root(), slice_location->uname, app_.now());
-        for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
-          SPDLOG_TRACE("disjoining subscribed dest {}, locator={}, location={}", dest_id, slice_location->locator->get_root(),
-                      slice_location->uname);
-          app_.get_reader()->join(slice_location, dest_id, nanotime);
-        }
-      case SliceState::Released:
-        assert(reference_count.reference_count == 0);
-        break;
-      default:
-        SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm releasing stage.", static_cast<int>(reference_count.state), reference_count.reference_count);
-        return;
+      SPDLOG_TRACE("disjoining sliced location expired, locator={}, location={} at {}",
+                   slice_location->locator->get_root(), slice_location->uname, app_.now());
+      for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
+        SPDLOG_TRACE("disjoining subscribed dest {}, locator={}, location={}", dest_id,
+                     slice_location->locator->get_root(), slice_location->uname);
+        app_.get_reader()->join(slice_location, dest_id, nanotime);
+      }
+    case SliceState::Released:
+      assert(reference_count.reference_count == 0);
+      break;
+    default:
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm releasing stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
     }
   };
   auto submit_callback = [=, this](event_ptr event) {
-    auto & reference_count = slice_reference_states_[*slice_location];
+    auto &reference_count = slice_reference_states_[*slice_location];
     switch (reference_count.state) {
-      case SliceState::Acquired:
-        reference_count.reference_count -= 1;
-        if (reference_count.reference_count == 0) {
-          from_indexer_->submit_release_location(slice_location);
-          reference_count.state = SliceState::Releasing;
-        }
-        assert(reference_count.reference_count >=0);
-      case SliceState::Releasing:
-        add_timer(std::min(nanotime + offset, app_.get_end_time()), confirm_callback);
-        break;
-      default:
-        SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit releasing stage.", static_cast<int>(reference_count.state), reference_count.reference_count);
-        return;
+    case SliceState::Acquired:
+      reference_count.reference_count -= 1;
+      if (reference_count.reference_count == 0) {
+        from_indexer_->submit_release_location(slice_location);
+        reference_count.state = SliceState::Releasing;
+      }
+      assert(reference_count.reference_count >= 0);
+    case SliceState::Releasing:
+      add_timer(std::min(nanotime + offset, app_.get_end_time()), confirm_callback);
+      break;
+    default:
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit releasing stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
     }
   };
   add_timer(nanotime, submit_callback);
@@ -340,7 +345,7 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     slice_end_time = from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name);
     if (not op_location)
       continue;
-    subscribe_slice(op_location, slice_begin_time, slice_end_time - slice_begin_time); 
+    subscribe_slice(op_location, slice_begin_time, slice_end_time - slice_begin_time);
     broker_client_.enroll_operator(op_location);
   } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
 }

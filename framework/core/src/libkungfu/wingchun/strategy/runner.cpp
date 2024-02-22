@@ -114,6 +114,10 @@ void Runner::on_start() {
       $$(invoke(&Strategy::on_quote, event->data<Quote>(), get_location(event->source()), event->dest()));
   start_events | is(Tree::tag) |
       $$(invoke(&Strategy::on_tree, event->data<Tree>(), get_location(event->source()), event->dest()));
+  start_events | is(Depth::tag) |
+      $$(invoke(&Strategy::on_depth, event->data<Depth>(), get_location(event->source()), event->dest()));
+  start_events | is(Tick::tag) |
+      $$(invoke(&Strategy::on_tick, event->data<Tick>(), get_location(event->source()), event->dest()));
   start_events | is(Entrust::tag) |
       $$(invoke(&Strategy::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
   start_events | is(Transaction::tag) |

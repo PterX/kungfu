@@ -69,6 +69,8 @@ void BacktestContext::on_start() {
   events_ | is(Transaction::tag) |
       $$(matcher_->on_transaction(event->data<Transaction>()); report_->on_transaction(event->data<Transaction>()););
   events_ | is(Tree::tag) | $$(matcher_->on_tree(event->data<Tree>()); report_->on_tree(event->data<Tree>()););
+  events_ | is(Depth::tag) | $$(matcher_->on_depth(event->data<Depth>()); report_->on_depth(event->data<Depth>()););
+  events_ | is(Tick::tag) | $$(matcher_->on_tick(event->data<Tick>()); report_->on_tick(event->data<Tick>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | is(OrderInput::tag) |
       $$(const auto &order_input = event->data<OrderInput>();

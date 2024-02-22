@@ -28,7 +28,7 @@ void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, 
 }
 
 void RefreshTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name) {
-  boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+  boost::hana::for_each(longfist::RefreshRequiredDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
     auto type_name = std::string(boost::hana::first(it).c_str());

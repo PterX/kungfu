@@ -228,7 +228,13 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
 constexpr auto TradingDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderInput),                               // 201
     TYPE_PAIR(Order),                                    // 202
-    TYPE_PAIR(Trade)                                     // 203
+    TYPE_PAIR(Trade),                                    // 203
+    TYPE_PAIR(BlockMessage),                             // 206
+    TYPE_PAIR(OrderStat),                                // 207
+    TYPE_PAIR(OrderTriggerInput),                        // 209
+    TYPE_PAIR(OrderTrigger),                             // 210
+    TYPE_PAIR(AlgoOrderInput),                           // 213
+    TYPE_PAIR(AlgoOrder)                                 // 214
 );
 
 constexpr auto MarketDataTypes = boost::hana::make_map( //
@@ -250,6 +256,13 @@ constexpr auto StatisticDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderStat)                                   // 207
 );
 
+constexpr auto RefreshRequiredDataTypes = boost::hana::make_map(//
+TYPE_PAIR(OrderInput), // 201
+                                                                TYPE_PAIR(Order),      // 202
+                                                                TYPE_PAIR(Trade),      // 203
+                                                                TYPE_PAIR(OrderStat)  // 207
+);
+
 template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }
 
 template <typename DataType> constexpr bool is_profile_data() { return is_in_types<DataType>(ProfileDataTypes); };
@@ -269,6 +282,7 @@ const auto AllTypesTags = build_data_set(AllTypes);
 const auto TradingDataTags = build_data_set(TradingDataTypes);
 const auto ProfileDataTags = build_data_set(ProfileDataTypes);
 const auto StaticDataTags = build_data_set(StaticDataTypes);
+const auto RefreshRequiredDataTags = build_data_set(RefreshRequiredDataTypes);
 
 constexpr auto build_data_map = [](auto types) {
   auto maps = boost::hana::transform(boost::hana::values(types), [](auto value) {

@@ -437,8 +437,8 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
-  before_start_events | is_trading_data() | $$(cached::feed_state_data(event, trading_data_bank_));
-  before_start_events | not_trading_data() | $$(cached::feed_state_data(event, data_bank_));
+  before_start_events | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
+  before_start_events | not_refresh_required() | $$(cached::feed_state_data(event, data_bank_));
 }
 
 bool Watcher::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
@@ -458,9 +458,9 @@ void Watcher::on_start() {
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
-    events_ | is_trading_data() | $$(cached::feed_state_data(event, trading_data_bank_));
+    events_ | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | not_trading_data() | skip_while(while_is(Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
+    events_ | not_refresh_required() | skip_while(while_is(Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
@@ -556,7 +556,7 @@ void Watcher::TryRefreshTradingData() {
 }
 
 void Watcher::SyncTradingData() {
-  boost::hana::for_each(TradingDataTypes, [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
+  boost::hana::for_each(longfist::RefreshRequiredDataTypes, [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
 }
 
 void Watcher::SyncAppStates() {
@@ -802,7 +802,7 @@ bool Watcher::is_reactable(const event_ptr &event) {
   }
 
   if (bypass_trading_data_ and
-      kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end()) {
+      longfist::RefreshRequiredDataTags.find(event->msg_type()) != longfist::RefreshRequiredDataTags.end()) {
     return false;
   }
 

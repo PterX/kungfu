@@ -212,58 +212,93 @@ export const getColumns = (
           ]),
     ]);
 
-export const statisColums: VTable.ColumnDefine[] = [
+// export const statisColums: VTable.ColumnDefine[] = [
+//   {
+//     field: 'instrumentId_exchangeId',
+//     title: t('tradingConfig.instrument'),
+//     width: 120,
+//   },
+//   {
+//     field: 'side',
+//     title: '',
+//     width: 100,
+//     style: {
+//       color: (args) => {
+//         return defaultColorMap[dealSide(args.dataValue).color || 'default'];
+//       },
+//     },
+//     fieldFormat: (args) => {
+//       return dealSide(args.side).name;
+//     },
+//   },
+//   {
+//     field: 'offset',
+//     title: '',
+//     width: 60,
+//     style: {
+//       color: (args) => {
+//         return defaultColorMap[dealOffset(args.dataValue).color || 'default'];
+//       },
+//     },
+//     fieldFormat: (args) => {
+//       return dealOffset(args.offset).name;
+//     },
+//   },
+//   {
+//     title: t('orderConfig.mean'),
+//     field: 'mean',
+//     width: 100,
+//   },
+//   {
+//     title: t('orderConfig.max'),
+//     field: 'max',
+//     width: 100,
+//   },
+//   {
+//     title: t('orderConfig.min'),
+//     field: 'min',
+//     width: 100,
+//   },
+//   {
+//     title: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
+//       'orderConfig.all',
+//     )})`,
+//     field: 'volume',
+//     width: 160,
+//   },
+// ];
+
+export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
-    field: 'instrumentId_exchangeId',
-    title: t('tradingConfig.instrument'),
-    width: 120,
+    name: t('tradingConfig.instrument'),
+    dataIndex: 'instrumentId_exchangeId',
   },
   {
-    field: 'side',
-    title: '',
-    width: 100,
-    style: {
-      color: (args) => {
-        return defaultColorMap[dealSide(args.dataValue).color || 'default'];
-      },
-    },
-    fieldFormat: (args) => {
-      return dealSide(args.side).name;
-    },
+    name: '',
+    dataIndex: 'sideName',
+    width: 40,
   },
   {
-    field: 'offset',
-    title: '',
-    width: 60,
-    style: {
-      color: (args) => {
-        return defaultColorMap[dealOffset(args.dataValue).color || 'default'];
-      },
-    },
-    fieldFormat: (args) => {
-      return dealOffset(args.offset).name;
-    },
+    name: '',
+    dataIndex: 'offsetName',
+    width: 40,
   },
   {
-    title: t('orderConfig.mean'),
-    field: 'mean',
-    width: 100,
+    name: t('orderConfig.mean'),
+    dataIndex: 'mean',
   },
   {
-    title: t('orderConfig.max'),
-    field: 'max',
-    width: 100,
+    name: t('orderConfig.max'),
+    dataIndex: 'max',
   },
   {
-    title: t('orderConfig.min'),
-    field: 'min',
-    width: 100,
+    name: t('orderConfig.min'),
+    dataIndex: 'min',
   },
   {
-    title: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
+    name: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
       'orderConfig.all',
     )})`,
-    field: 'volume',
-    width: 160,
+    dataIndex: 'volume',
   },
 ];

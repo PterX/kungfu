@@ -7,7 +7,7 @@ import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
 import find from 'find-process';
 import { ensureFileSync } from 'fs-extra';
-import { useWatcher } from '../kungfu/watcher';
+import { useWatcher } from '../kungfu/tradingData';
 import {
   getIfProcessRunning,
   getIfProcessDeleted,

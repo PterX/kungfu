@@ -2,7 +2,7 @@
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
-  // delayMilliSeconds,
+  delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -41,19 +41,19 @@ import {
   onDeactivated,
   reactive,
   ref,
-  // toRaw,
+  toRaw,
   watch,
   nextTick,
   onActivated,
 } from 'vue';
 import { getColumns } from './config';
 import {
-  // dealOrder,
-  // getKungfuHistoryData,
+  dealOrder,
+  getKungfuHistoryData,
   kfCancelAllOrders,
   kfCancelOrder,
   makeOrderByOrderInput,
-  // getOrderLatencyDataByOrderStat,
+  getOrderLatencyDataByOrderStat,
   kfCancelAllOrdersTrigger,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import type { Dayjs } from 'dayjs';
@@ -63,7 +63,7 @@ import {
   UnfinishedOrderStatus,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
-  // HistoryDateEnum,
+  HistoryDateEnum,
   OrderStatusEnum,
   OrderActionFlagEnum,
   OrderTriggerStatusEnum,
@@ -90,7 +90,7 @@ const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const { processStatusData } = useProcessStatusDetailData();
-const { clearCaches } = useDealDataWithCaches<
+const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolvedWithoutStat
 >(['uid_key', 'update_time']);
@@ -374,7 +374,7 @@ watch(currentGlobalKfLocation, () => {
   allOrders.value = [];
   orders.value = [];
   clearCaches();
-  firstRender = true;
+  // firstRender = true;
 });
 
 watch(historyDate, async (newDate) => {
@@ -388,64 +388,64 @@ watch(historyDate, async (newDate) => {
   orders.value = [];
   allOrders.value = [];
   historyDataLoading.value = true;
-  // delayMilliSeconds(500)
-  //   .then(() =>
-  //     getKungfuHistoryData(
-  //       window.watcher,
-  //       newDate.format(),
-  //       HistoryDateEnum.naturalDate,
-  //       'Order',
-  //       currentGlobalKfLocation.value as KungfuApi.KfLocation,
-  //     ),
-  //   )
-  //   .then((historyData) => {
-  //     if (!historyData) return;
+  delayMilliSeconds(500)
+    .then(() =>
+      getKungfuHistoryData(
+        window.watcher,
+        newDate.format(),
+        HistoryDateEnum.naturalDate,
+        'Order',
+        currentGlobalKfLocation.value as KungfuApi.KfLocation,
+      ),
+    )
+    .then((historyData) => {
+      if (!historyData) return;
 
-  //     const { tradingData } = historyData;
+      const { tradingData } = historyData;
 
-  //     const orderResolved =
-  //       globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-  //         window.watcher,
-  //         currentGlobalKfLocation.value,
-  //         tradingData.Order,
-  //         'order',
-  //       ) as KungfuApi.Order[];
+      const orderResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          window.watcher,
+          currentGlobalKfLocation.value,
+          tradingData.Order,
+          'order',
+        ) as KungfuApi.Order[];
 
-  //     const tempAllOrders = toRaw(
-  //       orderResolved.map((item) => {
-  //         const { price_precision } = getPriceTickAndPrecision(
-  //           item.instrument_id,
-  //           item.exchange_id,
-  //         );
+      const tempAllOrders = toRaw(
+        orderResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
+          );
 
-  //         return toRaw({
-  //           ...dealDataWithCache(
-  //             item,
-  //             () => dealOrder(window.watcher, item, true, price_precision),
-  //             { price_precision },
-  //           ),
-  //           ...getOrderLatencyDataByOrderStat(
-  //             item,
-  //             tradingData.OrderStat,
-  //             price_precision,
-  //           ),
-  //         });
-  //       }),
-  //     );
-  //     allOrders.value = tempAllOrders;
-  //     orders.value = tempAllOrders;
-  //     console.log('orders', orders.value.length);
-  //   })
-  //   .catch((err) => {
-  //     if (err.message === 'database_locked') {
-  //       messagePrompt().error(t('export_database_locked'));
-  //     } else {
-  //       console.error(err.message);
-  //     }
-  //   })
-  //   .finally(() => {
-  //     historyDataLoading.value = false;
-  //   });
+          return toRaw({
+            ...dealDataWithCache(
+              item,
+              () => dealOrder(window.watcher, item, true, price_precision),
+              { price_precision },
+            ),
+            ...getOrderLatencyDataByOrderStat(
+              item,
+              tradingData.OrderStat,
+              price_precision,
+            ),
+          });
+        }),
+      );
+      allOrders.value = tempAllOrders;
+      orders.value = tempAllOrders;
+      console.log('orders', orders.value);
+    })
+    .catch((err) => {
+      if (err.message === 'database_locked') {
+        messagePrompt().error(t('export_database_locked'));
+      } else {
+        console.error(err.message);
+      }
+    })
+    .finally(() => {
+      historyDataLoading.value = false;
+    });
 });
 
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {

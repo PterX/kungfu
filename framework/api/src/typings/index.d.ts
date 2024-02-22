@@ -1485,14 +1485,14 @@ declare namespace KungfuApi {
       td: {
         [key: number]: {
           orderIndexMap?: any;
-          orderMap?: Records<
-            string,
-            { orderResolved: KungfuApi.OrderResolved; index: number }
-          >;
-          orderList?: KungfuApi.OrderResolved[];
-          addedOrderList?: KungfuApi.OrderResolved[];
-          updatedOrderList?: [KungfuApi.OrderResolved[], number[]];
-          orderLength?: number;
+          // orderMap?: Records<
+          //   string,
+          //   { orderResolved: KungfuApi.OrderResolved; index: number }
+          // >;
+          // orderList?: KungfuApi.OrderResolved[];
+          // addedOrderList?: KungfuApi.OrderResolved[];
+          // updatedOrderList?: [KungfuApi.OrderResolved[], number[]];
+          // orderLength?: number;
         };
       };
       strategy: {

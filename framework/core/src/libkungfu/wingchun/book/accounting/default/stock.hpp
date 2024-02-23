@@ -361,7 +361,7 @@ protected:
           instrument.contract_multiplier == 0 ? DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
     }
 
-    auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
+    auto hashed_instrument_factor_key = hash_instrument(exchange_id, instrument_id);
     if (instrument_factors.find(hashed_instrument_factor_key) == instrument_factors.end()) {
       stock_i_a.margin_ratio =
           direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;

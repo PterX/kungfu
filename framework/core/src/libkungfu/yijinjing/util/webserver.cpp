@@ -3,7 +3,6 @@
 #include <kungfu/yijinjing/journal/assemble.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/nanomsg/webserver.h>
-#include <kungfu/yijinjing/nanomsg/socket.h>
 #include <thread>
 
 using namespace kungfu::yijinjing::nanomsg;
@@ -50,7 +49,6 @@ void stream::start_recv() {
   SPDLOG_DEBUG("end start_recv");
 }
 
-
 void stream::stream_recv_cb() {
   SPDLOG_DEBUG("stream_recv_cb");
   int rv = nng_aio_result(aio_recv_);
@@ -60,7 +58,7 @@ void stream::stream_recv_cb() {
   case 0: {
     {
       std::string data((char *)rec_buffer_.data(), len);
-      SPDLOG_DEBUG("recv data:{}",data);
+      SPDLOG_DEBUG("recv data:{}", data);
       std::lock_guard<std::mutex> lock(mtx_);
       data_received_.emplace_back((char *)rec_buffer_.data(), len);
     }
@@ -277,7 +275,7 @@ stream_manage::stream_manage() {}
 stream_manage::~stream_manage() {}
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
-  SPDLOG_DEBUG("publish msg:{}",msg);
+  SPDLOG_DEBUG("publish msg:{}", msg);
   if (!streams_.contains(stream_id)) {
     SPDLOG_DEBUG("publish failed");
     return -1;
@@ -289,9 +287,7 @@ int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
 std::vector<std::string> &stream_manage::get_notice(uint64_t stream_id) {
   return streams_.find(stream_id)->second->data_received_;
 }
-void stream_manage::clear_notice(uint64_t stream_id){
-  streams_.find(stream_id)->second->data_received_.clear();
-}
+void stream_manage::clear_notice(uint64_t stream_id) { streams_.find(stream_id)->second->data_received_.clear(); }
 
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) { return streams_.find(stream_id)->second; }
 std::unordered_map<uint64_t, stream_ptr> &stream_manage::get_all_streams() { return streams_; }

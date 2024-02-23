@@ -79,6 +79,7 @@ private:
   uint64_t stream_id_;
   void cancel();
   std::mutex mtx_;
+
 public:
   // the first vector is used for callback function receive data, the second vector is used for cache the data have
   // received when call get_data(), will return the

@@ -455,25 +455,6 @@ bool hero::drain(const rx::subscriber<event_ptr> &sb) {
       return false;
     }
   }
-  while (live_ and reader_->data_available()) {
-    deal_notice(io_device_->is_lazy(), false, sb);
-    const frame_ptr frame = reader_->current_frame();
-    io_device_->get_bus()->set_trigger_frame_uid(frame->frame_uid());
-    if (frame->gen_time() <= end_time_) {
-      int64_t frame_time = frame->gen_time();
-      if (frame_time > now_) {
-        now_ = frame_time;
-      }
-      if (is_reactable(frame)) {
-        sb.on_next(frame);
-      }
-      on_frame();
-      reader_->next();
-    } else {
-      SPDLOG_INFO("reached journal end {}", time::strftime(frame->gen_time()));
-      return false;
-    }
-  }
   if (get_io_device()->get_home()->mode != mode::LIVE and not reader_->data_available()) {
     SPDLOG_INFO("reached journal end {}", time::strftime(now()));
     return false;

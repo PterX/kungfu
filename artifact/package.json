@@ -11,7 +11,11 @@
   "private": true,
   "main": "dist/app/main.js",
   "kungfuCraft": {
-    "productName": "Kungfu"
+    "productName": "Kungfu",
+    "env": {
+      "IS_OTC_ACCOUNTING_TYPE": "1",
+      "NEED_ETF": "false"
+    }
   },
   "scripts": {
     "build": "yarn kfs craft build",

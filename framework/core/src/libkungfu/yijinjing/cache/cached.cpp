@@ -29,7 +29,6 @@ cached::cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached)
   profile_.setup();
   profile_get_all(profile_, profile_restore_bank_);
 
-
   // for otc scenes
   char *is_otc = std::getenv("IS_OTC_ACCOUNTING_TYPE");
   std::string yes_str = "1";

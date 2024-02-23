@@ -1,8 +1,17 @@
 <script setup lang="ts">
+import {
+  toRaw,
+  watchEffect,
+  computed,
+  getCurrentInstance,
+  onBeforeUnmount,
+  nextTick,
+  ref,
+} from 'vue';
+import { useRouter } from 'vue-router';
 import { SlidersOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import KfProcessStatusController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfProcessStatusController.vue';
 import KfUpdateController from '@kungfu-trader/kungfu-app/src/renderer/components/layout/KfUpdateController.vue';
-import { computed, getCurrentInstance, onBeforeUnmount, ref } from 'vue';
 import { useExtConfigsRelated } from '../../assets/methods/actionsUtils';
 import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
@@ -12,12 +21,16 @@ import {
   getLogoPath,
   isDefaultLogo,
 } from '@kungfu-trader/kungfu-js-api/config/brand';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+const { t } = VueI18n.global;
 
 const logoPath = isDefaultLogo()
   ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO.svg')
   : getLogoPath();
 
 const app = getCurrentInstance();
+const router = useRouter();
 const globalSettingModalVisible = ref<boolean>(false);
 const menuSelectedKeys = ref<string[]>(['main']);
 
@@ -49,14 +62,63 @@ const footerComponentConfigs = computed(() => {
 });
 
 const sidebarComponentConfigs = computed(() => {
-  return Object.keys(uiExtConfigs.value)
-    .filter((key) => uiExtConfigs.value[key].position === 'sidebar')
+  const rootPackageJson = readRootPackageJsonSync();
+  const customSidebar = rootPackageJson.appConfig?.customSidebar ?? {};
+  const uiExtConfigsWithMain = toRaw(uiExtConfigs.value);
+  uiExtConfigsWithMain['main'] = {
+    access: {},
+    assets: {},
+    category: 'ui',
+    components: null,
+    dependencies: {},
+    description: '',
+    exhibit: {} as KungfuApi.KfExhibitConfig,
+    extPath: '',
+    key: 'main',
+    keepAlive: true,
+    name: t('baseConfig.main_panel'),
+    position: 'sidebar',
+    sidebarIndex: 0,
+    readmePath: '',
+    releaseNotePath: '',
+    script: '',
+    silent: false,
+    version: '',
+  };
+
+  return Object.keys(uiExtConfigsWithMain)
+    .filter((key) => uiExtConfigsWithMain[key].position === 'sidebar')
     .map((key) => {
+      if (customSidebar[key]) {
+        const { sidebarIndex, name } = customSidebar[key];
+        uiExtConfigsWithMain[key].sidebarIndex = sidebarIndex ?? -1;
+        uiExtConfigsWithMain[key].name = name ?? uiExtConfigsWithMain[key].name;
+      }
       return {
-        ...uiExtConfigs.value[key],
+        ...uiExtConfigsWithMain[key],
         key,
       };
+    })
+    .sort((a, b) => {
+      return (b.sidebarIndex || 0) - (a.sidebarIndex || 0);
     });
+});
+
+const stop = watchEffect(() => {
+  const firstSidebarComponent = sidebarComponentConfigs.value[0];
+  if (firstSidebarComponent && !router.hasRoute('default')) {
+    router.addRoute({
+      path: '/',
+      name: 'default',
+      redirect: `/${firstSidebarComponent.key}`,
+    });
+    router.push({ path: `/${firstSidebarComponent.key}` });
+    menuSelectedKeys.value = [firstSidebarComponent.key];
+
+    nextTick(() => {
+      stop();
+    });
+  }
 });
 
 const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
@@ -69,13 +131,12 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
 
   if (data.tag === 'switch-sidebar') {
     const targetKey = data.targetKey || '';
-    const isMain = targetKey === 'main';
-    const isExtInSidebar = sidebarComponentConfigs.value.some(
+    const isInSidebar = sidebarComponentConfigs.value.some(
       (item) => item.key === targetKey,
     );
-    if (isMain || isExtInSidebar) {
+    if (isInSidebar) {
       menuSelectedKeys.value = [targetKey];
-      handleToPage(`/${isMain ? '' : targetKey}`);
+      handleToPage(`/${targetKey}`);
     }
   }
 
@@ -83,7 +144,7 @@ const busSubscription = globalBus.subscribe((data: KfEvent.KfBusEvent) => {
     isExtSidebarShow.value[data.key || ''] = data.target;
     if (data.target === false) {
       menuSelectedKeys.value = ['main'];
-      handleToPage('/');
+      handleToPage('/main');
     }
   }
 });
@@ -111,12 +172,6 @@ function handleToPage(pathname: string) {
           mode="vertical"
           style="width: 64px"
         >
-          <a-menu-item key="main" @click="handleToPage('/')">
-            <template #icon>
-              <sliders-outlined style="font-size: 24px" />
-            </template>
-            <span>{{ $t('baseConfig.main_panel') }}</span>
-          </a-menu-item>
           <template v-for="config in sidebarComponentConfigs">
             <a-menu-item
               v-if="isExtSidebarShow[config.key] !== false"
@@ -124,7 +179,14 @@ function handleToPage(pathname: string) {
               @click="handleToPage(`/${config.key}`)"
             >
               <template #icon>
-                <component :is="config.key"></component>
+                <component
+                  :is="config.key"
+                  v-if="config.key !== 'main'"
+                ></component>
+                <sliders-outlined
+                  v-if="config.key === 'main'"
+                  style="font-size: 24px"
+                />
               </template>
               <span>
                 {{
@@ -231,6 +293,7 @@ function handleToPage(pathname: string) {
           justify-content: space-evenly;
           align-items: center;
           flex-direction: column;
+          padding: 0 8px;
 
           > span {
             display: block;

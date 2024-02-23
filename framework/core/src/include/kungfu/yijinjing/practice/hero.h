@@ -240,7 +240,7 @@ protected:
 
   virtual void on_frame() = 0;
 
-  void on_frame_done();
+  void cleanup_reader_disjoin();
 
 protected:
   virtual bool drain(const rx::subscriber<event_ptr> &sb);

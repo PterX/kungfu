@@ -210,9 +210,12 @@ declare namespace KungfuApi {
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+    defaultDir?: string; // 选择文件相关的指定默认打开的文件夹
 
     maxlength?: number;
     showArg?: boolean; // 交易任务是否显示参数
+
+    customRadioList?: string[];
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -242,6 +245,7 @@ declare namespace KungfuApi {
     description: string;
     assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
+    keepAlive: boolean;
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
@@ -263,6 +267,7 @@ declare namespace KungfuApi {
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
         show_asset_margin?: boolean;
+        supportEtf?: boolean;
         margin?: {
           showMargin?: boolean;
           marginMakeOrder?: boolean;
@@ -338,6 +343,7 @@ declare namespace KungfuApi {
       silent?: boolean;
       access?: Record<string, string[]>;
       position: KfUIExtLocatorTypes;
+      sidebarIndex?: number;
       exhibit?: KfExhibitConfig;
       components?:
         | {
@@ -435,6 +441,7 @@ declare namespace KungfuApi {
     orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
+    supportEtf?: boolean;
     showAssetMargin?: boolean;
     margin?: {
       showMargin?: boolean;
@@ -496,7 +503,9 @@ declare namespace KungfuApi {
   };
 
   export interface KfUIExtConfig extends KfExtConfigBase<'ui'> {
+    keepAlive: boolean;
     position: KfUIExtLocatorTypes;
+    sidebarIndex: number;
     exhibit: KfExhibitConfig;
     components:
       | {
@@ -635,7 +644,10 @@ declare namespace KungfuApi {
 
   export interface DataTable<T> {
     [hashed: string]: Readonly<T>;
-    filter(key: string, value: string | number | bigint): DataTable<T>;
+    filter(
+      key: string,
+      value: string | number | bigint | boolean,
+    ): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
     sort(key: string): Readonly<T>[];
     list(): Readonly<T>[];
@@ -967,7 +979,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number;
-    volume: bigint;
+    volume: number;
   }
 
   export interface BasketOrder {
@@ -979,8 +991,8 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
-    volume: bigint;
-    volume_left: bigint;
+    volume: number;
+    volume_left: number;
     status: OrderStatusEnum;
 
     source_id: number; // 下单方
@@ -1291,7 +1303,7 @@ declare namespace KungfuApi {
     id: number; // basket id
     name: string; // basket 名字
     volume_type: BasketVolumeTypeEnum; // 比例/数量
-    total_amount: bigint; // 总数量
+    total_amount: number; // 总数量
     basket_type: BasketTypeEnum; // 类型: Custom 或 ETF
     instrument_id: string; // ETF基金代码
     exchange_id: string; // ETF基金的市场
@@ -1567,7 +1579,7 @@ declare namespace KungfuApi {
 
   export interface SessionStore {
     getAllSessions(): Session[];
-    getSessionsForLocation(kfLocation: KfLocation): Session[];
+    getSessionsForLocation(kfLocation: KungfuApi.KfExtractLocation): Session[];
   }
 
   export interface Kungfu {
@@ -1667,11 +1679,17 @@ declare namespace KungfuApi {
     script: string;
   }
 
+  export interface KfExtractLocation extends KungfuApi.KfLocation {
+    uname: string;
+    uid: number;
+  }
+
   export type DerivedKfLocation =
     | KfLocation
     | KfExtraLocation
     | KfConfig
-    | KfExtServiceLocation;
+    | KfExtServiceLocation
+    | KfExtractLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 
@@ -1690,7 +1708,7 @@ declare namespace KungfuApi {
   }
 
   export interface BoardStyle {
-    flex: string;
+    flex?: string;
     height?: string;
   }
 }

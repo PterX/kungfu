@@ -5,6 +5,7 @@
 #ifndef KUNGFU_XTP_EXT_TYPE_CONVERT_H
 #define KUNGFU_XTP_EXT_TYPE_CONVERT_H
 
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -217,11 +218,14 @@ inline void from_xtp(const XTPMarketDataStruct &ori, Quote &des) {
   des.settlement_price = ori.settl_price;
   des.upper_limit_price = ori.upper_limit_price;
   des.lower_limit_price = ori.lower_limit_price;
+  des.total_trade_num = ori.trades_count;
 
   memcpy(des.ask_price, ori.ask, sizeof(des.ask_price));
-  memcpy(des.ask_volume, ori.ask_qty, sizeof(des.ask_price));
   memcpy(des.bid_price, ori.bid, sizeof(des.ask_price));
-  memcpy(des.bid_volume, ori.bid_qty, sizeof(des.ask_price));
+  for (std::size_t i = 0; i < 10; i++) {
+    des.ask_volume[i] = ori.ask_qty[i];
+    des.bid_volume[i] = ori.bid_qty[i];
+  }
 }
 
 inline void to_xtp(XTPOrderInsertInfo &des, const OrderInput &ori) {
@@ -271,6 +275,23 @@ inline void from_xtp(const XTPQueryOrderRsp &ori, HistoryOrder &des) {
     des.update_time = nsec_from_xtp_timestamp(ori.update_time);
   }
   des.external_order_id, std::to_string(ori.order_xtp_id).c_str();
+}
+
+inline void from_xtp_no_price_type(const XTPOrderInfo &ori, Order &des) {
+  des.instrument_id = ori.ticker;
+  from_xtp(ori.market, des.exchange_id);
+  des.volume = ori.quantity;
+  des.volume_left = ori.quantity - ori.qty_traded;
+  des.limit_price = ori.price;
+  from_xtp(ori.order_status, des.status);
+  from_xtp(ori.side, des.side);
+  set_offset(des);
+  des.instrument_type = get_instrument_type(des.exchange_id, des.instrument_id);
+  if (ori.update_time > 0) {
+    des.update_time = nsec_from_xtp_timestamp(ori.update_time);
+  }
+  std::string str_external_order_id = std::to_string(ori.order_xtp_id);
+  des.external_order_id = str_external_order_id.c_str();
 }
 
 inline void from_xtp(const XTPTradeReport &ori, Trade &des) {

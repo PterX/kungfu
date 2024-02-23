@@ -20,20 +20,20 @@ import {
   computed,
   nextTick,
   defineComponent,
-  inject,
 } from 'vue';
 import KfConfigSettingsForm from './KfConfigSettingsForm.vue';
 import {
   KfCategory,
   BasketVolumeType,
   PriceLevel,
+  Offset,
   Side,
 } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { SpecialWordsReg } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
-import { omitObject } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   numberEnumRadioType,
   numberEnumSelectType,
+  enableCustomRadioType,
   stringEnumSelectType,
   KfConfigValueNumberType,
   KfConfigValueArrayType,
@@ -52,7 +52,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealPriceType,
-  dealSide,
   dealPriceLevel,
   transformSearchInstrumentResultToInstrument,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
@@ -66,13 +65,11 @@ import {
 import dayjs, { Dayjs } from 'dayjs';
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
 import {
-  InstrumentTypeEnum,
   PriceTypeEnum,
   SideEnum,
   KfCategoryEnum,
   ContractTypeEnum,
   CloseOutFlagEnum,
-  OffsetEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   readCSV,
@@ -86,7 +83,6 @@ import {
   dealKungfuColorToClassname,
   dealKungfuColorToStyleColor,
 } from '../../assets/methods/uiUtils';
-import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
 
 const { t } = VueI18n.global;
 
@@ -178,6 +174,9 @@ const buildInnerFormRef = (item: KungfuApi.KfConfigItem) => {
   if (!innerFormRefKeys.includes(key)) innerFormRefKeys.push(key);
   return key;
 };
+const formElement = computed(() => {
+  return app?.proxy?.$el as HTMLElement | null;
+});
 
 const formState = ref(props.formState);
 const { td, md, operator, strategy } = toRefs(useAllKfConfigData());
@@ -187,15 +186,7 @@ const { isLanguageKeyAvailable } = useLanguage();
 const spinning = ref(false);
 const primaryKeys = ref<string[]>(getPrimaryKeys(props.configSettings || []));
 const numberEnumRadioTypeResolved = ref({ ...numberEnumRadioType });
-const sideRadiosList = ref<string[]>(Object.keys(Side).slice(0, 2));
-const marginSideRadioList = [
-  SideEnum.GuaranteeStockBuy,
-  SideEnum.GuaranteeStockSell,
-  SideEnum.MarginTrade,
-  SideEnum.ShortSell,
-  SideEnum.RepayStock,
-  SideEnum.RepayMargin,
-];
+
 const customerFormItemTips = reactive<Record<string, string>>({});
 const instrumentKeys = ref<
   Record<string, 'instrument' | 'instruments' | 'instrumentsCsv'>
@@ -216,14 +207,10 @@ const OriContractList = ref<{ label: string; value: string }[]>([]);
 
 const contractList = ref<{ label: string; value: string }[]>([]);
 
-const configSettingFormInject = inject(
-  BuiltinComponentInjectKeysMap.ConfigSettingForm,
-  {},
-);
-
 watch(
   () => props.configSettings,
   (newVal) => {
+    if (!newVal || newVal.length === 0) return;
     primaryKeys.value = getPrimaryKeys(newVal);
     instrumentKeys.value = filterInstrumentKeysFromConfigSettings(newVal);
     tableKeys.value = filterTableKeysFromConfigSettings(newVal);
@@ -325,57 +312,6 @@ watch(
     deep: true,
   },
 );
-
-if ('instrument' in formState.value) {
-  watch(
-    () => formState.value.instrument,
-    (newInstrument: string) => {
-      const isMargin = props.configSettings.some(
-        (item) => item.type === 'marginSide',
-      );
-      if (newInstrument) {
-        const instrumentResolved =
-          transformSearchInstrumentResultToInstrument(newInstrument);
-        if (instrumentResolved) {
-          const { instrumentType, exchangeId } = instrumentResolved;
-          if (instrumentType === InstrumentTypeEnum.stockoption) {
-            sideRadiosList.value = [
-              ...Object.keys(Side).slice(0, 2),
-              SideEnum.Exec + '',
-            ];
-          } else {
-            if (configSettingFormInject?.sideFilter) {
-              sideRadiosList.value =
-                configSettingFormInject.sideFilter?.(instrumentType);
-            } else {
-              sideRadiosList.value = Object.keys(Side).slice(0, 2);
-            }
-          }
-
-          if (
-            !isMargin &&
-            'side' in formState.value &&
-            !sideRadiosList.value.includes(`${formState.value.side}`)
-          ) {
-            formState.value.side = +sideRadiosList.value[0];
-          }
-
-          if (instrumentType === InstrumentTypeEnum.future) {
-            if (exchangeId === 'SHFE' || exchangeId === 'INE') {
-              numberEnumRadioTypeResolved.value['offset'] =
-                numberEnumRadioType['offset'];
-            } else {
-              numberEnumRadioTypeResolved.value['offset'] = omitObject(
-                numberEnumRadioType['offset'],
-                [OffsetEnum.CloseToday, OffsetEnum.CloseYest],
-              );
-            }
-          }
-        }
-      }
-    },
-  );
-}
 
 function getInstrumentsSearchRelated(
   instrumentKeys: Record<
@@ -614,6 +550,26 @@ function getKfTradeValueName(
   key: number | string,
 ): string {
   return data[key].name;
+}
+
+function dealEnableCustomTypeList(type:string){
+  if(type === 'side'){
+    return Object.keys(enableCustomRadioType[type]).slice(0, 2);
+  }else {
+    return Object.keys(enableCustomRadioType[type])
+  }
+}
+
+function getCustomTradeValueName(
+  type:string,
+  key: number | string,
+): string {
+  if(type === 'side' || type === 'marginSide'){
+    return Side[key]?.name || ''
+}else if(type === 'offset'){
+  return Offset[key]?.name || ''
+}
+  return '';
 }
 
 function instrumentsCsvCallback(
@@ -911,9 +867,13 @@ function handleDownloadCsvTemplate(
   }
 }
 
-function handleSelectFile(targetKey: string): void {
+function handleSelectFile(target: KungfuApi.KfConfigItem): void {
+  const targetKey = target.key;
+  const existPath =
+    formState.value[targetKey] && path.dirname(formState.value[targetKey]);
   dialog
     .showOpenDialog({
+      defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openFile'],
     })
     .then((res) => {
@@ -937,7 +897,8 @@ function handleSelectDirectory(
   }
   dialog
     .showOpenDialog({
-      defaultPath: formState.value[targetKey] || os.homedir(),
+      defaultPath:
+        formState.value[targetKey] || target.defaultDir || os.homedir(),
       properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
     })
     .then((res) => {
@@ -950,9 +911,14 @@ function handleSelectDirectory(
     });
 }
 
-function handleSelectFiles(targetKey: string): void {
+function handleSelectFiles(target: KungfuApi.KfConfigItem): void {
+  const targetKey = target.key;
+  const existPath =
+    (formState.value[targetKey] || [])[0] &&
+    path.dirname(formState.value[targetKey][0]);
   dialog
     .showOpenDialog({
+      defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openDirectory'],
     })
     .then((res) => {
@@ -1174,7 +1140,15 @@ function validate(): Promise<Record<string, KungfuApi.KfConfigValue>> {
       type FormRef = InstanceType<typeof KfConfigSettingsForm>;
       if (app?.proxy?.$refs?.[refKey]) {
         const refs = app.proxy.$refs[refKey] as FormRef | Array<FormRef>;
-        return refs;
+
+        if (Array.isArray(refs)) {
+          return refs.filter(
+            (ref) => ref.formElement?.getAttribute('data-active') === 'true',
+          );
+        }
+
+        if (refs.formElement?.getAttribute('data-active') === 'true')
+          return refs;
       }
       return null;
     })
@@ -1215,7 +1189,7 @@ function handleAddItemIntoTableRows(item: KungfuApi.KfConfigItem) {
   }
 }
 
-function handleRemoveItemIntoTableRows(item, index) {
+function handleRemoveItemIntoTableRows(item: KungfuApi.KfConfigItem, index) {
   const targetState = formState.value[item.key];
   if (targetState instanceof Array) {
     targetState.splice(index, 1);
@@ -1288,6 +1262,7 @@ function handleContractBlur() {
 defineExpose({
   validate,
   clearValidate,
+  formElement,
 });
 </script>
 <template>
@@ -1464,7 +1439,7 @@ defineExpose({
           @blur="numbersTyping[item.key] = false"
         ></a-input-number>
         <a-radio-group
-          v-else-if="item.type === 'side'"
+          v-else-if="enableCustomRadioType[item.type]"
           v-model:value="formState[item.key]"
           :name="item.key"
           :disabled="
@@ -1472,21 +1447,14 @@ defineExpose({
             item.disabled
           "
         >
-          <a-radio v-for="key in sideRadiosList" :key="key" :value="+key">
-            {{ dealSide(+key).name }}
-          </a-radio>
-        </a-radio-group>
-        <a-radio-group
-          v-else-if="item.type === 'marginSide'"
-          v-model:value="formState[item.key]"
-          :name="item.key"
-          :disabled="
-            (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
-            item.disabled
-          "
-        >
-          <a-radio v-for="key in marginSideRadioList" :key="key" :value="+key">
-            {{ dealSide(+key).name }}
+          <a-radio
+            v-for="key in item.customRadioList ? item.customRadioList : dealEnableCustomTypeList(item.type)"
+            :key="key"
+            :value="+key"
+          >
+            {{
+              item.customRadioList ? getCustomTradeValueName(item.type,key) : getKfTradeValueName(enableCustomRadioType[item.type], key)
+            }}
           </a-radio>
         </a-radio-group>
         <a-select
@@ -1757,10 +1725,10 @@ defineExpose({
           "
           show-search
           :filter-option="false"
+          :options="contractList"
           @search="handleContractSearch"
           @blur="handleContractBlur"
           @dropdownVisibleChange="getContracData"
-          :options="contractList"
         ></a-select>
 
         <a-select
@@ -1927,7 +1895,7 @@ defineExpose({
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
           "
-          @click="handleSelectFile(item.key)"
+          @click="handleSelectFile(item)"
         >
           <template #icon><DashOutlined /></template>
         </a-button>
@@ -2087,7 +2055,7 @@ defineExpose({
             item.disabled
           "
           size="small"
-          @click="handleSelectFiles(item.key)"
+          @click="handleSelectFiles(item)"
         >
           <template #icon><PlusOutlined /></template>
         </a-button>
@@ -2289,6 +2257,7 @@ defineExpose({
               #default="{
                 item: _item,
                 index,
+                active,
               }: {
                 item: {
                   data: Record<string, KungfuApi.KfConfigValue>,
@@ -2296,6 +2265,7 @@ defineExpose({
                   id: string,
                 },
                 index: number,
+                active: boolean,
               }"
             >
               <div
@@ -2311,6 +2281,7 @@ defineExpose({
                   <KfConfigSettingsForm
                     :ref="buildInnerFormRef(item)"
                     v-model:formState="_item.data"
+                    :data-active="active"
                     :style="{
                       flexWrap: item.wrap || '',
                       overflowX: item.wrap === 'nowrap' ? 'overlay' : '',
@@ -2379,6 +2350,7 @@ defineExpose({
               <KfConfigSettingsForm
                 :ref="buildInnerFormRef(item)"
                 v-model:formState="formState[item.key][index]"
+                data-active="true"
                 :config-settings="item.columns || []"
                 :change-type="changeType"
                 :primary-key-avoid-repeat-compare-extra="

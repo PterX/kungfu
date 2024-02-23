@@ -24,7 +24,6 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
 
-constexpr uint32_t STEP_LIMIT = 1000;
 constexpr uint32_t STEP_INTERVAL = 1;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
@@ -727,11 +726,9 @@ void Watcher::StartWorker() {
       if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
         watcher->setup();
       }
-      int32_t step_count = 0;
-      if (watcher->is_live() && watcher->feed_mutex_.try_lock() && step_count < STEP_LIMIT) {
+      while (watcher->is_live() && watcher->reader_->data_available()) {
+        std::lock_guard<std::mutex> guard(watcher->feed_mutex_);
         watcher->step(STEP_INTERVAL);
-        step_count += STEP_INTERVAL;
-        watcher->feed_mutex_.unlock();
       }
       std::this_thread::sleep_for(std::chrono::microseconds(watcher->milliseconds_sleep_after_step_));
     }

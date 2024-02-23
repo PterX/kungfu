@@ -10,4 +10,4 @@ const globalStorage = getGlobalStorage();
 initKfConfig();
 initKfDefaultInstruments();
 
-globalStorage.setItem('ifNotFirstRunning', true);
+globalStorage.setItem('isKungfuFirstRunning', false);

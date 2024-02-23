@@ -8,7 +8,7 @@ import kungfu
 import os
 import sys
 
-from kungfu.console.utils import import_force
+from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
@@ -22,7 +22,7 @@ yjj = kungfu.__binding__.yijinjing
 
 class OpRunner(wc.OpRunner):
     def __init__(self, ctx):
-        wc.Runner.__init__(
+        wc.OpRunner.__init__(
             self,
             ctx.locator,
             ctx.group,

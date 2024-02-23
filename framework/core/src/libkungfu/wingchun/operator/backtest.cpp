@@ -36,6 +36,7 @@ void BacktestContext::on_start() {
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | $$(on_timer_check(); lease_expired_check(););
   init_time_events();
+  report_->init();
 }
 
 bool BacktestContext::is_started() const { return true; }
@@ -151,8 +152,10 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         if (not md_location)
           continue;
         if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-          SPDLOG_WARN("md public journal in locator={}, location={} not exists", md_location->locator->get_root(),
-                      md_location->uname);
+          SPDLOG_WARN("failed to subscribe market data between {} and {}, md public journal in locator={}, location={} "
+                      "not exists",
+                      time::strftime(slice_begin_time), time::strftime(slice_end_time),
+                      md_location->locator->get_root(), md_location->uname);
         }
 
         add_location(app_, md_location);
@@ -190,7 +193,9 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     if (not op_location)
       continue;
     if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
-      SPDLOG_WARN("operator public journal in locator={}, location={} not exists", op_location->locator->get_root(),
+      SPDLOG_WARN("failed to subscribe operator data between {} and {}, md public journal in locator={}, location={} "
+                  "not exists",
+                  time::strftime(slice_begin_time), time::strftime(slice_end_time), op_location->locator->get_root(),
                   op_location->uname);
     }
 
@@ -213,6 +218,7 @@ void BacktestContext::publish_synthetic_data(const std::string &key, const std::
   synthetic_data.key = key;
   synthetic_data.value = value;
   slice_tool_->write_at(current_time, current_time, location::PUBLIC, synthetic_data);
+  report_->on_write_synthetic_data(synthetic_data);
 }
 
 broker::Client &BacktestContext::get_broker_client() { return broker_client_; }

@@ -55,6 +55,7 @@ bool AccountingMethod::guard_order_accounting(uint32_t source, uint32_t dest, Bo
     return false;
   }
 
+  // prevent pos && asset from repeat unfrozen
   if (orders.find(order.order_id) != orders.end() and is_final_status(orders.at(order.order_id).status)) {
     return false;
   }

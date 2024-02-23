@@ -45,10 +45,10 @@ export default {
 
   clear_journal: '清理 journal',
   clear_DB: '清理 DB',
-  reset_main_panel: '重置主面板',
+  reset_current_panel: '重置当前面板布局',
   export_all_transaction_data: '导出所有交易数据',
   export_instrument_whitelists: '导出标的白名单',
-  view_all_journal: '查看所有 journal',
+  open_inspect_tool: '打开诊断工具',
 
   website: '官网',
   user_manual: '用户手册',
@@ -68,7 +68,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
-  open_journal_dashboard: '正在打开 journal 面板',
+  opening_inspect_tool: '正在打开诊断工具',
   open_replay_dashboard: '正在打开回放面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
@@ -828,6 +828,9 @@ export default {
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
+    log_frame: '全局日志输出 Frame 信息',
+    log_frame_desc:
+      '对系统内所有日志生效, 开启后会在 log 上附加当前 frame 的信息, 修改后重启功夫生效',
 
     auto_restart_td: '交易进程自动重启',
     auto_restart_td_desc:
@@ -840,7 +843,7 @@ export default {
       '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
     bypass_archive_dev: '跳过归档 (开发者模式)',
     bypass_archive_dev_desc:
-      '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用 journal 工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
+      '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用诊断工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
@@ -917,7 +920,7 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   autoUpdater: {
-    update: '版本更新',
+    update_version: '版本更新',
     is_check_version: '检测更新',
     is_check_version_desc: '启动功夫时, 是否检测更新',
     current_version: '当前版本',
@@ -927,6 +930,7 @@ export default {
     retry_check: '检测',
     has_skipped: '已跳过此版本',
     start_download: '开始下载',
+    update: '更新',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
     downloaded: '下载完成, 等待安装',

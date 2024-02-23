@@ -24,11 +24,9 @@ bool Trader::insert_algo_order(const event_ptr &event) {
   auto &algo_order_input = event->data<longfist::types::AlgoOrderInput>();
   auto &algo_order = writer->open_data<AlgoOrder>();
   algo_order_from_input(algo_order_input, algo_order);
-  if (not algo_order_input.is_local) {
-    algo_order.status = longfist::enums::OrderStatus::Error;
-    std::string error_msg = "Algo not supported";
-    strcpy(algo_order.error_msg, error_msg.c_str());
-  }
+  algo_order.status = longfist::enums::OrderStatus::Error;
+  std::string error_msg = "Algo not supported";
+  strcpy(algo_order.error_msg, error_msg.c_str());
   writer->close_data();
   return true;
 }
@@ -245,18 +243,11 @@ void Trader::try_req_account() {
   }
 }
 
-void Trader::on_risk_setting() {
-  const std::string msg = get_risk_setting();
-  SPDLOG_DEBUG("RiskSetting: {}", msg);
-  auto risk_setting_data = nlohmann::json::parse(msg);
-  auto risk_check = risk_setting_data.value<bool>("risk_check", false);
-  if (risk_check) {
-    // let process crash if value is not a json
-    auto config = nlohmann::json::parse(risk_setting_data.value<std::string>("value", "{}"));
-    const auto risk_name = config.value<std::string>("risk_name", "");
-    if (not risk_name.empty()) {
-      risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_name, get_home()->locator).location_uid;
-    }
+void Trader::on_risk_setting(const RiskSetting &risk_setting) {
+  SPDLOG_DEBUG("RiskSetting: {}", risk_setting.to_string());
+  if (risk_setting.risk_check and not risk_setting.name.empty()) {
+    risk_uid_ = location(get_home()->mode, category::SYSTEM, "service", risk_setting.risk_name, get_home()->locator)
+                    .location_uid;
   }
 }
 } // namespace kungfu::wingchun::broker

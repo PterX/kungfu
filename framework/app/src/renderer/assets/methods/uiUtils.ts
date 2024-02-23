@@ -23,7 +23,9 @@ import {
   isRef,
   createApp,
   defineComponent,
+  onUnmounted,
 } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -60,6 +62,7 @@ import {
   debounce,
   loopToRunProcess,
   isKfColor,
+  LinkedList,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
@@ -103,7 +106,7 @@ import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
 import md from 'markdown-it';
 import mdHljs from 'markdown-it-highlightjs';
-import mdCheckbox from 'markdown-it-task-checkbox';
+import mdCheckbox from 'markdown-it-task-checkbox-pro';
 import hlForCpp from 'highlight.js/lib/languages/cpp';
 import hlForPython from 'highlight.js/lib/languages/python';
 import hlForJs from 'highlight.js/lib/languages/javascript';
@@ -112,6 +115,7 @@ import Mark from 'mark.js';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
+import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 // this utils file is only for ui components
 
@@ -166,6 +170,7 @@ export const getUIComponents = (
 ): {
   key: string;
   name: string;
+  keepAlive: boolean;
   script: string;
   extPath: string;
   position: KfUIExtLocatorTypes;
@@ -179,10 +184,11 @@ export const getUIComponents = (
     })
     .map((key) => {
       const config = kfUiExtConfigs[key];
-      const { extPath, position, components, name, script } = config;
+      const { extPath, position, components, name, script, keepAlive } = config;
       return {
         key,
         name,
+        keepAlive,
         position,
         script,
         extPath,
@@ -206,6 +212,7 @@ export const loadExtScripts = async (
   components: {
     key: string;
     name: string;
+    keepAlive: boolean;
     script: string;
     extPath: string;
     position: KfUIExtLocatorTypes;
@@ -235,6 +242,7 @@ export const loadExtComponents = (
   components: {
     key: string;
     name: string;
+    keepAlive: boolean;
     script: string;
     extPath: string;
     position: KfUIExtLocatorTypes;
@@ -243,7 +251,7 @@ export const loadExtComponents = (
   app: App<Element>,
   router: Router,
 ) => {
-  components.forEach(({ cData, position, key, name }) => {
+  components.forEach(({ cData, position, key, name, keepAlive }) => {
     switch (position) {
       case 'sidebar':
         if (cData[`${key}-entry`] && cData[`${key}-page`]) {
@@ -252,6 +260,9 @@ export const loadExtComponents = (
             path: `/${key}`,
             name: key,
             component: cData[`${key}-page`],
+            meta: {
+              keepAlive: keepAlive ?? false,
+            },
           });
         } else {
           console.warn(`${key}-entry or ${key}-page not in cData`);
@@ -276,6 +287,432 @@ export const loadExtComponents = (
     }
   });
 };
+
+export function useStyle(styleString: string) {
+  const key = Date.now();
+  const styleSheet = document.styleSheets[0];
+  const uniqueClassName = `kf-keyboard-style-${key}`;
+  const fullStyleStr = `.${uniqueClassName} ${styleString}`;
+
+  if (styleSheet) {
+    try {
+      styleSheet.insertRule(fullStyleStr, styleSheet.cssRules.length);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  const findRuleIndex = () => {
+    for (let i = 0; i < styleSheet.cssRules.length; i++) {
+      if (styleSheet.cssRules[i].cssText.startsWith(fullStyleStr)) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const addStyle = (element: Element) => {
+    element.classList.add(uniqueClassName);
+    return () => {
+      element.classList.remove(uniqueClassName);
+      const index = findRuleIndex();
+      if (index !== -1) {
+        try {
+          styleSheet.deleteRule(index);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+  };
+
+  const removeStyle = (element: Element) => {
+    element.classList.remove(uniqueClassName);
+  };
+
+  const cleanup = () => {
+    const index = findRuleIndex();
+    if (index !== -1) {
+      try {
+        styleSheet.deleteRule(index);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  return { addStyle, removeStyle, cleanup };
+}
+
+export function useShortcutFocusContainer() {
+  const key = Date.now().toString();
+  let keyShort = '';
+
+  const setupShortcut = (
+    containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+    curKeyShort: string,
+  ) => {
+    const clean = watch(
+      containerRef,
+      (newContainer) => {
+        if (newContainer) {
+          const container = containerRef.value
+            ? '$el' in containerRef.value
+              ? containerRef.value.$el
+              : containerRef.value
+            : null;
+          if (!globalThis.KeyShortMap[curKeyShort]) {
+            globalThis.KeyShortMap[curKeyShort] = new LinkedList<HTMLElement>();
+            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
+          } else {
+            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
+          }
+          keyShort = curKeyShort;
+          clean();
+        }
+      },
+      { immediate: true },
+    );
+  };
+
+  const cleanupShortcut = () => {
+    if (keyShort && globalThis.KeyShortMap[keyShort]) {
+      globalThis.KeyShortMap[keyShort].remove(key);
+    }
+  };
+
+  const registerKeyDown = () => {
+    if (globalThis.KeyShortMap) return;
+    globalThis.KeyShortMap = {};
+
+    document.addEventListener('keydown', async (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.code.startsWith('Digit')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const keyShortStr = `CommandOrControl+Shift+${e.code.replace(
+          'Digit',
+          '',
+        )}`;
+        if (globalThis.KeyShortMap[keyShortStr]) {
+          const linkList = globalThis.KeyShortMap[keyShortStr];
+          const pos = linkList.getPos();
+          const containerContent = linkList.getValue(pos);
+          if (!containerContent) return;
+          containerContent.classList.add('kf-highlight-outline');
+          containerContent.focus();
+          await setTimeout(() => {
+            containerContent.classList.remove('kf-highlight-outline');
+          }, 300);
+          linkList.posNext();
+
+          const keyUpHandler = (e: KeyboardEvent) => {
+            if (!((e.ctrlKey || e.metaKey) && e.shiftKey)) {
+              linkList.moveRestToHead(pos);
+              linkList.resetPos();
+              document.removeEventListener('keyup', keyUpHandler);
+            }
+          };
+          document.addEventListener('keyup', keyUpHandler);
+        }
+      }
+    });
+  };
+
+  const setPos = () => {
+    if (globalThis.KeyShortMap[keyShort]) {
+      globalThis.KeyShortMap[keyShort].setPos(key);
+    }
+  };
+
+  onUnmounted(cleanupShortcut);
+
+  return { setupShortcut, cleanupShortcut, registerKeyDown, setPos };
+}
+
+export function useTabFocusContainer(
+  containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  customFocusHandler:
+    | ((e: KeyboardEvent, focusableElements: HTMLElement[]) => void)
+    | null = null,
+  focusableElementsResolver?: (
+    defaultFoucsableElements: HTMLElement[],
+  ) => HTMLElement[],
+) {
+  let container;
+  let focusableElements: HTMLElement[] = [];
+  let observer: MutationObserver | null = null;
+
+  const updateFocusableElements = () => {
+    if (!container) return;
+
+    const elements = Array.from(
+      container.querySelectorAll(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ) as HTMLElement[];
+
+    focusableElements = focusableElementsResolver
+      ? focusableElementsResolver(elements)
+      : elements;
+  };
+
+  function loopFocusWithinContainer() {
+    if (!container) return;
+
+    customFocusHandler
+      ? container.addEventListener('keydown', (e: KeyboardEvent) =>
+          customFocusHandler(e, focusableElements),
+        )
+      : container.addEventListener('keydown', defaultFocusHandler);
+  }
+
+  const setupFocus = () => {
+    updateFocusableElements();
+    loopFocusWithinContainer();
+  };
+
+  // 默认的键盘事件处理函数
+  const defaultFocusHandler = (e: KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+
+    if (focusableElements.length === 0) return;
+
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement =
+      focusableElements[focusableElements.length - 1];
+
+    // 判断按下的是否是Shift+Tab
+    const isShiftTab = e.shiftKey && e.key === 'Tab';
+
+    if (isShiftTab) {
+      // Shift + Tab: 移动到上一个可聚焦元素
+      if (document.activeElement === firstFocusableElement) {
+        lastFocusableElement.focus();
+        e.preventDefault();
+      } else {
+        // 寻找当前聚焦元素的前一个元素并聚焦
+        const currentElementIndex = focusableElements.findIndex(
+          (element) => element === document.activeElement,
+        );
+        if (currentElementIndex > 0) {
+          focusableElements[currentElementIndex - 1].focus();
+          e.preventDefault();
+        }
+      }
+    } else {
+      // Tab: 移动到下一个可聚焦元素
+      if (document.activeElement === lastFocusableElement) {
+        firstFocusableElement.focus();
+        e.preventDefault();
+      } else {
+        // 寻找当前聚焦元素的后一个元素并聚焦
+        const currentElementIndex = focusableElements.findIndex(
+          (element) => element === document.activeElement,
+        );
+        if (
+          currentElementIndex >= 0 &&
+          currentElementIndex < focusableElements.length - 1
+        ) {
+          focusableElements[currentElementIndex + 1].focus();
+          e.preventDefault();
+        }
+      }
+    }
+  };
+
+  const cleanupFocus = () => {
+    if (!container) return;
+
+    if (container && customFocusHandler) {
+      container.removeEventListener('keydown', customFocusHandler);
+    }
+  };
+
+  onUnmounted(() => {
+    if (observer) observer.disconnect();
+    cleanupFocus();
+  });
+
+  watch(
+    containerRef,
+    (newContainer) => {
+      if (newContainer) {
+        if (!containerRef.value) {
+          return;
+        }
+        if (observer) observer.disconnect();
+        container =
+          containerRef.value instanceof HTMLElement
+            ? containerRef.value
+            : containerRef.value.$el;
+
+        if (container) {
+          setupFocus();
+          observer = new MutationObserver((mutations) => {
+            if (mutations.length === 0) return;
+
+            updateFocusableElements();
+          });
+
+          const config = { childList: true, subtree: true }; // 监听子节点的增减，以及子树的变化
+
+          observer.observe(container, config);
+        }
+      }
+    },
+    { immediate: true },
+  );
+
+  return { cleanupFocus, setupFocus };
+}
+
+export function useKeyboardControlContainerStyle(
+  containerName: string,
+  styleString: string,
+  containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  controlAreaStyleRef: Ref<HTMLElement | ComponentPublicInstance | null> = ref(
+    null,
+  ),
+) {
+  const keyShort = keyShortMap[containerName];
+  const {
+    addStyle,
+    removeStyle,
+    cleanup: cleanupStyle,
+  } = useStyle(styleString);
+  const { setupShortcut, setPos } = useShortcutFocusContainer();
+  useTabFocusContainer(containerRef, loopFocusContainer);
+  setupShortcut(containerRef, keyShort);
+
+  let container;
+  let element;
+
+  const isChildOf = (parent: Element, child: Element) => {
+    let node = child.parentNode;
+    while (node !== null) {
+      if (node === parent) {
+        return true;
+      }
+      node = node.parentNode;
+    }
+    return false;
+  };
+
+  function loopFocusContainer(
+    e: KeyboardEvent,
+    focusableElements: HTMLElement[],
+  ) {
+    if (!container) return;
+
+    const isTabPressed = e.key === 'Tab';
+
+    if (focusableElements.length === 0) {
+      return;
+    }
+
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement =
+      focusableElements[focusableElements.length - 1];
+
+    if (!isTabPressed) {
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstFocusableElement) {
+        lastFocusableElement?.focus();
+        e.preventDefault();
+      } else if (document.activeElement === focusableElements[1]) {
+        firstFocusableElement?.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (document.activeElement === lastFocusableElement) {
+        firstFocusableElement?.focus();
+        e.preventDefault();
+      }
+    }
+  }
+
+  function keyboardFn(e: KeyboardEvent) {
+    if (e.code === 'Tab') {
+      if (!containerRef.value) return;
+      const container =
+        containerRef.value instanceof HTMLElement
+          ? containerRef.value
+          : containerRef.value.$el;
+      if (
+        document.activeElement &&
+        container &&
+        (document.activeElement === container ||
+          isChildOf(container, document.activeElement))
+      ) {
+        addStyle(element);
+      } else {
+        removeStyle(element);
+      }
+    }
+  }
+
+  watch(
+    containerRef,
+    (newContainer, oldContainer) => {
+      if (oldContainer) {
+        container.removeEventListener('click', focusOutHandler);
+        container.removeEventListener('focus', setPos);
+        cleanupStyle();
+      }
+      if (newContainer) {
+        (container = containerRef.value
+          ? '$el' in containerRef.value
+            ? containerRef.value.$el
+            : containerRef.value
+          : null),
+          (element = controlAreaStyleRef.value
+            ? '$el' in controlAreaStyleRef.value
+              ? controlAreaStyleRef.value.$el
+              : controlAreaStyleRef.value
+            : container),
+          container.addEventListener('click', setPos);
+        container.addEventListener('focusout', focusOutHandler);
+        document.addEventListener('keydown', keyboardFn);
+      }
+    },
+    { immediate: true },
+  );
+
+  function focusOutHandler() {
+    setTimeout(() => {
+      if (
+        container &&
+        document.activeElement &&
+        !isChildOf(container, document.activeElement)
+      ) {
+        removeStyle(element);
+      }
+    });
+  }
+
+  function cleanup() {
+    cleanupStyle();
+    if (container) {
+      container.removeEventListener('focusout', focusOutHandler);
+    }
+  }
+  onBeforeUnmount(() => {
+    document.removeEventListener('keydown', keyboardFn);
+    cleanup();
+  });
+
+  return {
+    addStyle,
+    removeStyle,
+  };
+}
 
 export const useLocale = () => {
   const app = getCurrentInstance();
@@ -660,6 +1097,7 @@ export const openNewBrowserWindow = (
     if (isMacOS) {
       win.on('minimize', (event) => {
         event.preventDefault();
+
         const [parentX, parentY, parentWidth, parentHeight] = [
           currentWindow.getPosition()[0],
           currentWindow.getPosition()[1],
@@ -1057,7 +1495,7 @@ export const handleOpenCodeView = (
 export const handleOpenJournalView = (
   config?: KungfuApi.KfConfig | KungfuApi.KfLocation,
 ): Promise<Electron.BrowserWindow> => {
-  const hideloading = messagePrompt().loading(t('open_journal_dashboard'));
+  const hideloading = messagePrompt().loading(t('opening_inspect_tool'));
   const processId = config ? getProcessIdByKfLocation(config) : '';
   const locationUID = config ? getKfLocationUID(config) || '' : '';
   return openJournalView(processId, locationUID).finally(() => {
@@ -1486,7 +1924,7 @@ export const vueProvideBaseOnParent = <T extends { [x: string]: any }>(
   if (!parentProvide || parentProvide === emptyObj) return provide(key, value);
   if (typeof parentProvide !== 'object' || typeof value !== 'object')
     return provide(key, value);
-  return provide(key, Object.assign(parentProvide, value));
+  return provide(key, Object.assign({ ...parentProvide }, { ...value }));
 };
 
 export const showInitAfterReloadConfirmDialog = () => {
@@ -2098,15 +2536,51 @@ export const useScrollerTableSearch = <T extends object>(
   };
 };
 
+export const onClickOutside = (
+  el: string | Element,
+  callback: (e: MouseEvent) => void,
+) => {
+  let element: Element | null = null;
+  const cleanups: Array<() => void> = [];
+
+  const getElement = () => {
+    if (!element) {
+      if (typeof el === 'string') {
+        element = document.querySelector(el);
+      } else {
+        element = el;
+      }
+    }
+
+    return element;
+  };
+
+  setTimeout(() => {
+    cleanups.push(
+      useEventListener(document, 'click', (e) => {
+        const el = getElement();
+        if (el) {
+          const x = e.clientX;
+          const y = e.clientY;
+          const { left, right, top, bottom } = el.getBoundingClientRect();
+          if (!(x >= left && x <= right && y >= top && y <= bottom)) {
+            callback(e);
+          }
+        }
+      }),
+    );
+  });
+
+  function deregister() {
+    cleanups.forEach((cleanup) => cleanup());
+  }
+
+  return deregister;
+};
+
 export const clearLocalStorageWithNewVersion = () => {
   const rootPackageJson = readRootPackageJsonSync();
-  const versions = globalStorage.getItem('historicalUsedVersions') ?? [];
-  if (rootPackageJson.version && !versions.includes(rootPackageJson.version)) {
-    globalStorage.setItem('historicalUsedVersions', [
-      ...versions,
-      rootPackageJson.version,
-    ]);
-
+  if (booleanProcessEnv(process.env.IF_CUR_VERSION_FIRST_RUNNING)) {
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }

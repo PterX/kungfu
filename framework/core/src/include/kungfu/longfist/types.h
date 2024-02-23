@@ -355,17 +355,17 @@ KF_DEFINE_PACK_TYPE(                                         //
     (int64_t, insert_time)                                   // 写入时间
 );
 
-KF_DEFINE_PACK_TYPE(                                  //
-    OrderStat, 207, PK(order_id), TIMESTAMP(md_time), //
-    (uint64_t, order_id),                             //
-    (int64_t, md_time),                               //
-    (int64_t, input_time),                            //
-    (int64_t, insert_time),                           //
-    (int64_t, ack_time),                              //
-    (int64_t, trade_time),                            //
-    (double, total_price),                            //
-    (double, total_volume),                           //
-    (double, avg_price)                               //
+KF_DEFINE_PACK_TYPE(                                     //
+    OrderStat, 207, PK(order_id), TIMESTAMP(input_time), //
+    (uint64_t, order_id),                                //
+    (int64_t, md_time),                                  //
+    (int64_t, input_time),                               //
+    (int64_t, insert_time),                              //
+    (int64_t, ack_time),                                 //
+    (int64_t, trade_time),                               //
+    (double, total_price),                               //
+    (double, total_volume),                              //
+    (double, avg_price)                                  //
 );
 
 KF_DEFINE_PACK_TYPE(                                                //
@@ -502,8 +502,9 @@ KF_DEFINE_PACK_TYPE(                                           //
     (kungfu::array<char, ALGO_TYPE_ID_LEN>, algo_type_id), // 算法类型
     (kungfu::array<char, ALGO_ID_LEN>, algo_id),           // 算法id
 
-    (enums::OrderStatus, status),                   // 订单状态
-    (kungfu::array<char, ERROR_MSG_LEN>, error_msg) // 错误信息
+    (enums::OrderStatus, status),                    // 订单状态
+    (kungfu::array<char, ERROR_MSG_LEN>, error_msg), // 错误信息
+    (bool, is_local)                                 // 是否为一个本地算法单
 );
 
 KF_DEFINE_PACK_TYPE(                                                   //
@@ -676,7 +677,7 @@ KF_DEFINE_PACK_TYPE(                                         //
     (double, settlement_price), // 期权/期货结算价
     (double, iopv),             // 基金实时参考净值
 
-    (double, total_bid_volume), // 总委托买如量
+    (double, total_bid_volume), // 总委托买入量
     (double, total_ask_volume), // 总委托卖出量
     (int64_t, total_trade_num), // 总成交笔数
 
@@ -901,6 +902,7 @@ KF_DEFINE_DATA_TYPE(                                   //
     (std::string, group),                              //
     (std::string, name),                               //
     (enums::mode, mode),                               //
+    (std::string, risk_name),                          //
     (bool, risk_check),                                //
     (enums::SelfDealCheckType, self_deal_check_type),  //
     (std::string, value)                               //

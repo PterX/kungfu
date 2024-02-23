@@ -8,7 +8,7 @@ import kungfu
 import os
 import sys
 
-from kungfu.console.utils import import_force
+from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
@@ -50,7 +50,7 @@ class Strategy(wc.Strategy):
         strategy_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, strategy_dir)
-        self._module = import_force(os.path.splitext(name_no_ext[1])[0])
+        self._module = safe_import(os.path.splitext(name_no_ext[1])[0])
         self._pre_start = getattr(self._module, "pre_start", lambda ctx: None)
         self._post_start = getattr(self._module, "post_start", lambda ctx: None)
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
@@ -243,6 +243,7 @@ class Strategy(wc.Strategy):
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
+        self.ctx.config = wc_context.config
         self.ctx.now = wc_context.now
         self.ctx.add_timer = self.__add_timer
         self.ctx.add_time_interval = self.__add_time_interval

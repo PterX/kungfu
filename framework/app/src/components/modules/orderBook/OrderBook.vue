@@ -3,6 +3,8 @@ import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
   dealKfPrice,
+  dealKfDecimalPrecision,
+  countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
@@ -10,6 +12,8 @@ import {
   getCurrentInstance,
   onBeforeUnmount,
   onMounted,
+  onDeactivated,
+  onActivated,
   ref,
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
@@ -36,20 +40,24 @@ const quoteData = computed(() => {
 
 onMounted(() => {
   currentInstrument.value = useGlobalStore().orderBookCurrentInstrument;
+});
 
-  if (app?.proxy) {
-    const subscription = app.proxy.$globalBus.subscribe(
-      (data: KfEvent.KfBusEvent) => {
-        if (data.tag === 'orderbook') {
-          currentInstrument.value = data.instrument;
-        }
-      },
-    );
+onActivated(() => {
+  const subscription = app?.proxy?.$globalBus.subscribe(
+    (data: KfEvent.KfBusEvent) => {
+      if (data.tag === 'orderbook') {
+        currentInstrument.value = data.instrument;
+      }
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 const askPrices = computed(() => {
@@ -103,7 +111,7 @@ function handleTriggerBuyOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Buy,
     price,
-    volume: BigInt(volume),
+    volume: volume,
   });
 }
 
@@ -118,7 +126,7 @@ function handleTriggerSellOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Sell,
     price,
-    volume: BigInt(volume),
+    volume: volume,
   });
 }
 
@@ -135,14 +143,29 @@ function dealQuoteAskPidPrices(
         ).price_tick ?? 0.001;
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
-
       if (price_tick !== 0) {
         return quoteData[`${type}_price`].reduce((pre, cur, index) => {
-          if (index === 0 || toLedgalPriceVolume(cur)) {
-            pre.push(toLedgalPriceVolume(cur));
+          if (
+            index === 0 ||
+            dealKfDecimalPrecision(
+              toLedgalPriceVolume(cur),
+              countDecimalPlaces(target_price_tick),
+            )
+          ) {
+            pre.push(
+              dealKfDecimalPrecision(
+                toLedgalPriceVolume(cur),
+                countDecimalPlaces(target_price_tick),
+              ),
+            );
           } else {
             const prePrice = pre[index - 1];
-            pre.push(toLedgalPriceVolume(prePrice + target_price_tick));
+            pre.push(
+              dealKfDecimalPrecision(
+                toLedgalPriceVolume(prePrice + target_price_tick),
+                countDecimalPlaces(target_price_tick),
+              ),
+            );
           }
 
           return pre;

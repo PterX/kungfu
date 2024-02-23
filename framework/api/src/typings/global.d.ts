@@ -37,9 +37,11 @@ declare global {
       KFC_DIR: string;
       KF_CONFIG_DIR: string;
       KF_APP_RUNTIME_DIR: string;
+      KF_LOG_FRAME: boolean;
       IS_KF_DEV: boolean; // 判断当前是否通过 yarn dev 启动的开发模式
       CPUS_NUM: number;
       IF_CPUS_NUM_SAFE: boolean;
+      IF_CUR_VERSION_FIRST_RUNNING: boolean;
       ELECTRON_RUN_AS_NODE: boolean;
       ELECTRON_ENABLE_STACK_DUMPING: boolean;
       RELOAD_AFTER_CRASHED: 'true' | 'false' | undefined; // 需要作为pm2 env参数传递，为了统一识别，用string
@@ -117,10 +119,22 @@ export interface RootConfigJSON {
     env?: Record<string, string>;
     autoUpdate?: {
       update?: Writeable<AllPublishOptions>;
+      checkVersion?: {
+        alphaToRelease?: boolean;
+        releaseToAlpha?: boolean;
+      };
     };
   };
   appConfig?: {
     showHelp?: boolean;
+
+    customSidebar?: Record<
+      string,
+      {
+        sidebarIndex?: number;
+        name?: string;
+      }
+    >;
 
     boardFilter?: Record<string, boolean>;
 
@@ -146,7 +160,7 @@ export interface RootConfigJSON {
 }
 
 export interface GlobalStorageData {
-  ifNotFirstRunning?: boolean;
+  isKungfuFirstRunning?: boolean;
   lastStartDateTime?: string;
   skippedVersions?: string[];
   needClearJournal?: boolean;

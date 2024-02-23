@@ -96,8 +96,8 @@ KF_JSON_SERIALIZE_ENUM(category, {
                                      {category::MD, "MD"},
                                      {category::TD, "TD"},
                                      {category::STRATEGY, "STRATEGY"},
-                                     {category::OPERATOR, "OPERATOR"},
                                      {category::SYSTEM, "SYSTEM"},
+                                     {category::OPERATOR, "OPERATOR"},
                                  })
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int32_t(t); }

@@ -215,7 +215,7 @@ constexpr auto StateDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderAction),                            // 204
     TYPE_PAIR(OrderActionError),                       // 205
     TYPE_PAIR(BlockMessage),                           // 206
-    TYPE_PAIR(OrderStat),                              // 2072
+    TYPE_PAIR(OrderStat),                              // 207
     TYPE_PAIR(OrderTriggerInput),                      // 209
     TYPE_PAIR(OrderTrigger),                           // 210
     TYPE_PAIR(OrderTriggerAction),                     // 211
@@ -270,6 +270,10 @@ constexpr auto StaticDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Instrument),                              // 10204
     TYPE_PAIR(Basket),                                  // 10206
     TYPE_PAIR(BasketInstrument)                         // 10207
+);
+
+constexpr auto StatisticDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(OrderStat)                                   // 207
 );
 
 template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }

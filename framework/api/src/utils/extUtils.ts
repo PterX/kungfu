@@ -286,6 +286,7 @@ export const getKfExtensionConfigByCategory = (
                   orderTrigger: resolveOrderTriggerConfig(extOriginConfig),
                   settings: extOriginConfig[category]?.settings || [],
                   fundTrans: extOriginConfig[category]?.fund_trans || {},
+                  supportEtf: extOriginConfig[category]?.supportEtf || false,
                   showAssetMargin:
                     extOriginConfig[category]?.show_asset_margin || false,
                   margin: extOriginConfig[category]?.margin || {},
@@ -380,6 +381,8 @@ const getKfUIExtensionConfigByExtKey = (
       const silent = uiConfig?.silent ?? false;
       const access = uiConfig?.access ?? {};
       const position = uiConfig?.position || '';
+      const sidebarIndex = uiConfig?.sidebarIndex || -1;
+      const keepAlive = extConfig.keepAlive ?? true;
       const exhibit = uiConfig?.exhibit || ({} as KungfuApi.KfExhibitConfig);
       const components = uiConfig?.components || null;
       const script = uiConfig?.script || '';
@@ -388,6 +391,7 @@ const getKfUIExtensionConfigByExtKey = (
         key: extKey,
         category: 'ui',
         name: extName,
+        keepAlive,
         silent,
         access,
         assets,
@@ -398,6 +402,7 @@ const getKfUIExtensionConfigByExtKey = (
         description,
         dependencies,
         position,
+        sidebarIndex,
         exhibit,
         components,
         script,

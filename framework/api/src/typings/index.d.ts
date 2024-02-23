@@ -1506,6 +1506,11 @@ declare namespace KungfuApi {
         };
       };
     };
+    position: {
+      [key: string]: {
+        positionIndexMap?: any;
+      };
+    };
   }
 
   export interface Session {

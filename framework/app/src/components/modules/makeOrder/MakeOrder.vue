@@ -171,7 +171,6 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 });
 
 const configSettings = computed(() => {
-  console.log(isMarginMakeOrder.value, '````````````````````');
   if (!currentGlobalKfLocation.value) {
     return getConfigSettings({});
   }
@@ -350,12 +349,6 @@ watch(
         }
       }
 
-      console.log(!isMarginMakeOrder.value, '````````````````````');
-      console.log('side' in formState.value, '````````````````````');
-      console.log(
-        !sideList.value.includes(formState.value.side + ''),
-        '````````````````````',
-      );
       if (
         !isMarginMakeOrder.value &&
         'side' in formState.value &&

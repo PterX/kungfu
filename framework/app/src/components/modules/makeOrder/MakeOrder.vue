@@ -171,6 +171,7 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 });
 
 const configSettings = computed(() => {
+  console.log(isMarginMakeOrder.value, '````````````````````');
   if (!currentGlobalKfLocation.value) {
     return getConfigSettings({});
   }
@@ -339,10 +340,6 @@ watch(
         sideList.value = Object.keys(Side).slice(0, 2);
       }
 
-      if (!sideList.value.includes(formState.value.side.toString())) {
-        formState.value.side = +sideList.value[0];
-      }
-
       if (instrumentType === InstrumentTypeEnum.future) {
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
           offsetList.value = offsetList.value.filter(
@@ -353,6 +350,12 @@ watch(
         }
       }
 
+      console.log(!isMarginMakeOrder.value, '````````````````````');
+      console.log('side' in formState.value, '````````````````````');
+      console.log(
+        !sideList.value.includes(formState.value.side + ''),
+        '````````````````````',
+      );
       if (
         !isMarginMakeOrder.value &&
         'side' in formState.value &&

@@ -27,8 +27,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'direction',
     title: '',
-    width: 60,
-    sort: sorter,
+    width: 50,
     style: {
       color: (args) => {
         return defaultColorMap[
@@ -43,7 +42,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'static_yesterday',
     title: t('posGlobalConfig.static_yesterday'),
-    width: 80,
+    width: 110,
     style: {
       textAlign: 'right',
     },
@@ -55,7 +54,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'open_volume',
     title: t('posGlobalConfig.open_volume'),
-    width: 80,
+    width: 110,
     style: {
       textAlign: 'right',
     },
@@ -67,7 +66,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'close_volume',
     title: t('posGlobalConfig.close_volume'),
-    width: 80,
+    width: 110,
     style: {
       textAlign: 'right',
     },
@@ -79,7 +78,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'yesterday_volume',
     title: t('posGlobalConfig.yesterday_volume'),
-    width: 80,
+    width: 110,
     style: {
       textAlign: 'right',
     },
@@ -91,7 +90,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'today_volume',
     title: t('posGlobalConfig.today_volume'),
-    width: 80,
+    width: 110,
     style: {
       textAlign: 'right',
     },
@@ -106,7 +105,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'volume',
     title: t('posGlobalConfig.sum_volume'),
-    width: 80,
+    width: 110,
     style: {
       textAlign: 'right',
     },

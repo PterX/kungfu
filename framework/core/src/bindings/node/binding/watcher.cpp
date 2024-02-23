@@ -460,7 +460,8 @@ void Watcher::on_start() {
 
     events_ | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | not_refresh_required() | skip_while(while_is(Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
+    events_ | not_refresh_required() | skip_while(while_is(Position::tag)) |
+        $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
@@ -556,7 +557,8 @@ void Watcher::TryRefreshTradingData() {
 }
 
 void Watcher::SyncTradingData() {
-  boost::hana::for_each(longfist::RefreshRequiredDataTypes, [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
+  boost::hana::for_each(longfist::RefreshRequiredDataTypes,
+                        [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
 }
 
 void Watcher::SyncAppStates() {

@@ -40,8 +40,7 @@ export const getColumns = (
       {
         field: 'direction',
         title: '',
-        width: 60,
-        sort: sorter,
+        width: 50,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -56,7 +55,7 @@ export const getColumns = (
       {
         field: 'static_yesterday',
         title: t('posGlobalConfig.static_yesterday'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -68,7 +67,7 @@ export const getColumns = (
       {
         field: 'open_volume',
         title: t('posGlobalConfig.open_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -80,7 +79,7 @@ export const getColumns = (
       {
         field: 'close_volume',
         title: t('posGlobalConfig.close_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -92,7 +91,7 @@ export const getColumns = (
       {
         field: 'yesterday_volume',
         title: t('posGlobalConfig.yesterday_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -104,7 +103,7 @@ export const getColumns = (
       {
         field: 'today_volume',
         title: t('posGlobalConfig.today_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -119,7 +118,7 @@ export const getColumns = (
       {
         field: 'volume',
         title: t('posGlobalConfig.sum_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -131,7 +130,7 @@ export const getColumns = (
       {
         field: 'frozen_total',
         title: t('posGlobalConfig.frozen_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },
@@ -143,7 +142,7 @@ export const getColumns = (
       {
         field: 'closable_volume',
         title: t('posGlobalConfig.closable_volume'),
-        width: 80,
+        width: 110,
         style: {
           textAlign: 'right',
         },

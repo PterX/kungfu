@@ -22,6 +22,7 @@ export const InvalidFileNameReg =
 
 export const defaultColorMap = {
   red: '#F54747',
+  red2: '#f21717',
   green: '#15DE9E',
   orange: '#D87A16',
   blue: '#1890FF',

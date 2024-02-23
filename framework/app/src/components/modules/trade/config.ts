@@ -42,13 +42,12 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('tradeConfig.instrument_id'),
-        width: 120,
-        sort: sorter,
+        width: 100,
       },
       {
         field: 'side',
         title: '',
-        width: 100,
+        width: 80,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -61,7 +60,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 60,
+        width: 50,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -115,7 +114,6 @@ export const getColumns = (
           kfLocation.category === 'td'
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
-        sort: sorter,
         width: 300,
         style: {
           color: (args) => {
@@ -139,7 +137,6 @@ export const getColumns = (
                   ];
                 },
               },
-              sort: sorter,
             },
           ]),
     ]);
@@ -152,12 +149,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
     name: '',
     dataIndex: 'sideName',
-    width: 40,
+    width: 80,
   },
   {
     name: '',
     dataIndex: 'offsetName',
-    width: 40,
+    width: 60,
   },
   {
     name: t('tradeConfig.mean_price'),

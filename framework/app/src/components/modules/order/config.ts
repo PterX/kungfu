@@ -38,7 +38,6 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('orderConfig.instrument_id'),
-        sort: sorter,
         width: 100,
       },
       {
@@ -84,7 +83,7 @@ export const getColumns = (
       {
         field: 'avg_price_resolved',
         title: t('orderConfig.avg_price'),
-        width: 100,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -97,7 +96,7 @@ export const getColumns = (
       {
         field: 'volume_left',
         title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
-        width: 144,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -131,10 +130,11 @@ export const getColumns = (
         : [
             {
               field: 'actions',
-              title: t('orderConfig.actions'),
+              title: '',
               width: 60,
               style: {
                 color: defaultColorMap.red,
+                cursor: 'pointer',
               },
               fieldFormat: (args) => {
                 return UnfinishedOrderStatus.includes(args.status)
@@ -143,32 +143,10 @@ export const getColumns = (
               },
             },
           ]),
-      // {
-      //   field: 'actions',
-      //   title: '',
-      //   width: 80,
-      //   style: {
-      //     bgColor: (args) => {
-      //       return args.value === t('orderConfig.cancel_order')
-      //         ? defaultColorMap.red
-      //         : 'transparent';
-      //     },
-      //     textAlign: 'center',
-      //     cursor: 'pointer',
-      //   },
-      //   headerStyle: {
-      //     textAlign: 'center',
-      //   },
-      //   fieldFormat: (args) => {
-      //     return UnfinishedOrderStatus.includes(args.status)
-      //       ? t('orderConfig.cancel_order')
-      //       : '';
-      //   },
-      // },
       {
         field: 'latency_system',
         title: t('orderConfig.latency_system'),
-        width: 120,
+        width: 160,
         sort: sorter,
         fieldFormat: (args) => {
           return args.latency_system || '--';
@@ -177,7 +155,7 @@ export const getColumns = (
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
-        width: 120,
+        width: 160,
         sort: sorter,
         fieldFormat: (args) => {
           return args.latency_network || '--';
@@ -189,7 +167,6 @@ export const getColumns = (
           kfLocation.category === 'td'
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
-        sort: sorter,
         width: 300,
         style: {
           color: (args) => {
@@ -213,66 +190,9 @@ export const getColumns = (
                   ];
                 },
               },
-              sort: sorter,
             },
           ]),
     ]);
-
-// export const statisColums: VTable.ColumnDefine[] = [
-//   {
-//     field: 'instrumentId_exchangeId',
-//     title: t('tradingConfig.instrument'),
-//     width: 120,
-//   },
-//   {
-//     field: 'side',
-//     title: '',
-//     width: 100,
-//     style: {
-//       color: (args) => {
-//         return defaultColorMap[dealSide(args.dataValue).color || 'default'];
-//       },
-//     },
-//     fieldFormat: (args) => {
-//       return dealSide(args.side).name;
-//     },
-//   },
-//   {
-//     field: 'offset',
-//     title: '',
-//     width: 60,
-//     style: {
-//       color: (args) => {
-//         return defaultColorMap[dealOffset(args.dataValue).color || 'default'];
-//       },
-//     },
-//     fieldFormat: (args) => {
-//       return dealOffset(args.offset).name;
-//     },
-//   },
-//   {
-//     title: t('orderConfig.mean'),
-//     field: 'mean',
-//     width: 100,
-//   },
-//   {
-//     title: t('orderConfig.max'),
-//     field: 'max',
-//     width: 100,
-//   },
-//   {
-//     title: t('orderConfig.min'),
-//     field: 'min',
-//     width: 100,
-//   },
-//   {
-//     title: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
-//       'orderConfig.all',
-//     )})`,
-//     field: 'volume',
-//     width: 160,
-//   },
-// ];
 
 export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
@@ -282,12 +202,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
     name: '',
     dataIndex: 'sideName',
-    width: 40,
+    width: 80,
   },
   {
     name: '',
     dataIndex: 'offsetName',
-    width: 40,
+    width: 60,
   },
   {
     name: t('orderConfig.mean'),

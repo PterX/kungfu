@@ -256,11 +256,11 @@ constexpr auto StatisticDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderStat)                                   // 207
 );
 
-constexpr auto RefreshRequiredDataTypes = boost::hana::make_map(//
-TYPE_PAIR(OrderInput), // 201
-                                                                TYPE_PAIR(Order),      // 202
-                                                                TYPE_PAIR(Trade),      // 203
-                                                                TYPE_PAIR(OrderStat)  // 207
+constexpr auto RefreshRequiredDataTypes = boost::hana::make_map( //
+    TYPE_PAIR(OrderInput),                                       // 201
+    TYPE_PAIR(Order),                                            // 202
+    TYPE_PAIR(Trade),                                            // 203
+    TYPE_PAIR(OrderStat)                                         // 207
 );
 
 template <typename T> constexpr bool is_in_types(auto types) { return boost::hana::contains(types, T::type_name); }

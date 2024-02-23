@@ -213,6 +213,10 @@ const configSettings = computed(() => {
       sideList.value = Object.keys(Side).slice(0, 2);
     }
 
+    if (!sideList.value.includes(formState.value.side.toString())) {
+      formState.value.side = +sideList.value[0];
+    }
+
     if (instrumentType === InstrumentTypeEnum.future) {
       if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
         offsetList.value = offsetList.value.filter(

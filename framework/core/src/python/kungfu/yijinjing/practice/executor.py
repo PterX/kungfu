@@ -568,7 +568,7 @@ def load_td_vendor(ctx):
     td_vendor_builder = wc.TraderVendor
     if ctx.vendor is not None:
         module = importlib.import_module(ctx.vendor)
-        td_vendor_builder = getattr(module, "Vendor")
+        td_vendor_builder = getattr(module, "TraderVendor")
 
     return td_vendor_builder(
         ctx.locator,
@@ -584,7 +584,7 @@ def load_md_vendor(ctx):
     md_vendor_builder = wc.MarketDataVendor
     if ctx.vendor is not None:
         module = importlib.import_module(ctx.vendor)
-        md_vendor_builder = getattr(module, "Vendor")
+        md_vendor_builder = getattr(module, "MarketDataVendor")
 
     return md_vendor_builder(
         ctx.locator,

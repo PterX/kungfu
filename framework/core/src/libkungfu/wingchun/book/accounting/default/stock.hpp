@@ -273,9 +273,9 @@ protected:
     auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
                                                     position.instrument_id);
     if (trade.offset == Offset::Open) {
-      position.volume -= trade.volume;
-    } else {
       position.volume += trade.volume;
+    } else {
+      position.volume -= trade.volume;
     }
     update_position(book, position);
   }

@@ -161,6 +161,7 @@ class KungfuCoreConan(ConanFile):
             self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
             self.copy("*", dst="deps/sqlite_orm", src=glob(".deps/sqlite_orm-*")[0])
             self.copy("*", dst="cmake", src=".cmake")
+            self.copy("*", dst="kfc",src="dist/kfc")
 
     def package_info(self):
         self.cpp_info.names["cmake_find_package"] = "kungfu"

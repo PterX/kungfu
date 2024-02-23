@@ -157,6 +157,12 @@ public:
       } else if (trade.side == Side::RepayStock) {
         apply_repaystock(book, position, trade, is_local);
       }
+
+      if (trade.side == Side::Purchase) {
+        apply_purchase(book, position, trade);
+      } else if (trade.side == Side::Redemption) {
+        apply_redemption(book, position, trade);
+      }
     };
 
     book->apply_position_for(account_id, trade, apply);
@@ -250,6 +256,28 @@ protected:
 
     asset.intraday_fee += commission + tax;
     asset.accumulated_fee += commission + tax;
+  }
+
+  virtual void apply_purchase(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
+    auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
+                                                    position.instrument_id);
+    if (trade.offset == Offset::Open) {
+      position.volume += trade.volume;
+    } else {
+      position.volume -= trade.volume;
+    }
+    update_position(book, position);
+  }
+
+  virtual void apply_redemption(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
+    auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
+                                                    position.instrument_id);
+    if (trade.offset == Offset::Open) {
+      position.volume -= trade.volume;
+    } else {
+      position.volume += trade.volume;
+    }
+    update_position(book, position);
   }
 
   virtual void apply_margintrade(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {

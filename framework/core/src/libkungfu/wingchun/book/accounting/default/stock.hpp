@@ -158,10 +158,8 @@ public:
         apply_repaystock(book, position, trade, is_local);
       }
 
-      if (trade.side == Side::Purchase) {
-        apply_purchase(book, position, trade);
-      } else if (trade.side == Side::Redemption) {
-        apply_redemption(book, position, trade);
+      if (trade.side == Side::Purchase || trade.side == Side::Redemption) {
+        apply_purchase_redemption(book, position, trade);
       }
     };
 
@@ -258,20 +256,11 @@ protected:
     asset.accumulated_fee += commission + tax;
   }
 
-  virtual void apply_purchase(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
+  virtual void apply_purchase_redemption(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
     auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
                                                     position.instrument_id);
-    if (trade.offset == Offset::Open) {
-      position.volume += trade.volume;
-    } else {
-      position.volume -= trade.volume;
-    }
-    update_position(book, position);
-  }
-
-  virtual void apply_redemption(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
-    auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
-                                                    position.instrument_id);
+    // During the purchase, the ETF fund is open and the constituent stocks are flat.
+    // During the redemption, the ETF fund is flat and the constituent stocks are open.
     if (trade.offset == Offset::Open) {
       position.volume += trade.volume;
     } else {

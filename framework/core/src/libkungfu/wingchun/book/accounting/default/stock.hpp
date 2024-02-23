@@ -157,6 +157,10 @@ public:
       } else if (trade.side == Side::RepayStock) {
         apply_repaystock(book, position, trade, is_local);
       }
+
+      if (trade.side == Side::Purchase || trade.side == Side::Redemption) {
+        apply_purchase_redemption(book, position, trade);
+      }
     };
 
     book->apply_position_for(account_id, trade, apply);
@@ -252,6 +256,19 @@ protected:
     asset.accumulated_fee += commission + tax;
   }
 
+  virtual void apply_purchase_redemption(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
+    auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
+                                                    position.instrument_id);
+    // During the purchase, the ETF fund is open and the constituent stocks are close.
+    // During the redemption, the ETF fund is close and the constituent stocks are open.
+    if (trade.offset == Offset::Open) {
+      position.volume += trade.volume;
+    } else {
+      position.volume -= trade.volume;
+    }
+    update_position(book, position);
+  }
+
   virtual void apply_margintrade(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
     auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
                                                     position.instrument_id);
@@ -344,7 +361,7 @@ protected:
           instrument.contract_multiplier == 0 ? DEFAULT_INSTRUMENT_CONTRACT_MULTIPLIER : instrument.contract_multiplier;
     }
 
-    auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
+    auto hashed_instrument_factor_key = hash_instrument(exchange_id, instrument_id);
     if (instrument_factors.find(hashed_instrument_factor_key) == instrument_factors.end()) {
       stock_i_a.margin_ratio =
           direction == Direction::Long ? DEFAULT_STOCK_LONG_MARGIN_RATIO : DEFAULT_STOCK_SHORT_MARGIN_RATIO;

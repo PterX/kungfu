@@ -61,6 +61,8 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
   categoryRegisterConfig,
 );
 
+const canvasRef = ref();
+
 const app = getCurrentInstance();
 const pos = ref<KungfuApi.PositionResolved[]>([]);
 const { handleBodySizeChange } = useDashboardBodySize();
@@ -146,7 +148,7 @@ const columns = computed(() => {
 });
 
 onActivated(() => {
-  if (app?.proxy && 0) {
+  if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
       setTimeout(() => {
@@ -172,6 +174,7 @@ onActivated(() => {
             );
           }),
         );
+        canvasRef.value.getListTable()?.setRecords([...pos.value]);
       });
     });
 

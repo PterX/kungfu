@@ -117,6 +117,7 @@ const { searchKeyword, tableData } =
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
+let tradingDataObjectCopy;
 
 const {
   currentGlobalKfLocation,
@@ -161,6 +162,7 @@ onActivated(() => {
     if (adjustOrderMaskVisible.value) {
       return;
     }
+    tradingDataObjectCopy = tradingDataObject;
 
     const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
     const obj =
@@ -175,7 +177,12 @@ onActivated(() => {
         if (!orderListCopy) return;
         canvasRef.value.getListTable()?.setRecords(orderListCopy);
         allOrders.value = orderListCopy;
-        console.log('allOrders', allOrders.value.length);
+        console.log(
+          'allOrders',
+          allOrders.value.length,
+          'tradingDataObjectCopy',
+          tradingDataObjectCopy,
+        );
         return;
       } else {
         canvasRef.value.getListTable()?.setRecords([]);
@@ -197,6 +204,27 @@ watch(currentGlobalKfLocation, () => {
   allOrders.value = [];
   orders.value = [];
   clearCaches();
+  // if (currentGlobalKfLocation.value === null) {
+  //   return;
+  // }
+  // const locationId = window.watcher.getLocationUID(
+  //   currentGlobalKfLocation.value,
+  // );
+  // const obj =
+  //   tradingDataObjectCopy.order[currentGlobalKfLocation.value?.category][
+  //     locationId
+  //   ];
+  // if (obj) {
+  //   const orderListCopy = unfinishedOrder.value
+  //     ? obj.indexMap.getFullList()
+  //     : obj.indexMap.getCommonList();
+  //   if (!orderListCopy) return;
+  //   canvasRef.value.getListTable()?.setRecords(orderListCopy);
+  //   allOrders.value = orderListCopy;
+  //   return;
+  // } else {
+  //   canvasRef.value.getListTable()?.setRecords([]);
+  // }
 });
 
 watch(historyDate, async (newDate) => {

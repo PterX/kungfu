@@ -176,6 +176,7 @@ protected:
   journal::writer_ptr master_cmd_writer_for_thread_{};
   journal::writer_ptr public_writer_{};
   inline static thread_local journal::writer_ptr thread_writer_{};
+  std::unordered_map<int, longfist::types::TimeRequest> timer_requests_ = {};
 
   friend void add_location(practice::apprentice &app, const data::location_ptr &location) {
     app.add_location(app.now(), location);
@@ -225,10 +226,16 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
+    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
-               return (event->msg_type() == longfist::types::Time::tag &&
-                       event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns);
+               if (event->msg_type() == longfist::types::Time::tag &&
+                   event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
+                 timer_requests_.erase(timer_id);
+                 return true;
+               } else {
+                 return false;
+               }
              }) |
              rx::first() | rx::filter([&, timer_id](const event_ptr &) {
                timer_checkpoints_.erase(timer_id);
@@ -255,6 +262,7 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
+    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return events_ | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                         bool enabled = is_timer_enabled(timer_id);
@@ -277,6 +285,7 @@ protected:
                  r.location_uid = get_live_home_uid();
                  writer->close_data();
                  timer_checkpoints_[timer_id] = now();
+                 timer_requests_.insert_or_assign(timer_id, r);
                  return true;
                } else {
                  return false;
@@ -298,6 +307,7 @@ protected:
     r.location_uid = get_live_home_uid();
     writer->close_data();
     timer_checkpoints_[timer_id] = now();
+    timer_requests_.insert_or_assign(timer_id, r);
     return [&, duration_ns, timer_id](const rx::observable<event_ptr> &src) {
       return (src | rx::take_until(events_ | rx::filter([&, timer_id](const event_ptr &event) {
                                      return not is_timer_enabled(timer_id);
@@ -313,6 +323,7 @@ protected:
                   r.location_uid = get_live_home_uid();
                   writer->close_data();
                   timer_checkpoints_[timer_id] = now();
+                  timer_requests_.insert_or_assign(timer_id, r);
                   return true;
                 } else {
                   return false;
@@ -320,8 +331,10 @@ protected:
               }))
           .merge(events_ | rx::filter([&, duration_ns, timer_id](const event_ptr &event) {
                    if (event->gen_time() >= timer_checkpoints_[timer_id] + duration_ns) {
+                     timer_requests_.erase(timer_id);
                      throw rx::timeout_error("timeout");
                    }
+                   timer_requests_.erase(timer_id);
                    return false;
                  }));
     };

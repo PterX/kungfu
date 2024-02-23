@@ -75,7 +75,7 @@ class DynamicIndexedMap<K extends string | number, V> {
     return index;
   }
 
-  insertKeyWithValue(key: K, value: V, isFinished: boolean): void {
+  insertKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
     if (this.maxCommonListLength <= this.commonList.length) {
       this.deleteLastCommonValue();
     }
@@ -83,17 +83,21 @@ class DynamicIndexedMap<K extends string | number, V> {
     this.commonKeyIndexMap[key] = --this.commonListOffset; // 为新键分配当前偏移量作为索引 插入新元素后减少偏移量
     this.commonList.unshift(value);
     this.keyValueMap[key] = value;
-    if (!isFinished) {
+    if (type === 'order' && !isFinished) {
       this.fullKeyIndexMap[key] = --this.fullListOffset;
       this.fullList.unshift(value);
     }
   }
-  updateKeyWithValue(key: K, value: V, isFinished: boolean): void {
+  updateKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
     const correctIndex = this.getCommonListIndexForKey(key);
     if (correctIndex !== undefined) {
       this.keyValueMap[key] = value;
       this.commonList.splice(correctIndex, 1, value);
     } else {
+      return;
+    }
+
+    if (type !== 'order') {
       return;
     }
 

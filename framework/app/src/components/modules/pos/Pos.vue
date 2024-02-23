@@ -79,6 +79,8 @@ const { dealDataWithCache } = useDealDataWithCaches<
 >(['uid_key', 'update_time']);
 const { globalSetting } = storeToRefs(useGlobalStore());
 
+const canvasRef = ref();
+
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
     instrument_id_resolved: [
@@ -136,7 +138,7 @@ const columns = computed(() => {
 });
 
 onActivated(() => {
-  if (app?.proxy && 0) {
+  if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
       if (!currentGlobalKfLocation.value) return;
@@ -167,6 +169,7 @@ onActivated(() => {
           );
         }),
       );
+      canvasRef.value.getListTable()?.setRecords([...pos.value]);
     });
 
     onBeforeUnmount(() => {

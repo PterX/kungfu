@@ -965,9 +965,9 @@ export const getOrderStatResolve = (
   orderStat: KungfuApi.OrderStat | null,
 ):
   | {
-      latencySystem: string;
-      latencyNetwork: string;
-      latencyTrade: string;
+      latency_system: string | number;
+      latency_network: string | number;
+      latency_trade: string | number;
       trade_time: bigint;
       avg_price: number;
     }
@@ -1065,6 +1065,40 @@ export const getOrderResolved = (
         : '--',
     status_uname: statusData.name,
   } as unknown as KungfuApi.OrderResolved;
+};
+
+export const getTradeResolved = (
+  watcher: KungfuApi.Watcher,
+  trade: KungfuApi.Trade,
+  orderStats: KungfuApi.OrderStat | null,
+): KungfuApi.TradeResolved => {
+  const { price_precision } = getPriceTickAndPrecision(
+    trade.instrument_id,
+    trade.exchange_id,
+  );
+  const latencyData = getOrderStatResolve(orderStats);
+  const destResolvedData = resolveClientId(watcher, trade.dest);
+  const sourceResolvedData = resolveAccountId(
+    watcher,
+    trade.source,
+    trade.dest,
+  );
+  return {
+    ...trade,
+    ...latencyData,
+    volume: dealKfDecimalPrecision(trade.volume),
+    source: trade.source,
+    dest: trade.dest,
+    uid_key: trade.uid_key,
+    source_resolved_data: sourceResolvedData,
+    dest_resolved_data: destResolvedData,
+    source_uname: sourceResolvedData.name,
+    dest_uname: destResolvedData.name,
+    kf_time: 'trade_time' in latencyData ? latencyData.trade_time : BigInt(0),
+    latency_trade:
+      'latency_trade' in latencyData ? `${latencyData.latency_trade}` : '--',
+    price_resolved: dealKfPrice(trade.price, price_precision),
+  } as unknown as KungfuApi.TradeResolved;
 };
 
 export const dealOrder = (
@@ -1169,6 +1203,7 @@ export const dealTrade = (
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
     trade_time_resolved: dealKfTime(trade.trade_time, isHistory),
+    kf_time: latencyData.trade_time,
     kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
     latency_trade: latencyData.latencyTrade,
     price_precision: pricePrecision,

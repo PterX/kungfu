@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
+import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 import {
   useModalVisible,
   useTableSearchKeyword,
@@ -178,10 +178,11 @@ const { searchKeyword, tableData } = useTableSearchKeyword(
         />
       </div>
       <div class="table" style="height: 260px">
-        <KfCanvasTradingDataTable
-          columnResizeMode="all"
-          :columns="statisColums"
+        <KfTradingDataTable
+          v-if="priceVolumeStats"
+          key-field="id"
           :data-source="tableData"
+          :columns="statisColums"
         />
       </div>
     </a-row>

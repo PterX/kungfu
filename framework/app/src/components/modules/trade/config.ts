@@ -10,7 +10,7 @@ import {
   dealSide,
   getAccountIdStyle,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-
+import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
@@ -26,12 +26,18 @@ export const getColumns = (
         title: t('tradeConfig.trade_time_resolved'),
         width: isHistory ? 160 : 120,
         sort: sorter,
+        fieldFormat: (args) => {
+          return dealKfTime(args.trade_time, isHistory);
+        },
       },
       {
         field: 'kf_time_resovlved',
         title: t('tradeConfig.kf_time_resolved'),
         width: isHistory ? 160 : 120,
         sort: sorter,
+        fieldFormat: (args) => {
+          return args.kf_time ? dealKfTime(args.kf_time, isHistory) : '--';
+        },
       },
       {
         field: 'instrument_id',
@@ -138,58 +144,35 @@ export const getColumns = (
           ]),
     ]);
 
-export const statisColums: VTable.ColumnDefine[] = [
+export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
-    field: 'instrumentId_exchangeId',
-    title: t('tradingConfig.instrument'),
-    width: 120,
+    name: t('tradeConfig.instrument_id'),
+    dataIndex: 'instrumentId_exchangeId',
   },
   {
-    field: 'side',
-    title: '',
-    width: 100,
-    style: {
-      color: (args) => {
-        return defaultColorMap[dealSide(args.dataValue).color || 'default'];
-      },
-    },
-    fieldFormat: (args) => {
-      return dealSide(args.side).name;
-    },
+    name: '',
+    dataIndex: 'sideName',
+    width: 40,
   },
   {
-    field: 'offset',
-    title: '',
-    width: 80,
-    style: {
-      color: (args) => {
-        return defaultColorMap[dealOffset(args.dataValue).color || 'default'];
-      },
-    },
-    fieldFormat: (args) => {
-      return dealOffset(args.offset).name;
-    },
+    name: '',
+    dataIndex: 'offsetName',
+    width: 40,
   },
   {
-    title: t('orderConfig.mean'),
-    field: 'mean',
-    width: 100,
+    name: t('tradeConfig.mean_price'),
+    dataIndex: 'mean',
   },
   {
-    title: t('orderConfig.max'),
-    field: 'max',
-    width: 100,
+    name: t('tradeConfig.max_price'),
+    dataIndex: 'max',
   },
   {
-    title: t('orderConfig.min'),
-    field: 'min',
-    width: 100,
+    name: t('tradeConfig.min_price'),
+    dataIndex: 'min',
   },
   {
-    title: `${t('orderConfig.volume')}(${t('orderConfig.completed')}/${t(
-      'orderConfig.all',
-    )})`,
-    field: 'volume',
-    width: 160,
+    name: t('tradeConfig.volume'),
+    dataIndex: 'volume',
   },
 ];

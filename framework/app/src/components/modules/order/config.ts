@@ -170,12 +170,18 @@ export const getColumns = (
         title: t('orderConfig.latency_system'),
         width: 120,
         sort: sorter,
+        fieldFormat: (args) => {
+          return args.latency_system || '--';
+        },
       },
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
         width: 120,
         sort: sorter,
+        fieldFormat: (args) => {
+          return args.latency_network || '--';
+        },
       },
       {
         field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',

@@ -9,14 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  onMounted,
-  ref,
-  watch,
-  getCurrentInstance,
-  computed,
-  // nextTick,
-} from 'vue';
+import { onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -51,7 +44,7 @@ type tableDataItem =
 const props = withDefaults(
   defineProps<{
     columns: VTable.ColumnsDefine;
-    dataSource: tableDataItem[];
+    dataSource?: tableDataItem[];
     customLayout?: Record<string, ICustomActionOption[]>;
     widthMode?: 'adaptive' | 'autoWidth' | 'standard';
     columnResizeMode?: 'all' | 'body' | 'header' | 'none';

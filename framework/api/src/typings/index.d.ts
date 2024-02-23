@@ -1230,6 +1230,7 @@ declare namespace KungfuApi {
     dest_uname: string;
     trade_time_resolved: string;
     kf_time_resovlved: string;
+    kf_time: bigint;
     latency_trade: string;
     price_precision?: number;
     price_resolved: number | string;
@@ -1484,41 +1485,26 @@ declare namespace KungfuApi {
     order: {
       td: {
         [key: number]: {
-          orderIndexMap?: any;
-          // orderMap?: Records<
-          //   string,
-          //   { orderResolved: KungfuApi.OrderResolved; index: number }
-          // >;
-          // orderList?: KungfuApi.OrderResolved[];
-          // addedOrderList?: KungfuApi.OrderResolved[];
-          // updatedOrderList?: [KungfuApi.OrderResolved[], number[]];
-          // orderLength?: number;
+          indexMap?: any;
         };
       };
       strategy: {
         [key: number]: {
-          orderMap?: Records<
-            string,
-            { orderResolved: KungfuApi.OrderResolved; index: number }
-          >;
-          orderList?: KungfuApi.OrderResolved[];
-          addedOrderList?: KungfuApi.OrderResolved[];
-          updatedOrderList?: [KungfuApi.OrderResolved[], number[]];
-          orderLength?: number;
+          indexMap?: any;
         };
       };
     };
     trade: {
-      tradeMap: Map<string, KungfuApi.Trade>;
-      tradeList: KungfuApi.Trade[];
-      addedTradeList: KungfuApi.Trade[];
-      updatedTradeList: KungfuApi.Trade[];
-    };
-    position: {
-      positionMap: Map<string, KungfuApi.Position>;
-      positionList: KungfuApi.Position[];
-      addedPositionList: KungfuApi.Position[];
-      updatedPositionList: KungfuApi.Position[];
+      td: {
+        [key: number]: {
+          tradeIndexMap?: any;
+        };
+      };
+      strategy: {
+        [key: number]: {
+          tradeIndexMap?: any;
+        };
+      };
     };
   }
 
@@ -1770,6 +1756,7 @@ declare namespace Code {
   import { session } from 'electron';
   import path from 'path';
   import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
+  import { kf } from '../kungfu/index';
 
   export interface CodeInfo {
     code_id: string;

@@ -147,43 +147,9 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-// const customLayout: Record<string, ICustomActionOption[]> = {
-//   actions: [
-//     {
-//       type: 'text',
-//       dealValue: (record) =>
-//         !isFinishedOrderStatus(record?.status)
-//           ? t('orderConfig.cancel_order')
-//           : '',
-//       fontSize: 12,
-//       fill: '#F54747',
-//       boundsPadding: [7, 10, 5, 10],
-//       cursor: 'pointer',
-//       key: 'cancel_order',
-//     },
-//     {
-//       type: 'text',
-//       dealValue: (record) =>
-//         !isFinishedOrderStatus(record?.status) &&
-//         cancelOrderTriggerBtnVisible.value &&
-//         !isOrderTriggerHasSubmitted(record.order_id)
-//           ? t('orderConfig.cancel_order_trigger')
-//           : '',
-//       fontSize: 12,
-//       fill: '#FFFFFF80',
-//       boundsPadding: [7, 10, 5, 10],
-//       cursor: 'pointer',
-//       key: 'cancel_order_trigger',
-//     },
-//   ],
-// };
-
-// let firstRender = true;
-let needClear = true;
-
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
-    const { watcher, tradingDataObject, update } = data;
+    const { watcher, tradingDataObject } = data;
     if (historyDate.value) {
       return;
     }
@@ -196,168 +162,25 @@ onActivated(() => {
       return;
     }
 
-    // if (!update && !firstRender) {
-    //   return;
-    // }
     const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
     const obj =
       tradingDataObject.order[currentGlobalKfLocation.value.category][
         locationId
       ];
-    // const updatedOrderList = tradingDataObject.order.updatedOrderList;
-    // console.log('obj', obj);
     nextTick(() => {
       if (obj) {
         const orderListCopy = unfinishedOrder.value
-          ? obj.orderIndexMap.getFullList()
-          : obj.orderIndexMap.getCommonList();
+          ? obj.indexMap.getFullList()
+          : obj.indexMap.getCommonList();
         if (!orderListCopy) return;
-        needClear = true;
         canvasRef.value.getListTable()?.setRecords(orderListCopy);
-        // firstRender = false;
         allOrders.value = orderListCopy;
         console.log('allOrders', allOrders.value.length);
         return;
       } else {
-        if (needClear) {
-          canvasRef.value.getListTable()?.setRecords([]);
-          needClear = false;
-        }
+        canvasRef.value.getListTable()?.setRecords([]);
       }
     });
-
-    // const ordersResolved =
-    //   globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-    //     window.watcher,
-    //     currentGlobalKfLocation.value,
-    //     watcher.ledger.Order,
-    //     'order',
-    //   ) as KungfuApi.Order[];
-
-    // if (unfinishedOrder.value) {
-    //   const tempAllOrders = ordersResolved.map((item) => {
-    //     const { price_precision } = getPriceTickAndPrecision(
-    //       item.instrument_id,
-    //       item.exchange_id,
-    //     );
-
-    //     return toRaw({
-    //       ...dealDataWithCache(
-    //         item,
-    //         () => dealOrder(watcher, item, false, price_precision),
-    //         { price_precision },
-    //       ),
-    //       ...getOrderLatencyDataByOrderStat(
-    //         item,
-    //         watcher.ledger.OrderStat,
-    //         price_precision,
-    //       ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
-    //     });
-    //   });
-    //   allOrders.value = tempAllOrders;
-    //   orders.value = toRaw(
-    //     tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
-    //   );
-    //   console.log('orders', orders.value.length, orders.value);
-    //   return;
-    // }
-
-    // let finishedOrdersCount = 0;
-    // if (addedOrderList.length > 0) {
-    //   const { totalOrders, ordersForTable } = addedOrderList.reduce(
-    //     (preOrders, curOrder) => {
-    //       const { price_precision } = getPriceTickAndPrecision(
-    //         curOrder.instrument_id,
-    //         curOrder.exchange_id,
-    //       );
-
-    //       const orderResolved = toRaw({
-    //         ...dealDataWithCache(
-    //           curOrder,
-    //           () => dealOrder(watcher, curOrder, false, price_precision),
-    //           { price_precision },
-    //         ),
-    //         ...getOrderLatencyDataByOrderStat(
-    //           curOrder,
-    //           watcher.ledger.OrderStat,
-    //           price_precision,
-    //         ),
-    //       });
-    //       preOrders.totalOrders.push(orderResolved);
-    //       if (isFinishedOrderStatus(curOrder.status)) {
-    //         if (finishedOrdersCount < 500) {
-    //           finishedOrdersCount++;
-    //           preOrders.ordersForTable.push(orderResolved);
-    //         }
-    //       } else {
-    //         preOrders.ordersForTable.push(orderResolved);
-    //       }
-    //       return preOrders;
-    //     },
-    //     { totalOrders: [], ordersForTable: [] } as {
-    //       totalOrders: KungfuApi.OrderResolved[];
-    //       ordersForTable: KungfuApi.OrderResolved[];
-    //     },
-    //   );
-
-    //   const addedTotalOrders = toRaw(totalOrders);
-    //   const addedordersForTable = toRaw(ordersForTable);
-    //   console.log('addedordersForTable', addedTotalOrders, addedordersForTable);
-    // }
-    // const { totalOrders, ordersForTable } = ordersResolved.reduce(
-    //   (preOrders, curOrder) => {
-    //     const { price_precision } = getPriceTickAndPrecision(
-    //       curOrder.instrument_id,
-    //       curOrder.exchange_id,
-    //     );
-
-    //     const orderResolved = toRaw({
-    //       ...dealDataWithCache(
-    //         curOrder,
-    //         () => dealOrder(watcher, curOrder, false, price_precision),
-    //         { price_precision },
-    //       ),
-    //       ...getOrderLatencyDataByOrderStat(
-    //         curOrder,
-    //         watcher.ledger.OrderStat,
-    //         price_precision,
-    //       ),
-    //     });
-    //     preOrders.totalOrders.push(orderResolved);
-    //     if (isFinishedOrderStatus(curOrder.status)) {
-    //       if (finishedOrdersCount < 500) {
-    //         finishedOrdersCount++;
-    //         preOrders.ordersForTable.push(orderResolved);
-    //       }
-    //     } else {
-    //       preOrders.ordersForTable.push(orderResolved);
-    //     }
-    //     return preOrders;
-    //   },
-    //   { totalOrders: [], ordersForTable: [] } as {
-    //     totalOrders: KungfuApi.OrderResolved[];
-    //     ordersForTable: KungfuApi.OrderResolved[];
-    //   },
-    // );
-
-    // allOrders.value = toRaw(totalOrders);
-    // orders.value = toRaw(ordersForTable);
-    // const source = watcher.getLocationUID(currentGlobalKfLocation.value);
-    // orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
-    //   'action_flag',
-    //   OrderTriggerFlag.TriggerCancel,
-    // )
-    //   .filter('source', source)
-    //   .list()
-    //   .reduce((pre, cur) => {
-    //     const order_id = cur.order_id.toString();
-    //     if (order_id in pre) {
-    //       pre[order_id].push(cur);
-    //     } else {
-    //       pre[order_id] = [cur];
-    //     }
-    //     return pre;
-    //   }, {});
   });
 
   onBeforeUnmount(() => {
@@ -374,7 +197,6 @@ watch(currentGlobalKfLocation, () => {
   allOrders.value = [];
   orders.value = [];
   clearCaches();
-  // firstRender = true;
 });
 
 watch(historyDate, async (newDate) => {
@@ -435,6 +257,7 @@ watch(historyDate, async (newDate) => {
       allOrders.value = tempAllOrders;
       orders.value = tempAllOrders;
       console.log('orders', orders.value);
+      canvasRef.value.getListTable()?.setRecords([...orders.value]);
     })
     .catch((err) => {
       if (err.message === 'database_locked') {

@@ -259,8 +259,8 @@ protected:
   virtual void apply_purchase_redemption(Book_ptr &book, longfist::types::Position &position, const Trade &trade) {
     auto stock_i_a = get_stock_instrument_attribute(book, position.source_id, position.direction, position.exchange_id,
                                                     position.instrument_id);
-    // During the purchase, the ETF fund is open and the constituent stocks are flat.
-    // During the redemption, the ETF fund is flat and the constituent stocks are open.
+    // During the purchase, the ETF fund is open and the constituent stocks are close.
+    // During the redemption, the ETF fund is close and the constituent stocks are open.
     if (trade.offset == Offset::Open) {
       position.volume += trade.volume;
     } else {

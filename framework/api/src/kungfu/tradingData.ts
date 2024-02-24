@@ -58,15 +58,12 @@ export function useWatcher() {
     ) => void,
   ) => {
     if (watcher === null) return;
-    async function aa() {
-      if (watcher === null) {
-        console.log('watcher is null');
-        return;
-      }
-      console.time('watcher.sync');
-      watcher.sync();
-      console.timeEnd('watcher.sync');
 
+    return setTimerPromiseTask(async () => {
+      if (watcher === null) return;
+      console.time('sync');
+      watcher.sync();
+      console.timeEnd('sync');
       const orderStatList = Object.values(watcher.ledger.OrderStat);
       const orderList = Object.values(watcher.ledger.Order);
       const tradeList = Object.values(watcher.ledger.Trade);
@@ -96,9 +93,7 @@ export function useWatcher() {
         callBack && callBack(watcher, tradingDataObject, true);
       }
       return true;
-    }
-
-    return setTimerPromiseTask(aa, interval);
+    }, interval);
   };
   async function processQueue() {
     try {
@@ -227,7 +222,6 @@ export function useWatcher() {
     );
 
     // 处理剩余的 orderStats
-
     const orderStatOfOrderKeys = Object.keys(orderStats.order);
     const orderStatOfTradeKeys = Object.keys(orderStats.trade);
     if (orderStatOfOrderKeys.length > 0) {

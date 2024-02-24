@@ -98,9 +98,12 @@ template <typename DataType> struct time_spec<DataType, std::enable_if_t<DataTyp
     [[maybe_unused]] auto accessor = boost::hana::second(*just);
     auto ts = member_pointer_trait<decltype(accessor)>().pointer();
 
-    return storage->get_all<DataType>(sqlite_orm::where(sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from),
-                                                                         sqlite_orm::lesser_or_equal(ts, to))),
-                                      sqlite_orm::order_by(ts).asc(), sqlite_orm::limit(limit));
+    auto store_data =
+        storage->get_all<DataType>(sqlite_orm::where(sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from),
+                                                                      sqlite_orm::lesser_or_equal(ts, to))),
+                                   sqlite_orm::order_by(ts).desc(), sqlite_orm::limit(limit));
+    std::reverse(store_data.begin(), store_data.end());
+    return store_data;
   };
 };
 

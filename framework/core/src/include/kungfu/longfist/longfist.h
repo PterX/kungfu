@@ -7,6 +7,7 @@
 #ifndef KUNGFU_LONGFIST_H
 #define KUNGFU_LONGFIST_H
 
+#include <deque>
 #include <kungfu/longfist/types.h>
 #include <set>
 
@@ -300,10 +301,10 @@ constexpr auto build_state_map = [](auto types) {
   return boost::hana::unpack(maps, boost::hana::make_map);
 };
 
-constexpr auto build_state_vector_map = [](auto types) {
+constexpr auto build_state_deque_map = [](auto types) {
   auto vectors = boost::hana::transform(boost::hana::values(types), [](auto value) {
     using DataType = typename decltype(+value)::type;
-    return boost::hana::make_pair(value, std::vector<state<DataType>>());
+    return boost::hana::make_pair(value, std::deque<state<DataType>>());
   });
   return boost::hana::unpack(vectors, boost::hana::make_map);
 };
@@ -314,8 +315,8 @@ DECLARE_PTR(ProfileMapType)
 using StateMapType = decltype(build_state_map(longfist::StateDataTypes));
 DECLARE_PTR(StateMapType)
 
-using StateVectorMapType = decltype(build_state_vector_map(longfist::StateDataTypes));
-DECLARE_PTR(StateVectorMapType)
+using StateDequeMapType = decltype(build_state_deque_map(longfist::StateDataTypes));
+DECLARE_PTR(StateDequeMapType)
 
 template <typename DataType> std::enable_if_t<size_fixed_v<DataType>> copy(DataType &to, const DataType &from) {
   memcpy(&to, &from, sizeof(DataType));

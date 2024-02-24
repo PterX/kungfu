@@ -158,7 +158,7 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::vector_bank refresh_required_data_bank_;
+  yijinjing::cache::deque_bank refresh_required_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
@@ -345,15 +345,13 @@ private:
   }
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    using DataTypeVector = std::vector<state<DataType>>;
-    auto &target_vector = const_cast<DataTypeVector &>(refresh_required_data_bank_[type]);
-    auto iter = target_vector.begin();
+    using DataTypeDeque = std::deque<state<DataType>>;
+    auto &target_deque = const_cast<DataTypeDeque &>(refresh_required_data_bank_[type]);
     auto count = 0;
-    while (iter != target_vector.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
-      const auto &state = *iter;
+    while (not target_deque.empty() and count++ < TRANSFER_STATIC_DATA_LIMIT) {
+      const auto &state = target_deque.front();
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter = target_vector.erase(iter);
-      count++;
+      target_deque.pop_front();
     }
   }
 

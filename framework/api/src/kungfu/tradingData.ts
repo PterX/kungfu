@@ -49,53 +49,48 @@ export function useWatcher() {
     position: {},
   };
 
-  const startWatcherSyncTask = (
-    interval = 1000,
-    callBack?: (
+  const drainStatesBySync = async () => {
+    if (watcher === null) return;
+
+    console.time('sync');
+    watcher.sync();
+    console.timeEnd('sync');
+    const orderStatList = Object.values(watcher.ledger.OrderStat);
+    const orderList = Object.values(watcher.ledger.Order);
+    const tradeList = Object.values(watcher.ledger.Trade);
+
+    dataQueue.push({
+      orderList: orderList,
+      tradeList: tradeList,
+      orderStatList: orderStatList,
+    });
+  }
+
+  type AfterSync = (
       watcher: KungfuApi.Watcher,
       tradingDataObject: KungfuApi.TradingDataObject,
       update: boolean,
-    ) => void,
+    ) => void; 
+
+  const startWatcherSyncTask = (
+    interval = 1000,
+    callBack?: AfterSync
   ) => {
     if (watcher === null) return;
 
-    return setTimerPromiseTask(async () => {
-      if (watcher === null) return;
-      console.time('sync');
-      watcher.sync();
-      console.timeEnd('sync');
-      const orderStatList = Object.values(watcher.ledger.OrderStat);
-      const orderList = Object.values(watcher.ledger.Order);
-      const tradeList = Object.values(watcher.ledger.Trade);
-      console.log(
-        'orderLength',
-        orderList.length,
-        'tradeLength',
-        tradeList.length,
-        'orderStatLength',
-        orderStatList.length,
-      );
-
-      dataQueue.push({
-        orderList: orderList,
-        tradeList: tradeList,
-        orderStatList: orderStatList,
-      });
-
-      // 开始处理队列中的数据
-      if (!isProcessing) {
-        isProcessing = true;
-        if (callBack) {
-          processQueue();
-        }
-      }
-      if (watcher && tradingDataObject) {
-        callBack && callBack(watcher, tradingDataObject, true);
-      }
-      return true;
+    setTimerPromiseTask(async () => {
+      await drainStatesBySync();
+      callBack && callBack(watcher as KungfuApi.Watcher, tradingDataObject, true);
+      callBack && processQueue();
     }, interval);
   };
+
   async function processQueue() {
+    if (isProcessing) {
+      return;
+    }
+
+    isProcessing = true;
     try {
       while (dataQueue.length > 0) {
         const data = dataQueue.shift();
@@ -113,7 +108,6 @@ export function useWatcher() {
         }
       }
       isProcessing = false;
-      console.log('obj', tradingDataObject);
     } catch (error) {
       console.error('An error occurred while processing the queue:', error);
     }
@@ -132,6 +126,7 @@ export function useWatcher() {
       orderStats.order[stat.uid_key] = stat;
       orderStats.trade[stat.uid_key] = stat;
     });
+    
     //处理 orderList
     await doSomethingWithDataSliced(
       orderList,

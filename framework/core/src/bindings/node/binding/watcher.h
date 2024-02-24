@@ -23,7 +23,7 @@ namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
-constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 10000;
+constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -348,7 +348,7 @@ private:
     using DataTypeDeque = std::deque<state<DataType>>;
     auto &target_deque = const_cast<DataTypeDeque &>(refresh_required_data_bank_[type]);
     auto count = 0;
-    while (not target_deque.empty() and count++ < TRANSFER_STATIC_DATA_LIMIT) {
+    while(not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
       const auto &state = target_deque.front();
       update_ledger(state.update_time, state.source, state.dest, state.data);
       target_deque.pop_front();

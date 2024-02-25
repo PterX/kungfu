@@ -64,23 +64,24 @@ export function useWatcher() {
       tradeList: tradeList,
       orderStatList: orderStatList,
     });
-  }
+  };
 
-  type AfterSync = (
-      watcher: KungfuApi.Watcher,
-      tradingDataObject: KungfuApi.TradingDataObject,
-      update: boolean,
-    ) => void; 
+  type AfterSyncCallback = (
+    watcher: KungfuApi.Watcher,
+    tradingDataObject: KungfuApi.TradingDataObject,
+    update: boolean,
+  ) => void;
 
   const startWatcherSyncTask = (
     interval = 1000,
-    callBack?: AfterSync
+    callBack?: AfterSyncCallback,
   ) => {
     if (watcher === null) return;
 
     setTimerPromiseTask(async () => {
       await drainStatesBySync();
-      callBack && callBack(watcher as KungfuApi.Watcher, tradingDataObject, true);
+      callBack &&
+        callBack(watcher as KungfuApi.Watcher, tradingDataObject, true);
       callBack && processQueue();
     }, interval);
   };
@@ -126,7 +127,7 @@ export function useWatcher() {
       orderStats.order[stat.uid_key] = stat;
       orderStats.trade[stat.uid_key] = stat;
     });
-    
+
     //处理 orderList
     await doSomethingWithDataSliced(
       orderList,

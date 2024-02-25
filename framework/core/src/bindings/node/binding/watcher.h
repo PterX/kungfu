@@ -348,7 +348,7 @@ private:
     using DataTypeDeque = std::deque<state<DataType>>;
     auto &target_deque = const_cast<DataTypeDeque &>(refresh_required_data_bank_[type]);
     auto count = 0;
-    while(not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
+    while (not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
       const auto &state = target_deque.front();
       update_ledger(state.update_time, state.source, state.dest, state.data);
       target_deque.pop_front();

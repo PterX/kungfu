@@ -68,6 +68,7 @@ declare namespace KungfuApi {
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
+  import { DynamicIndexedMap } from './classUtils';
 
   export type VCDepsVersionTypes =
     | '2008'
@@ -1481,34 +1482,31 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
+  export type KfDynamicIndexedMap<T> = DynamicIndexedMap<string, T>;
+
   export interface TradingDataObject {
     order: {
       td: {
-        [key: number]: {
-          indexMap?: any;
-        };
+        [key: number]: KfDynamicIndexedMap<OrderResolved>;
       };
       strategy: {
-        [key: number]: {
-          indexMap?: any;
-        };
+        [key: number]: KfDynamicIndexedMap<OrderResolved>;
       };
     };
     trade: {
       td: {
-        [key: number]: {
-          tradeIndexMap?: any;
-        };
+        [key: number]: KfDynamicIndexedMap<TradeResolved>;
       };
       strategy: {
-        [key: number]: {
-          tradeIndexMap?: any;
-        };
+        [key: number]: KfDynamicIndexedMap<TradeResolved>;
       };
     };
     position: {
-      [key: string]: {
-        positionIndexMap?: any;
+      order: {
+        [key: string]: KfDynamicIndexedMap<OrderResolved>;
+      };
+      trade: {
+        [key: string]: KfDynamicIndexedMap<TradeResolved>;
       };
     };
   }

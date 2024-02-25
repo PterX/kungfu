@@ -83,7 +83,7 @@ class DynamicIndexedMap<K extends string | number, V> {
     this.commonKeyIndexMap[key] = --this.commonListOffset; // 为新键分配当前偏移量作为索引 插入新元素后减少偏移量
     this.commonList.unshift(value);
     this.keyValueMap[key] = value;
-    if (type === 'order' && !isFinished) {
+    if ((type === 'order' || type === 'position') && !isFinished) {
       this.fullKeyIndexMap[key] = --this.fullListOffset;
       this.fullList.unshift(value);
     }
@@ -97,7 +97,7 @@ class DynamicIndexedMap<K extends string | number, V> {
       return;
     }
 
-    if (type !== 'order') {
+    if (type === 'trade') {
       return;
     }
 

@@ -183,7 +183,20 @@ const { searchKeyword, tableData } = useTableSearchKeyword(
           key-field="id"
           :data-source="tableData"
           :columns="statisColums"
-        />
+        >
+          <template #default="{ column, item }">
+            <template v-if="column.dataIndex === 'sideName'">
+              <span :class="`color-${dealSide(item.side).color}`">
+                {{ dealSide(item.side).name }}
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'offsetName'">
+              <span :class="`color-${dealOffset(item.offset).color}`">
+                {{ dealOffset(item.offset).name }}
+              </span>
+            </template>
+          </template>
+        </KfTradingDataTable>
       </div>
     </a-row>
     <a-row style="margin-bottom: 30px">

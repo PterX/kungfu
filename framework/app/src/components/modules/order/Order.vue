@@ -117,7 +117,9 @@ const { searchKeyword, tableData } =
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
-let tradingDataObjectCopy;
+let currentTradingDataObject;
+let orderIndexMap: KungfuApi.KfDynamicIndexedMap<KungfuApi.OrderResolved> | null =
+  null;
 
 const {
   currentGlobalKfLocation,
@@ -148,9 +150,30 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
+function getOrderIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
+  if (!currentGlobalKfLocation.value) orderIndexMap = null;
+  if (currentGlobalKfLocation.value?.category === 'globalPos') {
+    const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
+    orderIndexMap = tradingDataObject.position.order[locationId];
+  } else if (
+    currentGlobalKfLocation.value?.category === 'td' ||
+    currentGlobalKfLocation.value?.category === 'strategy'
+  ) {
+    const locationId = window.watcher.getLocationUID(
+      currentGlobalKfLocation.value,
+    );
+    orderIndexMap =
+      tradingDataObject.order[currentGlobalKfLocation.value.category][
+        locationId
+      ] || null;
+  } else {
+    orderIndexMap = null;
+  }
+}
+
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
-    const { watcher, tradingDataObject } = data;
+    const { tradingDataObject } = data;
     if (historyDate.value) {
       return;
     }
@@ -162,26 +185,23 @@ onActivated(() => {
     if (adjustOrderMaskVisible.value) {
       return;
     }
-    tradingDataObjectCopy = tradingDataObject;
+    currentTradingDataObject = tradingDataObject;
 
-    const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
-    const obj =
-      tradingDataObject.order[currentGlobalKfLocation.value.category][
-        locationId
-      ];
+    getOrderIndexMap(tradingDataObject);
+
     nextTick(() => {
-      if (obj) {
-        const orderListCopy = unfinishedOrder.value
-          ? obj.indexMap.getFullList()
-          : obj.indexMap.getCommonList();
-        if (!orderListCopy) return;
-        canvasRef.value.getListTable()?.setRecords(orderListCopy);
-        allOrders.value = orderListCopy;
+      if (orderIndexMap) {
+        const orderList = unfinishedOrder.value
+          ? orderIndexMap.getFullList()
+          : orderIndexMap.getCommonList();
+        if (!orderList) return;
+        canvasRef.value.getListTable()?.setRecords(orderList);
+        allOrders.value = orderList;
         console.log(
           'allOrders',
           allOrders.value.length,
-          'tradingDataObjectCopy',
-          tradingDataObjectCopy,
+          'currentTradingDataObject',
+          currentTradingDataObject,
         );
         return;
       } else {
@@ -204,27 +224,21 @@ watch(currentGlobalKfLocation, () => {
   allOrders.value = [];
   orders.value = [];
   clearCaches();
-  // if (currentGlobalKfLocation.value === null) {
-  //   return;
-  // }
-  // const locationId = window.watcher.getLocationUID(
-  //   currentGlobalKfLocation.value,
-  // );
-  // const obj =
-  //   tradingDataObjectCopy.order[currentGlobalKfLocation.value?.category][
-  //     locationId
-  //   ];
-  // if (obj) {
-  //   const orderListCopy = unfinishedOrder.value
-  //     ? obj.indexMap.getFullList()
-  //     : obj.indexMap.getCommonList();
-  //   if (!orderListCopy) return;
-  //   canvasRef.value.getListTable()?.setRecords(orderListCopy);
-  //   allOrders.value = orderListCopy;
-  //   return;
-  // } else {
-  //   canvasRef.value.getListTable()?.setRecords([]);
-  // }
+  if (currentGlobalKfLocation.value === null) {
+    return;
+  }
+  getOrderIndexMap(currentTradingDataObject);
+  if (orderIndexMap) {
+    const orderList = unfinishedOrder.value
+      ? orderIndexMap.getFullList()
+      : orderIndexMap.getCommonList();
+    if (!orderList) return;
+    canvasRef.value.getListTable()?.setRecords(orderList);
+    allOrders.value = orderList;
+    return;
+  } else {
+    canvasRef.value.getListTable()?.setRecords([]);
+  }
 });
 
 watch(historyDate, async (newDate) => {
@@ -302,24 +316,6 @@ watch(historyDate, async (newDate) => {
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
   return !UnfinishedOrderStatus.includes(orderStatus);
 }
-
-// const cancelOrderTriggerBtnVisible = computed(() => {
-//   const rootPackageJson = readRootPackageJsonSync();
-//   if (rootPackageJson?.appConfig?.orderTrigger === false) {
-//     return false;
-//   }
-
-//   const tdName = currentGlobalKfLocation.value?.group as string;
-//   const extConfig = extConfigs.value.td[tdName];
-//   if (
-//     extConfig &&
-//     extConfig.orderTrigger[OrderTriggerConfigTypeEnum.CancelOrder]
-//   ) {
-//     return true;
-//   } else {
-//     return false;
-//   }
-// });
 
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
   if (!currentGlobalKfLocation.value || !window.watcher) {

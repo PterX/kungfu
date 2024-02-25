@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
 
-// import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
 import {
   useModalVisible,
   useTableSearchKeyword,
@@ -208,7 +207,7 @@ const { searchKeyword, tableData } = useTableSearchKeyword(
 </script>
 <template>
   <a-modal
-    :width="720"
+    :width="800"
     class="kf-order-statistic-modal"
     v-model:visible="modalVisible"
     :title="`${$t('orderConfig.entrust_statistical')} ${
@@ -247,13 +246,13 @@ const { searchKeyword, tableData } = useTableSearchKeyword(
         >
           <template #default="{ column, item }">
             <template v-if="column.dataIndex === 'sideName'">
-              <span :class="`color-${item.sideColor}`">
-                {{ item.sideName }}
+              <span :class="`color-${dealSide(item.side).color}`">
+                {{ dealSide(item.side).name }}
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'offsetName'">
-              <span :class="`color-${item.offsetColor}`">
-                {{ item.offsetName }}
+              <span :class="`color-${dealOffset(item.offset).color}`">
+                {{ dealOffset(item.offset).name }}
               </span>
             </template>
           </template>

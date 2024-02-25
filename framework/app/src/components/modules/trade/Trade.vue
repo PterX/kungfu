@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  delayMilliSeconds,
+  getIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
   dealSide,
@@ -55,6 +58,9 @@ const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
+let currentTradingDataObject;
+let tradeIndexMap: KungfuApi.KfDynamicIndexedMap<KungfuApi.OrderResolved> | null =
+  null;
 
 const canvasRef = ref();
 const { searchKeyword, tableData } =
@@ -103,9 +109,30 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
+function getOrderIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
+  if (!currentGlobalKfLocation.value) tradeIndexMap = null;
+  if (currentGlobalKfLocation.value?.category === 'globalPos') {
+    const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
+    tradeIndexMap = tradingDataObject.position.trade[locationId];
+  } else if (
+    currentGlobalKfLocation.value?.category === 'td' ||
+    currentGlobalKfLocation.value?.category === 'strategy'
+  ) {
+    const locationId = window.watcher.getLocationUID(
+      currentGlobalKfLocation.value,
+    );
+    tradeIndexMap =
+      tradingDataObject.trade[currentGlobalKfLocation.value.category][
+        locationId
+      ] || null;
+  } else {
+    tradeIndexMap = null;
+  }
+}
+
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
-    const { watcher, tradingDataObject } = data;
+    const { tradingDataObject } = data;
     if (historyDate.value) {
       return;
     }
@@ -113,18 +140,17 @@ onActivated(() => {
     if (currentGlobalKfLocation.value === null) {
       return;
     }
-    const locationId = watcher.getLocationUID(currentGlobalKfLocation.value);
-    const obj =
-      tradingDataObject.trade[currentGlobalKfLocation.value.category][
-        locationId
-      ];
+
+    currentTradingDataObject = tradingDataObject;
+
+    getOrderIndexMap(tradingDataObject);
 
     nextTick(() => {
-      if (obj) {
-        const tradeListCopy = obj.indexMap.getCommonList();
-        if (!tradeListCopy) return;
-        canvasRef.value.getListTable()?.setRecords(tradeListCopy);
-        allTrades.value = tradeListCopy;
+      if (tradeIndexMap) {
+        const tradeList = tradeIndexMap.getCommonList();
+        if (!tradeList) return;
+        canvasRef.value.getListTable()?.setRecords(tradeList);
+        allTrades.value = tradeList;
         console.log('allTrades', allTrades.value.length);
         return;
       } else {

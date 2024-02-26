@@ -3,6 +3,8 @@ import os
 import json
 import kungfu
 import requests
+import time
+import signal
 from kungfu.serverless.sso import SSO
 from kungfu.serverless.utils import (
     get_credentials_for_identity,
@@ -45,8 +47,9 @@ class Backtest:
             file_path, parameter_map, access_key, secret_key, session_token
         )
         job_id = self.__run_job(file_path, begin_time, end_time, level, parameter_map)
-
-        pass
+        log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]     
+        self.__monit_log(log_group_name, job_id, access_key, secret_key, session_token)
+    
 
     def __get_params_name(self):
         JOB_DEFINITION_ARN_PARAM_NAME = (
@@ -109,7 +112,6 @@ class Backtest:
 
     def __run_job(self, file_path, begin_time, end_time, level, parameter_map):
         file_basename = os.path.basename(file_path)
-        log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]
         data = {
             "jobName": "default",
             "parameters": {
@@ -138,3 +140,67 @@ class Backtest:
 
         print(f"Job sumbitted, id: {jobId}")
         return jobId
+
+    def __monit_log(
+        self, log_group_name, job_id, access_key, secret_key, session_token
+    ):
+        batch_client = boto3.client(
+            "batch",
+            region_name="cn-north-1",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            aws_session_token=session_token,
+        )
+        logs_client = boto3.client(
+            "logs",
+            region_name="cn-north-1",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            aws_session_token=session_token,
+        )
+
+        def try_exit(signum, frame):
+            batch_client.terminate_job(jobId=job_id, reason="user triggered")
+            exit()
+                        
+        signal.signal(signal.SIGINT, try_exit)
+        signal.signal(signal.SIGTERM, try_exit)
+        
+        next_token = ""
+        start_time = time.time()
+        while True:
+            resp = batch_client.describe_jobs(jobs=[job_id])
+            job = resp["jobs"][0]
+            status = job.get("status", None)
+            status_reason = job.get("status_reason", None)
+            log_stream_name = job["container"].get("logStreamName", None)
+            params = {
+                "logGroupName": log_group_name,
+                "logStreamName": log_stream_name,
+                "limit": 1000,
+                "startFromHead": True,
+            }
+
+            if status == "SUCCEEDED" or status == "FAILED" or status == "CANCELLED":
+                print(f"job finished, status {status}, reason {status_reason}")
+                break
+
+            if status == "RUNNING" and log_stream_name != None:
+                args = (
+                    {
+                        **params,
+                        "nextToken": next_token,
+                    }
+                    if next_token != ""
+                    else params
+                )
+                logs = logs_client.get_log_events(**args)
+                next_token = logs["nextForwardToken"]
+                events = logs["events"]
+                for item in events:
+                    message = item["message"]
+                    print(message)
+            else:
+                print(f"Status: {status}, Takes: {time.time() - start_time}", end="\r")
+
+            time.sleep(1)

@@ -247,6 +247,75 @@ export const setTimerPromiseTask = (fn: AnyPromiseFunction, interval = 500) => {
   };
 };
 
+export const dataOperationBySliceInEventLoop = <T>(
+  data: T[],
+  doSomethingCallback: (
+    dataItem: T,
+    index: number,
+    sliceIndex: number,
+  ) => Promise<void>,
+  sliceLength = 1000,
+) => {
+  return new Promise<void>((resolve, reject) => {
+    let i = 0,
+      sliceIndex = 0;
+    const len = data.length;
+    const bestEventLoopTask =
+      typeof window !== 'undefined'
+        ? window.requestAnimationFrame
+        : setImmediate;
+    const runner = () => {
+      bestEventLoopTask(async () => {
+        for (let j = 0; j < sliceLength && i < len; i++, j++) {
+          try {
+            await doSomethingCallback(data[i], i, sliceIndex);
+          } catch (error) {
+            reject(error);
+          }
+        }
+
+        if (i === len) {
+          resolve();
+        } else {
+          sliceIndex++;
+          runner();
+        }
+      });
+    };
+
+    runner();
+  });
+};
+
+export const doSomethingWithDataSliced = <T>(
+  data: T[],
+  doSomethingCallback: (dataSliced: T[], sliceIndex: number) => Promise<void>,
+  sliceLength = 1000,
+) => {
+  if (data.length === 0) return Promise.resolve();
+  const dataSliced: T[] = [];
+  return new Promise<void>((resolve, reject) => {
+    dataOperationBySliceInEventLoop(
+      data,
+      async (dataItem, index, sliceIndex) => {
+        dataSliced.push(dataItem);
+
+        if (dataSliced.length === sliceLength || index === data.length - 1) {
+          try {
+            await doSomethingCallback(dataSliced, sliceIndex);
+            dataSliced.length = 0;
+          } catch (error) {
+            reject(error);
+          }
+        }
+
+        if (index === data.length - 1) resolve();
+      },
+      sliceLength,
+    );
+  });
+};
+
 export const getResultUntilValuable = <T>(
   getter: (...args) => T | false,
   timeout = 5000,
@@ -1028,6 +1097,146 @@ export class LinkedList<T> {
     this.tail = null;
     this.pos = null;
     this.nodeMap.clear();
+  }
+}
+
+export class DynamicIndexedMap<K extends string | number, V> {
+  private keyValueMap: { [key in K]?: V };
+  private commonKeyIndexMap: { [key in K]?: number };
+  private fullKeyIndexMap: { [key in K]?: number };
+  private commonList: V[];
+  private fullList: V[];
+  private commonListOffset = 1;
+  private commonSliceCount = 0;
+  private fullListOffset = 1;
+  private updateFinishedIndexList: number[] = [];
+  private maxCommonListLength = 50000;
+
+  constructor(maxLength = 500) {
+    this.keyValueMap = {};
+    this.commonKeyIndexMap = {};
+    this.fullKeyIndexMap = {};
+    this.commonList = [];
+    this.fullList = [];
+    this.maxCommonListLength = maxLength;
+  }
+
+  countSmallerNumbers(num) {
+    const length = this.updateFinishedIndexList.length;
+    if (length === 0) {
+      return 0;
+    }
+
+    let left = 0;
+    let right = length;
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      if (this.updateFinishedIndexList[mid] < num) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+
+    return left;
+  }
+
+  getOrderStatus(key: K) {
+    const index = this.commonKeyIndexMap[key];
+    if (index === undefined) {
+      console.error(`Key ${key} not found in map`);
+      return;
+    }
+    return index;
+  }
+
+  insertKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
+    if (this.maxCommonListLength <= this.commonList.length) {
+      this.deleteLastCommonValue();
+    }
+
+    this.commonKeyIndexMap[key] = --this.commonListOffset; // 为新键分配当前偏移量作为索引 插入新元素后减少偏移量
+    this.commonList.unshift(value);
+    this.keyValueMap[key] = value;
+    if ((type === 'order' || type === 'position') && !isFinished) {
+      this.fullKeyIndexMap[key] = --this.fullListOffset;
+      this.fullList.unshift(value);
+    }
+  }
+  updateKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
+    const correctIndex = this.getCommonListIndexForKey(key);
+    if (correctIndex !== undefined) {
+      this.keyValueMap[key] = value;
+      this.commonList.splice(correctIndex, 1, value);
+    } else {
+      return;
+    }
+
+    if (type === 'trade') {
+      return;
+    }
+
+    const fullCorrectIndex = this.getFullListIndexForKey(key);
+    if (fullCorrectIndex !== undefined) {
+      if (isFinished) {
+        this.fullList.splice(fullCorrectIndex, 1);
+        this.updateFinishedIndexList.push(this.fullKeyIndexMap[key] || 0);
+        delete this.fullKeyIndexMap[key];
+      } else {
+        this.fullList.splice(fullCorrectIndex, 1, value);
+      }
+    }
+  }
+
+  deleteLastCommonValue(): void {
+    this.commonList.pop();
+    this.commonSliceCount++;
+  }
+
+  getCommonListIndexForKey(key: K): number | undefined {
+    const index = this.commonKeyIndexMap[key];
+
+    if (index === undefined) {
+      return undefined;
+    }
+    if (Number(index) + this.commonSliceCount > 0) {
+      delete this.commonKeyIndexMap[key];
+      return undefined;
+    }
+    return Number(index) - this.commonListOffset;
+  }
+
+  getFullListIndexForKey(key: K): number | undefined {
+    const index = this.fullKeyIndexMap[key];
+    if (index === undefined) {
+      return;
+    }
+    return (
+      Number(index) - this.fullListOffset - this.countSmallerNumbers(index)
+    );
+  }
+
+  hasKey(key: K): boolean {
+    return (
+      this.commonKeyIndexMap[key] !== undefined ||
+      this.fullKeyIndexMap[key] !== undefined
+    );
+  }
+
+  getValueForKey(key: K): V | undefined {
+    return this.keyValueMap[key];
+  }
+
+  getKeyIndexMap(): { [key in K]?: number } {
+    return this.commonKeyIndexMap;
+  }
+
+  getCommonList(): V[] {
+    return [...this.commonList];
+  }
+
+  getFullList(): V[] {
+    return [...this.fullList];
   }
 }
 

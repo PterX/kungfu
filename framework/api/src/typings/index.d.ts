@@ -68,7 +68,6 @@ declare namespace KungfuApi {
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
-  import { DynamicIndexedMap } from './classUtils';
 
   export type VCDepsVersionTypes =
     | '2008'
@@ -1482,31 +1481,54 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
-  export type KfDynamicIndexedMap<T> = DynamicIndexedMap<string, T>;
+  export interface KfDynamicIndexedMap<K extends string | number, V> {
+    countSmallerNumbers(num: number): number;
+    getOrderStatus(key: K): number | undefined;
+    insertKeyWithValue(
+      key: K,
+      value: V,
+      type: string,
+      isFinished?: boolean,
+    ): void;
+    updateKeyWithValue(
+      key: K,
+      value: V,
+      type: string,
+      isFinished?: boolean,
+    ): void;
+    deleteLastCommonValue(): void;
+    getCommonListIndexForKey(key: K): number | undefined;
+    getFullListIndexForKey(key: K): number | undefined;
+    hasKey(key: K): boolean;
+    getValueForKey(key: K): V | undefined;
+    getKeyIndexMap(): { [key in K]?: number };
+    getCommonList(): V[];
+    getFullList(): V[];
+  }
 
   export interface TradingDataObject {
     order: {
       td: {
-        [key: number]: KfDynamicIndexedMap<OrderResolved>;
+        [key: number]: KfDynamicIndexedMap<string, OrderResolved>;
       };
       strategy: {
-        [key: number]: KfDynamicIndexedMap<OrderResolved>;
+        [key: number]: KfDynamicIndexedMap<string, OrderResolved>;
       };
     };
     trade: {
       td: {
-        [key: number]: KfDynamicIndexedMap<TradeResolved>;
+        [key: number]: KfDynamicIndexedMap<string, TradeResolved>;
       };
       strategy: {
-        [key: number]: KfDynamicIndexedMap<TradeResolved>;
+        [key: number]: KfDynamicIndexedMap<string, TradeResolved>;
       };
     };
     position: {
       order: {
-        [key: string]: KfDynamicIndexedMap<OrderResolved>;
+        [key: string]: KfDynamicIndexedMap<string, OrderResolved>;
       };
       trade: {
-        [key: string]: KfDynamicIndexedMap<TradeResolved>;
+        [key: string]: KfDynamicIndexedMap<string, TradeResolved>;
       };
     };
   }
@@ -1678,7 +1700,7 @@ declare namespace KungfuApi {
   }
 
   export interface KfLocationGroup extends KfLocation {
-    children?: KfLocation[];
+    children?: KfConfigOrigin[];
   }
 
   export interface KfLocation extends KfLocationBase {

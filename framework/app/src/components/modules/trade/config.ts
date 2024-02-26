@@ -22,7 +22,7 @@ export const getColumns = (
     .trigger(kfLocation, 'trade')
     .getColumns<VTable.ColumnDefine>([
       {
-        field: 'trade_time_resolved',
+        field: 'trade_time',
         title: t('tradeConfig.trade_time_resolved'),
         width: isHistory ? 160 : 120,
         sort: sorter,
@@ -31,7 +31,7 @@ export const getColumns = (
         },
       },
       {
-        field: 'kf_time_resovlved',
+        field: 'kf_time',
         title: t('tradeConfig.kf_time_resolved'),
         width: isHistory ? 160 : 120,
         sort: sorter,

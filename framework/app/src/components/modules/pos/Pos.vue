@@ -8,7 +8,6 @@ import { dealCurrency } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
   useDownloadHistoryTradingData,
-  useTableSearchKeyword,
   useDashboardBodySize,
   useTriggerMakeOrder,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -55,13 +54,7 @@ const app = getCurrentInstance();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const pos = ref<KungfuApi.PositionResolved[]>([]);
-const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.PositionResolved>(pos, [
-    'instrument_id_resolved',
-    'exchange_id',
-    'direction',
-    'account_id_resolved',
-  ]);
+const searchKeyword = ref('');
 const {
   currentGlobalKfLocation,
   currentCategoryData,
@@ -137,6 +130,36 @@ const columns = computed(() => {
   });
 });
 
+const useTableSearchKeyword = <T>(
+  searchKeyword: string,
+  positionList: T[],
+  keys: string[],
+  transform?: Record<string, (value: string | number) => string>,
+): T[] => {
+  if (!searchKeyword) {
+    return positionList;
+  }
+
+  return positionList.filter((item: T) => {
+    const combinedValue = keys
+      .map((key: string) => {
+        let keyValue = (item as Record<string, unknown>)[key] as
+          | string
+          | number;
+
+        if (transform && transform[key]) {
+          keyValue = transform[key](keyValue);
+        }
+
+        return keyValue ? keyValue.toString() : '';
+      })
+      .join('_');
+    return new RegExp(searchKeyword, 'ig').test(combinedValue);
+  });
+};
+
+const hasData = computed(() => pos.value.length > 0);
+
 onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
@@ -169,7 +192,17 @@ onActivated(() => {
           );
         }),
       );
-      canvasRef.value.getListTable()?.setRecords([...pos.value]);
+      const tableData = useTableSearchKeyword<KungfuApi.PositionResolved>(
+        searchKeyword.value,
+        pos.value,
+        [
+          'instrument_id_resolved',
+          'exchange_id',
+          'direction',
+          'account_id_resolved',
+        ],
+      );
+      canvasRef.value.getListTable()?.setRecords([...tableData]);
     });
 
     onBeforeUnmount(() => {
@@ -283,7 +316,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       <KfCanvasTradingDataTable
         ref="canvasRef"
         :columns="columns"
-        :data-source="tableData"
+        :has-data="hasData"
         :custom-layout="customLayout"
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"

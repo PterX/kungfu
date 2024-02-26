@@ -9,7 +9,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
+import {
+  onMounted,
+  ref,
+  watch,
+  getCurrentInstance,
+  computed,
+  nextTick,
+} from 'vue';
 import { Empty } from 'ant-design-vue';
 import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -45,6 +52,7 @@ const props = withDefaults(
   defineProps<{
     columns: VTable.ColumnsDefine;
     dataSource?: tableDataItem[];
+    hasData?: boolean;
     customLayout?: Record<string, ICustomActionOption[]>;
     widthMode?: 'adaptive' | 'autoWidth' | 'standard';
     columnResizeMode?: 'all' | 'body' | 'header' | 'none';
@@ -273,6 +281,32 @@ const initCustomLayoutOptions = () => {
   });
 };
 
+const isShowEmpty = () => {
+  if (listTable) {
+    if (!props.hasData) {
+      listTableRef.value.style.height = `35px`;
+      if (
+        defaultTheme.scrollStyle &&
+        defaultTheme.scrollStyle.visible !== 'none'
+      ) {
+        defaultTheme.scrollStyle.visible = 'none';
+        listTable.updateTheme(defaultTheme);
+      }
+      showEmpty.value = true;
+    } else {
+      listTableRef.value.style.height = `100%`;
+      if (
+        defaultTheme.scrollStyle &&
+        defaultTheme.scrollStyle.visible !== 'focus'
+      ) {
+        defaultTheme.scrollStyle.visible = 'focus';
+        listTable.updateTheme(defaultTheme);
+      }
+      showEmpty.value = false;
+    }
+  }
+};
+
 onMounted(async () => {
   font = await getCustomFont();
   if (font) {
@@ -296,6 +330,7 @@ onMounted(async () => {
       listTableRef.value,
       option.value as VTable.ListTableConstructorOptions,
     );
+    isShowEmpty();
   }
 
   const rowList = listTable?.getAllColumnHeaderCells();
@@ -331,39 +366,14 @@ defineExpose({
   initCustomLayoutOptions,
 });
 
-// watch(
-//   () => props.dataSource,
-//   (tableData) => {
-//     nextTick(() => {
-//       if (listTable) {
-//         if (tableData.length === 0) {
-//           listTableRef.value.style.height = `35px`;
-//           if (
-//             defaultTheme.scrollStyle &&
-//             defaultTheme.scrollStyle.visible !== 'none'
-//           ) {
-//             defaultTheme.scrollStyle.visible = 'none';
-//             listTable.updateTheme(defaultTheme);
-//           }
-//           showEmpty.value = true;
-//         } else {
-//           listTableRef.value.style.height = `100%`;
-//           if (
-//             defaultTheme.scrollStyle &&
-//             defaultTheme.scrollStyle.visible !== 'focus'
-//           ) {
-//             defaultTheme.scrollStyle.visible = 'focus';
-//             listTable.updateTheme(defaultTheme);
-//           }
-//           showEmpty.value = false;
-//         }
-//         console.log('tableData', tableData.length);
-//         listTable.setRecords(tableData);
-//       }
-//     });
-//   },
-//   { immediate: true },
-// );
+watch(
+  () => props.hasData,
+  (hasData) => {
+    console.log('hasData', hasData);
+    isShowEmpty();
+  },
+  { immediate: true },
+);
 
 watch(
   () => props.columns,

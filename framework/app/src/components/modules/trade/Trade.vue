@@ -13,7 +13,6 @@ import {
   messagePrompt,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
-  useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -52,35 +51,19 @@ import TradeStatisticModal from './TradeStatisticModal.vue';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+const DEFAULT_TRADE_LIST_LENGTH = 50000;
+
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
-const trades = ref<KungfuApi.TradeResolved[]>([]);
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
-let currentTradingDataObject;
-let tradeIndexMap: KungfuApi.KfDynamicIndexedMap<KungfuApi.OrderResolved> | null =
-  null;
+const currentTradingDataObject = ref<KungfuApi.TradingDataObject>();
+const tradeIndexMapList = ref<
+  KungfuApi.KfDynamicIndexedMap<string, KungfuApi.TradeResolved>[]
+>([]);
 
 const canvasRef = ref();
-const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.TradeResolved>(
-    trades,
-    [
-      'order_id',
-      'trade_id',
-      'instrument_id',
-      'side',
-      'offset',
-      'exchange_id',
-      'source_uname',
-      'dest_uname',
-    ],
-    {
-      side: (item) => dealSide(Number(item)).name,
-      offset: (item) => dealOffset(Number(item)).name,
-    },
-  );
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 
@@ -109,11 +92,47 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-function getOrderIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
-  if (!currentGlobalKfLocation.value) tradeIndexMap = null;
+const searchKeyword = ref<string>('');
+
+const useTableSearchKeyword = <T>(
+  searchKeyword: string,
+  tradeList: T[],
+  keys: string[],
+  transform?: Record<string, (value: string | number) => string>,
+): T[] => {
+  if (!searchKeyword) {
+    return tradeList;
+  }
+
+  return tradeList.filter((item: T) => {
+    const combinedValue = keys
+      .map((key: string) => {
+        let keyValue = (item as Record<string, unknown>)[key] as
+          | string
+          | number;
+
+        if (transform && transform[key]) {
+          keyValue = transform[key](keyValue);
+        }
+
+        return keyValue ? keyValue.toString() : '';
+      })
+      .join('_');
+    return new RegExp(searchKeyword, 'ig').test(combinedValue);
+  });
+};
+
+function getTradeIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
+  tradeIndexMapList.value = [];
+  if (!currentGlobalKfLocation.value) tradeIndexMapList.value = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
-    tradeIndexMap = tradingDataObject.position.trade[locationId];
+    const indexMap = tradingDataObject.position.trade[locationId];
+    if (indexMap) {
+      tradeIndexMapList.value.push(indexMap);
+    } else {
+      tradeIndexMapList.value = [];
+    }
   } else if (
     currentGlobalKfLocation.value?.category === 'td' ||
     currentGlobalKfLocation.value?.category === 'strategy'
@@ -121,14 +140,118 @@ function getOrderIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
     const locationId = window.watcher.getLocationUID(
       currentGlobalKfLocation.value,
     );
-    tradeIndexMap =
+    const indexMap =
       tradingDataObject.trade[currentGlobalKfLocation.value.category][
         locationId
-      ] || null;
+      ];
+    if (indexMap) {
+      tradeIndexMapList.value.push(indexMap);
+    } else {
+      tradeIndexMapList.value = [];
+    }
+  } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
+    const locationList = (
+      currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
+    ).children;
+    if (locationList) {
+      locationList.forEach((location) => {
+        const locationId = location.location_uid;
+        const indexMap = tradingDataObject.trade.td[locationId];
+        if (indexMap) {
+          tradeIndexMapList.value.push(indexMap);
+        }
+      });
+    }
   } else {
-    tradeIndexMap = null;
+    tradeIndexMapList.value = [];
   }
 }
+function getTradeList(
+  tradeIndexMapList: KungfuApi.KfDynamicIndexedMap<
+    string,
+    KungfuApi.TradeResolved
+  >[],
+) {
+  let tradeList: KungfuApi.TradeResolved[] = [];
+  if (tradeIndexMapList.length === 1) {
+    const compare = (a, b) => Number(b.trade_time) - Number(a.trade_time);
+
+    tradeList = tradeIndexMapList[0]
+      .getCommonList()
+      .sort((a, b) => compare(a, b));
+  } else {
+    const listMap: Record<number, KungfuApi.TradeResolved[]> = {};
+    let minHeap = tradeIndexMapList.map((tradeIndexMap, index) => {
+      let firstTrade =
+        tradeIndexMap.getCommonList()[0] as KungfuApi.TradeResolved;
+      if (!firstTrade) return;
+      listMap[index] = tradeIndexMap.getCommonList();
+      return { trade: firstTrade, index, position: 0 };
+    });
+
+    const compare = (a, b) =>
+      Number(b.trade.trade_time) - Number(a.trade.trade_time);
+    while (minHeap.length > 0 && tradeList.length < DEFAULT_TRADE_LIST_LENGTH) {
+      minHeap.sort((a, b) => compare(a, b));
+      let maxItem = minHeap.shift();
+      if (!maxItem) break;
+      tradeList.push(maxItem.trade);
+
+      let nextPosition = maxItem.position + 1;
+      let nextTrade = listMap[maxItem.index][nextPosition];
+      if (nextTrade) {
+        minHeap.push({
+          trade: nextTrade,
+          index: maxItem.index,
+          position: nextPosition,
+        });
+      }
+    }
+  }
+  return tradeList;
+}
+
+function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
+  currentTradingDataObject.value = tradingDataObject;
+
+  getTradeIndexMap(tradingDataObject);
+
+  nextTick(() => {
+    if (tradeIndexMapList.value.length > 0) {
+      const tradeList = getTradeList(tradeIndexMapList.value);
+      const tableData = useTableSearchKeyword(
+        searchKeyword.value,
+        tradeList,
+        [
+          'order_id',
+          'trade_id',
+          'instrument_id',
+          'side',
+          'offset',
+          'exchange_id',
+          'source_uname',
+          'dest_uname',
+        ],
+        {
+          side: (item) => dealSide(Number(item)).name,
+          offset: (item) => dealOffset(Number(item)).name,
+        },
+      );
+      if (tradeList.length) {
+        canvasRef.value.getListTable()?.setRecords(tableData);
+        allTrades.value = tableData;
+      } else {
+        canvasRef.value.getListTable()?.setRecords([]);
+      }
+    } else {
+      canvasRef.value.getListTable()?.setRecords([]);
+    }
+  });
+}
+
+const hasData = computed(() => {
+  return allTrades.value.length > 0;
+});
 
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
@@ -141,22 +264,7 @@ onActivated(() => {
       return;
     }
 
-    currentTradingDataObject = tradingDataObject;
-
-    getOrderIndexMap(tradingDataObject);
-
-    nextTick(() => {
-      if (tradeIndexMap) {
-        const tradeList = tradeIndexMap.getCommonList();
-        if (!tradeList) return;
-        canvasRef.value.getListTable()?.setRecords(tradeList);
-        allTrades.value = tradeList;
-        console.log('allTrades', allTrades.value.length);
-        return;
-      } else {
-        canvasRef.value.getListTable()?.setRecords([]);
-      }
-    });
+    processTradingData(tradingDataObject);
   });
 
   onBeforeUnmount(() => {
@@ -170,8 +278,14 @@ onActivated(() => {
 
 watch(currentGlobalKfLocation, () => {
   historyDate.value = undefined;
-  trades.value = [];
   allTrades.value = [];
+  if (
+    currentGlobalKfLocation.value === null ||
+    !currentTradingDataObject.value
+  ) {
+    return;
+  }
+  processTradingData(currentTradingDataObject.value);
 });
 
 watch(historyDate, async (newDate) => {
@@ -181,7 +295,6 @@ watch(historyDate, async (newDate) => {
 
   if (!currentGlobalKfLocation.value) return;
 
-  trades.value = [];
   allTrades.value = [];
   historyDataLoading.value = true;
   delayMilliSeconds(500)
@@ -226,10 +339,8 @@ watch(historyDate, async (newDate) => {
         }),
       );
 
-      trades.value = tempAllTrades;
       allTrades.value = tempAllTrades;
-      console.log('trade', trades.value);
-      canvasRef.value.getListTable()?.setRecords([...trades.value]);
+      canvasRef.value.getListTable()?.setRecords([...allTrades.value]);
     })
     .catch((err) => {
       if (err.message === 'database_locked') {
@@ -305,6 +416,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       <KfCanvasTradingDataTable
         ref="canvasRef"
         :columns="columns"
+        :hasData="hasData"
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

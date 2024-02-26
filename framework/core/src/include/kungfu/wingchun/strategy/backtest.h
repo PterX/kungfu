@@ -357,8 +357,10 @@ protected:
 private:
   struct TimerTask {
     int32_t timer_id;
+    int64_t nanotime;
     std::function<void(event_ptr)> call_back;
-    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
+    TimerTask(int32_t id, int64_t nanotime, std::function<void(event_ptr)> cb) : timer_id(id), nanotime(nanotime), call_back(std::move(cb)){};
+    bool operator<(const TimerTask &other) const { return other.nanotime < this->nanotime; }
   };
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
@@ -370,11 +372,13 @@ private:
   const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
   int32_t protected_timer_id_;
-  std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
-  std::multimap<int64_t, TimerTask> timer_callbacks_{};
+  // std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
+  // std::multimap<int64_t, TimerTask> timer_callbacks_{};
+  std::vector<TimerTask> timer_tasks_{};
 
   void on_timer_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
+  int32_t add_timer_helper(int64_t nanotime, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
 
   enum class SliceState { Idle, Acquiring, Acquired, Releasing, Released };

@@ -42,3 +42,4 @@ window.testCase.enableReplay = (
 window.testCase.enableTdReplay = () => {
   window.testCase.enableReplay('td', true);
 };
+window.allBoardsStore = {};

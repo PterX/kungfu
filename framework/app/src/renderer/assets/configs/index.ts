@@ -149,23 +149,3 @@ const baseBoardsMap: KfLayout.BoardsMap = {
 };
 
 export const defaultBoardsMap = dealBoardMap(baseBoardsMap);
-
-export const getIndexBoardsMap = (): KfLayout.BoardsMap | null => {
-  const data = localStorage.getItem('indexBoardsMap');
-  if (!data) {
-    return null;
-  }
-  const storedBoardsMap = JSON.parse(data) as KfLayout.BoardsMap;
-  if (!Object.keys(storedBoardsMap).length) {
-    return null;
-  }
-
-  return storedBoardsMap;
-};
-
-export const saveIndexBoardsMap = (
-  boardsMap: KfLayout.BoardsMap,
-): Promise<void> => {
-  localStorage.setItem('indexBoardsMap', JSON.stringify(boardsMap || '{}'));
-  return Promise.resolve();
-};

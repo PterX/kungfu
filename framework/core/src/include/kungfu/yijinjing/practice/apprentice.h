@@ -213,6 +213,10 @@ protected:
 
   void reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0);
 
+  bool is_timer_enabled(int32_t timer_id);
+
+  void enable_timer(int32_t timer_id);
+
   std::function<rx::observable<event_ptr>(rx::observable<event_ptr>)> timer(int64_t nanotime, int32_t timer_id) {
     enable_timer(timer_id);
     auto writer = get_writer(get_master_command_uid());
@@ -348,10 +352,6 @@ private:
   }
 
   static void reset_time(const longfist::types::TimeReset &time_reset);
-
-  bool is_timer_enabled(int32_t timer_id);
-
-  void enable_timer(int32_t timer_id);
 };
 
 DECLARE_PTR(apprentice)

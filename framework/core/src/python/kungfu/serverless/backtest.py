@@ -47,9 +47,8 @@ class Backtest:
             file_path, parameter_map, access_key, secret_key, session_token
         )
         job_id = self.__run_job(file_path, begin_time, end_time, level, parameter_map)
-        log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]     
+        log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]
         self.__monit_log(log_group_name, job_id, access_key, secret_key, session_token)
-    
 
     def __get_params_name(self):
         JOB_DEFINITION_ARN_PARAM_NAME = (
@@ -162,10 +161,10 @@ class Backtest:
         def try_exit(signum, frame):
             batch_client.terminate_job(jobId=job_id, reason="user triggered")
             exit()
-                        
+
         signal.signal(signal.SIGINT, try_exit)
         signal.signal(signal.SIGTERM, try_exit)
-        
+
         next_token = ""
         start_time = time.time()
         while True:

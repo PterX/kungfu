@@ -5,13 +5,17 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.1-alpha.34",
+  "version": "2.7.1-alpha.35",
   "description": "Kungfu Trader Artifact",
   "license": "Apache-2.0",
   "private": true,
   "main": "dist/app/main.js",
   "kungfuCraft": {
-    "productName": "Kungfu"
+    "productName": "Kungfu",
+    "env": {
+      "IS_OTC_ACCOUNTING_TYPE": "1",
+      "NEED_ETF": "false"
+    }
   },
   "scripts": {
     "build": "yarn kfs craft build",
@@ -22,15 +26,15 @@
     "cli": "yarn kfs craft cli"
   },
   "dependencies": {
-    "@kungfu-trader/kfx-broker-sim": "^2.7.1-alpha.34",
-    "@kungfu-trader/kfx-broker-xtp-demo": "^2.7.1-alpha.34",
-    "@kungfu-trader/kfx-indexer-live": "^2.7.1-alpha.34",
-    "@kungfu-trader/kfx-matcher-101-cpp": "^2.7.1-alpha.34",
-    "@kungfu-trader/kfx-operator-bar": "^2.7.1-alpha.34",
-    "@kungfu-trader/kungfu-app": "^2.7.1-alpha.34",
-    "@kungfu-trader/kungfu-cli": "^2.7.1-alpha.34",
-    "@kungfu-trader/kungfu-core": "^2.7.1-alpha.34",
-    "@kungfu-trader/kungfu-sdk": "^2.7.1-alpha.34"
+    "@kungfu-trader/kfx-broker-sim": "^2.7.1-alpha.35",
+    "@kungfu-trader/kfx-broker-xtp-demo": "^2.7.1-alpha.35",
+    "@kungfu-trader/kfx-indexer-live": "^2.7.1-alpha.35",
+    "@kungfu-trader/kfx-matcher-101-cpp": "^2.7.1-alpha.35",
+    "@kungfu-trader/kfx-operator-bar": "^2.7.1-alpha.35",
+    "@kungfu-trader/kungfu-app": "^2.7.1-alpha.35",
+    "@kungfu-trader/kungfu-cli": "^2.7.1-alpha.35",
+    "@kungfu-trader/kungfu-core": "^2.7.1-alpha.35",
+    "@kungfu-trader/kungfu-sdk": "^2.7.1-alpha.35"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

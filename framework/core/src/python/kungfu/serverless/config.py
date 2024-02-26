@@ -1,5 +1,5 @@
 from kungfu.yijinjing.utils import get_default_home_dir
-from kungfu.feature.params import alpha, dev, prod
+from kungfu.serverless.params import alpha, dev, prod
 import os
 
 

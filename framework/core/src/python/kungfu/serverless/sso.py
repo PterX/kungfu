@@ -1,6 +1,6 @@
 from authing import AuthenticationClient
-from kungfu.feature.config import AUTHING_APP_CONFIG
-from kungfu.feature.utils import record_tokens, get_tokens
+from kungfu.serverless.config import AUTHING_APP_CONFIG
+from kungfu.serverless.utils import record_tokens, get_tokens
 
 
 class SSO:
@@ -23,7 +23,8 @@ class SSO:
         data = resp["data"]
         phone = data["phone"]
         username = data["username"]
-        return phone, username
+        user_id = data["userId"]
+        return phone, username, user_id
 
     def sign_in_by_account_password(self, account, password):
         sign_in_resp = self.ac.sign_in_by_account_password(
@@ -83,7 +84,7 @@ class SSO:
     def introspect_token(self):
         access_token, refresh_token, id_token = get_tokens()
         resp = self.ac.introspect_token(access_token)
-        if resp["active"] == True:
+        if resp.get("active", False) == True:
             return True
         else:
             return False

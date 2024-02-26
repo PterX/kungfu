@@ -8,5 +8,16 @@ from . import tool
 from . import slicetool
 from . import assemble
 from . import login
+from . import backtest
 
-__all__ = ["engage", "journal", "run", "cli", "tool", "slicetool", "assemble", "login"]
+__all__ = [
+    "engage",
+    "journal",
+    "run",
+    "cli",
+    "tool",
+    "slicetool",
+    "assemble",
+    "login",
+    "backtest",
+]

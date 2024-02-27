@@ -86,7 +86,7 @@ const historyDataLoading = ref<boolean>();
 const searchKeyword = ref<string>('');
 const currentTradingDataObject = ref<KungfuApi.TradingDataObject>();
 const orderIndexMapList = ref<
-  KungfuApi.KfDynamicIndexedMap<string, KungfuApi.OrderResolved>[]
+  KungfuApi.KfDynamicTradingDataIndexedMap<string, KungfuApi.OrderResolved>[]
 >([]);
 
 const {
@@ -120,7 +120,7 @@ function getOrderIndexMapList(tradingDataObject: KungfuApi.TradingDataObject) {
   if (!currentGlobalKfLocation.value) orderIndexMapList.value = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
-    const indexMap = tradingDataObject.position.order[locationId];
+    const indexMap = tradingDataObject.order.position[locationId];
     if (indexMap) {
       orderIndexMapList.value.push(indexMap);
     } else {
@@ -163,7 +163,7 @@ function getOrderIndexMapList(tradingDataObject: KungfuApi.TradingDataObject) {
 }
 
 function getOrderListFromIndexMap(
-  orderIndexMapList: KungfuApi.KfDynamicIndexedMap<
+  orderIndexMapList: KungfuApi.KfDynamicTradingDataIndexedMap<
     string,
     KungfuApi.OrderResolved
   >[],
@@ -186,26 +186,31 @@ function getOrderListFromIndexMap(
     const listGetter: 'getUnfinishedList' | 'getCommonList' =
       unfinishedOrder.value ? 'getUnfinishedList' : 'getCommonList';
 
-    let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
-      const list = orderIndexMap[listGetter]();
-      let firstOrder = list[0] as KungfuApi.OrderResolved;
-      if (!firstOrder) return;
-      listMap[index] = list;
-      return { order: firstOrder, index, position: 0 };
-    });
+    const everyLatestOrderResolved = orderIndexMapList.map(
+      (orderIndexMap, index) => {
+        const list = orderIndexMap[listGetter]();
+        let firstOrder = list[0] as KungfuApi.OrderResolved;
+        if (!firstOrder) return;
+        listMap[index] = list;
+        return { order: firstOrder, index, position: 0 };
+      },
+    );
 
     const compare = (a, b) =>
       Number(b.order.insert_time) - Number(a.order.insert_time);
-    while (minHeap.length > 0 && orderList.length < DEFAULT_ORDER_LIST_LENGTH) {
-      minHeap.sort((a, b) => compare(a, b));
-      let maxItem = minHeap.shift();
+    while (
+      everyLatestOrderResolved.length > 0 &&
+      orderList.length < DEFAULT_ORDER_LIST_LENGTH
+    ) {
+      everyLatestOrderResolved.sort((a, b) => compare(a, b));
+      let maxItem = everyLatestOrderResolved.shift();
       if (!maxItem) break;
       orderList.push(maxItem.order);
 
       let nextPosition = maxItem.position + 1;
       let nextOrder = listMap[maxItem.index][nextPosition];
       if (nextOrder) {
-        minHeap.push({
+        everyLatestOrderResolved.push({
           order: nextOrder,
           index: maxItem.index,
           position: nextPosition,

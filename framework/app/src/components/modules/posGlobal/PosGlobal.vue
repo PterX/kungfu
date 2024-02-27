@@ -180,7 +180,7 @@ onActivated(() => {
             'direction',
           ],
         );
-        canvasRef.value.getListTable()?.setRecords([...tableData]);
+        canvasRef.value.getListTable()?.setRecords(tableData);
       });
     });
 

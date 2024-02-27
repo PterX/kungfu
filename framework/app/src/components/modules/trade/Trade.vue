@@ -61,7 +61,7 @@ const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingDataObject = ref<KungfuApi.TradingDataObject>();
 const tradeIndexMapList = ref<
-  KungfuApi.KfDynamicIndexedMap<string, KungfuApi.TradeResolved>[]
+  KungfuApi.KfDynamicTradingDataIndexedMap<string, KungfuApi.TradeResolved>[]
 >([]);
 
 const canvasRef = ref();
@@ -95,12 +95,12 @@ const columns = computed(() => {
 
 const searchKeyword = ref<string>('');
 
-function getTradeIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
+function getTradeIndexMapList(tradingDataObject: KungfuApi.TradingDataObject) {
   tradeIndexMapList.value = [];
   if (!currentGlobalKfLocation.value) tradeIndexMapList.value = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
-    const indexMap = tradingDataObject.position.trade[locationId];
+    const indexMap = tradingDataObject.trade.position[locationId];
     if (indexMap) {
       tradeIndexMapList.value.push(indexMap);
     } else {
@@ -138,9 +138,10 @@ function getTradeIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
   } else {
     tradeIndexMapList.value = [];
   }
+  return tradeIndexMapList.value;
 }
-function getTradeList(
-  tradeIndexMapList: KungfuApi.KfDynamicIndexedMap<
+function getTradeListForIndexMap(
+  tradeIndexMapList: KungfuApi.KfDynamicTradingDataIndexedMap<
     string,
     KungfuApi.TradeResolved
   >[],
@@ -154,26 +155,31 @@ function getTradeList(
       .sort((a, b) => compare(a, b));
   } else {
     const listMap: Record<number, KungfuApi.TradeResolved[]> = {};
-    let minHeap = tradeIndexMapList.map((tradeIndexMap, index) => {
-      const list = tradeIndexMap.getCommonList();
-      let firstTrade = list[0] as KungfuApi.TradeResolved;
-      if (!firstTrade) return;
-      listMap[index] = list;
-      return { trade: firstTrade, index, position: 0 };
-    });
+    let everyLatestTradeResolved = tradeIndexMapList.map(
+      (tradeIndexMap, index) => {
+        const list = tradeIndexMap.getCommonList();
+        let firstTrade = list[0] as KungfuApi.TradeResolved;
+        if (!firstTrade) return;
+        listMap[index] = list;
+        return { trade: firstTrade, index, position: 0 };
+      },
+    );
 
     const compare = (a, b) =>
       Number(b.trade.trade_time) - Number(a.trade.trade_time);
-    while (minHeap.length > 0 && tradeList.length < DEFAULT_TRADE_LIST_LENGTH) {
-      minHeap.sort((a, b) => compare(a, b));
-      let maxItem = minHeap.shift();
+    while (
+      everyLatestTradeResolved.length > 0 &&
+      tradeList.length < DEFAULT_TRADE_LIST_LENGTH
+    ) {
+      everyLatestTradeResolved.sort((a, b) => compare(a, b));
+      let maxItem = everyLatestTradeResolved.shift();
       if (!maxItem) break;
       tradeList.push(maxItem.trade);
 
       let nextPosition = maxItem.position + 1;
       let nextTrade = listMap[maxItem.index][nextPosition];
       if (nextTrade) {
-        minHeap.push({
+        everyLatestTradeResolved.push({
           trade: nextTrade,
           index: maxItem.index,
           position: nextPosition,
@@ -187,11 +193,11 @@ function getTradeList(
 function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
   currentTradingDataObject.value = tradingDataObject;
 
-  getTradeIndexMap(tradingDataObject);
+  const indexMapList = getTradeIndexMapList(tradingDataObject);
 
   nextTick(() => {
-    if (tradeIndexMapList.value.length > 0) {
-      const tradeList = getTradeList(tradeIndexMapList.value);
+    if (indexMapList.length > 0) {
+      const tradeList = getTradeListForIndexMap(indexMapList);
       const tableData = searchByKeyword(
         searchKeyword.value,
         tradeList,

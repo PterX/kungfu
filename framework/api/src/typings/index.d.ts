@@ -1481,9 +1481,11 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
-  export interface KfDynamicIndexedMap<K extends string | number, V> {
+  export interface KfDynamicTradingDataIndexedMap<
+    K extends string | number,
+    V,
+  > {
     countSmallerNumbers(num: number): number;
-    getOrderStatus(key: K): number | undefined;
     insertKeyWithValue(
       key: K,
       value: V,
@@ -1509,26 +1511,24 @@ declare namespace KungfuApi {
   export interface TradingDataObject {
     order: {
       td: {
-        [key: number]: KfDynamicIndexedMap<string, OrderResolved>;
+        [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
       strategy: {
-        [key: number]: KfDynamicIndexedMap<string, OrderResolved>;
+        [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
+      };
+      position: {
+        [key: string]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
     };
     trade: {
       td: {
-        [key: number]: KfDynamicIndexedMap<string, TradeResolved>;
+        [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
       strategy: {
-        [key: number]: KfDynamicIndexedMap<string, TradeResolved>;
+        [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
-    };
-    position: {
-      order: {
-        [key: string]: KfDynamicIndexedMap<string, OrderResolved>;
-      };
-      trade: {
-        [key: string]: KfDynamicIndexedMap<string, TradeResolved>;
+      position: {
+        [key: string]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
     };
   }

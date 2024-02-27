@@ -9,14 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  onMounted,
-  ref,
-  watch,
-  getCurrentInstance,
-  computed,
-  nextTick,
-} from 'vue';
+import { onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -144,7 +137,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     lineHeight: 35,
     hover: {
       cellBgColor: '#333',
-      inlineColumnBgColor: 'transparent',
+      inlineRowBgColor: '#333',
     },
     cursor: 'pointer',
     textBaseline: 'middle',
@@ -156,6 +149,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     fontSize: 12,
     autoWrapText: true,
     hover: {
+      cellBgColor: '#333',
       inlineRowBgColor: '#333',
     },
     fontWeight: 100,

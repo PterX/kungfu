@@ -61,7 +61,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons-vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import { kungfu } from '@kungfu-trader/kungfu-core';
 import {
   OrderCancelledStatus,
   OrderTriggerCancelStatus,

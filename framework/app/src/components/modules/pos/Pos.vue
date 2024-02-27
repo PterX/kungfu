@@ -175,7 +175,7 @@ onActivated(() => {
           'account_id_resolved',
         ],
       );
-      canvasRef.value.getListTable()?.setRecords([...tableData]);
+      canvasRef.value.getListTable()?.setRecords(tableData);
     });
 
     onBeforeUnmount(() => {

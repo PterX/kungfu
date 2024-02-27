@@ -1,0 +1,71 @@
+from kungfu.serverless.config import TOKEN_FILE, APP_PARAMS, AUTHING_APP_CONFIG
+import boto3
+import json
+import os
+from urllib.parse import urlparse
+
+
+def record_tokens(access_token, refresh_token, id_token):
+    write_token_json(
+        TOKEN_FILE,
+        {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "id_token": id_token,
+        },
+    )
+
+
+def get_tokens():
+    ensure_token_json(TOKEN_FILE)
+    with open(TOKEN_FILE, "r") as file:
+        loaded_data = json.load(file)
+        return (
+            loaded_data.get("access_token", ""),
+            loaded_data.get("refresh_token", ""),
+            loaded_data.get("id_token", ""),
+        )
+
+
+def ensure_token_json(file_path):
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as file:
+            json.dump({}, file)
+
+
+def write_token_json(file_path, data={}):
+    with open(file_path, "w") as file:
+        json.dump(data, file)
+
+
+def get_sls_kungfu_params(stage):
+    return APP_PARAMS[stage]
+
+
+def get_credentials_for_identity(stage):
+    client = boto3.client("cognito-identity", region_name="cn-north-1")
+    host_name = urlparse(AUTHING_APP_CONFIG[stage]["appHost"]).netloc
+    access_token, refresh_token, id_token = get_tokens()
+    login_info = {f"{host_name}/oidc": id_token}
+    identity_pool_id = get_sls_kungfu_params(stage)["identity_pool_id"]["value"]
+    identity_id_resp = client.get_id(
+        IdentityPoolId=identity_pool_id,
+        Logins=login_info,
+    )
+    identity_id = identity_id_resp["IdentityId"]
+    resp = client.get_credentials_for_identity(
+        IdentityId=identity_id, Logins=login_info
+    )
+
+    credentials = resp["Credentials"]
+    return (
+        credentials["AccessKeyId"],
+        credentials["SecretKey"],
+        credentials["SessionToken"],
+    )
+
+
+def read_file_content(filename):
+    with open(filename, "r") as file:
+        content = file.read()
+    return content

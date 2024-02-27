@@ -53,6 +53,9 @@ pytest = "~7.1.0"
 railroad-diagrams = "~2.0.0"
 shellingham = "~1.5.3"
 zipp = "~3.17.0"
+authing = "~5.1.0"
+websockets = "~12.0.0"
+boto3 = "~1.34.39"
 
 #### Sync Pipfile #########################################
 setuptools = "68.2.2"

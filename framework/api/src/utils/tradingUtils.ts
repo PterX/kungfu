@@ -1028,6 +1028,7 @@ const getPriceTickAndPrecision = (
 
 export const getOrderResolved = (
   watcher: KungfuApi.Watcher,
+  orderResolved: KungfuApi.OrderResolved | null,
   order: KungfuApi.Order,
   orderStats: KungfuApi.OrderStat | null,
 ): KungfuApi.OrderResolved => {
@@ -1045,6 +1046,7 @@ export const getOrderResolved = (
   const statusData = dealOrderStatus(order.status, order.error_msg);
 
   return {
+    ...(orderResolved || {}),
     ...order,
     ...latencyData,
     volume: dealKfDecimalPrecision(order.volume),
@@ -1052,8 +1054,6 @@ export const getOrderResolved = (
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
-    source_resolved_data: sourceResolvedData,
-    dest_resolved_data: destResolvedData,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
     limit_price_resolved: dealKfPrice(order.limit_price, price_precision),
@@ -1062,13 +1062,14 @@ export const getOrderResolved = (
     avg_price_resolved:
       'avg_price' in latencyData
         ? dealKfPrice(latencyData.avg_price, price_precision)
-        : '--',
+        : orderResolved?.avg_price_resolved || '--',
     status_uname: statusData.name,
   } as unknown as KungfuApi.OrderResolved;
 };
 
 export const getTradeResolved = (
   watcher: KungfuApi.Watcher,
+  tradeResolved: KungfuApi.TradeResolved | null,
   trade: KungfuApi.Trade,
   orderStats: KungfuApi.OrderStat | null,
 ): KungfuApi.TradeResolved => {
@@ -1084,8 +1085,8 @@ export const getTradeResolved = (
     trade.dest,
   );
   return {
+    ...(tradeResolved || {}),
     ...trade,
-    ...latencyData,
     volume: dealKfDecimalPrecision(trade.volume),
     source: trade.source,
     dest: trade.dest,

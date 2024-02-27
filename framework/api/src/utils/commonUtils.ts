@@ -1232,11 +1232,11 @@ export class DynamicIndexedMap<K extends string | number, V> {
   }
 
   getCommonList(): V[] {
-    return [...this.commonList];
+    return this.commonList;
   }
 
   getFullList(): V[] {
-    return [...this.fullList];
+    return this.fullList;
   }
 }
 

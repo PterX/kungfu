@@ -171,6 +171,7 @@ function getOrderList(
     if (unfinishedOrder.value) {
       orderList = orderIndexMapList[0]
         .getFullList()
+        .slice(0, 50000)
         .sort((a, b) => compare(a, b));
     } else {
       orderList = orderIndexMapList[0]
@@ -181,10 +182,10 @@ function getOrderList(
     const listMap: Record<number, KungfuApi.OrderResolved[]> = {};
     if (unfinishedOrder) {
       let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
-        let firstOrder =
-          orderIndexMap.getFullList()[0] as KungfuApi.OrderResolved;
+        const list = orderIndexMap.getFullList();
+        let firstOrder = list[0] as KungfuApi.OrderResolved;
         if (!firstOrder) return;
-        listMap[index] = orderIndexMap.getFullList();
+        listMap[index] = list;
         return { order: firstOrder, index, position: 0 };
       });
 
@@ -211,9 +212,10 @@ function getOrderList(
       }
     } else {
       let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
-        let firstOrder =
-          orderIndexMap.getCommonList()[0] as KungfuApi.OrderResolved;
+        const list = orderIndexMap.getCommonList();
+        let firstOrder = list[0] as KungfuApi.OrderResolved;
         if (!firstOrder) return;
+        listMap[index] = list;
         return { order: firstOrder, index, position: 0 };
       });
 
@@ -230,8 +232,7 @@ function getOrderList(
         orderList.push(maxItem.order);
 
         let nextPosition = maxItem.position + 1;
-        let nextOrder =
-          orderIndexMapList[maxItem.index].getCommonList()[nextPosition];
+        let nextOrder = listMap[maxItem.index][nextPosition];
         if (nextOrder) {
           minHeap.push({
             order: nextOrder,
@@ -303,7 +304,7 @@ function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
           offset: (item) => dealOffset(Number(item)).name,
         },
       );
-      allOrders.value = tableData;
+      allOrders.value = toRaw(tableData);
 
       if (orderList.length) {
         canvasRef.value.getListTable()?.setRecords(tableData);
@@ -357,7 +358,7 @@ watch(currentGlobalKfLocation, () => {
       const orderList = getOrderList(orderIndexMapList.value);
       if (!orderList.length) {
         canvasRef.value.getListTable()?.setRecords(orderList);
-        allOrders.value = orderList;
+        allOrders.value = toRaw(orderList);
       } else {
         canvasRef.value.getListTable()?.setRecords([]);
       }
@@ -422,7 +423,7 @@ watch(historyDate, async (newDate) => {
         }),
       );
       allOrders.value = tempAllOrders;
-      canvasRef.value.getListTable()?.setRecords([...allOrders.value]);
+      canvasRef.value.getListTable()?.setRecords(allOrders.value);
     })
     .catch((err) => {
       if (err.message === 'database_locked') {
@@ -488,23 +489,29 @@ function handleCancelAllOrders(): void {
   });
 }
 
-function filterUnfinishedOrders(orders: KungfuApi.Order[]): KungfuApi.Order[] {
+function filterUnfinishedOrders(
+  orders: KungfuApi.OrderResolved[],
+): KungfuApi.OrderResolved[] {
   return orders.filter((item) => UnfinishedOrderStatus.includes(item.status));
 }
 
-function getTargetCancelOrders(): KungfuApi.Order[] {
-  if (!currentGlobalKfLocation.value || !window.watcher) {
+function getTargetCancelOrders(): KungfuApi.OrderResolved[] {
+  if (
+    !currentGlobalKfLocation.value ||
+    !window.watcher ||
+    !currentTradingDataObject.value
+  ) {
     return [];
   }
+  getOrderIndexMap(currentTradingDataObject.value);
+  if (orderIndexMapList.value.length <= 0) {
+    return [];
+  }
+  const allUnfinishedOrders = orderIndexMapList.value
+    .map((orderIndexMap) => orderIndexMap.getFullList())
+    .flat();
 
-  return filterUnfinishedOrders(
-    globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-      window.watcher,
-      currentGlobalKfLocation.value,
-      window.watcher.ledger.Order,
-      'order',
-    ) as KungfuApi.Order[],
-  );
+  return filterUnfinishedOrders(allUnfinishedOrders);
 }
 
 function handleClickCell(args: VTable.MousePointerCellEvent) {

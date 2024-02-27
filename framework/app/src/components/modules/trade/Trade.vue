@@ -182,10 +182,10 @@ function getTradeList(
   } else {
     const listMap: Record<number, KungfuApi.TradeResolved[]> = {};
     let minHeap = tradeIndexMapList.map((tradeIndexMap, index) => {
-      let firstTrade =
-        tradeIndexMap.getCommonList()[0] as KungfuApi.TradeResolved;
+      const list = tradeIndexMap.getCommonList();
+      let firstTrade = list[0] as KungfuApi.TradeResolved;
       if (!firstTrade) return;
-      listMap[index] = tradeIndexMap.getCommonList();
+      listMap[index] = list;
       return { trade: firstTrade, index, position: 0 };
     });
 
@@ -239,7 +239,7 @@ function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
       );
       if (tradeList.length) {
         canvasRef.value.getListTable()?.setRecords(tableData);
-        allTrades.value = tableData;
+        allTrades.value = toRaw(tableData);
       } else {
         canvasRef.value.getListTable()?.setRecords([]);
       }
@@ -340,7 +340,7 @@ watch(historyDate, async (newDate) => {
       );
 
       allTrades.value = tempAllTrades;
-      canvasRef.value.getListTable()?.setRecords([...allTrades.value]);
+      canvasRef.value.getListTable()?.setRecords(allTrades.value);
     })
     .catch((err) => {
       if (err.message === 'database_locked') {

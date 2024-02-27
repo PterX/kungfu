@@ -148,6 +148,7 @@ export function useWatcher() {
     const orderStatList = Object.values(watcher.ledger.OrderStat);
     const orderList = Object.values(watcher.ledger.Order);
     const tradeList = Object.values(watcher.ledger.Trade);
+    console.log('orderStatList:', orderStatList.length);
     dataQueue.push({
       orderList: orderList,
       tradeList: tradeList,
@@ -225,8 +226,14 @@ export function useWatcher() {
             dest,
             uid_key: orderUKey,
           } = order;
+          const orderIndexMap = tradingDataObject.order.td[source];
+
+          const OldOrderResolved = orderIndexMap
+            ? orderIndexMap.getValueForKey(orderUKey) || null
+            : null;
           const orderResolved = getOrderResolved(
             watcher,
+            OldOrderResolved,
             order,
             orderStatsMap.order[orderUKey] || null,
           );
@@ -293,8 +300,13 @@ export function useWatcher() {
           if (!trade || !watcher) continue;
           const { instrument_id, exchange_id, source, dest } = trade;
           const orderUKey = trade.order_id.toString(16).padStart(16, '0');
+          const indexMap = tradingDataObject.trade.td[source];
+          const oldTradeResolved = indexMap
+            ? indexMap.getValueForKey(orderUKey) || null
+            : null;
           const tradeResolved = getTradeResolved(
             watcher,
+            oldTradeResolved,
             trade,
             orderStatsMap.trade[orderUKey] || null,
           );
@@ -355,7 +367,7 @@ export function useWatcher() {
     for (let i = 0; i < orderStatOfOrderKeys.length; i++) {
       const key = orderStatOfOrderKeys[i];
       const orderStat = orderStatsMap.order[key];
-      if (!orderStat) continue;
+      if (!orderStat || !orderStat.insert_time) continue;
 
       for (let j = 0; j < tdKeys.length; j++) {
         const source = tdKeys[j];
@@ -367,6 +379,7 @@ export function useWatcher() {
 
         const orderResolved = getOrderResolved(
           watcher as KungfuApi.Watcher,
+          null,
           order,
           orderStat,
         );
@@ -388,6 +401,8 @@ export function useWatcher() {
 
       for (let k = 0; k < strategyKeys.length; k++) {
         const dest = strategyKeys[k];
+        const orderStat = orderStatsMap.order[key];
+        if (!orderStat || !orderStat.insert_time) continue;
         const indexMap = tradingDataObject.order.strategy[dest];
         if (!indexMap) continue;
 
@@ -396,6 +411,7 @@ export function useWatcher() {
 
         const orderResolved = getOrderResolved(
           watcher as KungfuApi.Watcher,
+          null,
           order,
           orderStat,
         );
@@ -414,6 +430,8 @@ export function useWatcher() {
     if (orderStatOfTradeKeys.length > 0) {
       for (let i = 0; i < orderStatOfTradeKeys.length; i++) {
         const key = orderStatOfTradeKeys[i];
+        const orderStat = orderStatsMap.trade[key];
+        if (!orderStat || !orderStat.trade_time) continue;
 
         const tdKeys = Object.keys(tradingDataObject.trade.td);
         for (let j = 0; j < tdKeys.length; j++) {
@@ -426,8 +444,9 @@ export function useWatcher() {
 
           const tradeResolved = getTradeResolved(
             watcher as KungfuApi.Watcher,
+            null,
             trade,
-            orderStatsMap.trade[key],
+            orderStat,
           );
           const instrumentId = `${trade.exchange_id}_${trade.instrument_id}`;
           indexMap.updateKeyWithValue(key, tradeResolved, 'trade');
@@ -443,6 +462,8 @@ export function useWatcher() {
         const strategyKeys = Object.keys(tradingDataObject.trade.strategy);
         for (let k = 0; k < strategyKeys.length; k++) {
           const dest = strategyKeys[k];
+          const orderStat = orderStatsMap.trade[key];
+          if (!orderStat || !orderStat.trade_time) continue;
           const indexMap = tradingDataObject.trade.strategy[dest];
           if (!indexMap) continue;
 
@@ -451,8 +472,9 @@ export function useWatcher() {
 
           const tradeResolved = getTradeResolved(
             watcher as KungfuApi.Watcher,
+            null,
             trade,
-            orderStatsMap.trade[key],
+            orderStat,
           );
 
           indexMap.updateKeyWithValue(key, tradeResolved, 'trade');

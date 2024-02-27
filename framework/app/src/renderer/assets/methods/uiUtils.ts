@@ -811,6 +811,38 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
   };
 };
 
+export const isKeywordInString = (keyword: string, str: string) => {
+  return new RegExp(keyword, 'ig').test(str);
+};
+
+export const searchByKeyword = <T>(
+  keyword: string,
+  dataList: T[],
+  keys: string[],
+  transform?: Record<string, (value: string | number) => string>,
+): T[] => {
+  if (!keyword) {
+    return dataList;
+  }
+
+  return dataList.filter((item: T) => {
+    const combinedValue = keys
+      .map((key: string) => {
+        let keyValue = (item as Record<string, unknown>)[key] as
+          | string
+          | number;
+
+        if (transform && transform[key]) {
+          keyValue = transform[key](keyValue);
+        }
+
+        return keyValue ? keyValue.toString() : '';
+      })
+      .join('_');
+    return isKeywordInString(keyword, combinedValue);
+  });
+};
+
 export const useTableSearchKeywordList = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   searchObjects: {
@@ -854,7 +886,7 @@ export const useTableSearchKeywordList = <T>(
             if (keyword === '') {
               return true;
             }
-            return new RegExp(keyword, 'ig').test(itemValue.toString());
+            return isKeywordInString(keyword, itemValue.toString());
           }
         });
       })
@@ -877,24 +909,12 @@ export const useTableSearchKeyword = <T>(
 } => {
   const searchKeyword = ref<string>('');
   const tableData = computed(() => {
-    return targetList.value
-      .filter((item: T) => {
-        const combinedValue = keys
-          .map((key: string) => {
-            let keyWord = (item as Record<string, unknown>)[key] as
-              | string
-              | number;
-
-            if (transform && transform[key]) {
-              keyWord = transform[key](keyWord);
-            }
-
-            return keyWord ? keyWord.toString() : '';
-          })
-          .join('_');
-        return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
-      })
-      .map((item) => toRaw(item));
+    return searchByKeyword(
+      searchKeyword.value,
+      targetList.value,
+      keys,
+      transform,
+    ).map((item) => toRaw(item));
   });
 
   return {
@@ -917,16 +937,7 @@ export const useDeepWatchTableSearchKeyword = <T>(
     () => ({ keyword: searchKeyword.value, list: targetList.value }),
     (newValue) => {
       const { keyword, list } = newValue;
-      tableData.value =
-        list.filter((item) => {
-          const combinedValue = keys
-            .map(
-              (key: string) =>
-                ((item[key] as string | number) || '').toString() || '',
-            )
-            .join('_');
-          return new RegExp(keyword, 'ig').test(combinedValue);
-        }) || [];
+      tableData.value = searchByKeyword(keyword, list, keys);
     },
     {
       deep: true,
@@ -964,29 +975,16 @@ export const useWritableTableSearchKeyword = <T>(
     () => ({ keyword: searchKeyword.value, list: targetList.value }),
     (newValue) => {
       const { keyword, list } = newValue;
-      tableData.value =
-        list
-          ?.map((item, index) => ({
-            data: toRaw(item),
-            index,
-            id: generateItemId(item as unknown as object),
-          }))
-          .filter((item: { data: T; index: number }) => {
-            const combinedValue = keys
-              .map((key: string) => {
-                let keyWord = (item.data as Record<string, unknown>)[key] as
-                  | string
-                  | number;
-
-                if (transform && transform[key]) {
-                  keyWord = transform[key](keyWord);
-                }
-
-                return keyWord ? keyWord.toString() : '';
-              })
-              .join('_');
-            return new RegExp(keyword, 'ig').test(combinedValue);
-          }) || [];
+      tableData.value = searchByKeyword(
+        keyword,
+        list?.map((item, index) => ({
+          data: toRaw(item),
+          index,
+          id: generateItemId(item as unknown as object),
+        })),
+        keys,
+        transform,
+      );
     },
     {
       deep: true,

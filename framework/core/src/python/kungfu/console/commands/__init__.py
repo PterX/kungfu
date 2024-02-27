@@ -152,7 +152,9 @@ class PrioritizedCommandGroup(click.Group):
 @click.help_option("-h", "--help")
 @click.version_option(kungfu.__version__, "--version", message=kungfu.__version__)
 @click.pass_context
-def kfc(ctx, home, extension_path, log_level, name, cli_dev_path, stage, env_verify_location):
+def kfc(
+    ctx, home, extension_path, log_level, name, cli_dev_path, stage, env_verify_location
+):
     if env_verify_location:
         os.environ["KF_VERIFY_LOCATION"] = "KF_VERIFY_LOCATION"
 

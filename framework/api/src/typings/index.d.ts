@@ -1498,12 +1498,12 @@ declare namespace KungfuApi {
     ): void;
     deleteLastCommonValue(): void;
     getCommonListIndexForKey(key: K): number | undefined;
-    getFullListIndexForKey(key: K): number | undefined;
+    getUnfinishedListIndexForKey(key: K): number | undefined;
     hasKey(key: K): boolean;
     getValueForKey(key: K): V | undefined;
     getKeyIndexMap(): { [key in K]?: number };
     getCommonList(): V[];
-    getFullList(): V[];
+    getUnfinishedList(): V[];
   }
 
   export interface TradingDataObject {

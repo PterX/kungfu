@@ -1103,21 +1103,21 @@ export class LinkedList<T> {
 export class DynamicIndexedMap<K extends string | number, V> {
   private keyValueMap: { [key in K]?: V };
   private commonKeyIndexMap: { [key in K]?: number };
-  private fullKeyIndexMap: { [key in K]?: number };
+  private unfinishedKeyIndexMap: { [key in K]?: number };
   private commonList: V[];
-  private fullList: V[];
+  private unfinishedList: V[];
   private commonListOffset = 1;
   private commonSliceCount = 0;
-  private fullListOffset = 1;
+  private unfinishedListOffset = 1;
   private updateFinishedIndexList: number[] = [];
   private maxCommonListLength = 50000;
 
   constructor(maxLength = 500) {
     this.keyValueMap = {};
     this.commonKeyIndexMap = {};
-    this.fullKeyIndexMap = {};
+    this.unfinishedKeyIndexMap = {};
     this.commonList = [];
-    this.fullList = [];
+    this.unfinishedList = [];
     this.maxCommonListLength = maxLength;
   }
 
@@ -1159,8 +1159,8 @@ export class DynamicIndexedMap<K extends string | number, V> {
     this.commonList.unshift(value);
     this.keyValueMap[key] = value;
     if ((type === 'order' || type === 'position') && !isFinished) {
-      this.fullKeyIndexMap[key] = --this.fullListOffset;
-      this.fullList.unshift(value);
+      this.unfinishedKeyIndexMap[key] = --this.unfinishedListOffset;
+      this.unfinishedList.unshift(value);
     }
   }
   updateKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
@@ -1176,14 +1176,14 @@ export class DynamicIndexedMap<K extends string | number, V> {
       return;
     }
 
-    const fullCorrectIndex = this.getFullListIndexForKey(key);
-    if (fullCorrectIndex !== undefined) {
+    const unfinishedCorrectIndex = this.getUnfinishedListIndexForKey(key);
+    if (unfinishedCorrectIndex !== undefined) {
       if (isFinished) {
-        this.fullList.splice(fullCorrectIndex, 1);
-        this.updateFinishedIndexList.push(this.fullKeyIndexMap[key] || 0);
-        delete this.fullKeyIndexMap[key];
+        this.unfinishedList.splice(unfinishedCorrectIndex, 1);
+        this.updateFinishedIndexList.push(this.unfinishedKeyIndexMap[key] || 0);
+        delete this.unfinishedKeyIndexMap[key];
       } else {
-        this.fullList.splice(fullCorrectIndex, 1, value);
+        this.unfinishedList.splice(unfinishedCorrectIndex, 1, value);
       }
     }
   }
@@ -1206,20 +1206,22 @@ export class DynamicIndexedMap<K extends string | number, V> {
     return Number(index) - this.commonListOffset;
   }
 
-  getFullListIndexForKey(key: K): number | undefined {
-    const index = this.fullKeyIndexMap[key];
+  getUnfinishedListIndexForKey(key: K): number | undefined {
+    const index = this.unfinishedKeyIndexMap[key];
     if (index === undefined) {
       return;
     }
     return (
-      Number(index) - this.fullListOffset - this.countSmallerNumbers(index)
+      Number(index) -
+      this.unfinishedListOffset -
+      this.countSmallerNumbers(index)
     );
   }
 
   hasKey(key: K): boolean {
     return (
       this.commonKeyIndexMap[key] !== undefined ||
-      this.fullKeyIndexMap[key] !== undefined
+      this.unfinishedKeyIndexMap[key] !== undefined
     );
   }
 
@@ -1232,11 +1234,11 @@ export class DynamicIndexedMap<K extends string | number, V> {
   }
 
   getCommonList(): V[] {
-    return this.commonList;
+    return [...this.commonList];
   }
 
-  getFullList(): V[] {
-    return this.fullList;
+  getUnfinishedList(): V[] {
+    return [...this.unfinishedList];
   }
 }
 

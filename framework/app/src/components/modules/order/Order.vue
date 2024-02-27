@@ -170,7 +170,7 @@ function getOrderList(
     const compare = (a, b) => Number(b.insert_time) - Number(a.insert_time);
     if (unfinishedOrder.value) {
       orderList = orderIndexMapList[0]
-        .getFullList()
+        .getUnfinishedList()
         .slice(0, 50000)
         .sort((a, b) => compare(a, b));
     } else {
@@ -182,7 +182,7 @@ function getOrderList(
     const listMap: Record<number, KungfuApi.OrderResolved[]> = {};
     if (unfinishedOrder) {
       let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
-        const list = orderIndexMap.getFullList();
+        const list = orderIndexMap.getUnfinishedList();
         let firstOrder = list[0] as KungfuApi.OrderResolved;
         if (!firstOrder) return;
         listMap[index] = list;
@@ -508,7 +508,7 @@ function getTargetCancelOrders(): KungfuApi.OrderResolved[] {
     return [];
   }
   const allUnfinishedOrders = orderIndexMapList.value
-    .map((orderIndexMap) => orderIndexMap.getFullList())
+    .map((orderIndexMap) => orderIndexMap.getUnfinishedList())
     .flat();
 
   return filterUnfinishedOrders(allUnfinishedOrders);

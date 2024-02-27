@@ -10,6 +10,7 @@ import {
   useDownloadHistoryTradingData,
   useDashboardBodySize,
   useTriggerMakeOrder,
+  searchByKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -130,34 +131,6 @@ const columns = computed(() => {
   });
 });
 
-const useTableSearchKeyword = <T>(
-  searchKeyword: string,
-  positionList: T[],
-  keys: string[],
-  transform?: Record<string, (value: string | number) => string>,
-): T[] => {
-  if (!searchKeyword) {
-    return positionList;
-  }
-
-  return positionList.filter((item: T) => {
-    const combinedValue = keys
-      .map((key: string) => {
-        let keyValue = (item as Record<string, unknown>)[key] as
-          | string
-          | number;
-
-        if (transform && transform[key]) {
-          keyValue = transform[key](keyValue);
-        }
-
-        return keyValue ? keyValue.toString() : '';
-      })
-      .join('_');
-    return new RegExp(searchKeyword, 'ig').test(combinedValue);
-  });
-};
-
 const hasData = computed(() => pos.value.length > 0);
 
 onActivated(() => {
@@ -192,7 +165,7 @@ onActivated(() => {
           );
         }),
       );
-      const tableData = useTableSearchKeyword<KungfuApi.PositionResolved>(
+      const tableData = searchByKeyword<KungfuApi.PositionResolved>(
         searchKeyword.value,
         pos.value,
         [

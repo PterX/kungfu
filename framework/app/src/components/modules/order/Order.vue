@@ -13,6 +13,7 @@ import {
   useDownloadHistoryTradingData,
   useDashboardBodySize,
   confirmModal,
+  searchByKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -114,7 +115,7 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-function getOrderIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
+function getOrderIndexMapList(tradingDataObject: KungfuApi.TradingDataObject) {
   orderIndexMapList.value = [];
   if (!currentGlobalKfLocation.value) orderIndexMapList.value = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
@@ -157,9 +158,11 @@ function getOrderIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
   } else {
     orderIndexMapList.value = [];
   }
+
+  return orderIndexMapList.value;
 }
 
-function getOrderList(
+function getOrderListFromIndexMap(
   orderIndexMapList: KungfuApi.KfDynamicIndexedMap<
     string,
     KungfuApi.OrderResolved
@@ -180,99 +183,38 @@ function getOrderList(
     }
   } else {
     const listMap: Record<number, KungfuApi.OrderResolved[]> = {};
-    if (unfinishedOrder) {
-      let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
-        const list = orderIndexMap.getUnfinishedList();
-        let firstOrder = list[0] as KungfuApi.OrderResolved;
-        if (!firstOrder) return;
-        listMap[index] = list;
-        return { order: firstOrder, index, position: 0 };
-      });
+    const listGetter: 'getUnfinishedList' | 'getCommonList' =
+      unfinishedOrder.value ? 'getUnfinishedList' : 'getCommonList';
 
-      const compare = (a, b) =>
-        Number(b.order.insert_time) - Number(a.order.insert_time);
-      while (
-        minHeap.length > 0 &&
-        orderList.length < DEFAULT_ORDER_LIST_LENGTH
-      ) {
-        minHeap.sort((a, b) => compare(a, b));
-        let maxItem = minHeap.shift();
-        if (!maxItem) break;
-        orderList.push(maxItem.order);
+    let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
+      const list = orderIndexMap[listGetter]();
+      let firstOrder = list[0] as KungfuApi.OrderResolved;
+      if (!firstOrder) return;
+      listMap[index] = list;
+      return { order: firstOrder, index, position: 0 };
+    });
 
-        let nextPosition = maxItem.position + 1;
-        let nextOrder = listMap[maxItem.index][nextPosition];
-        if (nextOrder) {
-          minHeap.push({
-            order: nextOrder,
-            index: maxItem.index,
-            position: nextPosition,
-          });
-        }
-      }
-    } else {
-      let minHeap = orderIndexMapList.map((orderIndexMap, index) => {
-        const list = orderIndexMap.getCommonList();
-        let firstOrder = list[0] as KungfuApi.OrderResolved;
-        if (!firstOrder) return;
-        listMap[index] = list;
-        return { order: firstOrder, index, position: 0 };
-      });
+    const compare = (a, b) =>
+      Number(b.order.insert_time) - Number(a.order.insert_time);
+    while (minHeap.length > 0 && orderList.length < DEFAULT_ORDER_LIST_LENGTH) {
+      minHeap.sort((a, b) => compare(a, b));
+      let maxItem = minHeap.shift();
+      if (!maxItem) break;
+      orderList.push(maxItem.order);
 
-      const compare = (a, b) =>
-        Number(b.order.insert_time) - Number(a.order.insert_time);
-
-      while (
-        minHeap.length > 0 &&
-        orderList.length < DEFAULT_ORDER_LIST_LENGTH
-      ) {
-        minHeap.sort((a, b) => compare(a, b));
-        let maxItem = minHeap.shift();
-        if (!maxItem) break;
-        orderList.push(maxItem.order);
-
-        let nextPosition = maxItem.position + 1;
-        let nextOrder = listMap[maxItem.index][nextPosition];
-        if (nextOrder) {
-          minHeap.push({
-            order: nextOrder,
-            index: maxItem.index,
-            position: nextPosition,
-          });
-        }
+      let nextPosition = maxItem.position + 1;
+      let nextOrder = listMap[maxItem.index][nextPosition];
+      if (nextOrder) {
+        minHeap.push({
+          order: nextOrder,
+          index: maxItem.index,
+          position: nextPosition,
+        });
       }
     }
   }
   return orderList;
 }
-
-const useTableSearchKeyword = <T>(
-  searchKeyword: string,
-  orderList: T[],
-  keys: string[],
-  transform?: Record<string, (value: string | number) => string>,
-): T[] => {
-  if (!searchKeyword) {
-    return orderList;
-  }
-
-  return orderList.filter((item: T) => {
-    const combinedValue = keys
-      .map((key: string) => {
-        let keyValue = (item as Record<string, unknown>)[key] as
-          | string
-          | number;
-
-        if (transform && transform[key]) {
-          keyValue = transform[key](keyValue);
-        }
-
-        return keyValue ? keyValue.toString() : '';
-      })
-      .join('_');
-    return new RegExp(searchKeyword, 'ig').test(combinedValue);
-  });
-};
 
 const hasData = computed(() => {
   return allOrders.value.length > 0;
@@ -281,12 +223,12 @@ const hasData = computed(() => {
 function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
   currentTradingDataObject.value = tradingDataObject;
 
-  getOrderIndexMap(tradingDataObject);
+  const indexMapList = getOrderIndexMapList(tradingDataObject);
 
   nextTick(() => {
-    if (orderIndexMapList.value.length > 0) {
-      const orderList = getOrderList(orderIndexMapList.value);
-      const tableData = useTableSearchKeyword(
+    if (indexMapList.length > 0) {
+      const orderList = getOrderListFromIndexMap(indexMapList);
+      const tableData = searchByKeyword(
         searchKeyword.value,
         orderList,
         [
@@ -352,10 +294,11 @@ watch(currentGlobalKfLocation, () => {
     return;
   }
 
-  getOrderIndexMap(currentTradingDataObject.value);
+  const indexMapList = getOrderIndexMapList(currentTradingDataObject.value);
+
   nextTick(() => {
     if (orderIndexMapList.value.length > 0) {
-      const orderList = getOrderList(orderIndexMapList.value);
+      const orderList = getOrderListFromIndexMap(indexMapList);
       if (!orderList.length) {
         canvasRef.value.getListTable()?.setRecords(orderList);
         allOrders.value = toRaw(orderList);
@@ -503,11 +446,11 @@ function getTargetCancelOrders(): KungfuApi.OrderResolved[] {
   ) {
     return [];
   }
-  getOrderIndexMap(currentTradingDataObject.value);
+  const indexMapList = getOrderIndexMapList(currentTradingDataObject.value);
   if (orderIndexMapList.value.length <= 0) {
     return [];
   }
-  const allUnfinishedOrders = orderIndexMapList.value
+  const allUnfinishedOrders = indexMapList
     .map((orderIndexMap) => orderIndexMap.getUnfinishedList())
     .flat();
 

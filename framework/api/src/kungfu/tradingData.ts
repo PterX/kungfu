@@ -213,7 +213,7 @@ export function useWatcher() {
   ) {
     await doSomethingWithDataSliced(
       orderList,
-      async (slicedOrderList, _sliceIndex) => {
+      async (slicedOrderList) => {
         const tasks: Promise<void>[] = [];
         for (let i = 0; i < slicedOrderList.length; i++) {
           const order = slicedOrderList[i];
@@ -293,7 +293,7 @@ export function useWatcher() {
   ) {
     await doSomethingWithDataSliced(
       tradeList,
-      async (slicedTradeList, _sliceIndex) => {
+      async (slicedTradeList) => {
         const tasks: Promise<void>[] = [];
         for (let i = 0; i < slicedTradeList.length; i++) {
           const trade = slicedTradeList[i];

@@ -11,6 +11,7 @@ import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/ass
 
 import {
   messagePrompt,
+  searchByKeyword,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -93,34 +94,6 @@ const columns = computed(() => {
 });
 
 const searchKeyword = ref<string>('');
-
-const useTableSearchKeyword = <T>(
-  searchKeyword: string,
-  tradeList: T[],
-  keys: string[],
-  transform?: Record<string, (value: string | number) => string>,
-): T[] => {
-  if (!searchKeyword) {
-    return tradeList;
-  }
-
-  return tradeList.filter((item: T) => {
-    const combinedValue = keys
-      .map((key: string) => {
-        let keyValue = (item as Record<string, unknown>)[key] as
-          | string
-          | number;
-
-        if (transform && transform[key]) {
-          keyValue = transform[key](keyValue);
-        }
-
-        return keyValue ? keyValue.toString() : '';
-      })
-      .join('_');
-    return new RegExp(searchKeyword, 'ig').test(combinedValue);
-  });
-};
 
 function getTradeIndexMap(tradingDataObject: KungfuApi.TradingDataObject) {
   tradeIndexMapList.value = [];
@@ -219,7 +192,7 @@ function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
   nextTick(() => {
     if (tradeIndexMapList.value.length > 0) {
       const tradeList = getTradeList(tradeIndexMapList.value);
-      const tableData = useTableSearchKeyword(
+      const tableData = searchByKeyword(
         searchKeyword.value,
         tradeList,
         [

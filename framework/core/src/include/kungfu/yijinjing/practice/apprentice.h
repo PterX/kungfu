@@ -205,7 +205,7 @@ protected:
 
   virtual void on_write_to(const event_ptr &event);
 
-  void on_write_to_band(const event_ptr &event);
+  virtual void on_write_to_band(const event_ptr &event);
 
   [[maybe_unused]] int get_observer_recv_timeout() const;
 

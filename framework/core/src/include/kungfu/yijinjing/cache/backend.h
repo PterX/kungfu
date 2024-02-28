@@ -114,6 +114,8 @@ public:
 
   void ensure_storage(uint32_t dest);
 
+  bool check_storage_exists(uint32_t dest);
+
   template <typename TargetType> void operator>>(TargetType &target) {
     for (auto dest : location_->locator->list_location_dest_by_db(location_)) {
       ensure_storage(dest);

@@ -96,6 +96,16 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_trade, context, trade, location, dest);
   }
 
+  void on_algo_order(strategy::Context_ptr &context, const AlgoOrder &algo_order,
+                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_algo_order, context, algo_order, location, dest);
+  }
+
+  void on_algo_order_action_error(strategy::Context_ptr &context, const AlgoOrderActionError &error,
+                                  const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_algo_order_action_error, context, error, location, dest);
+  }
+
   void on_deregister(strategy::Context_ptr &context, const Deregister &deregister,
                      const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_deregister, context, deregister, location);

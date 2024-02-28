@@ -37,7 +37,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
-BacktestContext::~BacktestContext() {
+void BacktestContext::post_stop() {
   std::vector<location_ptr> unreleased_locations;
   // TODO use C++20 range
   // TODO deconstructor not called ?
@@ -46,10 +46,11 @@ BacktestContext::~BacktestContext() {
   for (const auto &[slice_location_obj, reference_state] : slice_reference_states_) {
     if (reference_state.reference_count > 0 or reference_state.state != SliceState::Released) {
       auto slice_location = std::make_shared<location>(slice_location_obj);
-      SPDLOG_WARN("sliced location locator={}, location={} reference count={} is not released, now releasing",
+      SPDLOG_DEBUG("sliced location locator={}, location={} reference count={} is not released, now releasing",
                   slice_location->locator->get_root(), slice_location->uname, reference_state.reference_count);
       unreleased_locations.push_back(slice_location);
-      from_indexer_->submit_release_location(slice_location);
+      if (reference_state.reference_count > 0)
+        from_indexer_->submit_release_location(slice_location);
     }
   }
   std::for_each(unreleased_locations.begin(), unreleased_locations.end(), [this](const auto &slice_location) {
@@ -201,6 +202,7 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         if (not md_location)
           continue;
         subscribe_slice(md_location, slice_begin_time - 1, slice_end_time - slice_begin_time + 1);
+        add_location(app_, md_location);
         broker_client_.subscribe(md_location, exchange_id, instrument_id);
       } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
     });
@@ -222,7 +224,6 @@ void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_
                     time::strftime(nanotime), time::strftime(nanotime + offset), slice_location->locator->get_root(),
                     slice_location->uname);
       }
-      add_location(app_, slice_location);
       for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
         SPDLOG_TRACE("subscribed dest {}, locator={}, location={}", dest_id, slice_location->locator->get_root(),
                      slice_location->uname);
@@ -301,7 +302,7 @@ void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int6
       }
       assert(reference_count.reference_count >= 0);
     case SliceState::Releasing:
-      add_timer_helper(std::min(nanotime + offset, app_.get_end_time()), 0, confirm_callback);
+      add_timer_helper(nanotime + offset, 0, confirm_callback);
       break;
     default:
       SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit releasing stage.",
@@ -333,6 +334,7 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     if (not op_location)
       continue;
     subscribe_slice(op_location, slice_begin_time - 1, slice_end_time - slice_begin_time + 1);
+    add_location(app_, op_location);
     broker_client_.enroll_operator(op_location);
   } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
 }

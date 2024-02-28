@@ -21,7 +21,7 @@ public:
                            Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
                            tool::Report_ptr report, int64_t time_interval, std::string backtest_config);
 
-  ~BacktestContext() override;
+  ~BacktestContext() = default;
 
   /**
    * checked_ is strated started.
@@ -320,6 +320,8 @@ protected:
   virtual void on_start() override;
 
   virtual void prepare(const event_ptr &event) override;
+
+  virtual void  post_stop() override;
 
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;

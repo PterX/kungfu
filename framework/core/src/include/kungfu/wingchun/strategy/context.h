@@ -11,6 +11,7 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/orderbook/orderbook.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -382,6 +383,10 @@ public:
    * @return longfist::enums::ResumePolicy
    */
   virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
+
+  virtual void set_orderbook(std::shared_ptr<orderbook::Orderbook> orderbook); // todo 传引用或者传智能指针
+
+  virtual std::shared_ptr<orderbook::Orderbook> get_orderbook();
 
 protected:
   yijinjing::practice::apprentice &app_;

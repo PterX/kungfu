@@ -9,6 +9,8 @@
 #include <kungfu/wingchun/book/book.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
+#include <kungfu/wingchun/orderbook/depthorderbook.h>
+#include <kungfu/wingchun/orderbook/orderbook.h>
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
@@ -18,6 +20,7 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::wingchun;
 using namespace kungfu::wingchun::book;
+using namespace kungfu::wingchun::orderbook;
 
 namespace py = pybind11;
 namespace kungfu::wingchun::pybind {
@@ -94,6 +97,38 @@ void bind_book(pybind11::module &m) {
       .def("get_books", &Bookkeeper::get_books)
       .def("set_accounting_method", &Bookkeeper::set_accounting_method)
       .def_property_readonly("static_data", &Bookkeeper::get_static_data, py::return_value_policy::reference);
+
+  py::class_<Level, std::shared_ptr<Level>>(m, "Level")
+      .def_readonly("price", &Level::price)
+      .def_readonly("volume", &Level::volume)
+      .def_readonly("level", &Level::level)
+      .def_readonly("update_time", &Level::update_time);
+
+  py::class_<OrderbookSide, std::shared_ptr<OrderbookSide>>(m, "OrderbookSide")
+      .def("__iter__", &OrderbookSide::begin, py::keep_alive<0, 1>());
+
+  py::class_<Orderbook, std::shared_ptr<Orderbook>>(m, "Orderbook")
+      .def("get_bids", &Orderbook::get_bids)
+      .def("get_asks", &Orderbook::get_asks)
+      .def("on_entrust", &Orderbook::on_entrust)
+      .def("on_transaction", &Orderbook::on_transaction)
+      .def("setBidMap", &Orderbook::setBidMap)
+      .def("getBidMap", &Orderbook::getBidMap)
+      .def("setAskMap", &Orderbook::setAskMap)
+      .def("getAskMap", &Orderbook::getAskMap);
+
+  py::class_<DepthOrderbook, Orderbook, std::shared_ptr<DepthOrderbook>>(m, "DepthOrderbook")
+      .def(py::init<>())
+      
+      .def("get_bids", &DepthOrderbook::get_bids)
+      .def("get_asks", &DepthOrderbook::get_asks)
+      .def("on_entrust", &DepthOrderbook::on_entrust)
+      .def("on_transaction", &DepthOrderbook::on_transaction)
+      .def("setBidMap", &DepthOrderbook::setBidMap)
+      .def("getBidMap", &DepthOrderbook::getBidMap)
+      .def("setAskMap", &DepthOrderbook::setAskMap)
+      .def("getAskMap", &DepthOrderbook::getAskMap)
+      .def(py::base<Orderbook>());  // 指定继承关系
 
   py::class_<StaticData, std::shared_ptr<StaticData>>(m, "StaticData")
       .def_property_readonly("baskets", &StaticData::get_baskets)

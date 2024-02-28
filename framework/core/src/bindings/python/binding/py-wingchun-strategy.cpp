@@ -5,6 +5,8 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
+#include <kungfu/wingchun/orderbook/depthorderbook.h>
+#include <kungfu/wingchun/orderbook/orderbook.h>
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/runner.h>
 
@@ -16,6 +18,7 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::wingchun;
 using namespace kungfu::wingchun::book;
+using namespace kungfu::wingchun::orderbook;
 
 namespace py = pybind11;
 
@@ -221,7 +224,9 @@ void bind_strategy(pybind11::module &m) {
       .def("bypass_accounting", &strategy::Context::bypass_accounting)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("set_resume_policy", &strategy::Context::set_resume_policy)
-      .def("req_deregister", &strategy::Context::req_deregister);
+      .def("req_deregister", &strategy::Context::req_deregister)
+      .def("set_orderbook", &strategy::Context::set_orderbook)
+      .def("get_orderbook", &strategy::Context::get_orderbook);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
 

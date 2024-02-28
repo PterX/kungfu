@@ -27,6 +27,14 @@ LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event
   log::copy_log_settings(app_.get_home(), app_.get_home()->name);
 }
 
+void LiveContext::set_orderbook(
+    std::shared_ptr<orderbook::Orderbook> orderbook) { // todo 需要测试 是否可以传智能指针 还是传引用
+  orderbooks_ = orderbook;
+  orderbooks_->on_start(events_);
+}
+
+std::shared_ptr<orderbook::Orderbook> LiveContext::get_orderbook() { return orderbooks_; }
+
 void LiveContext::on_start() {
   SPDLOG_DEBUG("arguments_: {}", get_arguments());
   if (not get_arguments().empty()) {

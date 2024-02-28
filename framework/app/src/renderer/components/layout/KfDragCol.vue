@@ -102,7 +102,8 @@ export default defineComponent({
         this.upRow$ = target.parentElement;
         this.upBoardId = this.upRow$?.getAttribute('board-id') || '';
         this.upRowHeight = this.upRow$?.clientHeight || 0;
-        this.bottomRow$ = target.parentElement?.nextSibling as HTMLElement;
+        this.bottomRow$ = target.parentElement
+          ?.nextElementSibling as HTMLElement;
         this.bottomBoardId = this.bottomRow$?.getAttribute('board-id') || '';
         this.bottomRowHeight = this.bottomRow$?.clientHeight || 0;
         const paElement = this.upRow$?.parentElement;

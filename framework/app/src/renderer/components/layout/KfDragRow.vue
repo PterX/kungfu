@@ -2,8 +2,12 @@
   <div
     ref="kf-drag-row"
     :class="'kf-drag-row__warp'"
-    :style="style"
     :board-id="id"
+    :style="{
+      height,
+      flex: 'unset',
+      paddingBottom: id !== 0 ? '6px' : '0',
+    }"
   >
     <div
       class="kf-drag-row__content"
@@ -73,12 +77,12 @@ export default defineComponent({
       return this.boardsMap[this.id];
     },
 
-    style(): string {
+    height(): string {
       if (this.boardInfo?.height) {
         if (this.boardInfo?.height.toString().includes('%')) {
-          return `height: ${this.boardInfo?.height}; flex: unset;`;
+          return `${this.boardInfo?.height}`;
         } else {
-          return `height: ${this.boardInfo?.height}px; flex: unset;`;
+          return `${this.boardInfo?.height}px`;
         }
       } else {
         return ``;
@@ -209,6 +213,7 @@ export default defineComponent({
   position: relative;
   transform: translateZ(0);
   overflow: hidden;
+  padding-bottom: 6px;
 
   .kf-drag-row__content {
     display: flex;
@@ -218,6 +223,8 @@ export default defineComponent({
     justify-content: flex-start;
 
     > .kf-drag-col__warp:last-of-type {
+      padding-right: 0 !important;
+
       > .resize-bar-vertical {
         display: none;
       }
@@ -227,16 +234,16 @@ export default defineComponent({
   .resize-bar-horizontal {
     position: absolute;
     left: 0;
-    bottom: 0;
-    height: 8px;
+    bottom: 1px;
+    height: 4px;
     width: 100%;
-    border-bottom: 4px solid #000;
+    background-color: #000;
     cursor: row-resize;
     box-sizing: border-box;
     z-index: 10;
 
     &:hover {
-      border-bottom: 4px solid @border-color-split;
+      background-color: @border-color-split;
     }
   }
 }

@@ -676,7 +676,6 @@ defineExpose({
               height: '100%',
               'text-overflow': column.textOverflow || 'clip',
               'white-space': column.wrap ? 'normal' : 'nowrap',
-              overflow: column.wrap ? 'unset' : 'hidden',
               'text-align': column.align || 'left',
             }"
             :title="item[column.dataIndex]"

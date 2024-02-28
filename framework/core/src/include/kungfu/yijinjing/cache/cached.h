@@ -37,6 +37,8 @@ public:
 
   void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
 
+  bool check_cached_storage_exists(const yijinjing::data::location_ptr &location, uint32_t dest);
+
   void cache_reset(const event_ptr &event);
 
   void feed(const event_ptr &event);
@@ -133,6 +135,7 @@ private:
   std::mutex profile_store_mutex_;
   std::atomic<bool> m_quit_ = false;
   std::atomic_bool storage_pause_ = false;
+  bool is_otc_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
 

@@ -30,6 +30,13 @@ cached::cached(const yijinjing::io_device_ptr &io_device)
   bypass_cached_ = std::getenv("KF_BYPASS_CACHED") != nullptr;
   profile_.setup();
   profile_get_all(profile_, profile_restore_bank_);
+
+  // for otc scenes
+  char *is_otc = std::getenv("IS_OTC_ACCOUNTING_TYPE");
+  std::string yes_str = "1";
+  if (is_otc != nullptr && strcmp(is_otc, yes_str.c_str()) == 0) {
+    is_otc_ = true;
+  }
 }
 
 cached::~cached() {
@@ -111,8 +118,16 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
       auto dests = location->locator->list_location_dest_by_db(td_location);
       if (std::find(dests.begin(), dests.end(), location::PUBLIC) != dests.end()) {
         try {
+          if (not check_cached_storage_exists(td_location, location::PUBLIC)) {
+            continue;
+          }
           ensure_cached_storage(td_location, location::PUBLIC);
           app_states_shift_.at(td_location->uid).restore_to(StaticDataTypes, writer, location::PUBLIC);
+
+          // for trading task starting as quick as possible
+          if (IS_STRATEGY and location->group != "default" and is_otc_) {
+            break;
+          }
         } catch (const std::exception &ex) {
           SPDLOG_ERROR("failed to write static data {} {} {} for target {}", td_location->uname, location::PUBLIC,
                        ex.what(), location->uname);
@@ -137,7 +152,6 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
       }
     }
   }
-
 
   // for watcher reload ledger written data (statisticdata (orerstat) after crash
   if (IS_NODE) {
@@ -196,6 +210,14 @@ void cached::try_ensure_cached_storage(const location_ptr &location, uint32_t de
 void cached::ensure_cached_storage(const location_ptr &location, uint32_t dest) {
   make_cache_shift(location);
   app_states_shift_.at(location->uid).ensure_storage(dest);
+}
+
+bool cached::check_cached_storage_exists(const location_ptr &location, uint32_t dest) {
+  if (app_states_shift_.find(location->uid) == app_states_shift_.end()) {
+    return false;
+  }
+
+  return app_states_shift_.at(location->uid).check_storage_exists(dest);
 }
 
 void cached::cache_reset(const event_ptr &event) {

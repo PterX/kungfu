@@ -117,6 +117,8 @@ public:
 
   void ensure_storage(uint32_t dest);
 
+  bool check_storage_exists(uint32_t dest);
+
   StateStoragePtr get_storage(uint32_t dest) {
     ensure_storage(dest);
     return storage_map_.at(dest);

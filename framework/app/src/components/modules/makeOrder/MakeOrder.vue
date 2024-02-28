@@ -189,41 +189,6 @@ const configSettings = computed(() => {
   }
 
   const { side } = formState.value;
-  if (isMarginMakeOrder.value) {
-    if (!MarginSideStatus.includes(formState.value.side)) {
-      formState.value.side = SideEnum.GuaranteeStockBuy;
-    }
-  }
-  if (instrumentResolved.value) {
-    const { instrumentType, exchangeId } = instrumentResolved.value;
-    const tdName = currentGlobalKfLocation.value?.group;
-    const extConfig = extConfigs.value.td[tdName];
-    if (instrumentType === InstrumentTypeEnum.stockoption) {
-      sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
-    } else if (
-      instrumentType === InstrumentTypeEnum.fund &&
-      extConfig &&
-      extConfig.supportEtf
-    ) {
-      sideList.value = [
-        ...Object.keys(Side).slice(0, 2),
-        SideEnum.Purchase + '',
-        SideEnum.Redemption + '',
-      ];
-    } else {
-      sideList.value = Object.keys(Side).slice(0, 2);
-    }
-
-    if (instrumentType === InstrumentTypeEnum.future) {
-      if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
-        offsetList.value = offsetList.value.filter(
-          (item) =>
-            item !== OffsetEnum.CloseToday + '' ||
-            item !== OffsetEnum.CloseYest + '',
-        );
-      }
-    }
-  }
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
@@ -352,41 +317,71 @@ watch(
 watch(
   () => formState.value.instrument,
   (newVal) => {
-    if (
-      !isMarginMakeOrder.value &&
-      'side' in formState.value &&
-      !sideList.value.includes(formState.value.side + '')
-    ) {
-      formState.value.side = +sideList.value[0];
-    }
-    if (
-      !formState.value.account_id &&
-      currentGlobalKfLocation.value?.category !== 'td' &&
-      instrumentKeyAccountsMap.value[newVal] &&
-      instrumentKeyAccountsMap.value[newVal].length
-    ) {
-      formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
-    }
+    if (!newVal || !currentGlobalKfLocation.value) return;
+    const instrumentResolved =
+      transformSearchInstrumentResultToInstrument(newVal);
+    if (instrumentResolved) {
+      const { instrumentType, exchangeId } = instrumentResolved;
+      const tdName = currentGlobalKfLocation.value?.group;
+      const extConfig = extConfigs.value.td[tdName];
+      if (instrumentType === InstrumentTypeEnum.stockoption) {
+        sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
+      } else if (
+        instrumentType === InstrumentTypeEnum.fund &&
+        extConfig &&
+        extConfig.supportEtf
+      ) {
+        sideList.value = [
+          ...Object.keys(Side).slice(0, 2),
+          SideEnum.Purchase + '',
+          SideEnum.Redemption + '',
+        ];
+      } else {
+        sideList.value = Object.keys(Side).slice(0, 2);
+      }
 
-    if (formState.value.contract_id && !autoFillInstrument.value) {
-      formState.value.contract_id = '';
-    } else {
-      autoFillInstrument.value = false;
+      if (instrumentType === InstrumentTypeEnum.future) {
+        if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
+          offsetList.value = offsetList.value.filter(
+            (item) =>
+              item !== OffsetEnum.CloseToday + '' ||
+              item !== OffsetEnum.CloseYest + '',
+          );
+        }
+      }
+
+      if (
+        !isMarginMakeOrder.value &&
+        'side' in formState.value &&
+        !sideList.value.includes(formState.value.side + '')
+      ) {
+        formState.value.side = +sideList.value[0];
+      }
+      if (
+        !formState.value.account_id &&
+        currentGlobalKfLocation.value?.category !== 'td' &&
+        instrumentKeyAccountsMap.value[newVal] &&
+        instrumentKeyAccountsMap.value[newVal].length
+      ) {
+        formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
+      }
+
+      if (formState.value.contract_id && !autoFillInstrument.value) {
+        formState.value.contract_id = '';
+      } else {
+        autoFillInstrument.value = false;
+      }
+
+      subscribeAllInstrumentByAppStates(
+        processStatusData.value,
+        appStates.value,
+        mdExtTypeMap.value,
+        [instrumentResolved],
+      );
+      triggerOrderBook(instrumentResolved);
+
+      makeOrderInstrumentType.value = instrumentResolved.instrumentType;
     }
-
-    if (!instrumentResolved.value) {
-      return;
-    }
-
-    subscribeAllInstrumentByAppStates(
-      processStatusData.value,
-      appStates.value,
-      mdExtTypeMap.value,
-      [instrumentResolved.value],
-    );
-    triggerOrderBook(instrumentResolved.value);
-
-    makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },
 );
 

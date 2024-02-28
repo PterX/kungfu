@@ -1,5 +1,13 @@
 <template>
-  <div class="kf-drag-col__warp" :style="style" :board-id="id">
+  <div
+    class="kf-drag-col__warp"
+    :style="{
+      width,
+      flex: 'unset',
+      paddingRight: id !== 0 ? '6px' : '0',
+    }"
+    :board-id="id"
+  >
     <div
       class="kf-drag-col__content"
       @mousedown="handleMouseDown"
@@ -8,7 +16,7 @@
     >
       <slot></slot>
     </div>
-    <div class="resize-bar-vertical"></div>
+    <div v-if="id !== 0" class="resize-bar-vertical"></div>
   </div>
 </template>
 
@@ -65,12 +73,12 @@ export default defineComponent({
       return this.boardsMap[this.id];
     },
 
-    style(): string {
+    width(): string {
       if (this.boardInfo?.width) {
         if (this.boardInfo?.width.toString().includes('%')) {
-          return `width: ${this.boardInfo?.width}; flex: unset;`;
+          return `${this.boardInfo.width}`;
         } else {
-          return `width: ${this.boardInfo?.width}px; flex: unset;`;
+          return `${this.boardInfo.width}px`;
         }
       } else {
         return `flex: 1;`;
@@ -209,6 +217,7 @@ export default defineComponent({
   position: relative;
   transform: translateZ(0);
   overflow: hidden;
+  padding-right: 6px;
 
   .kf-drag-col__content {
     display: flex;
@@ -218,6 +227,8 @@ export default defineComponent({
     justify-content: flex-start;
 
     > .kf-drag-row__warp:last-of-type {
+      padding-bottom: 0 !important;
+
       > .resize-bar-horizontal {
         display: none;
       }
@@ -226,17 +237,17 @@ export default defineComponent({
 
   .resize-bar-vertical {
     position: absolute;
-    right: 0;
+    right: 1px;
     top: 0;
     height: 100%;
-    width: 8px;
-    border-right: 4px solid #000;
+    width: 4px;
+    background-color: #000;
     cursor: col-resize;
     box-sizing: border-box;
     z-index: 10;
 
     &:hover {
-      border-right: 4px solid @border-color-split;
+      background-color: @border-color-split;
     }
   }
 }

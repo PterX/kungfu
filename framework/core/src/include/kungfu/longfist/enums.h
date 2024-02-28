@@ -597,6 +597,16 @@ enum class OrderStatus : int8_t {
   PendingSettlement       // 等待结算
 };
 
+static std::vector<int8_t> CONTINUING_STATUS = {
+    (int8_t)OrderStatus::Submitted,           //
+    (int8_t)OrderStatus::Pending,             //
+    (int8_t)OrderStatus::PartialFilledActive, //
+    (int8_t)OrderStatus::Unknown,             //
+    (int8_t)OrderStatus::Cancelling,          //
+    (int8_t)OrderStatus::Pause,               //
+    (int8_t)OrderStatus::PendingSettlement,   //
+};
+
 KF_JSON_SERIALIZE_ENUM(OrderStatus, {
                                         {OrderStatus::Unknown, "Unknown"},
                                         {OrderStatus::Submitted, "Submitted"},

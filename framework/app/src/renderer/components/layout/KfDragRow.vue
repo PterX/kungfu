@@ -110,7 +110,8 @@ export default defineComponent({
         this.leftCol$ = target.parentElement;
         this.leftBoardId = this.leftCol$?.getAttribute('board-id') || '';
         this.leftColWidth = this.leftCol$?.clientWidth || 0;
-        this.rightCol$ = target.parentElement?.nextSibling as HTMLElement;
+        this.rightCol$ = target.parentElement
+          ?.nextElementSibling as HTMLElement;
         this.rightBoardId = this.rightCol$?.getAttribute('board-id') || '';
         this.rightColWidth = this.rightCol$?.clientWidth || 0;
         const paElement = this.leftCol$?.parentElement;

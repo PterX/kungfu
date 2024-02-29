@@ -49,6 +49,27 @@ export enum InstrumentTypeEnum {
 }
 export type InstrumentTypes = keyof typeof InstrumentTypeEnum;
 
+export enum ContractTypeEnum {
+  CrdBuyContract, //融资合约
+  CrdSellContract, //融券合约
+  CrdBuyInterest, //融资利息
+  CrdSellFee, //融券费用
+  CapitalRightsCompensation, //资金权益补偿
+  ShareRightsCompensation, //股份权益补偿
+  OverdueInterest, //逾期罚息
+  BadDebtInterest, //坏账罚息
+  Capital0ccupationFee, //资金占用费
+  ManagementFee, //管理费
+}
+
+export type ContractTypes = keyof typeof ContractTypeEnum;
+
+export enum CloseOutFlagEnum {
+  NotCloseOut, //未了結
+  Closeout, //了結
+  InitNotc1o, //初始化未了結
+}
+
 export enum BasketVolumeTypeEnum {
   Unknown,
   Quantity,
@@ -209,6 +230,8 @@ export enum SideEnum {
   SurplusStockTransfer,
   GuaranteeStockTransferIn,
   GuaranteeStockTransferOut,
+  GuaranteeStockBuy,
+  GuaranteeStockSell,
   Unknown = 99,
 }
 
@@ -238,6 +261,7 @@ export enum OrderStatusEnum {
   Lost,
   Cancelling,
   Pause,
+  PendingSettlement,
 }
 
 export type OrderStatusTypes = keyof typeof OrderStatusEnum;
@@ -271,7 +295,8 @@ export type KfUIExtLocatorTypes =
   | 'global_setting'
   | 'make_order'
   | 'trading_task_view'
-  | 'extension_mananger_use';
+  | 'strategy_header_right'
+  | 'extension_manager_use';
 
 export type KfExhibitConfigTypes = 'form' | '';
 

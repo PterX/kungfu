@@ -23,6 +23,9 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
+
+constexpr uint32_t STEP_INTERVAL = 1;
+
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 
 Napi::FunctionReference Watcher::constructor = {};
@@ -460,6 +463,11 @@ void Watcher::on_start() {
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
     events_ | skip_while(while_is(Quote::tag, Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
 
+    if (refresh_trading_data_before_sync_) {
+      // keep trading data with status like orders, for keeping unfinished state
+      events_ | is_trading_data_with_status() | $$(cached::feed_state_data(event, unfinished_trading_data_bank_));
+    }
+
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
@@ -518,7 +526,7 @@ void Watcher::RestoreState(const location_ptr &state_location, int64_t from, int
   add_location(0, state_location);
   // serialize::JsRestoreState(ledger_ref_, state_location)(from, to, sync_schema);
   // for hidden pos && asset
-  serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset>(from, to, sync_schema);
+  serialize::JsRestoreState(ledger_ref_, state_location).filter_no<Position, Asset, Contract>(from, to, sync_schema);
 }
 
 Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {
@@ -547,9 +555,30 @@ void Watcher::SyncLedger() {
 }
 
 void Watcher::TryRefreshTradingData() {
-  if (refresh_trading_data_before_sync_) {
-    serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
+  if (not refresh_trading_data_before_sync_) {
+    return;
   }
+
+  // remove final status state
+  hana::for_each(longfist::TradingDataWithStatusTypes, [&](auto it) {
+    using DataType = typename decltype(+boost::hana::second(it))::type;
+    auto hana_type = boost::hana::type_c<DataType>;
+    auto &target_map =
+        const_cast<std::unordered_map<uint64_t, state<DataType>> &>(unfinished_trading_data_bank_[hana_type]);
+
+    auto iter = target_map.begin();
+    while (iter != target_map.end()) {
+      auto &trading_data_state = iter->second;
+      if (is_final_status(trading_data_state.data.status)) {
+        iter = target_map.erase(iter);
+      } else {
+        iter++;
+      }
+    }
+  });
+
+  serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger", data_bank_);
+  unfinished_trading_data_bank_ >> data_bank_;
 }
 
 void Watcher::SyncTradingData() {
@@ -641,20 +670,20 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
 }
 
 void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_location) {
-  events_ | is(Quote::tag) | from(md_location->uid) | first() |
-      $(
-          [&, trigger_time, md_location](const event_ptr &event) {
-            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
-            events_ | from(md_location->uid) | is(Quote::tag) |
-                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
-                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
-                  if (is_location_live(md_location->uid)) {
-                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
-                    MonitorMarketData(trigger_time, md_location);
-                  }
-                });
-          },
-          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
+  //  events_ | is(Quote::tag) | from(md_location->uid) | first() |
+  //      $(
+  //          [&, trigger_time, md_location](const event_ptr &event) {
+  //            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
+  //            events_ | from(md_location->uid) | is(Quote::tag) |
+  //                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
+  //                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
+  //                  if (is_location_live(md_location->uid)) {
+  //                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
+  //                    MonitorMarketData(trigger_time, md_location);
+  //                  }
+  //                });
+  //          },
+  //          error_handler_log(fmt::format("monitor md {}", md_location->uname)));
 }
 
 void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
@@ -697,9 +726,9 @@ void Watcher::StartWorker() {
       if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
         watcher->setup();
       }
-      if (watcher->is_live() && watcher->feed_mutex_.try_lock()) {
-        watcher->step();
-        watcher->feed_mutex_.unlock();
+      while (watcher->is_live() && watcher->reader_->data_available()) {
+        std::lock_guard<std::mutex> guard(watcher->feed_mutex_);
+        watcher->step(STEP_INTERVAL);
       }
       std::this_thread::sleep_for(std::chrono::microseconds(watcher->milliseconds_sleep_after_step_));
     }
@@ -755,10 +784,11 @@ void Watcher::RequestDeregister() {
 void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("after master down");
   Napi::HandleScope scope(info.Env());
-  reader_->disjoin(get_master_command_uid());
+  disjoin(get_master_command_uid());
   writers_.clear();
-  strategy_states_ref_.Reset();
-  app_states_ref_.Reset();
+  serialize::InitObjectReference(info, app_states_ref_);
+  serialize::InitObjectReference(info, strategy_states_ref_);
+  serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }
 
@@ -790,6 +820,24 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
     state<Asset> cache_state_asset(ledger_uid, holder_uid, event->gen_time(), book->asset);
     feed_state_data_bank(cache_state_asset, data_bank_);
   }
+}
+
+bool Watcher::is_reactable(const event_ptr &event) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Tree::tag) {
+    return false;
+  }
+
+  if (bypass_trading_data_ and
+      kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end()) {
+    return false;
+  }
+
+  auto iter = broker::map_is_own_event.find(event->msg_type());
+  if (iter != broker::map_is_own_event.end()) {
+    return iter->second(broker_client_, event);
+  }
+
+  return not is_custom_event(event);
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {

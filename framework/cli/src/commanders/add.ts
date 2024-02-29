@@ -160,22 +160,54 @@ export const addMdTdStrategyOperator = async (
     );
   } else if (type === 'strategy') {
     const { strategy } = await getAllKfConfigOriginData();
-    const strategySettings: KungfuApi.KfConfigItem[] = [
-      {
-        key: 'strategy_id',
-        name: t('strategyConfig.strategy_id'),
-        type: 'str',
-        primary: true,
-        required: true,
-        tip: t('strategyConfig.strategy_id_tip'),
-      },
-      {
-        key: 'file_path',
-        name: t('strategyConfig.file_path'),
-        type: 'file',
-        required: true,
-      },
-    ];
+    const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
+      type: [],
+      name: t('strategyConfig.strategy'),
+      category: 'strategy',
+      key: 'default',
+      extPath: '',
+      version: '',
+      description: '',
+      assets: {},
+      dependencies: {},
+      readmePath: '',
+      releaseNotePath: '',
+      silent: false,
+      access: {},
+      settings: [
+        {
+          key: 'strategy_id',
+          name: t('strategyConfig.strategy_id'),
+          type: 'str',
+          primary: true,
+          required: true,
+          tip: t('strategyConfig.strategy_tip'),
+        },
+        {
+          key: 'remarks',
+          name: t('remarks'),
+          type: 'str',
+        },
+        {
+          key: 'file_path',
+          name: t('strategyConfig.strategy_path'),
+          type: 'file',
+          tip: t('strategyConfig.strategy_path_tip'),
+          required: true,
+        },
+      ],
+    };
+    const setStrategyConfigResolved: KungfuApi.KfStrategyExtConfig =
+      await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+        {
+          category: 'strategy',
+          group: 'default',
+          name: '*',
+          mode: '*',
+        },
+        setStrategyConfig,
+      );
+
     const strategyIdList = strategy.map(
       (item: KungfuApi.KfLocation): string => item.name,
     );
@@ -183,13 +215,13 @@ export const addMdTdStrategyOperator = async (
     const primaryKeyAvoidRepeatCompareTarget = strategyIdList;
 
     const formState = await getPromptQuestionsBySettings({
-      settings: strategySettings,
+      settings: setStrategyConfigResolved.settings,
       primaryKeyAvoidRepeatCompareTarget,
     });
 
-    const primaryKeys = getPrimaryKeyFromKfConfigItem(strategySettings).map(
-      (item) => item.key,
-    );
+    const primaryKeys = getPrimaryKeyFromKfConfigItem(
+      setStrategyConfigResolved.settings,
+    ).map((item) => item.key);
     const combinedValue = getCombineValueByPrimaryKeys(primaryKeys, formState);
     const kfLocation: KungfuApi.KfLocation = {
       category: 'strategy',
@@ -224,6 +256,11 @@ export const addMdTdStrategyOperator = async (
           primary: true,
           required: true,
           tip: t('operatorConfig.operator_id_tip'),
+        },
+        {
+          key: 'remarks',
+          name: t('remarks'),
+          type: 'str',
         },
         {
           key: 'file_path',

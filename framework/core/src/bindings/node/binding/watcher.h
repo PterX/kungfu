@@ -23,7 +23,7 @@ namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
-constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 10000;
+constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -121,6 +121,8 @@ public:
 
   yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const override;
 
+  bool is_reactable(const event_ptr &event) override;
+
 protected:
   const bool bypass_quote_;
   const bool bypass_trading_data_;
@@ -156,6 +158,7 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
+  yijinjing::cache::bank unfinished_trading_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
@@ -180,6 +183,13 @@ private:
   static constexpr auto is_trading_data = []() {
     return rx::filter([&](const event_ptr &event) {
       return kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end();
+    });
+  };
+
+  static constexpr auto is_trading_data_with_status = []() {
+    return rx::filter([&](const event_ptr &event) {
+      return kungfu::longfist::TradingDataWithStatusTags.find(event->msg_type()) !=
+             kungfu::longfist::TradingDataWithStatusTags.end();
     });
   };
 

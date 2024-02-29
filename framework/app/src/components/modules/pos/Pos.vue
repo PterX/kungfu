@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-
 import {
   dealCurrency,
   dealDirection,
@@ -21,7 +19,8 @@ import {
   computed,
   getCurrentInstance,
   onBeforeUnmount,
-  onMounted,
+  onActivated,
+  onDeactivated,
   ref,
   toRaw,
   watch,
@@ -29,10 +28,15 @@ import {
 import { storeToRefs } from 'pinia';
 import { getColumns } from './config';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfDecimalPrecision,
+  getIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { SideEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+
 import {
   getInstrumentByInstrumentPair,
   useCurrentGlobalKfLocation,
@@ -116,13 +120,11 @@ const columns = computed(() => {
   });
 });
 
-onMounted(() => {
+onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe(
       (watcher: KungfuApi.Watcher) => {
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+        if (!currentGlobalKfLocation.value) return;
 
         const positions =
           globalThis.HookKeeper.getHooks().dealTradingData.trigger(
@@ -154,6 +156,10 @@ onMounted(() => {
     );
 
     onBeforeUnmount(() => {
+      subscription.unsubscribe();
+    });
+
+    onDeactivated(() => {
       subscription.unsubscribe();
     });
   }
@@ -293,32 +299,24 @@ function handleShowTradingDataDetail({
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'static_yesterday'">
-            <KfBlinkNum
-              :num="Number(item.static_yesterday).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.static_yesterday"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'open_volume'">
-            <KfBlinkNum
-              :num="Number(item.open_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.open_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'close_volume'">
-            <KfBlinkNum
-              :num="Number(item.close_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.close_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'yesterday_volume'">
-            <KfBlinkNum
-              :num="Number(item.yesterday_volume).kfToFixed(0)"
-            ></KfBlinkNum>
+            <KfBlinkNum :num="item.yesterday_volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'today_volume'">
             <KfBlinkNum
-              :num="Number(item.volume - item.yesterday_volume).kfToFixed(0)"
+              :num="dealKfDecimalPrecision(item.volume - item.yesterday_volume)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
-            <KfBlinkNum :num="Number(item.volume).kfToFixed(0)"></KfBlinkNum>
+            <KfBlinkNum :num="item.volume"></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'avg_open_price_resolved'">
             <KfBlinkNum :num="item.avg_open_price_resolved"></KfBlinkNum>

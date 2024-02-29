@@ -20,7 +20,7 @@
 <script lang="ts">
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useBoards } from '../../pages/index/store/board';
 
 interface KfDragRowData {
   resizeing: boolean;
@@ -42,9 +42,13 @@ export default defineComponent({
       required: true,
       type: Number as PropType<number>,
     },
+    currentBoardsStoreId: {
+      type: String as PropType<string>,
+      default: 'main',
+    },
   },
 
-  setup() {
+  setup(props) {
     const rowData = reactive<KfDragRowData>({
       resizeing: false,
       leftCol$: null,
@@ -57,8 +61,10 @@ export default defineComponent({
       preX: 0,
     });
 
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    const { setBoardsMapAttrById } = useGlobalStore();
+    const { getBoardsStoreById } = useBoards();
+    const useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
+    const { boardsMap } = storeToRefs(useBoardsStore());
+    const { setBoardsMapAttrById } = useBoardsStore();
 
     return {
       ...toRefs(rowData),
@@ -104,7 +110,8 @@ export default defineComponent({
         this.leftCol$ = target.parentElement;
         this.leftBoardId = this.leftCol$?.getAttribute('board-id') || '';
         this.leftColWidth = this.leftCol$?.clientWidth || 0;
-        this.rightCol$ = target.parentElement?.nextSibling as HTMLElement;
+        this.rightCol$ = target.parentElement
+          ?.nextElementSibling as HTMLElement;
         this.rightBoardId = this.rightCol$?.getAttribute('board-id') || '';
         this.rightColWidth = this.rightCol$?.clientWidth || 0;
         const paElement = this.leftCol$?.parentElement;

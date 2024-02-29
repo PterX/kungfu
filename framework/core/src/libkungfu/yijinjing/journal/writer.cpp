@@ -82,6 +82,8 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   frame->set_gen_time(gen_time);
   last_gen_time_ = gen_time;
   frame->set_data_length(data_length);
+  frame->set_frame_uid(current_frame_uid());
+  frame->set_trigger_frame_uid(journal_.bus_->get_trigger_frame_uid());
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
   journal_.next();
@@ -139,26 +141,10 @@ void writer::write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t so
 
 void writer::close_data(int64_t gen_time) { close_frame(size_to_write_, gen_time); }
 
-void writer::close_page(int64_t trigger_time) {
-  page_ptr last_page = journal_.page_;
+void writer::close_page(int64_t trigger_time) { journal_.close_page(trigger_time, last_gen_time_); }
 
-  // must load_next_page before mark PageEnd::tag,
-  // or reader of other process may read next page before it created
-  journal_.load_next_page();
+void writer::release_page() { journal_.release_page(); }
 
-  frame last_page_frame;
-  last_page_frame.set_address(last_page->last_frame_address());
-  last_page_frame.move_to_next();
-  last_page_frame.set_header_length();
-  last_page_frame.set_trigger_time(trigger_time);
-  last_page_frame.set_msg_type(longfist::types::PageEnd::tag);
-  last_page_frame.set_source(journal_.location_->uid);
-  last_page_frame.set_dest(journal_.dest_id_);
-  last_page_frame.set_gen_time(last_gen_time_);
-  last_page_frame.set_data_length(0);
-  last_page->set_last_frame_position(last_page_frame.address() - last_page->address());
-}
-
-bool writer::release_page() { return journal_.release_page(); }
+void writer::preload_next_page() { journal_.preload_next_page(); }
 
 } // namespace kungfu::yijinjing::journal

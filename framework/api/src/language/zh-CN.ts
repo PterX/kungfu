@@ -45,10 +45,10 @@ export default {
 
   clear_journal: '清理 journal',
   clear_DB: '清理 DB',
-  reset_main_panel: '重置主面板',
+  reset_current_panel: '重置当前面板布局',
   export_all_transaction_data: '导出所有交易数据',
   export_instrument_whitelists: '导出标的白名单',
-  view_all_journal: '查看所有 journal',
+  open_inspect_tool: '打开诊断工具',
 
   website: '官网',
   user_manual: '用户手册',
@@ -68,7 +68,7 @@ export default {
   clear: '清理 {content} 完成, 请重启应用',
   open_window: '正在打开窗口',
   open_code_editor: '正在打开代码编辑器',
-  open_journal_dashboard: '正在打开 journal 面板',
+  opening_inspect_tool: '正在打开诊断工具',
   open_replay_dashboard: '正在打开回放面板',
   open_trading_task_view: '正在打开交易任务视图',
   add_board: '添加面板',
@@ -112,6 +112,8 @@ export default {
 
   please_wait: '请稍后',
   please_wait_and_retry: '请稍后重试',
+
+  remarks: '备注',
 
   baseConfig: {
     main_panel: '主面板',
@@ -204,6 +206,11 @@ export default {
     surplus_stock_transfer: '余券划转',
     guarantee_stock_transfer: '担保品转入',
     guarantee_stock_redeem: '担保品转出',
+    guarantee_stock_buy: '担保品买入',
+    guarantee_stock_sell: '担保品卖出',
+    specfy_contract: '指定合约',
+    repay: '偿还',
+    repaid: '已还',
 
     submitted: '已提交',
     cancelling: '待撤',
@@ -213,6 +220,7 @@ export default {
     partial_filled_active: '正在交易',
     lost: '丢失',
     pause: '暂停',
+    pending_settlement: '等待结算',
 
     long: '多',
     short: '空',
@@ -432,7 +440,7 @@ export default {
     time_condition: '触发时间',
     parked_type: '预埋方式',
 
-    checkbox_text: '未完成委托',
+    show_unfinished_orders: '未完成委托',
     cancel_all: '全部撤单',
     cancel_order: '撤单',
     cancel_order_trigger: '预撤',
@@ -491,9 +499,10 @@ export default {
     state_status: '状态',
     process_status: '进程',
     unrealized_pnl: '浮动盈亏',
-    marked_value: '市值',
-    margin: '保证金',
-    avail_money: '可用资金',
+    market_value: '市值',
+    used_margin: '占用保证金',
+
+    avail_funds: '可用资金',
     avail_margin: '可用保证金',
     cash_debt: '融资负债',
     total_asset: '总资产',
@@ -510,6 +519,14 @@ export default {
     need_only_group: '需保证该账户组名称唯一',
     delete_amount_group: '删除账户组 {group}',
     confirm_delete_group: '不会影响改账户组下账户进程, 确认是否删除',
+    frozen_funds: '冻结资金',
+    short_sale_proceeds: '融券卖出所得款项',
+    maintain_margin_ratio: '维持担保比例',
+    loanable_funds: '可用保证金',
+    total_liabilities: '总负债',
+    equity: '净资产',
+    total_borrowed_funds: '融资总负债',
+    total_short_liabilities: '融券总负债',
   },
 
   fundTrans: {
@@ -555,7 +572,7 @@ export default {
       '普通 python 策略选择 .py 文件, 加密 python 策略或 cpp 策略选择编译后的 .so 或 .pyd 文件',
     process_status: '进程',
     unrealized_pnl: '浮动盈亏',
-    marked_value: '市值',
+    market_value: '市值',
     actions: '操作',
     strategy_tip: '需保证该策略 ID 唯一',
 
@@ -811,6 +828,9 @@ export default {
     reset_order: '重置',
     log_level: '全局日志级别',
     for_all_log: '对系统内所有日志级别的设置',
+    log_frame: '全局日志输出 Frame 信息',
+    log_frame_desc:
+      '对系统内所有日志生效, 开启后会在 log 上附加当前 frame 的信息, 修改后重启功夫生效',
 
     auto_restart_td: '交易进程自动重启',
     auto_restart_td_desc:
@@ -820,7 +840,10 @@ export default {
     select_language_desc: '选择语言, 修改后重启功夫生效',
     bypass_archive: '跳过归档',
     bypass_archive_desc:
-      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度',
+      '开启后, 每次启动会删除所有 journal, 且仅保留当日 runtime 目录下 log, 跳过归档后无法恢复之前的内存数据, 会加快启动速度, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
+    bypass_archive_dev: '跳过归档 (开发者模式)',
+    bypass_archive_dev_desc:
+      '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用诊断工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
@@ -897,7 +920,7 @@ export default {
   白名单设置警告: '请先为此账户设置标的白名单',
 
   autoUpdater: {
-    update: '版本更新',
+    update_version: '版本更新',
     is_check_version: '检测更新',
     is_check_version_desc: '启动功夫时, 是否检测更新',
     current_version: '当前版本',
@@ -907,6 +930,7 @@ export default {
     retry_check: '检测',
     has_skipped: '已跳过此版本',
     start_download: '开始下载',
+    update: '更新',
     retry_download: '重试',
     find_new_version: '发现新版本: {version}\n是否现在下载安装包? ',
     downloaded: '下载完成, 等待安装',

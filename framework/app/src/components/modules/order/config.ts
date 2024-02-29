@@ -41,7 +41,7 @@ export const getColumns = (
         type: 'string',
         name: '',
         dataIndex: 'side',
-        width: 40,
+        width: 80,
       },
       {
         type: 'string',
@@ -61,7 +61,7 @@ export const getColumns = (
         type: 'number',
         name: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
         dataIndex: 'volume_left',
-        width: 120,
+        width: 140,
         sorter: (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) => {
           return +Number(a.volume_left) - +Number(b.volume_left);
         },

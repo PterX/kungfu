@@ -19,8 +19,8 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
-BrokerVendor::BrokerVendor(location_ptr location, bool low_latency, const std::string &arguments)
-    : apprentice(std::move(location), low_latency, arguments) {}
+BrokerVendor::BrokerVendor(const location_ptr &location, bool low_latency, const std::string &arguments)
+    : apprentice(location, low_latency, arguments) {}
 
 void BrokerVendor::on_start() {
   events_ | is(RequestWriteTo::tag, RequestReadFrom::tag, RequestReadFromPublic::tag, RequestReadFromSync::tag) |
@@ -35,6 +35,14 @@ void BrokerVendor::on_exit() {
 void BrokerVendor::notify_broker_state() {
   auto service = get_service();
   service->update_broker_state(service->get_state());
+}
+
+bool BrokerVendor::is_reactable(const event_ptr &event) {
+  if (is_custom_event(event)) {
+    get_service()->on_custom_event(event);
+    return false;
+  }
+  return true;
 }
 
 BrokerService::BrokerService(BrokerVendor &vendor) : vendor_(vendor), state_(BrokerState::Pending) {}
@@ -65,7 +73,11 @@ nlohmann::json BrokerService::get_kungfu_config() const {
     std::string item;
     SPDLOG_INFO(" EXTENSION_DIRS = {} ", ext_dirs);
     std::stringstream ext_dirs_stringstream(ext_dirs_string);
+#if (defined(_WIN32) || defined(_WIN64))
     while (std::getline(ext_dirs_stringstream, item, ';')) {
+#else
+    while (std::getline(ext_dirs_stringstream, item, ':')) {
+#endif
       const std::string path = fmt::format("{}/{}/package.json", item, get_home()->group);
       if (std::filesystem::exists(path)) {
         std::ifstream f(path);
@@ -79,13 +91,13 @@ nlohmann::json BrokerService::get_kungfu_config() const {
   return nlohmann::json::parse("{}");
 }
 
-std::string BrokerService::get_risk_setting() const {
+RiskSetting BrokerService::get_risk_setting() const {
   auto &risk_setting_map = get_state_bank()[boost::hana::type_c<RiskSetting>];
   if (risk_setting_map.find(get_live_home_uid()) == risk_setting_map.end()) {
-    return "{}";
+    return get_home()->to<RiskSetting>();
   }
   auto &risk_setting_obj = risk_setting_map.at(get_live_home_uid());
-  return risk_setting_obj.data.to_string();
+  return risk_setting_obj.data;
 }
 
 std::string BrokerService::get_runtime_folder() {
@@ -190,7 +202,7 @@ void BrokerService::update_broker_state(BrokerState state) {
 
 io_device_ptr BrokerService::get_io_device() const { return get_vendor().get_io_device(); }
 
-writer_ptr &BrokerService::get_thread_writer() { return vendor_.get_thread_writer(); }
+writer_ptr &BrokerService::get_thread_writer(uint32_t page_size) { return vendor_.get_thread_writer(page_size); }
 
 writer_ptr &BrokerService::get_public_writer() { return vendor_.get_public_writer(); }
 

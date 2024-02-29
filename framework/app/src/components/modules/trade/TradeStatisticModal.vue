@@ -6,7 +6,10 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
-import { dealAssetPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfPrice,
+  dealKfDecimalPrecision,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
   dealSide,
@@ -85,10 +88,8 @@ const priceVolumeStats = computed(() => {
         }
 
         priceVolumeData[id].price.push(trade.price);
-        priceVolumeData[id].volume.push(+Number(trade.volume));
-        priceVolumeData[id].priceByVolume.push(
-          +Number(trade.volume) * trade.price,
-        );
+        priceVolumeData[id].volume.push(trade.volume);
+        priceVolumeData[id].priceByVolume.push(trade.volume * trade.price);
         return priceVolumeData;
       },
       {} as Record<string, PriceVolumeStatItem>,
@@ -112,10 +113,12 @@ const priceVolumeStats = computed(() => {
         exchangeId,
       );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
-      const priceSum = priceVolumeData[id].priceByVolume.reduce(
-        (a, b) => a + b,
+      const priceSum = dealKfDecimalPrecision(
+        priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
       );
-      const volumeSum = priceVolumeData[id].volume.reduce((a, b) => a + b);
+      const volumeSum = dealKfDecimalPrecision(
+        priceVolumeData[id].volume.reduce((a, b) => a + b),
+      );
       const range = priceStats.range();
       const sideReolved = dealSide(+side);
       const offsetResolved = dealOffset(+offset);
@@ -126,9 +129,9 @@ const priceVolumeStats = computed(() => {
         sideColor: sideReolved.color || 'default',
         offsetName: offsetResolved.name,
         offsetColor: offsetResolved.color || 'default',
-        mean: dealAssetPrice(Number(priceSum / volumeSum), price_precision),
-        min: dealAssetPrice(range[0], price_precision),
-        max: dealAssetPrice(range[1], price_precision),
+        mean: dealKfPrice(priceSum / volumeSum, price_precision),
+        min: dealKfPrice(range[0], price_precision),
+        max: dealKfPrice(range[1], price_precision),
         volume: volumeSum.toString(),
       };
     })

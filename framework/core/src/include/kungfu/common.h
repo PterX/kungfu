@@ -415,6 +415,8 @@ struct event {
 
   [[nodiscard]] virtual const char *data_as_bytes() const = 0;
 
+  [[nodiscard]] virtual std::vector<uint8_t> data_as_byte_array() const = 0;
+
   [[nodiscard]] virtual std::string data_as_string() const = 0;
 
   [[nodiscard]] virtual std::string to_string() const = 0;
@@ -422,6 +424,10 @@ struct event {
   [[nodiscard]] virtual int8_t data_type() const = 0;
 
   [[nodiscard]] virtual bool is_json() const = 0;
+
+  [[nodiscard]] virtual uint64_t frame_uid() const = 0;
+
+  [[nodiscard]] virtual uint64_t trigger_frame_uid() const = 0;
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.

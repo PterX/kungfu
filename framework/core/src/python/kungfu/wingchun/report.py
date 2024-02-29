@@ -1,8 +1,5 @@
 #  SPDX-License-Identifier: Apache-2.0
 
-import asyncio
-import importlib.util
-import inspect
 from functools import partial
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
@@ -10,7 +7,8 @@ import kungfu
 import os
 import sys
 
-from kungfu.console.utils import import_force
+from functools import lru_cache
+from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
@@ -33,14 +31,14 @@ class Report(wc.Report):
         ctx.constants = constants
         ctx.utils = utils
         self.ctx = ctx
-        self.__init_report(ctx.path)
+        self.__init_report(ctx.report)
 
     def __init_report(self, path):
         report_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
         sys.path.insert(0, os.path.relpath(report_dir))
         module_name = os.path.splitext(name_no_ext[1])[0]
-        self._module = import_force(module_name)
+        self._module = safe_import(module_name)
         self._init = getattr(self._module, "init", lambda ctx: None)
         self._sumerize = getattr(self._module, "sumerize", lambda ctx: None)
 
@@ -123,13 +121,14 @@ class PeriodResult(ABC):
     def __post_init__(self):
         self.init_state()
 
-    def update(self, nano_now: int, book: wc.Book, **kargs):
+    def update(self, nano_now: int, bookkeeper: wc.Bookkeeper, **kargs):
+        asset = self.get_strategy_asset(bookkeeper)
         n_period = self._n_period_cross(nano_now)
         if n_period == 0:
             return
         for index in reversed(range(n_period)):
             if index == 0:
-                self.append_state(**self.evaluate_state(nano_now, book, **kargs))
+                self.append_state(**self.evaluate_state(nano_now, asset, **kargs))
             else:
                 self.append_default_state()
 
@@ -147,6 +146,7 @@ class PeriodResult(ABC):
         self._last_now = nano_now
         return n_period
 
+    @lru_cache()
     def get_strategy_asset(self, bookkeeper: wc.Bookkeeper) -> lf.types.Asset:
         books = bookkeeper.get_books()
         for book in books.values():

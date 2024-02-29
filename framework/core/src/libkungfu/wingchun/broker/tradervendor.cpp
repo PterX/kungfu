@@ -85,10 +85,9 @@ void TraderWriterHook::guard_asset(const Asset &const_asset) {
 
 // ====================== TraderVendor start ======================
 
-TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
-                           const std::string &arguments)
-    : BrokerVendor(location::make_shared(mode::LIVE, category::TD, group, name, std::move(locator)), low_latency,
-                   arguments),
+TraderVendor::TraderVendor(locator_ptr locator, const std::string &group, const std::string &name, mode m,
+                           bool low_latency, const std::string &arguments)
+    : BrokerVendor(location::make_shared(m, category::TD, group, name, std::move(locator)), low_latency, arguments),
       algo_order_service_(*this), order_service_(*this), order_trigger_service_(*this),
       hook_(std::make_shared<TraderWriterHook>(*this)) {}
 
@@ -97,7 +96,6 @@ void TraderVendor::set_service(Trader_ptr service) { service_ = std::move(servic
 void TraderVendor::react() {
   events_ | skip_until(events_ | is(RequestStart::tag)) | is(OrderInput::tag) |
       $$(order_service_.on_order_input(event));
-  events_ | skip_until(events_ | is(RequestStart::tag)) | is_custom() | $$(service_->on_custom_event(event));
   apprentice::react();
 
   // have to be in this position, only in react, the ResetBookRequest can be listened
@@ -122,6 +120,7 @@ void TraderVendor::on_start() {
   events_ | is(AssetRequest::tag) | $$(service_->req_account());
   events_ | is(PositionRequest::tag) | $$(service_->req_position());
   events_ | is(OrderTriggerRequest::tag) | $$(service_->req_order_trigger());
+  events_ | is(ContractRequest::tag) | $$(service_->req_contract());
   events_ | is(RequestHistoryOrder::tag) | $$(service_->req_history_order(event));
   events_ | is(RequestHistoryTrade::tag) | $$(service_->req_history_trade(event));
   events_ | is(AssetSync::tag) | $$(service_->on_asset_sync());
@@ -130,7 +129,7 @@ void TraderVendor::on_start() {
   events_ | is(TimeKeyValue::tag) | $$(service_->on_time_key_value(event));
   events_ | is(Deregister::tag) | $$(service_->on_strategy_exit(event));
 
-  service_->on_risk_setting();
+  service_->on_risk_setting(service_->get_risk_setting());
   service_->recover();
   on_recover();
   service_->on_start();
@@ -140,9 +139,10 @@ void TraderVendor::on_start() {
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteTo>().dest_id;
+  const auto &request = event->data<RequestWriteTo>();
+  uint32_t dest_id = request.dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_));
+    writers_.emplace(dest_id, get_io_device()->open_hookable_writer(dest_id, hook_, request.page_size));
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
     }

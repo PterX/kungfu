@@ -25,7 +25,9 @@ import {
   confirmModal,
   messagePrompt,
   useDashboardBodySize,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from './utils';
 import {
@@ -44,6 +46,8 @@ const { handleBodySizeChange } = useDashboardBodySize();
 
 const formState = ref(initFormStateByConfig(getConfigSettings(), {}));
 const formRef = ref();
+const boardRef = ref();
+const makeOrderRef = ref();
 const { processStatusData } = useProcessStatusDetailData();
 
 const {
@@ -54,6 +58,13 @@ const {
 const { currentAccountLocation, curInstrumentResolved } =
   useFormCurrentState(formState);
 useMakeOrderSubscribe(formState);
+
+useKeyboardControlContainerStyle(
+  'BlockTrade',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+  boardRef,
+  formRef,
+);
 
 const getResolvedOffset = (
   offset: OffsetEnum,
@@ -154,6 +165,7 @@ function handleMakeOrder() {
         hedge_flag: HedgeFlagEnum.Speculation,
         is_swap: !!is_swap,
         parent_id: 0n,
+        contract_id: '',
       };
 
       const blockMessage: KungfuApi.BlockMessage = {
@@ -183,7 +195,11 @@ function handleMakeOrder() {
           t('tradingConfig.place_confirm'),
           dealOrderPlaceVNode({ ...makeOrderInput, ...blockMessage }, 1),
         );
-        if (!flag) return;
+
+        if (!flag) {
+          makeOrderRef.value?.focus();
+          return;
+        }
       }
 
       makeOrderByBlockMessage(
@@ -203,7 +219,11 @@ function handleMakeOrder() {
 </script>
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @board-size-change="handleBodySizeChange">
+    <KfDashboard
+      ref="boardRef"
+      tabindex="0"
+      @board-size-change="handleBodySizeChange"
+    >
       <template #title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
@@ -219,7 +239,11 @@ function handleMakeOrder() {
       </template>
       <template #header>
         <KfDashboardItem>
-          <a-button size="small" @click="handleResetMakeOrderForm">
+          <a-button
+            tabindex="-2"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
             {{ $t('blockTradeConfig.reset_order') }}
           </a-button>
         </KfDashboardItem>
@@ -236,7 +260,7 @@ function handleMakeOrder() {
             :rules="rules"
           ></KfConfigSettingsForm>
         </div>
-        <div class="make-order-btns">
+        <div ref="makeOrderRef" class="make-order-btns">
           <a-button size="small" @click="handleMakeOrder">
             {{ $t('blockTradeConfig.place_order') }}
           </a-button>
@@ -285,16 +309,20 @@ function handleMakeOrder() {
     }
   }
 }
+
 .modal-node {
   .root-node {
     display: flex;
     flex-wrap: nowrap;
+
     .green {
       color: @green-base !important;
     }
+
     .red {
       color: @red-base !important;
     }
+
     .order-number {
       flex: 1;
       margin-top: 10%;

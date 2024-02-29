@@ -17,9 +17,9 @@ namespace kungfu::wingchun::strategy {
 class Runner : public yijinjing::practice::apprentice {
 public:
   Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
-         longfist::enums::mode m, bool low_latency, const std::string &arguments = "");
+         longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
-  ~Runner() = default;
+  ~Runner() override = default;
 
   [[nodiscard]] Context_ptr get_context() const;
 
@@ -40,6 +40,8 @@ public:
   void set_backtest_config(const std::string &backtest_config);
 
   void on_exit() override;
+
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   void react() override;
@@ -69,6 +71,7 @@ private:
   tool::Report_ptr report_;
   int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
   std::string backtest_config_;
+  bool has_post_started_ = false;
 
   void inspect_channel(const event_ptr &event);
 

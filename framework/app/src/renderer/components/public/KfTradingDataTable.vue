@@ -8,12 +8,10 @@ import {
   UpOutlined,
   DownOutlined,
 } from '@ant-design/icons-vue';
-import { filter } from 'rxjs';
 import {
   computed,
   watch,
   getCurrentInstance,
-  onBeforeMount,
   onMounted,
   ref,
   toRaw,
@@ -285,22 +283,19 @@ const initScrollerTableWidth = () => {
   });
 };
 
+const resizeScrollerTableWidth = () => {
+  if (kfScrollerTableBodyRef.value) {
+    kfScrollerTableWidth.value = kfScrollerTableBodyRef.value.clientWidth - 8;
+  }
+};
+
 onMounted(() => {
   initScrollerTableWidth();
 
-  if (app?.proxy && props.resizable) {
-    const subscription = app?.proxy.$globalBus
-      .pipe(filter((e: KfEvent.KfBusEvent) => e.tag === 'resize'))
-      .subscribe(() => {
-        if (kfScrollerTableBodyRef.value) {
-          kfScrollerTableWidth.value =
-            kfScrollerTableBodyRef.value.clientWidth - 8;
-        }
-      });
-
-    onBeforeMount(() => {
-      subscription.unsubscribe();
-    });
+  if (props.resizable && kfScrollerTableBodyRef.value) {
+    new ResizeObserver(() => {
+      resizeScrollerTableWidth();
+    }).observe(kfScrollerTableBodyRef.value.parentNode as HTMLElement);
   }
 });
 
@@ -555,6 +550,7 @@ defineExpose({
   scrollToTop,
   getVisibleIndexRange,
   resetSort,
+  resizeScrollerTableWidth,
 });
 </script>
 <template>
@@ -608,7 +604,7 @@ defineExpose({
         :class="['kf-table-cell', column.type]"
         :title="column.name"
         :style="{
-          'max-width': getHeaderWidth(column),
+          'max-width': column?.width ? getHeaderWidth(column) : 'none',
         }"
         @click.stop="handleSort(column.dataIndex, column.sorter)"
       >
@@ -676,11 +672,10 @@ defineExpose({
             :key="`${column.dataIndex}_${item[keyField as keyof TableDataItem]}`"
             :class="['kf-table-cell', column.type]"
             :style="{
-              'max-width': getHeaderWidth(column),
+              'max-width': column?.width ? getHeaderWidth(column) : 'none',
               height: '100%',
               'text-overflow': column.textOverflow || 'clip',
               'white-space': column.wrap ? 'normal' : 'nowrap',
-              overflow: column.wrap ? 'unset' : 'hidden',
               'text-align': column.align || 'left',
             }"
             :title="item[column.dataIndex]"

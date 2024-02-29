@@ -1,7 +1,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-import importlib.util
+import importlib
 import inspect
 import functools
 import kungfu
@@ -9,7 +9,7 @@ import os
 import sys
 from pathlib import Path
 
-from kungfu.console.utils import import_force
+from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
@@ -41,7 +41,7 @@ class SliceIndexer(wc.SliceIndexer):
             sys.path.append(str(Path(path).parent))
             module_name = Path(path).stem.split(".")[0]
 
-        self._module = __import__(module_name)
+        self._module = importlib.import_module(module_name)
         self._find_md_slice_location = getattr(
             self._module, "find_md_slice_location", lambda ctx: None
         )

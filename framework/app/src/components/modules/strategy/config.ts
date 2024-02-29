@@ -3,7 +3,7 @@ const { t } = VueI18n.global;
 
 export const getColumns = (
   sorter: (
-    dataIndex: string,
+    dataIndex: keyof KungfuApi.KfConfig | keyof KungfuApi.Asset,
   ) => (
     a: KungfuApi.KfConfig,
     b: KungfuApi.KfConfig,
@@ -15,6 +15,13 @@ export const getColumns = (
     dataIndex: 'name',
     align: 'left',
     width: 90,
+    fixed: 'left',
+  },
+  {
+    title: t('remarks'),
+    dataIndex: 'remarks',
+    align: 'left',
+    width: 120,
     fixed: 'left',
   },
   {
@@ -41,7 +48,7 @@ export const getColumns = (
     width: 110,
   },
   {
-    title: t('strategyConfig.marked_value'),
+    title: t('strategyConfig.market_value'),
     dataIndex: 'marketValue',
     align: 'right',
     sorter: {
@@ -80,6 +87,11 @@ export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
       primary: true,
       required: true,
       tip: t('strategyConfig.strategy_tip'),
+    },
+    {
+      key: 'remarks',
+      name: t('remarks'),
+      type: 'str',
     },
     {
       key: 'file_path',

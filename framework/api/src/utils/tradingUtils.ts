@@ -22,6 +22,7 @@ import {
   CommissionMode,
   InstrumentMinOrderVolume,
   ExportTradingDataColumnsToFilter,
+  showVolumeSideTypes,
 } from '../config/tradingConfig';
 import {
   DirectionEnum,
@@ -39,13 +40,13 @@ import {
 } from '../typings/enums';
 import VueI18n, { useLanguage } from '../language';
 import {
-  dealAssetPrice,
   dealKfPrice,
   dealLocationUID,
   setTimerPromiseTask,
   getIdByKfLocation,
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
+  dealKfDecimalPrecision,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -549,7 +550,7 @@ export const kfMakeOrder = (
     block_id: BigInt(0),
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
-    volume: BigInt(makeOrderInput.volume),
+    volume: makeOrderInput.volume,
     insert_time: now,
   };
 
@@ -586,7 +587,7 @@ export const kfOrderTrigger = (
     ...longfist.types.OrderTriggerInput(),
     ...makeOrderTriggerInput,
     limit_price: makeOrderTriggerInput.limit_price || 0,
-    volume: BigInt(makeOrderTriggerInput.volume),
+    volume: makeOrderTriggerInput.volume,
     insert_time: now,
     trigger_type: OrderTriggerTypeEnum.ParkedOrder,
   };
@@ -652,7 +653,7 @@ export const kfMakeBlockOrder = async (
     block_id,
     limit_price: makeOrderInput.limit_price || 0,
     frozen_price: makeOrderInput.limit_price || 0,
-    volume: BigInt(makeOrderInput.volume),
+    volume: makeOrderInput.volume,
     insert_time: now,
   };
 
@@ -947,7 +948,7 @@ export const getOrderLatencyDataByOrderStat = (
   return {
     latency_system: latencyData.latencySystem,
     latency_network: latencyData.latencyNetwork,
-    avg_price: latencyData.avg_price,
+    avg_price: dealKfDecimalPrecision(latencyData.avg_price, price_precision),
     avg_price_resolved: dealKfPrice(latencyData.avg_price, price_precision),
   };
 };
@@ -967,6 +968,8 @@ export const dealOrder = (
   const statusData = dealOrderStatus(order.status, order.error_msg);
   return {
     ...order,
+    volume: dealKfDecimalPrecision(order.volume),
+    volume_left: dealKfDecimalPrecision(order.volume_left),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -979,6 +982,8 @@ export const dealOrder = (
     update_time_resolved: dealKfTime(order.update_time, isHistory),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
+    limit_price: dealKfDecimalPrecision(order.limit_price, pricePrecision),
+    frozen_price: dealKfDecimalPrecision(order.frozen_price, pricePrecision),
   };
 };
 
@@ -998,6 +1003,7 @@ export const dealOrderTrigger = (
   const statusData = dealOrderTriggerStatus(order.status);
   return {
     ...order,
+    volume: dealKfDecimalPrecision(order.volume),
     source: order.source,
     dest: order.dest,
     uid_key: order.uid_key,
@@ -1040,6 +1046,7 @@ export const dealTrade = (
   };
   return {
     ...trade,
+    volume: dealKfDecimalPrecision(trade.volume),
     source: trade.source,
     dest: trade.dest,
     uid_key: trade.uid_key,
@@ -1055,12 +1062,18 @@ export const dealTrade = (
   };
 };
 
-export const getPosClosableVolume = (position: KungfuApi.Position): bigint => {
+export const getPosClosableVolume = (position: KungfuApi.Position): number => {
   return isShotable(position.instrument_type) ||
     isT0(position.instrument_type, position.exchange_id)
-    ? BigInt(Math.max(+Number(position.volume - position.frozen_total), 0))
-    : BigInt(
-        Math.max(+Number(position.yesterday_volume - position.frozen_total), 0),
+    ? Math.max(
+        dealKfDecimalPrecision(position.volume - position.frozen_total),
+        0,
+      )
+    : Math.max(
+        dealKfDecimalPrecision(
+          position.yesterday_volume - position.frozen_total,
+        ),
+        0,
       );
 };
 
@@ -1090,14 +1103,38 @@ export const dealPosition = (
     last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
     avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
     unrealized_pnl_resolved: pos.avg_open_price
-      ? dealAssetPrice(pos.unrealized_pnl, pricePrecision)
+      ? dealKfPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
-    open_volume: pos.open_volume ?? 0,
-    static_yesterday: pos.static_yesterday ?? 0,
-    close_volume:
-      Number(pos.open_volume) +
-        Number(pos.static_yesterday) -
-        Number(pos.volume) || 0,
+    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price, pricePrecision),
+    close_pnl: dealKfDecimalPrecision(pos.close_pnl, pricePrecision),
+    position_cost_price: dealKfDecimalPrecision(
+      pos.position_cost_price,
+      pricePrecision,
+    ),
+    position_pnl: dealKfDecimalPrecision(pos.position_pnl, pricePrecision),
+    pre_close_price: dealKfDecimalPrecision(
+      pos.pre_close_price,
+      pricePrecision,
+    ),
+    pre_settlement_price: dealKfDecimalPrecision(
+      pos.pre_settlement_price,
+      pricePrecision,
+    ),
+    realized_pnl: dealKfDecimalPrecision(pos.realized_pnl, pricePrecision),
+    settlement_price: dealKfDecimalPrecision(
+      pos.settlement_price,
+      pricePrecision,
+    ),
+    unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl, pricePrecision),
+    volume: dealKfDecimalPrecision(pos.volume), // 数量
+    yesterday_volume: dealKfDecimalPrecision(pos.yesterday_volume), // 昨仓数量
+    frozen_total: dealKfDecimalPrecision(pos.frozen_total), // 冻结数量
+    frozen_yesterday: dealKfDecimalPrecision(pos.frozen_yesterday), // 冻结昨仓
+    static_yesterday: dealKfDecimalPrecision(pos.static_yesterday), // 固定昨仓数量
+    open_volume: dealKfDecimalPrecision(pos.open_volume), // 今开数量
+    close_volume: dealKfDecimalPrecision(
+      pos.open_volume + pos.static_yesterday - pos.volume,
+    ),
   };
 };
 
@@ -1214,6 +1251,10 @@ export const isShotable = (instrumentType: InstrumentTypeEnum): boolean => {
     : false;
 };
 
+export const isShowPosition = (side: SideEnum): boolean => {
+  return showVolumeSideTypes.includes(side);
+};
+
 export const dealOrderTriggerStatus = (
   orderTriggerStatus: OrderTriggerStatusEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
@@ -1305,6 +1346,10 @@ export const dealByConfigItemType = (
       const label = options.filter((option) => option.value === value)[0]
         .label as string;
       return isLanguageKeyAvailable(label) ? t(label) : label;
+    case 'bool':
+      return value ? t('yes') : t('no');
+    case 'percent':
+      return `${value}%`;
     default:
       return value;
   }
@@ -1351,7 +1396,7 @@ export const dealOrderInputItem = (
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
     } else if (key === 'limit_price') {
       orderInputResolved[key] = {
-        name: dealAssetPrice(inputData[key], price_precision),
+        name: dealKfPrice(inputData[key], price_precision),
         color: 'default',
       };
     } else {
@@ -1372,7 +1417,10 @@ export const dealVolumeByInstrumentType = (
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-  return Math.floor(orderVolume / minOrderVolume) * minOrderVolume;
+  return (
+    Math.floor(dealKfDecimalPrecision(orderVolume / minOrderVolume)) *
+    minOrderVolume
+  );
 };
 
 export const buildTradingDataHeaders = (

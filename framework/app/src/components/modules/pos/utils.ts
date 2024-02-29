@@ -11,7 +11,7 @@ export const resolveTriggerOffset = (position: KungfuApi.PositionResolved) => {
     if (exchange_id !== 'SHFE' && exchange_id !== 'INE')
       return OffsetEnum.Close;
 
-    return position.yesterday_volume !== BigInt(0)
+    return position.yesterday_volume !== 0
       ? getOffsetByOffsetFilter('CloseYest', OffsetEnum.Close)
       : getOffsetByOffsetFilter('CloseToday', OffsetEnum.Close);
   } else {

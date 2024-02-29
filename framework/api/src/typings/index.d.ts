@@ -58,6 +58,8 @@ declare namespace KungfuApi {
     ETFTypeEnum,
     CashReplaceFlagEnum,
     BasketTypeEnum,
+    ContractTypeEnum,
+    CloseOutFlagEnum,
   } from './enums';
   import { Dayjs } from 'dayjs';
   import { Row } from 'fast-csv';
@@ -122,6 +124,7 @@ declare namespace KungfuApi {
     | 'percent'
     | 'error'
     | 'side' // select - number
+    | 'marginSide' // select - number
     | 'offset' // select - number
     | 'direction' // select - number
     | 'priceType' // select - number
@@ -143,7 +146,8 @@ declare namespace KungfuApi {
     | 'instrumentsCsv'
     | 'csvTable'
     | 'basket'
-    | 'checkboxGroup';
+    | 'checkboxGroup'
+    | 'contract';
 
   export type KfConfigValue =
     | string
@@ -187,6 +191,8 @@ declare namespace KungfuApi {
     columns?: KfConfigItem[];
     errMsg?: string;
     tip?: string;
+    showTipWithIcon?: boolean;
+    toolTipPlacement?: 'top' | 'bottom' | 'left' | 'right';
     default?: KfConfigValue;
     required?: boolean;
     max?: number;
@@ -204,9 +210,12 @@ declare namespace KungfuApi {
     importMode?: 'reset' | 'add';
     disableDateRange?: number; // 时间范围选择器不可选的日期范围
     abledTimeRange?: [string, string]; // 时间范围选择器不可选的时间范围
+    defaultDir?: string; // 选择文件相关的指定默认打开的文件夹
 
     maxlength?: number;
     showArg?: boolean; // 交易任务是否显示参数
+
+    customRadioList?: string[];
 
     // ---- some ui releated ----;
     noDivider?: boolean;
@@ -225,6 +234,7 @@ declare namespace KungfuApi {
     src: string;
     dest?: string;
     filter?: string;
+    level?: number;
   }
 
   export interface KfExtOriginBaseConfig<T extends KfExtTypeEnum> {
@@ -235,6 +245,7 @@ declare namespace KungfuApi {
     description: string;
     assets: Record<string, kfExtOriginConfigAsset>;
     dependencies: Record<string, string>;
+    keepAlive: boolean;
     extPath: string;
     readmePath: string;
     releaseNotePath: string;
@@ -256,6 +267,12 @@ declare namespace KungfuApi {
         settings: KfConfigItem[];
         fund_trans?: KfExtFundTransConfig | null;
         show_asset_margin?: boolean;
+        supportEtf?: boolean;
+        margin?: {
+          showMargin?: boolean;
+          marginMakeOrder?: boolean;
+          specifyContract?: boolean;
+        };
       };
       md?: {
         silent?: boolean;
@@ -326,6 +343,7 @@ declare namespace KungfuApi {
       silent?: boolean;
       access?: Record<string, string[]>;
       position: KfUIExtLocatorTypes;
+      sidebarIndex?: number;
       exhibit?: KfExhibitConfig;
       components?:
         | {
@@ -423,7 +441,13 @@ declare namespace KungfuApi {
     orderTrigger: Partial<Record<OrderTriggerConfigTypeEnum, boolean>>;
     settings: KfConfigItem[];
     fundTrans?: KfExtFundTransConfig | null;
+    supportEtf?: boolean;
     showAssetMargin?: boolean;
+    margin?: {
+      showMargin?: boolean;
+      marginMakeOrder?: boolean;
+      specifyContract?: boolean;
+    };
   }
 
   export interface KfMdExtConfig extends KfExtConfigBase<'md'> {
@@ -479,7 +503,9 @@ declare namespace KungfuApi {
   };
 
   export interface KfUIExtConfig extends KfExtConfigBase<'ui'> {
+    keepAlive: boolean;
     position: KfUIExtLocatorTypes;
+    sidebarIndex: number;
     exhibit: KfExhibitConfig;
     components:
       | {
@@ -548,6 +574,7 @@ declare namespace KungfuApi {
     hedge_flag: HedgeFlagEnum;
     is_swap: boolean;
     parent_id: bigint;
+    contract_id: string;
   }
   export type MakeOrderTriggerInput = MakeOrderInput;
 
@@ -617,7 +644,10 @@ declare namespace KungfuApi {
 
   export interface DataTable<T> {
     [hashed: string]: Readonly<T>;
-    filter(key: string, value: string | number | bigint): DataTable<T>;
+    filter(
+      key: string,
+      value: string | number | bigint | boolean,
+    ): DataTable<T>;
     nofilter(key: string, value: string | number | bigint): DataTable<T>;
     sort(key: string): Readonly<T>[];
     list(): Readonly<T>[];
@@ -656,7 +686,7 @@ declare namespace KungfuApi {
     short_margin: number; //融券占用保证金
     margin: number; //总占用保证金
 
-    cash_debt: number; //融资负债
+    cash_debt: number; //融资欠款 (不含利息和费用)
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
@@ -666,6 +696,15 @@ declare namespace KungfuApi {
 
     credit: number; //信贷额度
     collateral_ratio: number; //担保比例
+
+    total_debt: number; //总负债
+    net_assets: number; //净资产
+    long_total_debt: number; //融资总负债（融资欠款+利息+费用）
+    short_total_debt: number; //融券总负债 （融券市值+利息+费用）
+    gage_buy_fund_available: number; //担保品买入可用资金 = 可用资金 - 融券所得
+    credit_buy_fund_available: number; //融资买券可用资金 = 可用保证金
+    buyredeliver_fund_available: number; //买券还券可用资金 = 可用资金
+    directrepay_fund_available: number; //现金还款可用资金 = 担保品买入可用资金
   }
 
   export interface Instrument {
@@ -724,8 +763,8 @@ declare namespace KungfuApi {
     limit_price: number; //价格
     frozen_price: number; //冻结价格, 市价单冻结价格为0
 
-    volume: bigint; //数量
-    volume_left: bigint; //剩余数量
+    volume: number; //数量
+    volume_left: number; //剩余数量
 
     tax: number; //税
     commission: number; //手续费
@@ -776,10 +815,12 @@ declare namespace KungfuApi {
     exchange_id: string; //交易所代码
     instrument_type: InstrumentTypeEnum; //合约类型
 
+    contract_id: string; //合约唯一标识
+
     limit_price: number; //价格
     frozen_price: number; //冻结价格
 
-    volume: bigint; //数量
+    volume: number; //数量
 
     is_swap: boolean;
     side: SideEnum; //买卖方向
@@ -820,7 +861,7 @@ declare namespace KungfuApi {
 
     limit_price: number; //价格
     frozen_price: number; //冻结价格, 市价单冻结价格为0
-    volume: bigint; //数量
+    volume: number; //数量
     stop_price: number; // 条件触发价格
 
     status: OrderTriggerStatusEnum; // 触发器状态
@@ -873,7 +914,7 @@ declare namespace KungfuApi {
 
     limit_price: number; //价格
     frozen_price: number; //冻结价格, 市价单冻结价格为0
-    volume: bigint; //数量
+    volume: number; //数量
     stop_price: number; // 条件触发价格
 
     is_swap: boolean; // 互换单
@@ -938,7 +979,7 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number;
-    volume: bigint;
+    volume: number;
   }
 
   export interface BasketOrder {
@@ -950,8 +991,8 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
-    volume: bigint;
-    volume_left: bigint;
+    volume: number;
+    volume_left: number;
     status: OrderStatusEnum;
 
     source_id: number; // 下单方
@@ -988,13 +1029,30 @@ declare namespace KungfuApi {
     price_type: PriceTypeEnum;
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
-    volume: bigint;
+    volume: number;
 
     algo_type_id: string; // 算法类型
     algo_id: string; // 算法id
 
     args: string; // 自定义参数json的形式
     is_local: boolean; // 是否为一个本地算法单
+  }
+
+  export interface Contract {
+    instrument_id: string; // 标的
+    exchange_id: string; // 交易所id
+    contract_id: string; // 合约id
+    holder_uid: number; // 账户id
+    contract_type: ContractTypeEnum; // 合约类型
+    instrument_type: InstrumentTypeEnum; // 标的类型
+    opening_date: string; // 开仓日期
+    repayment_amt: number; // 已偿还金额（融资）
+    total_liability_amt: number; // 合约总欠款（融资）
+    repayment_qty: number; // 已偿还数量（融券）
+    total_liability_qty: number; // 合约总欠券 （融券）
+    unsettled_interest: number; // 未结利息罚息 未结利息+未结罚息
+    expiration_date: string; // 归还截止日期
+    close_out_flag: CloseOutFlagEnum; // 合约了结状态
   }
 
   export interface AlgoOrder {
@@ -1017,8 +1075,8 @@ declare namespace KungfuApi {
     price_level: PriceLevelEnum;
     price_offset: number; // 价格偏移
 
-    volume: bigint; // 目标量
-    volume_left: bigint; // 剩余数量
+    volume: number; // 目标量
+    volume_left: number; // 剩余数量
 
     algo_type_id: string; // 算法类型
     algo_id: string; // 算法id
@@ -1066,12 +1124,12 @@ declare namespace KungfuApi {
 
     direction: DirectionEnum; //持仓方向
 
-    volume: bigint; //数量
-    static_yesterday: bigint; // 固定昨仓数量
-    open_volume: bigint; // 今开数量
-    yesterday_volume: bigint; //昨仓数量
-    frozen_total: bigint; //冻结数量
-    frozen_yesterday: bigint; //冻结昨仓
+    volume: number; //数量
+    static_yesterday: number; // 固定昨仓数量
+    open_volume: number; // 今开数量
+    yesterday_volume: number; //昨仓数量
+    frozen_total: number; //冻结数量
+    frozen_yesterday: number; //冻结昨仓
 
     last_price: number; //最新价
     avg_open_price: number; //开仓均价
@@ -1091,7 +1149,7 @@ declare namespace KungfuApi {
 
   export interface PositionResolved extends Position {
     currency: CurrencyEnum;
-    closable_volume: bigint;
+    closable_volume: number;
     account_id_resolved: string;
     instrument_id_resolved: string;
     price_precision?: number;
@@ -1112,7 +1170,7 @@ declare namespace KungfuApi {
     pre_close_price: number; //昨收价
     pre_settlement_price: number; //昨结价
     last_price: number; //最新价
-    volume: bigint; //数量
+    volume: number; //数量
     turnover: number; //成交金额
     pre_open_interest: number; //昨持仓量
     open_interest: number; //持仓量
@@ -1127,8 +1185,8 @@ declare namespace KungfuApi {
 
     bid_price: number[]; //申买价
     ask_price: number[]; //申卖价
-    bid_volume: bigint[]; //申买量
-    ask_volume: bigint[]; //申卖量
+    bid_volume: number[]; //申买量
+    ask_volume: number[]; //申卖量
     trading_phase_code: string; //标的状态
   }
 
@@ -1149,8 +1207,8 @@ declare namespace KungfuApi {
     hedge_flag: HedgeFlagEnum; //投机套保标识
 
     price: number; //成交价格
-    volume: bigint; //成交量
-    close_today_volume: bigint; //平今日仓量(期货)
+    volume: number; //成交量
+    close_today_volume: number; //平今日仓量(期货)
 
     tax: number; //税
     commission: number; //手续费
@@ -1245,7 +1303,7 @@ declare namespace KungfuApi {
     id: number; // basket id
     name: string; // basket 名字
     volume_type: BasketVolumeTypeEnum; // 比例/数量
-    total_amount: bigint; // 总数量
+    total_amount: number; // 总数量
     basket_type: BasketTypeEnum; // 类型: Custom 或 ETF
     instrument_id: string; // ETF基金代码
     exchange_id: string; // ETF基金的市场
@@ -1253,9 +1311,9 @@ declare namespace KungfuApi {
     etf_value: number; // 基金份额净值
     cash_difference: number; // 现金差额
     max_cash_ratio: number; // 现金替代比例上限
-    max_purchase_volume: bigint; // 申购上限
-    max_redemption_volume: bigint; // 赎回上限
-    min_volume: bigint; // 最小申赎单位
+    max_purchase_volume: number; // 申购上限
+    max_redemption_volume: number; // 赎回上限
+    min_volume: number; // 最小申赎单位
     etf_type: ETFTypeEnum; // etf种类
     etf_status: ETFStatus; // etf状态
   }
@@ -1272,7 +1330,7 @@ declare namespace KungfuApi {
     exchange_id: string;
     instrument_type: InstrumentTypeEnum;
     direction: DirectionEnum;
-    volume: bigint; // 数量
+    volume: number; // 数量
     rate: number; // 比例
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率
@@ -1371,6 +1429,7 @@ declare namespace KungfuApi {
       instrumentId: string,
     ): boolean;
     requestPosition(): boolean;
+    requestContract(): boolean;
     cancelOrder(
       orderAction: OrderAction,
       tdLocation: KfLocation,
@@ -1520,7 +1579,7 @@ declare namespace KungfuApi {
 
   export interface SessionStore {
     getAllSessions(): Session[];
-    getSessionsForLocation(kfLocation: KfLocation): Session[];
+    getSessionsForLocation(kfLocation: KungfuApi.KfExtractLocation): Session[];
   }
 
   export interface Kungfu {
@@ -1620,11 +1679,17 @@ declare namespace KungfuApi {
     script: string;
   }
 
+  export interface KfExtractLocation extends KungfuApi.KfLocation {
+    uname: string;
+    uid: number;
+  }
+
   export type DerivedKfLocation =
     | KfLocation
     | KfExtraLocation
     | KfConfig
-    | KfExtServiceLocation;
+    | KfExtServiceLocation
+    | KfExtractLocation;
 
   export type ScheduleTaskMode = 'restart' | 'start' | 'stop';
 
@@ -1643,7 +1708,7 @@ declare namespace KungfuApi {
   }
 
   export interface BoardStyle {
-    flex: string;
+    flex?: string;
     height?: string;
   }
 }

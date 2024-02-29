@@ -96,6 +96,16 @@ public:
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_trade, context, trade, location, dest);
   }
 
+  void on_algo_order(strategy::Context_ptr &context, const AlgoOrder &algo_order,
+                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_algo_order, context, algo_order, location, dest);
+  }
+
+  void on_algo_order_action_error(strategy::Context_ptr &context, const AlgoOrderActionError &error,
+                                  const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_algo_order_action_error, context, error, location, dest);
+  }
+
   void on_deregister(strategy::Context_ptr &context, const Deregister &deregister,
                      const kungfu::yijinjing::data::location_ptr &location) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_deregister, context, deregister, location);
@@ -152,19 +162,12 @@ void bind_strategy(pybind11::module &m) {
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool, const std::string &>())
       .def_property_readonly("context", &strategy::Runner::get_context)
-      .def("set_begin_time", &strategy::Runner::set_begin_time)
-      .def("set_end_time", &strategy::Runner::set_end_time)
       .def("set_matcher", &strategy::Runner::set_matcher)
       .def("set_from_indexer", &strategy::Runner::set_from_indexer)
       .def("set_to_indexer", &strategy::Runner::set_to_indexer)
       .def("set_time_interval", &strategy::Runner::set_time_interval)
       .def("set_report", &strategy::Runner::set_report)
       .def("set_backtest_config", &strategy::Runner::set_backtest_config)
-      .def("now", &strategy::Runner::now)
-      .def("run", &strategy::Runner::run)
-      .def("setup", &strategy::Runner::setup)
-      .def("step", &strategy::Runner::step)
-      .def("on_exit", &strategy::Runner::on_exit)
       .def("add_strategy", &strategy::Runner::add_strategy);
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
@@ -187,7 +190,7 @@ void bind_strategy(pybind11::module &m) {
       .def("insert_order", &strategy::Context::insert_order, py::arg("instrument_id"), py::arg("exchange"),
            py::arg("source"), py::arg("account"), py::arg("limit_price"), py::arg("volume"), py::arg("type"),
            py::arg("side"), py::arg("offset") = Offset::Open, py::arg("hedge_flag") = HedgeFlag::Speculation,
-           py::arg("is_swap") = false, py::arg("block_id") = 0, py::arg("parent_id") = 0)
+           py::arg("is_swap") = false, py::arg("block_id") = 0, py::arg("parent_id") = 0, py::arg("contract_id") = "")
       .def("insert_block_message", &strategy::Context::insert_block_message, py::arg("source"), py::arg("account"),
            py::arg("opponent_seat"), py::arg("match_number"), py::arg("is_specific") = false)
       .def("insert_order_trigger", &strategy::Context::insert_order_trigger, py::arg("instrument_id"),

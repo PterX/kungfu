@@ -12,7 +12,6 @@ import {
   AppStateStatus,
   Pm2ProcessStatus,
   Side,
-  Offset,
   Direction,
   HedgeFlag,
   PriceType,
@@ -23,6 +22,8 @@ import {
   CommissionMode,
   UnderweightType,
   PriceLevel,
+  marginSideConfig,
+  Offset,
 } from '../config/tradingConfig';
 import {
   KfCategoryEnum,
@@ -67,7 +68,6 @@ import {
   parseTaskSettingsFromEnv,
   deepClone,
   initFormTimePicker,
-  concatPrimaryKey,
   dealMillionSencond2NanoSecond,
   dealDateDayOrMonth,
 } from './commonUtils';
@@ -568,31 +568,6 @@ export const getPriceTypeConfig = (): Record<
     }, {});
 };
 
-export const getOffsetConfig = (): Record<
-  PriceTypeEnum,
-  KungfuApi.KfTradeValueCommonData
-> => {
-  const rootPackageJson = readRootPackageJsonSync();
-  const offsetConfig =
-    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
-    ({} as Record<string, boolean>);
-  const unsupportedOffset = Object.keys(offsetConfig).filter((key) => {
-    if (offsetConfig[key] === false && OffsetEnum[key] !== undefined) {
-      return true;
-    }
-    return false;
-  });
-
-  return Object.keys(OffsetEnum)
-    .filter((key) => Number.isNaN(+key))
-    .filter((key) => key !== 'Unknown')
-    .filter((offset) => !unsupportedOffset.includes(offset))
-    .map((offset) => OffsetEnum[offset])
-    .reduce((pre, enumValue: OffsetEnum) => {
-      return { ...pre, ...{ [enumValue]: Offset[enumValue] } };
-    }, {});
-};
-
 export const getOffsetByOffsetFilter = (
   offsetKey: keyof typeof OffsetEnum,
   defaultOffset: OffsetEnum,
@@ -822,7 +797,7 @@ export const dealLedgerTradingData = <T>(
   let dataTableResolved = tradingData;
 
   if (tradingDataTypeName === 'Position') {
-    dataTableResolved = dataTableResolved.nofilter('volume', BigInt(0));
+    dataTableResolved = dataTableResolved.nofilter('volume', 0);
   }
 
   dataTableResolved = dataTableResolved
@@ -892,6 +867,31 @@ export const dealTradingData = <T>(
   );
 };
 
+export const getOffsetConfig = (): Record<
+  PriceTypeEnum,
+  KungfuApi.KfTradeValueCommonData
+> => {
+  const rootPackageJson = readRootPackageJsonSync();
+  const offsetConfig =
+    rootPackageJson?.appConfig?.makeOrder?.offsetFilter ||
+    ({} as Record<string, boolean>);
+  const unsupportedOffset = Object.keys(offsetConfig).filter((key) => {
+    if (offsetConfig[key] === false && OffsetEnum[key] !== undefined) {
+      return true;
+    }
+    return false;
+  });
+
+  return Object.keys(OffsetEnum)
+    .filter((key) => Number.isNaN(+key))
+    .filter((key) => key !== 'Unknown')
+    .filter((offset) => !unsupportedOffset.includes(offset))
+    .map((offset) => OffsetEnum[offset])
+    .reduce((pre, enumValue: OffsetEnum) => {
+      return { ...pre, ...{ [enumValue]: Offset[enumValue] } };
+    }, {});
+};
+
 export const replaceNonAlphaNumericWithSpace = (
   value: KungfuApi.KfConfigValue,
 ) => {
@@ -909,21 +909,20 @@ export const getCombineValueByPrimaryKeys = (
   formState: Record<string, KungfuApi.KfConfigValue>,
   extraValue = '',
 ) => {
-  return concatPrimaryKey(
-    [
-      extraValue || '',
-      ...primaryKeys.map((key) =>
-        replaceNonAlphaNumericWithSpace(formState[key]),
-      ),
-    ].filter((item) => item !== ''),
-  );
+  return [
+    extraValue || '',
+    ...primaryKeys.map((key) =>
+      replaceNonAlphaNumericWithSpace(formState[key]),
+    ),
+  ]
+    .filter((item) => item !== '')
+    .join('-');
 };
 
 export const numberEnumRadioType: Record<
   string,
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
-  offset: getOffsetConfig(),
   hedgeFlag: HedgeFlag,
   direction: Direction,
   volumeCondition: VolumeCondition,
@@ -935,11 +934,19 @@ export const numberEnumSelectType: Record<
   string,
   Record<number, KungfuApi.KfTradeValueCommonData>
 > = {
-  side: Side,
   priceType: PriceType,
   priceLevel: PriceLevel,
   instrumentType: InstrumentType,
   underweightType: UnderweightType,
+};
+
+export const enableCustomRadioType: Record<
+  string,
+  Record<string, KungfuApi.KfTradeValueCommonData>
+> = {
+  side: Side,
+  marginSide: marginSideConfig,
+  offset: getOffsetConfig(),
 };
 
 export const stringEnumSelectType: Record<
@@ -956,6 +963,38 @@ export const KfConfigValueNumberType = [
   'percent',
   ...Object.keys(numberEnumSelectType || {}),
   ...Object.keys(numberEnumRadioType || {}),
+  ...Object.keys(enableCustomRadioType || {}),
+];
+
+export const FormItemNeedIcon = [
+  'str',
+  'password',
+  'int',
+  'float',
+  'percent',
+  'side',
+  'priceType',
+  'priceLevel',
+  'radio',
+  'checkbox',
+  'checkboxGroup',
+  'select',
+  'multiSelect',
+  'instrument',
+  'instruments',
+  'contract',
+  'td',
+  'tds',
+  'md',
+  'md&operator',
+  'operator',
+  'strategy',
+  'basket',
+  'bool',
+  ...Object.keys(numberEnumSelectType || {}),
+  ...Object.keys(stringEnumSelectType || {}),
+  ...Object.keys(numberEnumRadioType || {}),
+  ...Object.keys(enableCustomRadioType || {}),
 ];
 
 export const KfConfigValueBooleanType = ['bool', 'checkbox'];
@@ -1148,35 +1187,43 @@ export async function startReplay(
         );
         const enableMatcher = replayConfig.enable_matcher;
         return startTask(
-          location,
+          {
+            ...location,
+            mode: enableMatcher ? 'backtest' : 'replay',
+          },
           soPath,
           dealArgs,
           configSettings,
-          enableMatcher ? 'backtest' : 'replay',
           replayConfig,
         );
       } else {
         const enableMatcher = replayConfig.enable_matcher;
         return startStrategyOperator(
-          location,
+          {
+            ...location,
+            mode: enableMatcher ? 'backtest' : 'replay',
+          },
           '',
-          enableMatcher ? 'backtest' : 'replay',
           replayConfig,
         );
       }
     case 'td':
       return startTd(
         `${location.group}_${location.name}_${location.mode}`,
-        location,
-        'replay',
+        {
+          ...location,
+          mode: 'replay',
+        },
         replayConfig,
       );
     case 'operator':
       const enableMatcher = replayConfig.enable_matcher;
       return startStrategyOperator(
-        location,
+        {
+          ...location,
+          mode: enableMatcher ? 'backtest' : 'replay',
+        },
         '',
-        enableMatcher ? 'backtest' : 'replay',
         replayConfig,
       );
     case 'system':

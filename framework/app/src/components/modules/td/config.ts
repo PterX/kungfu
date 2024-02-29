@@ -9,7 +9,7 @@ const { t } = VueI18n.global;
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
   sorter: (
-    dataIndex: string,
+    dataIndex: keyof KungfuApi.Asset,
   ) => (
     a: KungfuApi.KfConfig,
     b: KungfuApi.KfConfig,
@@ -18,7 +18,6 @@ export const getColumns = (
   marginSorter: (
     dataIndex: string,
   ) => (a: KungfuApi.KfConfig, b: KungfuApi.KfConfig) => number,
-  isShowMarginTrading: boolean,
 ): AntTableColumns =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'td')
@@ -54,7 +53,7 @@ export const getColumns = (
       },
       {
         title: t('tdConfig.unrealized_pnl'),
-        dataIndex: 'unrealizedPnl',
+        dataIndex: 'unrealized_pnl',
         align: 'right',
         sorter: {
           compare: sorter('unrealized_pnl'),
@@ -62,8 +61,8 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.marked_value'),
-        dataIndex: 'marketValue',
+        title: t('tdConfig.market_value'),
+        dataIndex: 'market_value',
         align: 'right',
         sorter: {
           compare: sorter('market_value'),
@@ -71,7 +70,7 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.margin'),
+        title: t('tdConfig.used_margin'),
         dataIndex: 'margin',
         align: 'right',
         sorter: {
@@ -80,7 +79,7 @@ export const getColumns = (
         width: 110,
       },
       {
-        title: t('tdConfig.avail_money'),
+        title: t('tdConfig.avail_funds'),
         dataIndex: 'avail',
         align: 'right',
         sorter: {
@@ -88,38 +87,78 @@ export const getColumns = (
         },
         width: 110,
       },
-
-      ...(isShowMarginTrading
-        ? [
-            {
-              title: t('tdConfig.avail_margin'),
-              dataIndex: 'avail_margin',
-              align: 'right',
-              sorter: {
-                compare: marginSorter('avail_margin'),
-              },
-              width: 110,
-            },
-            {
-              title: t('tdConfig.cash_debt'),
-              dataIndex: 'cash_debt',
-              align: 'right',
-              sorter: {
-                compare: marginSorter('cash_debt'),
-              },
-              width: 110,
-            },
-            {
-              title: t('tdConfig.total_asset'),
-              dataIndex: 'total_asset',
-              align: 'right',
-              sorter: {
-                compare: marginSorter('total_asset'),
-              },
-              width: 110,
-            },
-          ]
-        : []),
+      {
+        title: t('tdConfig.frozen_funds'),
+        dataIndex: 'frozen_cash',
+        align: 'right',
+        sorter: {
+          compare: sorter('frozen_cash'),
+        },
+        width: 110,
+      },
+      {
+        title: t('tdConfig.short_sale_proceeds'),
+        dataIndex: 'short_cash',
+        align: 'right',
+        sorter: {
+          compare: sorter('short_cash'),
+        },
+        width: 160,
+      },
+      {
+        title: t('tdConfig.maintain_margin_ratio'),
+        dataIndex: 'collateral_ratio',
+        align: 'right',
+        sorter: {
+          compare: sorter('collateral_ratio'),
+        },
+        width: 110,
+      },
+      {
+        title: t('tdConfig.avail_margin'),
+        dataIndex: 'avail_margin',
+        align: 'right',
+        sorter: {
+          compare: marginSorter('avail_margin'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.total_liabilities'),
+        dataIndex: 'total_debt',
+        align: 'right',
+        sorter: {
+          compare: sorter('total_debt'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.equity'),
+        dataIndex: 'net_assets',
+        align: 'right',
+        sorter: {
+          compare: sorter('net_assets'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.total_borrowed_funds'),
+        dataIndex: 'long_total_debt',
+        align: 'right',
+        sorter: {
+          compare: sorter('long_total_debt'),
+        },
+        width: 140,
+      },
+      {
+        title: t('tdConfig.total_short_liabilities'),
+        dataIndex: 'short_total_debt',
+        align: 'right',
+        sorter: {
+          compare: sorter('short_total_debt'),
+        },
+        width: 140,
+      },
 
       {
         title: t('tdConfig.actions'),
@@ -130,17 +169,29 @@ export const getColumns = (
       },
     ]);
 
-export const assetDetailShowList = [
-  { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
-  { key: 'market_value', label: t('tdConfig.marked_value') },
-  { key: 'margin', label: t('tdConfig.margin') },
-  { key: 'avail', label: t('tdConfig.avail_money') },
-] as const;
+export const getAssetDetailShowList = () =>
+  [
+    { key: 'unrealized_pnl', label: t('tdConfig.unrealized_pnl') },
+    {
+      key: 'market_value',
+      label: t('tdConfig.market_value'),
+    },
+    { key: 'margin', label: t('tdConfig.used_margin') },
+    { key: 'avail', label: t('tdConfig.avail_funds') },
+  ] as const;
 
 export const assetMarginDetailShowList = [
+  { key: 'frozen_cash', label: t('tdConfig.frozen_funds') },
+  { key: 'collateral_ratio', label: t('tdConfig.maintain_margin_ratio') },
   { key: 'avail_margin', label: t('tdConfig.avail_margin') },
-  { key: 'cash_debt', label: t('tdConfig.cash_debt') },
-  { key: 'total_asset', label: t('tdConfig.total_asset') },
+  { key: 'short_cash', label: t('tdConfig.short_sale_proceeds') },
+  { key: 'total_debt', label: t('tdConfig.total_liabilities') },
+  { key: 'net_assets', label: t('tdConfig.equity') },
+  { key: 'long_total_debt', label: t('tdConfig.total_borrowed_funds') },
+  {
+    key: 'short_total_debt',
+    label: t('tdConfig.total_short_liabilities'),
+  },
 ] as const;
 
 const orderSortKey = getTradingDataSortKey('Order');
@@ -179,7 +230,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
       const tdList = (children || []) as KungfuApi.KfConfig[];
       const locationUids = tdList.map((item) => item.location_uid);
       return position
-        .nofilter('volume', BigInt(0))
+        .nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)
         .sort(positionSortKey)
         .reverse()

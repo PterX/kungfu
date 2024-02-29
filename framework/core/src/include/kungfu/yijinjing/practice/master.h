@@ -23,7 +23,7 @@ struct timer_task {
 
 class master : public hero {
 public:
-  explicit master(yijinjing::data::location_ptr home, bool low_latency = false, bool bypass_cached = false);
+  explicit master(const yijinjing::data::location_ptr &home, bool low_latency = false);
 
   void on_exit() override;
 
@@ -46,6 +46,8 @@ public:
   [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
   void on_request_deregister(const event_ptr &event);
+
+  bool is_reactable(const event_ptr &event) override;
 
 protected:
   int64_t last_check_;

@@ -35,6 +35,8 @@ import {
 import { bindIPCListener } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/ipcListener';
 import { useTradingTask } from '@kungfu-trader/kungfu-app/src/components/modules/tradingTask/utils';
 import { setAllRiskSettingList } from '@kungfu-trader/kungfu-js-api/actions';
+import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks';
+import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
 
 setHtmlTitle();
 
@@ -144,6 +146,9 @@ onMounted(() => {
   });
 
   app?.proxy?.$globalBus.next({ tag: 'appMounted' });
+  (globalThis.HookKeeper as KfHookKeeper)
+    .getHooks()
+    .lifeCycle.trigger(LifeCycleKeys.AppMounted);
 });
 
 onBeforeUnmount(() => {
@@ -156,7 +161,20 @@ onBeforeUnmount(() => {
   <a-config-provider :locale="locale" :autoInsertSpaceInButton="false">
     <div class="app__warp">
       <KfLayoutVue>
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component
+              :is="Component"
+              v-if="$route.meta.keepAlive"
+              :key="$route.name"
+            />
+          </keep-alive>
+          <component
+            :is="Component"
+            v-if="!$route.meta.keepAlive"
+            :key="$route.name"
+          />
+        </router-view>
       </KfLayoutVue>
     </div>
 

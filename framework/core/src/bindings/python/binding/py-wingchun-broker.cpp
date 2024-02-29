@@ -91,6 +91,8 @@ public:
 
   bool req_order_trigger() override { PYBIND11_OVERLOAD(bool, Trader, req_order_trigger); }
 
+  bool req_contract() override { PYBIND11_OVERLOAD(bool, Trader, req_contract); }
+
   bool req_algo_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_algo_order, event); }
 
   bool req_history_order(const event_ptr &event) override { PYBIND11_OVERLOAD(bool, Trader, req_history_order, event); }
@@ -105,13 +107,9 @@ public:
 };
 
 void bind_broker(pybind11::module &m) {
-  py::class_<BrokerVendor, PyBrokerVendor, std::shared_ptr<BrokerVendor>>(m, "BrokerVendor")
-      .def(py::init<location_ptr, bool, const std::string &>())
-      .def_property_readonly("home", &BrokerVendor::get_home)
-      .def("set_begin_time", &BrokerVendor::set_begin_time)
-      .def("set_end_time", &BrokerVendor::set_end_time)
-      .def("get_location", &BrokerVendor::get_location)
-      .def("run", &BrokerVendor::run);
+  py::class_<BrokerVendor, PyBrokerVendor, kungfu::yijinjing::practice::apprentice, std::shared_ptr<BrokerVendor>>(
+      m, "BrokerVendor")
+      .def(py::init<location_ptr, bool, const std::string &>());
 
   py::class_<MarketData, PyMarketData, std::shared_ptr<MarketData>>(m, "MarketData")
       .def(py::init<BrokerVendor &>())
@@ -150,6 +148,7 @@ void bind_broker(pybind11::module &m) {
       .def("on_recover", &Trader::on_recover)
       .def("on_time_key_value", &Trader::on_time_key_value)
       .def("on_custom_event", &Trader::on_custom_event)
+      .def("on_risk_setting", &Trader::on_risk_setting)
       .def("now", &Trader::now)
       .def("get_writer", &Trader::get_writer)
       .def("has_writer", &Trader::has_writer)
@@ -185,12 +184,12 @@ void bind_broker(pybind11::module &m) {
       .def("get_vendor", &Trader::get_vendor);
 
   py::class_<MarketDataVendor, BrokerVendor, std::shared_ptr<MarketDataVendor>>(m, "MarketDataVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def(py::init<locator_ptr, const std::string &, const std::string &, mode, bool, const std::string &>())
       .def("set_service", &MarketDataVendor::set_service)
       .def("get_arguments", &MarketDataVendor::get_arguments);
 
   py::class_<TraderVendor, BrokerVendor, std::shared_ptr<TraderVendor>>(m, "TraderVendor")
-      .def(py::init<locator_ptr, const std::string &, const std::string &, bool, const std::string &>())
+      .def(py::init<locator_ptr, const std::string &, const std::string &, mode, bool, const std::string &>())
       .def("set_service", &TraderVendor::set_service)
       .def("get_arguments", &TraderVendor::get_arguments);
 }

@@ -16,7 +16,9 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::strategy {
-Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {}
+Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {
+  bypass_accounting_ = std::getenv("KF_BYPASS_ACCOUNTING") != nullptr;
+}
 
 bool Context::is_book_held() const { return book_held_; }
 

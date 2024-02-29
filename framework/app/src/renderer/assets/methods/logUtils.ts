@@ -101,7 +101,9 @@ export const useLogInit = (
 
   const updateLoading = () => {
     isLoading.value = true;
-    loadingTimeoutId && clearTimeout(loadingTimeoutId);
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+    }
     loadingTimeoutId = setTimeout(() => {
       isLoading.value = false;
     }, 1000);
@@ -162,9 +164,12 @@ export const useLogInit = (
       clearTimeout(loadingTimeoutId);
       loadingTimeoutId = null;
     }
+    isLoading.value = false;
     logList.list = [];
-    LogTail?.unwatch();
-    LogTail = null;
+    if (LogTail) {
+      LogTail.unwatch();
+      LogTail = null;
+    }
   };
 
   return {

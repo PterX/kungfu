@@ -108,10 +108,16 @@ interface BuiltinComponentPropsMap {
       strategyExtConfig: KungfuApi.KfStrategyExtConfig,
     ) => boolean;
   };
-  ConfigSettingForm?: {
+  MakeOrder?: {
     sideFilter?: (instrumentType: InstrumentTypeEnum) => string[];
   };
 }
+
+// interface BuiltinComponentInjectKeysMap{
+//   Side:{
+//     sideFilter?: (instrumentType: InstrumentTypeEnum) => string[];
+//   }
+// }
 
 declare module 'worker-loader!*' {
   class WebpackWorker extends Worker {

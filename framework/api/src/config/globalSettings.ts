@@ -63,6 +63,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: '-l info',
       },
       {
+        key: 'logFrame',
+        name: t('globalSettingConfig.log_frame'),
+        tip: t('globalSettingConfig.log_frame_desc'),
+        type: 'bool',
+        default: false,
+      },
+      {
         key: 'language',
         name: t('globalSettingConfig.language'),
         tip: t('globalSettingConfig.select_language_desc'),
@@ -81,6 +88,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         key: 'bypassArchive',
         name: t('globalSettingConfig.bypass_archive'),
         tip: t('globalSettingConfig.bypass_archive_desc'),
+        type: 'bool',
+        default: false,
+      },
+      {
+        key: 'bypassArchiveDev',
+        name: t('globalSettingConfig.bypass_archive_dev'),
+        tip: t('globalSettingConfig.bypass_archive_dev_desc'),
         type: 'bool',
         default: false,
       },
@@ -314,7 +328,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
     ? [
         {
           key: 'update',
-          name: t('autoUpdater.update'),
+          name: t('autoUpdater.update_version'),
           config: [
             {
               key: 'isCheckVersion',
@@ -333,6 +347,8 @@ export const getKfGlobalSettingsValue = (): Record<
   string,
   Record<string, KungfuApi.KfConfigValue>
 > => {
+  if (!fse.existsSync(KF_CONFIG_PATH)) return {};
+
   return fse.readJSONSync(KF_CONFIG_PATH) as Record<
     string,
     Record<string, KungfuApi.KfConfigValue>

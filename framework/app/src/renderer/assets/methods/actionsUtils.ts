@@ -3,7 +3,6 @@ import { dialog, shell } from '@electron/remote';
 import { ensureRemoveLocation } from '@kungfu-trader/kungfu-js-api/actions';
 import {
   hashInstrumentUKey,
-  sessionStore,
   longfist,
 } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
@@ -12,9 +11,13 @@ import {
   kfRequestMarketData,
   getKungfuHistoryData,
   getNanoDateString,
+  isShowPosition,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
-import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
+import {
+  setKfConfig,
+  getAllSessions,
+} from '@kungfu-trader/kungfu-js-api/kungfu/store';
 import { KfCategoryNameMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   BrokerStateStatusTypes,
@@ -62,7 +65,7 @@ import {
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
-  getNaturalNumber,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -92,6 +95,8 @@ import {
   nextTick,
   onBeforeUnmount,
   onMounted,
+  onActivated,
+  onDeactivated,
   reactive,
   ref,
   Ref,
@@ -158,7 +163,7 @@ export const useUpdateVersion = () => {
   const errorMessage = ref('');
   const process = ref<number>();
   const skippedVersionList = globalStorage.getItem('skippedVersions');
-  if (skippedVersionList) {
+  if (skippedVersionList && skippedVersionList.length > 0) {
     hasSkiped.value = true;
     const list = skippedVersionList;
     lastSkippedVersion.value = list[list.length - 1];
@@ -177,7 +182,7 @@ export const useUpdateVersion = () => {
   const handleToConfirmStartUpdate = (newVersion: string) => {
     popoverVisible.value = false;
     extraConfirmModal(
-      t('autoUpdater.update'),
+      t('autoUpdater.update_version'),
       t('autoUpdater.find_new_version', {
         version: newVersion,
       }),
@@ -199,13 +204,17 @@ export const useUpdateVersion = () => {
     ipcRenderer.send('auto-update-to-start-download');
   };
 
+  const handleDownloadLatest = () => {
+    ipcRenderer.send('auto-update-to-download-latest');
+  };
+
   const skipVersion = (version: string) => {
     ipcRenderer.send('auto-update-skip-version', version);
   };
 
   const handleQuitAndInstall = () => {
     confirmModal(
-      t('autoUpdater.update'),
+      t('autoUpdater.update_version'),
       t('autoUpdater.warning_before_install'),
     ).then((flag) => {
       if (flag) {
@@ -245,6 +254,7 @@ export const useUpdateVersion = () => {
         }
 
         if (data.name === 'auto-update-start-download') {
+          hasNewVersion.value = true;
           downloadStarted.value = true;
           progressStatus.value = 'active';
           popoverVisible.value = true;
@@ -284,6 +294,7 @@ export const useUpdateVersion = () => {
     errorMessage,
     handleToRetryCheckUpdate,
     handleToStartDownload,
+    handleDownloadLatest,
     skipVersion,
     handleQuitAndInstall,
   };
@@ -870,6 +881,10 @@ export const showTradingDataDetail = <
   item: T | (() => T),
   typename: string,
   filterKeys?: Array<keyof T>,
+  renameValues?: Record<
+    string,
+    (item: KungfuApi.KfConfigValue) => KungfuApi.KfConfigValue
+  >,
 ): Promise<boolean> => {
   const generateVnode = () => {
     const itemResolved = typeof item === 'function' ? item() : item;
@@ -888,12 +903,15 @@ export const showTradingDataDetail = <
         }
         return dataResolved[key] !== '';
       })
-      .map((key) =>
-        h('div', { class: 'trading-data-detail-row' }, [
+      .map((key) => {
+        const value = renameValues?.[key]
+          ? renameValues[key](dataResolved[key])
+          : dataResolved[key];
+        return h('div', { class: 'trading-data-detail-row' }, [
           h('span', { class: 'label' }, `${key}`),
-          h('span', { class: 'value' }, `${dataResolved[key]}`),
-        ]),
-      );
+          h('span', { class: 'value' }, `${value}`),
+        ]);
+      });
 
     return h(
       'div',
@@ -1429,7 +1447,7 @@ export const useQuote = (): {
   const quotes = ref<Record<string, KungfuApi.Quote>>({});
   const app = getCurrentInstance();
 
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
@@ -1439,6 +1457,10 @@ export const useQuote = (): {
 
       onBeforeUnmount(() => {
         subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
+        subscription?.unsubscribe();
       });
     }
   });
@@ -1508,7 +1530,9 @@ export const useQuote = (): {
       return '--';
     }
 
-    const percent = (last_price - pre_close_price) / pre_close_price;
+    const percent = dealKfDecimalPrecision(
+      (last_price - pre_close_price) / pre_close_price,
+    );
     if (percent === Infinity) {
       return '--';
     }
@@ -1665,7 +1689,7 @@ export const useDealInstruments = (): void => {
 };
 
 export const useActiveInstruments = () => {
-  const { instrumentsMap } = useGlobalStore();
+  const { instrumentsMap } = storeToRefs(useGlobalStore());
 
   const getInstrumentByIds = (
     instrumentId: string,
@@ -1673,8 +1697,7 @@ export const useActiveInstruments = () => {
     forceConvert = false,
   ) => {
     const ukey = hashInstrumentUKey(instrumentId, exchangeId);
-    const instrumentResolved = instrumentsMap[ukey];
-
+    const instrumentResolved = instrumentsMap.value[ukey];
     if (instrumentResolved) {
       return instrumentResolved;
     } else {
@@ -1914,7 +1937,7 @@ export const useCurrentGlobalKfLocation = (
       | KungfuApi.KfConfig
       | KungfuApi.KfExtraLocation,
   ): string => {
-    if (currentGlobalKfLocation.value === null) return '';
+    if (!currentGlobalKfLocation.value) return '';
 
     if (
       getIdByKfLocation(record) ===
@@ -2051,7 +2074,9 @@ export const useAssets = (): {
   getAssetsByKfConfig(
     kfLocation: KungfuApi.KfLocation | KungfuApi.KfConfig,
   ): KungfuApi.Asset;
-  getAssetsByTdGroup(tdGroup: KungfuApi.KfExtraLocation): KungfuApi.Asset;
+  getAssetsByTdGroup(
+    tdGroup: KungfuApi.KfExtraLocation,
+  ): KungfuApi.Asset | Record<string, never>;
 } => {
   const { assets } = storeToRefs(useGlobalStore());
 
@@ -2064,21 +2089,29 @@ export const useAssets = (): {
 
   const getAssetsByTdGroup = (
     tdGroup: KungfuApi.KfExtraLocation,
-  ): KungfuApi.Asset => {
-    const children = (tdGroup.children || []) as KungfuApi.KfConfig[];
-    const assetsList = children
-      .map((item) => getAssetsByKfConfig(item))
-      .filter((item) => Object.keys(item).length);
-
-    return assetsList.reduce((allAssets, asset) => {
-      return {
-        ...allAssets,
-        unrealized_pnl: (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl,
-        market_value: (allAssets.market_value || 0) + asset.market_value,
-        margin: (allAssets.margin || 0) + asset.margin,
-        avail: (allAssets.avail || 0) + asset.avail,
-        avail_margin: (allAssets.avail_margin || 0) + asset.avail_margin,
-      };
+  ): KungfuApi.Asset | Record<string, never> => {
+    const children = (tdGroup?.children || []) as KungfuApi.KfConfig[];
+    return children.reduce((allAssets, item) => {
+      const asset = getAssetsByKfConfig(item);
+      if (Object.keys(asset).length === 0) return allAssets;
+      allAssets.unrealized_pnl =
+        (allAssets.unrealized_pnl || 0) + asset.unrealized_pnl;
+      allAssets.market_value =
+        (allAssets.market_value || 0) + asset.market_value;
+      allAssets.margin = (allAssets.margin || 0) + asset.margin;
+      allAssets.avail = (allAssets.avail || 0) + asset.avail;
+      allAssets.avail_margin =
+        (allAssets.avail_margin || 0) + asset.avail_margin;
+      allAssets.net_assets = (allAssets.net_assets || 0) + asset.net_assets;
+      allAssets.long_total_debt =
+        (allAssets.long_total_debt || 0) + asset.long_total_debt;
+      allAssets.total_debt = (allAssets.total_debt || 0) + asset.total_debt;
+      allAssets.short_cash = (allAssets.short_cash || 0) + asset.short_cash;
+      allAssets.frozen_cash = (allAssets.frozen_cash || 0) + asset.frozen_cash;
+      allAssets.total_asset = (allAssets.total_asset || 0) + asset.total_asset;
+      allAssets.short_total_debt =
+        (allAssets.short_total_debt || 0) + asset.short_total_debt;
+      return allAssets;
     }, {} as KungfuApi.Asset);
   };
 
@@ -2209,11 +2242,6 @@ export const useReplay = (): {
       filePath = await getOperatorPath(record);
     }
     sessionOptions.value = [];
-    const sessions = sessionStore.getAllSessions();
-    if (!sessions || sessions.length === 0) {
-      error(t('replay.process_has_not_been_started'));
-      return;
-    }
 
     let currentSession: KungfuApi.Session | null = curSession || null;
     let sessionInfo = '';
@@ -2228,6 +2256,11 @@ export const useReplay = (): {
         value: `${beginTimeStr}--${endTimeStr}`,
       });
     } else {
+      const sessions = await getAllSessions(null, window?.watcher);
+      if (!sessions || sessions.length === 0) {
+        error(t('replay.process_has_not_been_started'));
+        return;
+      }
       for (let i = sessions.length - 1; i >= 0; i--) {
         const item = sessions[i];
         if (
@@ -2411,13 +2444,11 @@ export const useCurrentPositionList = () => {
   >(['uid_key', 'update_time']);
   const currentPositionList = ref<KungfuApi.PositionResolved[]>([]);
 
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject.subscribe(
         (watcher: KungfuApi.Watcher) => {
-          if (currentGlobalKfLocation.value === null) {
-            return;
-          }
+          if (!currentGlobalKfLocation.value) return;
 
           const currentPositions =
             globalThis.HookKeeper.getHooks().dealTradingData.trigger(
@@ -2437,6 +2468,10 @@ export const useCurrentPositionList = () => {
       );
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }
@@ -2504,14 +2539,16 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = volume - yesterday_volume;
+  const today_volume = dealKfDecimalPrecision(volume - yesterday_volume);
   const frozen_today = frozen_total - frozen_yesterday;
-  const shotable_closable_yesterday = getNaturalNumber(
+  const shotable_closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_yesterday,
   );
-  const closable_yesterday = getNaturalNumber(yesterday_volume - frozen_total);
-  const closable_today = getNaturalNumber(today_volume - frozen_today);
-  const closable_total = getNaturalNumber(volume - frozen_total);
+  const closable_yesterday = dealKfDecimalPrecision(
+    yesterday_volume - frozen_total,
+  );
+  const closable_today = dealKfDecimalPrecision(today_volume - frozen_today);
+  const closable_total = dealKfDecimalPrecision(volume - frozen_total);
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2526,11 +2563,46 @@ export const getPosClosableVolumeByOffset = (
   }
 };
 
+export const useCurrentAccountLocation = (
+  currentGlobalKfLocation: Ref<
+    KungfuApi.KfLocation | KungfuApi.KfLocationGroup | KungfuApi.KfConfig | null
+  >,
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+) => {
+  const isCurrentCategoryIsTd = computed(
+    () => currentGlobalKfLocation.value?.category === 'td',
+  );
+  const currentAccountLocation = computed(() => {
+    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
+      return currentGlobalKfLocation.value;
+    } else if (formState.value.account_id) {
+      const { source, id } = formState.value.account_id.parseSourceAccountId();
+      return {
+        category: 'td',
+        group: source,
+        name: id,
+        mode: 'live',
+      } as KungfuApi.KfLocation;
+    } else {
+      return null;
+    }
+  });
+
+  return {
+    currentAccountLocation,
+  };
+};
+
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+  isMarginMakeOrder: Ref<boolean>,
 ) => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
+  );
+  const { currentAccountLocation } = useCurrentAccountLocation(
+    currentGlobalKfLocation,
+    formState,
   );
   const { getPositionLastPrice } = useQuote();
   const { currentPositionList } = useCurrentPositionList();
@@ -2554,6 +2626,9 @@ export const useMakeOrderInfo = (
   );
 
   const isAccountOrInstrumentConfirmed = computed(() => {
+    if (isMarginMakeOrder.value) {
+      return true;
+    }
     if (formState.value?.side === SideEnum.Buy) {
       return isCurrentCategoryIsTd.value ? true : !!formState.value.account_id;
     } else if (formState.value.side === SideEnum.Sell) {
@@ -2565,25 +2640,11 @@ export const useMakeOrderInfo = (
   });
 
   const showAmountOrPosition = computed(() => {
-    const { offset } = formState.value;
-
-    return offset === OffsetEnum.Open ? 'amount' : 'position';
-  });
-
-  const currentAccountLocation = computed(() => {
-    if (currentGlobalKfLocation.value && isCurrentCategoryIsTd.value) {
-      return currentGlobalKfLocation.value;
-    } else if (formState.value.account_id) {
-      const { source, id } = formState.value.account_id.parseSourceAccountId();
-      return {
-        category: 'td',
-        group: source,
-        name: id,
-        mode: 'live',
-      } as KungfuApi.KfLocation;
-    } else {
-      return null;
+    const { offset, side } = formState.value;
+    if (isMarginMakeOrder.value) {
+      return isShowPosition(side) ? 'position' : 'amount';
     }
+    return offset === OffsetEnum.Open ? 'amount' : 'position';
   });
 
   const currentPositionHolderLocation = computed(() => {
@@ -2677,6 +2738,7 @@ export const useMakeOrderInfo = (
   });
 
   const currentPosition = computed(() => {
+    if (isMarginMakeOrder.value) return currentPositionWithLongDirection.value;
     if (currentFormDirection.value === DirectionEnum.Long) {
       return currentPositionWithLongDirection.value;
     } else if (currentFormDirection.value === DirectionEnum.Short) {
@@ -2688,6 +2750,28 @@ export const useMakeOrderInfo = (
 
   const currentAvailMoney = computed(() => {
     if (!currentAccountLocation.value) return '--';
+    if (isMarginMakeOrder.value) {
+      const { side } = formState.value;
+      if (side === SideEnum.GuaranteeStockBuy) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).gage_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).credit_buy_fund_available;
+
+        return dealKfPrice(avail);
+      } else if (side === SideEnum.RepayStock) {
+        const avail = getAssetsByKfConfig(
+          currentAccountLocation.value,
+        ).buyredeliver_fund_available;
+
+        return dealKfPrice(avail);
+      }
+    }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
@@ -2700,11 +2784,10 @@ export const useMakeOrderInfo = (
     const { offset } = formState.value;
 
     if (currentPosition.value) {
-      return (
-        dealKfNumber(
-          getPosClosableVolumeByOffset(currentPosition.value, offset),
-        ) + ''
-      );
+      if (isMarginMakeOrder.value) {
+        return dealKfNumber(currentPosition.value.closable_volume) + '';
+      }
+      return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
 
     return '0';
@@ -2750,7 +2833,9 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return dealTradeAmount((currentPrice.value ?? 0) * volume);
+    return dealTradeAmount(
+      dealKfDecimalPrecision((currentPrice.value ?? 0) * volume),
+    );
   });
 
   const currentResidueMoney = computed(() => {
@@ -2778,13 +2863,18 @@ export const useMakeOrderInfo = (
     const { volume, offset } = formState.value;
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
+        if (isMarginMakeOrder.value) {
+          return dealKfDecimalPrecision(
+            Number(currentAvailPosVolume.value) - volume,
+          );
+        }
         if (offset === OffsetEnum.Open) {
-          return dealKfNumber(
-            Number(currentAvailPosVolume.value) + Number(volume),
+          return dealKfDecimalPrecision(
+            Number(currentAvailPosVolume.value) + volume,
           );
         } else {
-          return dealKfNumber(
-            Number(currentAvailPosVolume.value) - Number(volume),
+          return dealKfDecimalPrecision(
+            Number(currentAvailPosVolume.value) - volume,
           );
         }
       } else {
@@ -2910,9 +3000,62 @@ export const useTradeLimit = () => {
   };
 };
 
+export const useMarginSupport = (
+  currentGlobalKfLocation: Ref<KungfuApi.KfLocation | null>,
+  formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
+) => {
+  const { extConfigs } = useExtConfigsRelated();
+  const { currentAccountLocation } = useCurrentAccountLocation(
+    currentGlobalKfLocation,
+    formState,
+  );
+  const isMarginMakeOrder = computed(() => {
+    const group = currentAccountLocation.value?.group;
+    if (!group) return false;
+    return extConfigs.value?.td?.[group]?.margin?.marginMakeOrder || false;
+  });
+
+  const isSpecifyContract = computed(() => {
+    const group = currentAccountLocation.value?.group;
+    if (!group) return false;
+    return extConfigs.value?.td?.[group]?.margin?.specifyContract || false;
+  });
+
+  const dealMarginSideByTransFormType = (
+    side: SideEnum,
+    type: 'direction' | 'side' = 'side',
+  ) => {
+    if (side === SideEnum.Buy) {
+      return SideEnum.GuaranteeStockBuy;
+    } else if (side === SideEnum.Sell) {
+      return type === 'side'
+        ? SideEnum.GuaranteeStockSell
+        : SideEnum.RepayStock;
+    }
+    return side;
+  };
+
+  return {
+    isMarginMakeOrder,
+    isSpecifyContract,
+    dealMarginSideByTransFormType,
+  };
+};
+
 export const useMakeOrderSubscribe = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
+  const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
+    window.watcher,
+  );
+  const { currentAccountLocation } = useCurrentAccountLocation(
+    currentGlobalKfLocation,
+    formState,
+  );
+  const { isMarginMakeOrder, dealMarginSideByTransFormType } = useMarginSupport(
+    currentAccountLocation,
+    formState,
+  );
   const app = getCurrentInstance();
   function closestNumber(target: number, numbers: number[]): number {
     if (numbers.length === 0) {
@@ -2923,7 +3066,7 @@ export const useMakeOrderSubscribe = (
       Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev,
     );
   }
-  onMounted(() => {
+  onActivated(() => {
     if (app?.proxy) {
       const subscription = app.proxy.$globalBus.subscribe(
         (data: KfEvent.KfBusEvent) => {
@@ -2941,9 +3084,9 @@ export const useMakeOrderSubscribe = (
             const uid = hashInstrumentUKey(instrumentId, exchangeId);
             const quote: KungfuApi.Quote = window.watcher.ledger.Quote[uid];
 
-            let dealPrice = price;
+            let dealPrice: number = price;
             if (quote) {
-              if (Number(dealPrice) !== quote.last_price) {
+              if (dealPrice !== quote.last_price) {
                 dealPrice = closestNumber(
                   price,
                   quote.ask_price
@@ -2963,7 +3106,9 @@ export const useMakeOrderSubscribe = (
             );
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
-            formState.value.side = +side;
+            formState.value.side = isMarginMakeOrder.value
+              ? dealMarginSideByTransFormType(+side, 'direction')
+              : +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
             formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
             formState.value.instrument_type = +instrumentType;
@@ -2987,16 +3132,22 @@ export const useMakeOrderSubscribe = (
               formState.value.instrument_type = +instrumentType;
             }
 
-            if (!!price && !Number.isNaN(price) && +price !== 0) {
-              formState.value.limit_price = +Number(price).kfToFixed(4);
+            if (!!price && !Number.isNaN(+price)) {
+              formState.value.limit_price = +price.kfToFixed(4);
             }
-            formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.side = +side;
+            formState.value.volume = +volume.kfToFixed(0);
+            formState.value.side = isMarginMakeOrder.value
+              ? dealMarginSideByTransFormType(+side)
+              : +side;
           }
         },
       );
 
       onBeforeUnmount(() => {
+        subscription.unsubscribe();
+      });
+
+      onDeactivated(() => {
         subscription.unsubscribe();
       });
     }
@@ -3040,7 +3191,7 @@ export const useBasket = () => {
       id: Number(id),
       name,
       volume_type: Number(volume_type),
-      total_amount: BigInt(total_amount),
+      total_amount: Number(total_amount),
     };
   }
 

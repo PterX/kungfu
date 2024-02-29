@@ -43,13 +43,21 @@ struct frame : event {
     return reinterpret_cast<char *>(address() + header_length());
   }
 
-  [[nodiscard]] std::string data_as_string() const override { return std::string(data_as_bytes(), data_length()); }
+  [[nodiscard]] std::vector<uint8_t> data_as_byte_array() const override {
+    return {data_as_bytes(), data_as_bytes() + data_length()};
+  }
 
-  [[nodiscard]] std::string to_string() const override { return std::string(reinterpret_cast<char *>(address())); }
+  [[nodiscard]] std::string data_as_string() const override { return std::string{data_as_bytes(), data_length()}; }
+
+  [[nodiscard]] std::string to_string() const override { return std::string{reinterpret_cast<char *>(address())}; }
 
   [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
 
   [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
+
+  [[nodiscard]] uint64_t frame_uid() const override { return header_->frame_uid; }
+
+  [[nodiscard]] uint64_t trigger_frame_uid() const override { return header_->trigger_frame_uid; }
 
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
@@ -83,6 +91,10 @@ private:
   void set_initial_source(uint32_t initial_source) { header_->initial_source = initial_source; }
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
+
+  void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
+
+  void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 

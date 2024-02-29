@@ -17,7 +17,7 @@ import {
   FileTextOutlined,
   SettingOutlined,
   DeleteOutlined,
-  BankOutlined,
+  EyeOutlined,
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 import { getColumns } from './config';
@@ -332,7 +332,10 @@ function getProcessStatusName(
             style="width: 120px"
           />
         </KfDashboardItem>
-        <KfDashboardItem v-for="config in TradingTaskViewComponentConfigs">
+        <KfDashboardItem
+          v-for="config in TradingTaskViewComponentConfigs"
+          :key="config.key"
+        >
           <component :is="config.key"></component>
         </KfDashboardItem>
         <KfDashboardItem>
@@ -385,12 +388,12 @@ function getProcessStatusName(
                   handleOpenViewResolved(record, handleOpenReplayConfirmView)
                 "
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="
                   handleOpenViewResolved(record, handleOpenJournalView)
                 "
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenViewResolved(record, handleOpenLogview)"

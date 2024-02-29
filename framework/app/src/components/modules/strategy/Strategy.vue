@@ -9,7 +9,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
-  BankOutlined,
+  EyeOutlined,
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
@@ -30,6 +30,7 @@ import {
   useProcessStatusDetailData,
   useSwitchAllConfig,
   useReplay,
+  useExtConfigsRelated,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -37,14 +38,17 @@ import {
   getIfProcessStopping,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
-  dealAssetPrice,
+  dealKfPrice,
   getProcessIdByKfLocation,
   getConfigValue,
+  buildTableColumnSorterWithStrike,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getColumns, setStrategyConfig } from './config';
 import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { storeToRefs } from 'pinia';
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -87,6 +91,21 @@ const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
   ['name'],
 );
 
+const { uiExtConfigs } = useExtConfigsRelated();
+
+const StrategyHeaderRightComponentConfigs = computed(() => {
+  return Object.keys(uiExtConfigs.value)
+    .filter(
+      (key) => uiExtConfigs.value[key].position === 'strategy_header_right',
+    )
+    .map((key) => {
+      return {
+        ...uiExtConfigs.value[key],
+        key,
+      };
+    });
+});
+
 const tableDataResolved = computed(() => {
   return [...tableData.value].sort((a, b) => {
     const aAddTime = getConfigValue(a).add_time || 0;
@@ -100,35 +119,37 @@ const { handleConfirmAddUpdateKfConfig, handleRemoveKfConfig } =
   useAddUpdateRemoveKfConfig();
 
 const columns = getColumns((dataIndex) => {
-  return (
-    a: KungfuApi.KfConfig,
-    b: KungfuApi.KfConfig,
-    sorterOrder: '' | 'ascend' | 'descend',
-  ) => {
-    let aVal = getAssetsByKfConfig(a)[dataIndex] ?? '--',
-      bVal = getAssetsByKfConfig(b)[dataIndex] ?? '--';
-    if (sorterOrder === 'ascend') {
-      aVal = aVal === '--' ? Infinity : aVal;
-      bVal = bVal === '--' ? Infinity : bVal;
-    } else if (sorterOrder === 'descend') {
-      aVal = aVal === '--' ? -Infinity : aVal;
-      bVal = bVal === '--' ? -Infinity : bVal;
-    } else {
-      return 0;
-    }
-    return Number(aVal) - Number(bVal);
-  };
+  return buildTableColumnSorterWithStrike<KungfuApi.KfConfig, KungfuApi.Asset>(
+    'num',
+    dataIndex,
+    (kfConfig: KungfuApi.KfConfig) => {
+      const { assets } = storeToRefs(useGlobalStore());
+      const processId = getProcessIdByKfLocation(kfConfig);
+      return assets.value[processId]
+        ? assets.value[processId][dataIndex]
+        : '--';
+    },
+  );
 });
 
 const getPrefixByLocation = (kfLocation: KungfuApi.KfLocation) =>
   globalThis.HookKeeper.getHooks().prefix.trigger(kfLocation);
 
-function handleOpenSetStrategyDialog(
+async function handleOpenSetStrategyDialog(
   type: KungfuApi.ModalChangeType,
   strategyConfig?: KungfuApi.KfConfig,
 ) {
   setStrategyConfigPayload.value.type = type;
-  setStrategyConfigPayload.value.config = setStrategyConfig;
+  setStrategyConfigPayload.value.config =
+    await globalThis.HookKeeper.getHooks().resolveExtConfig.trigger(
+      {
+        category: 'strategy',
+        group: 'default',
+        name: '*',
+        mode: '*',
+      },
+      setStrategyConfig,
+    );
   setStrategyConfigPayload.value.initValue = undefined;
 
   if (type === 'update') {
@@ -180,6 +201,12 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
             @click="handleSwitchAllProcessStatus"
           ></a-switch>
         </KfDashboardItem>
+        <KfDashboardItem
+          v-for="config in StrategyHeaderRightComponentConfigs"
+          :key="config.key"
+        >
+          <component :is="config.key"></component>
+        </KfDashboardItem>
         <KfDashboardItem>
           <a-button
             size="small"
@@ -219,6 +246,11 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
               style="font-size: 12px; margin-left: 7px"
             />
           </template>
+          <template v-else-if="column.dataIndex === 'remarks'">
+            {{
+              JSON.parse((record as KungfuApi.KfConfig).value).remarks || '--'
+            }}
+          </template>
           <template v-else-if="column.dataIndex === 'strategyFile'">
             {{ getStrategyPathShowName(record) }}
           </template>
@@ -243,12 +275,12 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'unrealizedPnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealAssetPrice(getAssetsByKfConfig(record).unrealized_pnl)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).unrealized_pnl)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'marketValue'">
             <KfBlinkNum
-              :num="dealAssetPrice(getAssetsByKfConfig(record).market_value)"
+              :num="dealKfPrice(getAssetsByKfConfig(record).market_value)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
@@ -257,10 +289,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
                 style="font-size: 12px"
                 @click.stop="handleOpenReplayConfirmView(record)"
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

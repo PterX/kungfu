@@ -55,7 +55,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     false;
 
   const millisecondsSleepAfterStep =
-    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 100;
+    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 50;
 
   kfLogger.info('bypassRestore', bypassRestore);
   kfLogger.info('bypassAccounting', bypassAccounting);
@@ -87,10 +87,8 @@ export const startWatcherSyncTask = (
 ) => {
   if (watcher === null) return;
   return setTimerPromiseTask(async () => {
-    if (watcher.isLive() && watcher.isStarted()) {
-      watcher.sync();
-      callback && (await callback(watcher));
-    }
+    watcher.sync();
+    callback && (await callback(watcher));
     return true;
   }, interval);
 };

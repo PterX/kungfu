@@ -4,23 +4,39 @@ from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun.constants import *
 from kungfu.wingchun import msg
 
-from typing import Text
+from datetime import datetime, timedelta
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun
 yjj = kungfu.__binding__.yijinjing
 
+def get_expire(instrument_id):
+	contract = ''.join(filter(str.isdigit, instrument_id))
+	if len(contract) == 6:
+		contract_year = int(contract[:4])
+	elif len(contract) == 3:
+		contract_year = int("202" + contract[:1])
+	else:
+		contract_year = int("20" + contract[:2])
+	contract_month = int(contract[-2:])
+	next_month_dt = datetime(contract_year, contract_month, 1) + timedelta(days=32)
+	last_day_of_month = next_month_dt - timedelta(days=next_month_dt.day)
+	return kft.from_datetime(last_day_of_month)
+
+
 def find_md_slice_location(ctx, nano_time, group, name, instrument_id, exchange_id, data_type):
 	instrument_type = wc.utils.get_instrument_type(exchange_id, instrument_id)
-	if instrument_type == InstrumentType.Stock:
+	if instrument_type == InstrumentType.Stock or instrument_type == InstrumentType.Bond:
 		if data_type not in (msg.Quote, msg.Entrust, msg.Transaction):
 			return None
 	elif instrument_type == InstrumentType.Future:
 		if data_type not in (msg.Quote, ):
 			return None
-		# TODO  open_datetime, expire_datetime = get_open_expire(instrument_id, exchange_id)
-		#  if not (open_datetime < nano_time < expire_datetime) :
-		#      return None
+		expire_datetime = get_expire(instrument_id)
+		if nano_time > expire_datetime:
+			return None
+		# TODO: future contrtact open_datetime
+
 	# elif instrument_type == InstrumentType.Crypto
 	# elif instrument_type == InstrumentType.CryptoFuture
 	# elif instrument_type == InstrumentType.CryptoUFuture
@@ -52,4 +68,4 @@ def end_of_month(nano_time):
 	dt = dt.replace(year=relevant_year, month=next_month, day=1, hour=0, minute=0, second=0, microsecond=0)
 	return kft.from_datetime(dt)
 
-    
+	

@@ -26,6 +26,7 @@ module.exports = {
   },
   makeConfig(argv) {
     const production = isProduction(argv);
+    console.log('enableThreadLoader', argv.enableThreadLoader);
     const threadLoader = argv.enableThreadLoader
       ? this.getThreadLoaderConfig(argv)
       : [];

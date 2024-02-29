@@ -30,7 +30,6 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
   HANDLE dumpFileDescriptor = CreateFileA(path.c_str(), (is_master) ? (GENERIC_READ | GENERIC_WRITE) : GENERIC_READ,
                                           FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                                           (is_master) ? OPEN_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
   if (dumpFileDescriptor == INVALID_HANDLE_VALUE) {
     throw journal_error("unable to mmap for page " + path);
   }
@@ -94,7 +93,6 @@ uintptr_t load_mmap_buffer(const std::string &path, size_t size, bool is_writing
 
   close(fd);
 #endif // _WINDOWS
-
   return reinterpret_cast<uintptr_t>(buffer);
 }
 

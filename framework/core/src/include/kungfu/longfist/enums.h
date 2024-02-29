@@ -80,8 +80,8 @@ KF_JSON_SERIALIZE_ENUM(category, {
                                      {category::MD, "MD"},
                                      {category::TD, "TD"},
                                      {category::STRATEGY, "STRATEGY"},
-                                     {category::OPERATOR, "OPERATOR"},
                                      {category::SYSTEM, "SYSTEM"},
+                                     {category::OPERATOR, "OPERATOR"},
                                  })
 
 inline std::ostream &operator<<(std::ostream &os, category t) { return os << int32_t(t); }
@@ -280,6 +280,8 @@ enum class Side : int8_t {
   SurplusStockTransfer,      // 余券划转
   GuaranteeStockTransferIn,  // 担保品转入
   GuaranteeStockTransferOut, // 担保品转出
+  GuaranteeStockBuy,         // 担保品买入
+  GuaranteeStockSell,        // 担保品卖出
   Unknown = 99
 };
 
@@ -303,6 +305,8 @@ KF_JSON_SERIALIZE_ENUM(Side, {
                                  {Side::SurplusStockTransfer, "SurplusStockTransfer"},
                                  {Side::GuaranteeStockTransferIn, "GuaranteeStockTransferIn"},
                                  {Side::GuaranteeStockTransferOut, "GuaranteeStockTransferOut"},
+                                 {Side::GuaranteeStockTransferIn, "GuaranteeStockBuy"},
+                                 {Side::GuaranteeStockTransferOut, "GuaranteeStockSell"},
                                  {Side::Unknown, "Unknown"},
                              })
 
@@ -341,6 +345,48 @@ KF_JSON_SERIALIZE_ENUM(OrderActionFlag, {
                                         })
 
 inline std::ostream &operator<<(std::ostream &os, OrderActionFlag t) { return os << int32_t(t); }
+
+enum class ContractType : int8_t {
+  CrdBuyContract,            /// 融资合约
+  CrdSellContract,           /// 融券合约
+  CrdBuyInterest,            /// 融资利息
+  CrdSellFee,                /// 融券费用
+  CapitalRightsCompensation, /// 资金权益补偿
+  ShareRightsCompensation,   /// 股份权益补偿
+  OverdueInterest,           /// 逾期罚息
+  BadDebtInterest,           /// 坏账罚息
+  CapitalOccupationFee,      /// 资金占用费
+  ManagementFee,             /// 管理费
+};
+
+KF_JSON_SERIALIZE_ENUM(ContractType, {
+                                         {ContractType::CrdBuyContract, "CrdBuyContract"},
+                                         {ContractType::CrdSellContract, "CrdSellContract"},
+                                         {ContractType::CrdBuyInterest, "CrdBuyInterest"},
+                                         {ContractType::CrdSellFee, "CrdSellFee"},
+                                         {ContractType::CapitalRightsCompensation, "CapitalRightsCompensation"},
+                                         {ContractType::ShareRightsCompensation, "ShareRightsCompensation"},
+                                         {ContractType::OverdueInterest, "OverdueInterest"},
+                                         {ContractType::BadDebtInterest, "BadDebtInterest"},
+                                         {ContractType::CapitalOccupationFee, "CapitalOccupationFee"},
+                                         {ContractType::ManagementFee, "ManagementFee"},
+                                     })
+
+inline std::ostream &operator<<(std::ostream &os, ContractType t) { return os << int32_t(t); }
+
+enum class CloseOutFlag : int8_t {
+  NotCloseOut,     /// 未了结
+  CloseOut,        /// 了结
+  InitNotCloseOut, /// 初始未了结
+};
+
+KF_JSON_SERIALIZE_ENUM(CloseOutFlag, {
+                                         {CloseOutFlag::NotCloseOut, "NotCloseOut"},
+                                         {CloseOutFlag::CloseOut, "CloseOut"},
+                                         {CloseOutFlag::InitNotCloseOut, "InitNotCloseOut"},
+                                     })
+
+inline std::ostream &operator<<(std::ostream &os, CloseOutFlag t) { return os << int32_t(t); }
 
 enum class OrderTriggerFlag : int8_t {
   TriggerInsert, /// 预埋下单
@@ -547,7 +593,8 @@ enum class OrderStatus : int8_t {
   PartialFilledActive,    // 部成交易中
   Lost,                   // 丢失
   Cancelling,             // 待撤
-  Pause                   // 暂停
+  Pause,                  // 暂停
+  PendingSettlement       // 等待结算
 };
 
 KF_JSON_SERIALIZE_ENUM(OrderStatus, {
@@ -562,6 +609,7 @@ KF_JSON_SERIALIZE_ENUM(OrderStatus, {
                                         {OrderStatus::Lost, "Lost"},
                                         {OrderStatus::Cancelling, "Cancelling"},
                                         {OrderStatus::Pause, "Pause"},
+                                        {OrderStatus::PendingSettlement, "PendingSettlement"},
                                     })
 
 inline std::ostream &operator<<(std::ostream &os, OrderStatus t) { return os << int32_t(t); }

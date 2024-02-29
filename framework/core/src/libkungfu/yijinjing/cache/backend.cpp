@@ -7,6 +7,9 @@
 #include <kungfu/yijinjing/cache/backend.h>
 
 namespace kungfu::yijinjing::cache {
+
+namespace fs = std::filesystem;
+
 shift::shift(yijinjing::data::location_ptr location) : location_(std::move(location)), storage_map_() {}
 
 shift::shift(const shift &copy) : location_(copy.location_), storage_map_(copy.storage_map_) {}
@@ -23,4 +26,11 @@ void shift::ensure_storage(uint32_t dest) {
   storage->sync_schema();
   storage_map_.emplace(dest, storage);
 }
+
+bool shift::check_storage_exists(uint32_t dest) {
+  auto locator = location_->locator;
+  auto db_file = locator->layout_file(location_, longfist::enums::layout::SQLITE, fmt::format("{:08x}", dest));
+  return fs::exists(db_file);
+}
+
 } // namespace kungfu::yijinjing::cache

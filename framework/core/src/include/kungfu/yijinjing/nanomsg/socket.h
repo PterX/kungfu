@@ -174,6 +174,10 @@ struct nanomsg_json : event {
 
   [[nodiscard]] const char *data_as_bytes() const override { return msg_.c_str(); }
 
+  [[nodiscard]] std::vector<uint8_t> data_as_byte_array() const override {
+    return {data_as_bytes(), data_as_bytes() + data_length()};
+  }
+
   [[nodiscard]] std::string data_as_string() const override { return binding_["data"].dump(); }
 
   [[nodiscard]] std::string to_string() const override { return msg_; }
@@ -181,6 +185,10 @@ struct nanomsg_json : event {
   [[nodiscard]] int8_t data_type() const override { return get_meta<int8_t>("data_type", 0); }
 
   [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
+
+  [[nodiscard]] uint64_t frame_uid() const override { return get_meta<uint64_t>("frame_uid", 0); }
+
+  [[nodiscard]] uint64_t trigger_frame_uid() const override { return get_meta<uint64_t>("trigger_frame_uid", 0); }
 
 private:
   const nlohmann::json binding_;

@@ -15,9 +15,18 @@ namespace kungfu::wingchun::broker {
 void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
 
   auto &algo_order_input = event->data<AlgoOrderInput>();
+  auto writer = vendor_.get_writer(event->source());
+
   if (algo_order_input.is_local) {
     state<AlgoOrderInput> algo_order_input_state(event->source(), event->dest(), event->gen_time(), algo_order_input);
     local_algo_order_inputs_.insert_or_assign(algo_order_input.order_id, algo_order_input_state);
+
+    if (algo_order_input.origin_order_id == UINT64_ZERO) {
+      auto &algo_order = writer->open_data<AlgoOrder>();
+      algo_order_from_input(algo_order_input, algo_order);
+      writer->close_data();
+      return;
+    }
   }
 
   if (algo_order_input.is_local and algo_order_input.origin_order_id != UINT64_ZERO) {
@@ -30,10 +39,12 @@ void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
     auto &target_algo_order = target_algo_order_state.data;
 
     // algo_order_from_input(algo_order_input, target_algo_order);
+    target_algo_order.volume_left =
+        algo_order_input.volume - (target_algo_order.volume - target_algo_order.volume_left);
     target_algo_order.volume = algo_order_input.volume;
 
     // waiting_record_local_algo_orders_.insert_or_assign(target_algo_order.order_id, target_algo_order_state);
-    vendor_.get_writer(event->source())->write(time::now_in_nano(), target_algo_order);
+    writer->write(time::now_in_nano(), target_algo_order);
 
     return;
   }

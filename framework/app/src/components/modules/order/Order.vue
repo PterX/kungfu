@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  delayMilliSeconds,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -31,8 +32,9 @@ import {
 import {
   computed,
   getCurrentInstance,
+  onActivated,
   onBeforeUnmount,
-  onMounted,
+  onDeactivated,
   reactive,
   ref,
   toRaw,
@@ -90,13 +92,23 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
 const orders = ref<KungfuApi.OrderResolved[]>([]);
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const { searchKeyword, tableData } =
-  useTableSearchKeyword<KungfuApi.OrderResolved>(orders, [
-    'order_id',
-    'instrument_id',
-    'exchange_id',
-    'source_uname',
-    'dest_uname',
-  ]);
+  useTableSearchKeyword<KungfuApi.OrderResolved>(
+    orders,
+    [
+      'order_id',
+      'instrument_id',
+      'side',
+      'offset',
+      'status_uname',
+      'exchange_id',
+      'source_uname',
+      'dest_uname',
+    ],
+    {
+      side: (item) => dealSide(Number(item)).name,
+      offset: (item) => dealOffset(Number(item)).name,
+    },
+  );
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
@@ -115,7 +127,7 @@ const orderCurrentOrderTriggers = ref<
 >({});
 
 const columns = computed(() => {
-  if (currentGlobalKfLocation.value === null) {
+  if (!currentGlobalKfLocation.value) {
     return getColumns(
       {
         category: 'td',
@@ -130,120 +142,120 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-onMounted(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (historyDate.value) {
-          return;
-        }
+onActivated(() => {
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
+    (watcher: KungfuApi.Watcher) => {
+      if (historyDate.value) {
+        return;
+      }
 
-        if (currentGlobalKfLocation.value === null) {
-          return;
-        }
+      if (!currentGlobalKfLocation.value) return;
 
-        if (adjustOrderMaskVisible.value) {
-          return;
-        }
+      if (adjustOrderMaskVisible.value) {
+        return;
+      }
 
-        const ordersResolved =
-          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-            window.watcher,
-            currentGlobalKfLocation.value,
-            watcher.ledger.Order,
-            'order',
-          ) as KungfuApi.Order[];
+      const ordersResolved =
+        globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+          window.watcher,
+          currentGlobalKfLocation.value,
+          watcher.ledger.Order,
+          'order',
+        ) as KungfuApi.Order[];
 
-        if (unfinishedOrder.value) {
-          const tempAllOrders = ordersResolved.map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-            );
-
-            return toRaw({
-              ...dealDataWithCache(
-                item,
-                () => dealOrder(watcher, item, false, price_precision),
-                { price_precision },
-              ),
-              ...getOrderLatencyDataByOrderStat(
-                item,
-                watcher.ledger.OrderStat,
-                price_precision,
-              ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
-            });
-          });
-          allOrders.value = tempAllOrders;
-          orders.value = toRaw(
-            tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
+      if (unfinishedOrder.value) {
+        const tempAllOrders = ordersResolved.map((item) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            item.instrument_id,
+            item.exchange_id,
           );
-          return;
-        }
 
-        let finishedOrdersCount = 0;
-        const { totalOrders, ordersForTable } = ordersResolved.reduce(
-          (preOrders, curOrder) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              curOrder.instrument_id,
-              curOrder.exchange_id,
-            );
+          return toRaw({
+            ...dealDataWithCache(
+              item,
+              () => dealOrder(watcher, item, false, price_precision),
+              { price_precision },
+            ),
+            ...getOrderLatencyDataByOrderStat(
+              item,
+              watcher.ledger.OrderStat,
+              price_precision,
+            ), // 分离出OrderMedianResolved，解决缓存依赖值变更，但缓存uid_key和update_time不变导致取值错误
+          });
+        });
+        allOrders.value = tempAllOrders;
+        orders.value = toRaw(
+          tempAllOrders.filter((item) => !isFinishedOrderStatus(item.status)),
+        );
+        return;
+      }
 
-            const orderResolved = toRaw({
-              ...dealDataWithCache(
-                curOrder,
-                () => dealOrder(watcher, curOrder, false, price_precision),
-                { price_precision },
-              ),
-              ...getOrderLatencyDataByOrderStat(
-                curOrder,
-                watcher.ledger.OrderStat,
-                price_precision,
-              ),
-            });
-            preOrders.totalOrders.push(orderResolved);
-            if (isFinishedOrderStatus(curOrder.status)) {
-              if (finishedOrdersCount < 500) {
-                finishedOrdersCount++;
-                preOrders.ordersForTable.push(orderResolved);
-              }
-            } else {
+      let finishedOrdersCount = 0;
+      const { totalOrders, ordersForTable } = ordersResolved.reduce(
+        (preOrders, curOrder) => {
+          const { price_precision } = getPriceTickAndPrecision(
+            curOrder.instrument_id,
+            curOrder.exchange_id,
+          );
+
+          const orderResolved = toRaw({
+            ...dealDataWithCache(
+              curOrder,
+              () => dealOrder(watcher, curOrder, false, price_precision),
+              { price_precision },
+            ),
+            ...getOrderLatencyDataByOrderStat(
+              curOrder,
+              watcher.ledger.OrderStat,
+              price_precision,
+            ),
+          });
+          preOrders.totalOrders.push(orderResolved);
+          if (isFinishedOrderStatus(curOrder.status)) {
+            if (finishedOrdersCount < 500) {
+              finishedOrdersCount++;
               preOrders.ordersForTable.push(orderResolved);
             }
-            return preOrders;
-          },
-          { totalOrders: [], ordersForTable: [] } as {
-            totalOrders: KungfuApi.OrderResolved[];
-            ordersForTable: KungfuApi.OrderResolved[];
-          },
-        );
+          } else {
+            preOrders.ordersForTable.push(orderResolved);
+          }
+          return preOrders;
+        },
+        { totalOrders: [], ordersForTable: [] } as {
+          totalOrders: KungfuApi.OrderResolved[];
+          ordersForTable: KungfuApi.OrderResolved[];
+        },
+      );
 
-        allOrders.value = toRaw(totalOrders);
-        orders.value = toRaw(ordersForTable);
+      allOrders.value = toRaw(totalOrders);
+      orders.value = toRaw(ordersForTable);
 
-        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
-        orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
-          'action_flag',
-          OrderTriggerFlag.TriggerCancel,
-        )
-          .filter('source', source)
-          .list()
-          .reduce((pre, cur) => {
-            const order_id = cur.order_id.toString();
-            if (order_id in pre) {
-              pre[order_id].push(cur);
-            } else {
-              pre[order_id] = [cur];
-            }
-            return pre;
-          }, {});
-      },
-    );
+      const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+      orderCurrentOrderTriggers.value = watcher.ledger.OrderTrigger.filter(
+        'action_flag',
+        OrderTriggerFlag.TriggerCancel,
+      )
+        .filter('source', source)
+        .list()
+        .reduce((pre, cur) => {
+          const order_id = cur.order_id.toString();
+          if (order_id in pre) {
+            pre[order_id].push(cur);
+          } else {
+            pre[order_id] = [cur];
+          }
+          return pre;
+        }, {});
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 watch(currentGlobalKfLocation, () => {
@@ -259,9 +271,7 @@ watch(historyDate, async (newDate) => {
     return;
   }
 
-  if (currentGlobalKfLocation.value === null) {
-    return;
-  }
+  if (!currentGlobalKfLocation.value) return;
 
   orders.value = [];
   allOrders.value = [];
@@ -626,13 +636,14 @@ function handleClickAdjustOrderMask(): void {
         instrument_type: order.instrument_type,
         exchange_id: order.exchange_id,
         limit_price: +adjustOrderForm.value.price,
-        volume: Number(order.volume_left),
+        volume: order.volume_left,
         price_type: +order.price_type,
         side: +order.side,
         offset: +order.offset,
         hedge_flag: +order.hedge_flag,
         is_swap: !!order.is_swap,
         parent_id: 0n,
+        contract_id: '',
       };
 
       return makeOrderByOrderInput(
@@ -696,7 +707,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
       <template #header>
         <KfDashboardItem>
           <a-checkbox v-model:checked="unfinishedOrder" size="small">
-            {{ $t('orderConfig.checkbox_text') }}
+            {{ $t('orderConfig.show_unfinished_orders') }}
           </a-checkbox>
         </KfDashboardItem>
         <KfDashboardItem>
@@ -805,9 +816,15 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             <template v-else-if="column.dataIndex === 'volume_left'">
               <span
                 style="float: right"
-                :title="`${item.volume - item.volume_left} / ${item.volume}`"
+                :title="`${dealKfDecimalPrecision(
+                  item.volume - item.volume_left,
+                )} / ${item.volume}`"
               >
-                {{ `${item.volume - item.volume_left} / ${item.volume}` }}
+                {{
+                  `${dealKfDecimalPrecision(
+                    item.volume - item.volume_left,
+                  )} / ${item.volume}`
+                }}
               </span>
             </template>
             <template v-else-if="column.dataIndex === 'status_uname'">

@@ -50,6 +50,9 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
       $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
+  events | is(AlgoOrderInput::tag) |
+      $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
+  events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
@@ -79,11 +82,16 @@ void Bookkeeper::batch_update_book_by_quote() {
 std::mutex &Bookkeeper::get_update_book_mutex() { return update_book_mutex_; }
 
 void Bookkeeper::try_update_position_end(const PositionEnd &position_end) {
-  get_book(position_end.holder_uid)->update(app_.now(), account_method_type_);
+  get_book(position_end.holder_uid)->update(app_.now());
 }
 
 void Bookkeeper::on_order_input(int64_t update_time, uint32_t source, uint32_t dest, const OrderInput &input) {
   update_book<OrderInput>(update_time, dest, source, input, &AccountingMethod::apply_order_input);
+}
+
+void Bookkeeper::on_algo_order_input(int64_t update_time, uint32_t source, uint32_t dest,
+                                     const longfist::types::AlgoOrderInput &input) {
+  update_book<AlgoOrderInput>(update_time, dest, source, input);
 }
 
 void Bookkeeper::restore(const cache::bank &state_bank) {
@@ -101,6 +109,7 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
         get_source_op_id(position.holder_uid, position.source_id);
     book->add_source_id(position.source_id);
   }
+
   for (auto &pair : state_bank[boost::hana::type_c<Asset>]) {
     auto &state = pair.second;
     auto &asset = state.data;
@@ -109,8 +118,17 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     }
     auto book = get_book(asset.holder_uid);
     book->asset = asset;
-    book->update(app_.now(), account_method_type_);
+    book->update(app_.now());
   }
+
+  for (auto &pair : state_bank[boost::hana::type_c<OrderInput>]) {
+    auto &order_input_state = pair.second;
+    auto source_book = get_book(order_input_state.source);
+    source_book->replace(order_input_state.data);
+    auto dest_book = get_book(order_input_state.dest);
+    dest_book->replace(order_input_state.data);
+  }
+
   for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
     auto &order_state = pair.second;
     auto source_book = get_book(order_state.source);
@@ -132,6 +150,25 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     auto dest_book = get_book(trade_state.dest);
     dest_book->replace(trade_state.data);
   }
+
+  for (auto &pair : state_bank[boost::hana::type_c<AlgoOrderInput>]) {
+    auto &algo_order_input_state = pair.second;
+    auto source_book = get_book(algo_order_input_state.source);
+    source_book->replace(algo_order_input_state.data);
+    auto dest_book = get_book(algo_order_input_state.dest);
+    dest_book->replace(algo_order_input_state.data);
+  }
+
+  for (auto &pair : state_bank[boost::hana::type_c<AlgoOrder>]) {
+    auto &algo_order_state = pair.second;
+    auto source_book = get_book(algo_order_state.source);
+    source_book->replace(algo_order_state.data);
+    if (algo_order_state.dest == location::PUBLIC) {
+      continue;
+    }
+    auto dest_book = get_book(algo_order_state.dest);
+    dest_book->replace(algo_order_state.data);
+  }
 }
 
 void Bookkeeper::guard_positions() { positions_guarded_ = true; }
@@ -139,7 +176,7 @@ void Bookkeeper::guard_positions() { positions_guarded_ = true; }
 Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
   auto location = app_.get_location(location_uid);
   auto book = std::make_shared<Book>(static_data_.get_commissions(), static_data_.get_instruments(),
-                                     static_data_.get_instrument_factors(), location);
+                                     static_data_.get_instrument_factors(), accounting_methods_, location);
   auto &asset = book->asset;
   asset.holder_uid = location_uid;
   asset.ledger_category = location->category == category::TD ? LedgerCategory::Account : LedgerCategory::Strategy;
@@ -148,6 +185,8 @@ Book_ptr Bookkeeper::make_book(uint32_t location_uid) {
 
 void Bookkeeper::update_book(const event_ptr &event, const InstrumentKey &instrument_key) {
   std::lock_guard<std::mutex> lock(update_book_mutex_);
+  SPDLOG_DEBUG("update_book by instrument_key {}, from {} to {}", instrument_key.to_string(),
+               app_.get_location_uname(event->source()), app_.get_location_uname(event->dest()));
   broker_client_.subscribe(instrument_key);
   get_book(event->source())->ensure_position_for(instrument_key);
 }
@@ -175,7 +214,7 @@ void Bookkeeper::update_book(int64_t trigger_time, const Quote &quote) {
     auto &book = item.second;
     if (book->has_short_position_for(quote) or book->has_long_position_for(quote)) {
       accounting_method->apply_quote(book, quote);
-      book->update(trigger_time, account_method_type_);
+      book->update(trigger_time);
     }
     book->apply_long_position_for(quote, apply);
     book->apply_short_position_for(quote, apply);
@@ -184,7 +223,7 @@ void Bookkeeper::update_book(int64_t trigger_time, const Quote &quote) {
 
 void Bookkeeper::update_book(const event_ptr &event, const Asset &asset) {
   if (app_.has_location(asset.holder_uid)) {
-    get_book(asset.holder_uid)->update(event->gen_time(), account_method_type_);
+    get_book(asset.holder_uid)->update(event->gen_time());
   }
 }
 
@@ -280,7 +319,7 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
     SPDLOG_DEBUG("local position volume of {} is different from TD server",
                  app_.get_location_uname(position_end.holder_uid));
     old_book->mirror_position_from(*new_book);
-    old_book->update(app_.now(), account_method_type_);
+    old_book->update(app_.now());
   }
   books_replica_.erase(position_end.holder_uid); // delete replica every time
 }
@@ -303,16 +342,15 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
   strategy_book->apply_short_positions(reset_positions);
   strategy_book->apply_long_positions(reset_positions);
 
-  auto copy_positions = [&](auto &position) {
-    if (strategy_book->has_position(position.source_id, position.direction, position.exchange_id,
-                                    position.instrument_id)) {
-      auto &strategy_position = strategy_book->get_position(position.source_id, position.direction,
-                                                            position.exchange_id, position.instrument_id);
+  auto copy_positions = [&](const auto &position) {
+    if (strategy_book->has_position_for(position)) {
+      auto &strategy_position = strategy_book->get_position_for(position);
       longfist::copy(strategy_position, position);
       strategy_position.holder_uid = strategy_uid;
       strategy_position.ledger_category = LedgerCategory::Strategy;
       strategy_position.update_time = trigger_time;
       strategy_position.source_id = position.source_id;
+      strategy_position.source_op_id = get_source_op_id(strategy_uid, position.source_id);
     }
   };
 
@@ -324,7 +362,7 @@ void Bookkeeper::mirror_positions(int64_t trigger_time, uint32_t strategy_uid) {
       book->apply_short_positions(copy_positions);
     }
   }
-  strategy_book->update(trigger_time, account_method_type_);
+  strategy_book->update(trigger_time);
 }
 
 void Bookkeeper::on_output_key(const event_ptr &event) {
@@ -361,4 +399,5 @@ bool Bookkeeper::is_ready_td(uint32_t location_uid) {
   }
   return ready_tds_.try_emplace(location_uid, false).first->second;
 }
+
 } // namespace kungfu::wingchun::book

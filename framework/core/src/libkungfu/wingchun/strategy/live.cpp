@@ -24,18 +24,10 @@ namespace kungfu::wingchun::strategy {
 
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
-  log::copy_log_settings(app_.get_home(), app_.get_home()->name);
+  KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
 void LiveContext::on_start() {
-  SPDLOG_DEBUG("arguments_: {}", get_arguments());
-  if (not get_arguments().empty()) {
-    auto config = nlohmann::json::parse(get_arguments());
-    if (config.value<bool>("bypass_accounting", false)) {
-      bypass_accounting();
-    }
-  }
-
   broker_client_.on_start(events_);
   if (not is_bypass_accounting()) {
     bookkeeper_.on_start(events_);
@@ -109,7 +101,9 @@ void LiveContext::prepare(const event_ptr &event) {
   }
 
   if (event->msg_type() == PositionEnd::tag and event->source() == ledger_uid) {
-    positions_set_ = true;
+    if (event->data<PositionEnd>().holder_uid == get_live_home_uid()) {
+      positions_set_ = true;
+    }
   }
 
   if (not positions_set_) {
@@ -118,6 +112,15 @@ void LiveContext::prepare(const event_ptr &event) {
 
   get_bookkeeper().guard_positions();
   started_ = true;
+}
+
+const std::string LiveContext::get_config() const {
+  auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
+  if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
+    return "{}";
+  }
+  auto &config_obj = config_map.at(app_.get_live_home_uid());
+  return config_obj.data.value;
 }
 
 int64_t LiveContext::now() const { return app_.now(); }
@@ -196,7 +199,7 @@ uint64_t LiveContext::insert_block_message(const std::string &source, const std:
 
 uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, const std::string &exchange_id,
                                            const std::string &source, const std::string &account, double limit_price,
-                                           int64_t volume, longfist::enums::PriceType type, longfist::enums::Side side,
+                                           double volume, longfist::enums::PriceType type, longfist::enums::Side side,
                                            longfist::enums::Offset offset,
                                            longfist::enums::OrderTriggerType trigger_type, double stop_price,
                                            longfist::enums::HedgeFlag hedge_flag, bool is_swap) {
@@ -239,8 +242,9 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
 
 uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::string &exchange_id,
                                    const std::string &source, const std::string &account, double limit_price,
-                                   int64_t volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
-                                   bool is_swap, uint64_t block_id, uint64_t parent_id) {
+                                   double volume, PriceType type, Side side, Offset offset, HedgeFlag hedge_flag,
+                                   bool is_swap, uint64_t block_id, uint64_t parent_id,
+                                   const std::string &contract_id) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;
@@ -274,6 +278,7 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   input.block_id = block_id;
   input.parent_id = parent_id;
   input.is_swap = is_swap;
+  input.contract_id = contract_id.c_str();
   input.insert_time = now();
   writer->close_data();
   if (not is_bypass_accounting()) {
@@ -313,13 +318,12 @@ uint64_t LiveContext::insert_order_input(const std::string &source, const std::s
   return order_input.order_id;
 }
 
-std::vector<uint64_t>
-LiveContext::insert_batch_orders(const std::string &source, const std::string &account,
-                                 const std::vector<std::string> &instrument_ids,
-                                 const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices,
-                                 std::vector<int64_t> volumes, std::vector<longfist::enums::PriceType> types,
-                                 std::vector<longfist::enums::Side> sides, std::vector<longfist::enums::Offset> offsets,
-                                 std::vector<longfist::enums::HedgeFlag> hedge_flags, std::vector<bool> is_swaps) {
+std::vector<uint64_t> LiveContext::insert_batch_orders(
+    const std::string &source, const std::string &account, const std::vector<std::string> &instrument_ids,
+    const std::vector<std::string> &exchange_ids, std::vector<double> limit_prices, std::vector<double> volumes,
+    std::vector<longfist::enums::PriceType> types, std::vector<longfist::enums::Side> sides,
+    std::vector<longfist::enums::Offset> offsets, std::vector<longfist::enums::HedgeFlag> hedge_flags,
+    std::vector<bool> is_swaps, const std::vector<std::string> &contract_ids) {
   std::vector<uint64_t> order_ids{};
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
@@ -349,9 +353,9 @@ LiveContext::insert_batch_orders(const std::string &source, const std::string &a
   writer->mark(now(), BatchOrderBegin::tag);
 
   for (int i = 0; i < instrument_ids.size(); ++i) {
-    uint64_t order_id =
-        insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i), volumes.at(i),
-                     types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i), is_swaps.at(i));
+    uint64_t order_id = insert_order(instrument_ids.at(i), exchange_ids.at(i), source, account, limit_prices.at(i),
+                                     volumes.at(i), types.at(i), sides.at(i), offsets.at(i), hedge_flags.at(i),
+                                     is_swaps.at(i), 0, 0, contract_ids.at(i));
     order_ids.push_back(order_id);
   }
 
@@ -378,9 +382,9 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
   writer->mark(now(), BatchOrderBegin::tag);
 
   for (const OrderInput &input : order_inputs) {
-    uint64_t order_id =
-        insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price, input.volume,
-                     input.price_type, input.side, input.offset, input.hedge_flag, input.is_swap);
+    uint64_t order_id = insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price,
+                                     input.volume, input.price_type, input.side, input.offset, input.hedge_flag,
+                                     input.is_swap, 0, 0, input.contract_id);
     order_ids.push_back(order_id);
   }
 
@@ -391,7 +395,7 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
 
 uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
                                         const std::string &source, const std::string &account, int64_t begin_time,
-                                        int64_t end_time, int64_t volume, longfist::enums::PriceType type,
+                                        int64_t end_time, double volume, longfist::enums::PriceType type,
                                         longfist::enums::Side side, longfist::enums::Offset offset,
                                         const std::string &algo_type_id, const std::string &algo_id,
                                         const std::string &args, bool is_local, uint32_t basket_uid,
@@ -427,13 +431,16 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   strcpy(input.algo_id, algo_id.c_str());
   input.args = args;
   input.is_local = is_local;
-
   writer->write(now(), input);
+
+  if (not is_bypass_accounting()) {
+    bookkeeper_.on_algo_order_input(now(), get_live_home_uid(), account_location_uid, input);
+  }
   return input.order_id;
 }
 
 uint64_t LiveContext::update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
-                                               const std::string &account, int64_t volume) {
+                                               const std::string &account, double volume) {
   if (not is_started()) {
     SPDLOG_ERROR("context not ready");
     return 0;
@@ -642,12 +649,4 @@ uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 
 uint32_t LiveContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
 
-const std::string LiveContext::get_config() const {
-  auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
-  if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
-    return "{}";
-  }
-  auto &config_obj = config_map.at(app_.get_live_home_uid());
-  return config_obj.data.value;
-}
 } // namespace kungfu::wingchun::strategy

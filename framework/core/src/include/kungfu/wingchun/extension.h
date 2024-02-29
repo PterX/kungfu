@@ -15,11 +15,12 @@
 #define KUNGFU_EXTENSION(...) PYBIND11_MODULE(KUNGFU_MODULE_NAME, m)
 
 #define KUNGFU_DEFINE_SERVICE(ServiceType)                                                                             \
-  m.def("service", [&](kungfu::yijinjing::data::locator_ptr locator, kungfu::longfist::enums::mode m,                  \
-                       bool low_latency = false, const std::string &arguments = "") {                                  \
-    return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                          \
-        std::make_shared<ServiceType>(locator, m, low_latency, arguments));                                            \
-  })
+  m.def("service",                                                                                                     \
+        [&](kungfu::yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,           \
+            kungfu::longfist::enums::mode m, bool low_latency = false, const std::string &arguments = "{}") {          \
+          return std::static_pointer_cast<kungfu::yijinjing::practice::apprentice>(                                    \
+              std::make_shared<ServiceType>(locator, group, name, m, low_latency, arguments));                         \
+        })
 
 #define KUNGFU_DEFINE_CACHE_TOOL(ToolType)                                                                             \
   m.def("tool", [&](kungfu::longfist::enums::category category, std::string group, std::string name,                   \
@@ -64,7 +65,7 @@
         s_name = env_name;                                                                                             \
       }                                                                                                                \
       auto home = location::make_shared(mode::LIVE, category::STRATEGY, s_group, s_name, lr);                          \
-      kungfu::yijinjing::log::copy_log_settings(home, module_name);                                                    \
+      KUNGFU_SETUP_LOGGER(home, module_name);                                                                          \
       return std::static_pointer_cast<kungfu::wingchun::strategy::Strategy>(std::make_shared<StrategyType>());         \
     });                                                                                                                \
   };                                                                                                                   \
@@ -91,7 +92,7 @@
         s_name = env_name;                                                                                             \
       }                                                                                                                \
       auto home = location::make_shared(mode::LIVE, category::OPERATOR, s_group, s_name, lr);                          \
-      kungfu::yijinjing::log::copy_log_settings(home, module_name);                                                    \
+      KUNGFU_SETUP_LOGGER(home, module_name);                                                                          \
       return std::static_pointer_cast<kungfu::wingchun::op::Operator>(std::make_shared<OperatorType>());               \
     });                                                                                                                \
   };                                                                                                                   \
@@ -101,6 +102,24 @@
   class MatcherType;                                                                                                   \
   PYBIND11_MODULE(KUNGFU_MODULE_NAME, m) {                                                                             \
     m.def("matcher", [&]() {                                                                                           \
+      typedef kungfu::yijinjing::data::location location;                                                              \
+      typedef kungfu::yijinjing::data::locator locator;                                                                \
+      typedef kungfu::longfist::enums::mode mode;                                                                      \
+      typedef kungfu::longfist::enums::category category;                                                              \
+      std::string module_name = GET_MODULE_NAME(KUNGFU_MODULE_NAME);                                                   \
+      auto lr = std::make_shared<locator>();                                                                           \
+      std::string s_group(module_name);                                                                                \
+      std::string s_name(module_name);                                                                                 \
+      char *env_group = std::getenv("KF_STG_GROUP");                                                                   \
+      if (env_group != NULL) {                                                                                         \
+        s_group = env_group;                                                                                           \
+      }                                                                                                                \
+      char *env_name = std::getenv("KF_STG_NAME");                                                                     \
+      if (env_name != NULL) {                                                                                          \
+        s_name = env_name;                                                                                             \
+      }                                                                                                                \
+      auto home = location::make_shared(mode::LIVE, category::STRATEGY, s_group, s_name, lr);                          \
+      KUNGFU_SETUP_LOGGER(home, module_name);                                                                          \
       return std::static_pointer_cast<kungfu::wingchun::strategy::Matcher>(std::make_shared<MatcherType>());           \
     });                                                                                                                \
   };                                                                                                                   \

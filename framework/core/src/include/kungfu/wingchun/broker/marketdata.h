@@ -19,8 +19,8 @@ FORWARD_DECLARE_CLASS_PTR(MarketData)
 
 class MarketDataVendor : public BrokerVendor {
 public:
-  MarketDataVendor(locator_ptr locator, const std::string &group, const std::string &name, bool low_latency,
-                   const std::string &arguments = {});
+  MarketDataVendor(locator_ptr locator, const std::string &group, const std::string &name, longfist::enums::mode m,
+                   bool low_latency, const std::string &arguments = "{}");
 
   void set_service(MarketData_ptr service);
 
@@ -48,8 +48,6 @@ public:
   virtual bool subscribe_custom(const longfist::types::CustomSubscribe &custom_sub) { return subscribe_all(); };
 
   virtual bool unsubscribe(const std::vector<longfist::types::InstrumentKey> &instrument_keys) = 0;
-
-  virtual bool on_custom_event(const event_ptr &event) { return true; }
 
   virtual void on_band(const event_ptr &event) {}
 

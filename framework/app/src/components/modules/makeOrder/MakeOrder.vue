@@ -7,6 +7,8 @@ import {
   ref,
   watch,
 } from 'vue';
+import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
+
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
 import {
@@ -14,6 +16,7 @@ import {
   useDashboardBodySize,
   confirmModal,
   messagePrompt,
+  useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
@@ -37,17 +40,26 @@ import {
   OrderTriggerConfigTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
+  Side,
+  MarginSideStatus,
+} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import {
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useInstruments,
   useProcessStatusDetailData,
   useTradeLimit,
+  useMarginSupport,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import {
+  initFormStateByConfig,
+  enableCustomRadioType,
+} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
@@ -71,21 +83,64 @@ import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/file
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();
 const app = getCurrentInstance();
+const {
+  currentGlobalKfLocation,
+  currentCategoryData,
+  getCurrentGlobalKfLocationId,
+} = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { instrumentKeyAccountsMap, uiExtConfigs, globalSetting } = storeToRefs(
-  useGlobalStore(),
-);
+const {
+  instrumentKeyAccountsMap,
+  uiExtConfigs,
+  globalSetting,
+  instrumentsMap,
+} = storeToRefs(useGlobalStore());
 const { isLanguageKeyAvailable } = useLanguage();
 const { handleBodySizeChange } = useDashboardBodySize();
-const formState = ref(
-  initFormStateByConfig(getConfigSettings('td', InstrumentTypeEnum.future), {}),
-);
+const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
 const formRef = ref();
+const boardRef = ref();
+const makeOrderRef = ref();
+const apartOrderRef = ref();
+const orderTriggerRef = ref();
+
+useKeyboardControlContainerStyle(
+  'MakeOrder',
+  '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
+
+  boardRef,
+  formRef,
+);
+
+const currentAccountId = ref<string>('');
+
+const formState = ref(
+  initFormStateByConfig(
+    getConfigSettings({
+      location: currentGlobalKfLocation.value,
+      instrumentType: InstrumentTypeEnum.future,
+      isMarginMakeOrder: false,
+      isSpecifyContract: false,
+    }),
+    {},
+  ),
+);
+
+const { isMarginMakeOrder, isSpecifyContract } = useMarginSupport(
+  currentGlobalKfLocation,
+  formState,
+);
+
+const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
+const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+
+const autoFillInstrument = ref<boolean>(false);
+
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
-const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
+
 const { triggerOrderBook } = useTriggerMakeOrder();
 const {
   showAmountOrPosition,
@@ -100,14 +155,8 @@ const {
   currentAvailMoney,
   currentAvailPosVolume,
   isAccountOrInstrumentConfirmed,
-} = useMakeOrderInfo(formState);
+} = useMakeOrderInfo(formState, isMarginMakeOrder);
 useMakeOrderSubscribe(formState);
-
-const {
-  currentGlobalKfLocation,
-  currentCategoryData,
-  getCurrentGlobalKfLocationId,
-} = useCurrentGlobalKfLocation(window.watcher);
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
@@ -124,7 +173,7 @@ const tdList = computed<KungfuApi.KfLocation[] | null | undefined>(() => {
 
 const configSettings = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getConfigSettings();
+    return getConfigSettings({});
   }
 
   let step = 0.0001,
@@ -139,16 +188,19 @@ const configSettings = computed(() => {
     pricePrecision = price_precision;
   }
 
-  const { category } = currentGlobalKfLocation.value;
   const { side } = formState.value;
-  return getConfigSettings(
-    category,
-    makeOrderInstrumentType.value,
+  return getConfigSettings({
+    location: currentGlobalKfLocation.value,
+    instrumentType: makeOrderInstrumentType.value,
+    isMarginMakeOrder: isMarginMakeOrder.value,
+    isSpecifyContract: isSpecifyContract.value,
     side,
-    +formState.value.price_type,
+    priceType: +formState.value.price_type,
     pricePrecision,
     step,
-  );
+    sideList: sideList.value,
+    offsetList: offsetList.value,
+  });
 });
 
 const rules = computed(() => {
@@ -183,8 +235,16 @@ const makeOrderData = computed(() => {
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
 
-  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap } =
-    formState.value;
+  const {
+    limit_price,
+    volume,
+    price_type,
+    side,
+    offset,
+    hedge_flag,
+    is_swap,
+    contract_id,
+  } = formState.value;
 
   const makeOrderInput: KungfuApi.MakeOrderInput = {
     instrument_id: instrumentId,
@@ -198,6 +258,7 @@ const makeOrderData = computed(() => {
     hedge_flag: +(hedge_flag || 0),
     is_swap: !!is_swap,
     parent_id: 0n,
+    contract_id: contract_id || '',
   };
   return makeOrderInput;
 });
@@ -216,12 +277,30 @@ const getResolvedOffset = (
   side: SideEnum,
   instrumentType: InstrumentTypeEnum,
 ) => {
-  if (isShotable(instrumentType)) {
+  if (isShotable(instrumentType) || isMarginMakeOrder.value) {
     if (offset !== undefined) {
       return offset;
     }
   }
-  return side === 0 ? 0 : 1;
+  if (isMarginMakeOrder.value) {
+    if (
+      [
+        SideEnum.GuaranteeStockBuy,
+        SideEnum.MarginTrade,
+        SideEnum.RepayStock,
+      ].includes(side)
+    ) {
+      return 0;
+    } else {
+      return 1;
+    }
+  } else {
+    if (side === 0) {
+      return 0;
+    } else {
+      return 1;
+    }
+  }
 };
 
 watch(
@@ -238,47 +317,169 @@ watch(
 watch(
   () => formState.value.instrument,
   (newVal) => {
-    if (
-      !formState.value.account_id &&
-      currentGlobalKfLocation.value?.category !== 'td' &&
-      instrumentKeyAccountsMap.value[newVal] &&
-      instrumentKeyAccountsMap.value[newVal].length
-    ) {
-      formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
+    if (!newVal || !currentGlobalKfLocation.value) return;
+    const instrumentResolved =
+      transformSearchInstrumentResultToInstrument(newVal);
+    if (instrumentResolved) {
+      const { instrumentType, exchangeId } = instrumentResolved;
+      const tdName = currentGlobalKfLocation.value?.group;
+      const extConfig = extConfigs.value.td[tdName];
+      if (instrumentType === InstrumentTypeEnum.stockoption) {
+        sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
+      } else if (
+        instrumentType === InstrumentTypeEnum.fund &&
+        extConfig &&
+        extConfig.supportEtf
+      ) {
+        sideList.value = [
+          ...Object.keys(Side).slice(0, 2),
+          SideEnum.Purchase + '',
+          SideEnum.Redemption + '',
+        ];
+      } else {
+        sideList.value = Object.keys(Side).slice(0, 2);
+      }
+
+      if (instrumentType === InstrumentTypeEnum.future) {
+        if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
+          offsetList.value = offsetList.value.filter(
+            (item) =>
+              item !== OffsetEnum.CloseToday + '' ||
+              item !== OffsetEnum.CloseYest + '',
+          );
+        }
+      }
+
+      if (
+        !isMarginMakeOrder.value &&
+        'side' in formState.value &&
+        !sideList.value.includes(formState.value.side + '')
+      ) {
+        formState.value.side = +sideList.value[0];
+      }
+      if (
+        !formState.value.account_id &&
+        currentGlobalKfLocation.value?.category !== 'td' &&
+        instrumentKeyAccountsMap.value[newVal] &&
+        instrumentKeyAccountsMap.value[newVal].length
+      ) {
+        formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
+      }
+
+      if (formState.value.contract_id && !autoFillInstrument.value) {
+        formState.value.contract_id = '';
+      } else {
+        autoFillInstrument.value = false;
+      }
+
+      subscribeAllInstrumentByAppStates(
+        processStatusData.value,
+        appStates.value,
+        mdExtTypeMap.value,
+        [instrumentResolved],
+      );
+      triggerOrderBook(instrumentResolved);
+
+      makeOrderInstrumentType.value = instrumentResolved.instrumentType;
     }
+  },
+);
 
-    if (!instrumentResolved.value) {
-      return;
+watch(
+  () => isMarginMakeOrder.value,
+  (newVal) => {
+    if (newVal) {
+      if (!MarginSideStatus.includes(formState.value.side)) {
+        formState.value.side = SideEnum.GuaranteeStockBuy;
+      }
+    } else {
+      if (MarginSideStatus.includes(formState.value.side)) {
+        formState.value.side = SideEnum.Buy;
+      }
     }
-
-    subscribeAllInstrumentByAppStates(
-      processStatusData.value,
-      appStates.value,
-      mdExtTypeMap.value,
-      [instrumentResolved.value],
-    );
-    triggerOrderBook(instrumentResolved.value);
-
-    makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
+  },
+  {
+    immediate: true,
   },
 );
 
 watch(
   () => formState.value.side,
   (newSide) => {
-    if (instrumentResolved.value) {
-      if (newSide === SideEnum.Sell) {
-        formState.value.offset = currentPositionWithLongDirection.value
-          ? resolveTriggerOffset(currentPositionWithLongDirection.value)
-          : OffsetEnum.Close;
-      } else if (newSide === SideEnum.Buy) {
-        formState.value.offset = currentPositionWithShortDirection.value
-          ? resolveTriggerOffset(currentPositionWithShortDirection.value)
-          : OffsetEnum.Open;
+    if (isMarginMakeOrder.value) {
+      [
+        SideEnum.GuaranteeStockBuy,
+        SideEnum.MarginTrade,
+        SideEnum.ShortSell,
+      ].includes(formState.value.side)
+        ? (formState.value.offset = OffsetEnum.Open)
+        : (formState.value.offset = OffsetEnum.Close);
+      if (
+        formState.value.side !== SideEnum.RepayStock ||
+        formState.value.side !== SideEnum.RepayMargin
+      ) {
+        formState.value.contract_id = '';
+      }
+
+      if (
+        !isSpecifyContract.value &&
+        formState.value.side === SideEnum.RepayMargin
+      ) {
+        formState.value.contract_id = '';
       }
     } else {
-      formState.value.offset =
-        newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
+      if (instrumentResolved.value) {
+        const { instrumentType } = instrumentResolved.value;
+
+        if (isShotable(instrumentType)) {
+          if (newSide === SideEnum.Sell) {
+            if (currentPositionWithLongDirection.value) {
+              formState.value.offset = currentPositionWithLongDirection.value
+                ? resolveTriggerOffset(currentPositionWithLongDirection.value)
+                : OffsetEnum.Open;
+            }
+          } else if (newSide === SideEnum.Buy) {
+            formState.value.offset = currentPositionWithShortDirection.value
+              ? resolveTriggerOffset(currentPositionWithShortDirection.value)
+              : OffsetEnum.Open;
+          }
+        } else {
+          formState.value.offset =
+            newSide === SideEnum.Buy ? OffsetEnum.Open : OffsetEnum.Close;
+        }
+      }
+    }
+  },
+);
+
+watch(
+  () => formState.value.contract_id,
+  (newVal) => {
+    try {
+      if (newVal) {
+        const contractList = window.watcher.ledger.Contract.filter(
+          'contract_id',
+          newVal,
+        ).list();
+        if (contractList.length === 0) {
+          return;
+        }
+
+        const { instrument_id, exchange_id } = contractList[0];
+        const ukey = hashInstrumentUKey(instrument_id, exchange_id);
+        const instrumentResolved = instrumentsMap.value[ukey];
+        if (!instrumentResolved) {
+          return;
+        }
+
+        const instrumentStr = `${instrumentResolved.exchangeId}_${instrumentResolved.instrumentId}_${instrumentResolved.instrumentType}_${ukey}_${instrumentResolved.instrumentName}`;
+        if (formState.value.instrument !== instrumentStr) {
+          formState.value.instrument = instrumentStr;
+          autoFillInstrument.value = true;
+        }
+      }
+    } catch (error) {
+      console.error(error);
     }
   },
 );
@@ -298,9 +499,6 @@ watch(
       offset,
     });
   },
-  {
-    deep: true,
-  },
 );
 
 watch(
@@ -315,11 +513,19 @@ watch(
   },
 );
 
+watch(
+  () => formState.value.account_id,
+  (newVal) => {
+    currentAccountId.value = newVal;
+  },
+);
+
 onMounted(() => {
   if (currentGlobalKfLocation.value?.category === 'td') {
     formState.value.account_id = getIdByKfLocation(
       currentGlobalKfLocation.value,
     );
+    formState.value.offset = OffsetEnum.Open;
   } else {
     formState.value.account_id = '';
   }
@@ -345,8 +551,16 @@ function initOrderInputData(): Promise<KungfuApi.MakeOrderInput> {
   }
 
   const { exchangeId, instrumentId, instrumentType } = instrumentResolved.value;
-  const { limit_price, volume, price_type, side, offset, hedge_flag, is_swap } =
-    formState.value;
+  const {
+    contract_id,
+    limit_price,
+    volume,
+    price_type,
+    side,
+    offset,
+    hedge_flag,
+    is_swap,
+  } = formState.value;
 
   const makeOrderInput: KungfuApi.MakeOrderInput = {
     instrument_id: instrumentId,
@@ -360,6 +574,7 @@ function initOrderInputData(): Promise<KungfuApi.MakeOrderInput> {
     hedge_flag: +(hedge_flag || 0),
     is_swap: !!is_swap,
     parent_id: 0n,
+    contract_id: contract_id || '',
   };
 
   return Promise.resolve(makeOrderInput);
@@ -387,10 +602,13 @@ async function handleApartOrder(): Promise<void> {
     const isContinue = await confirmContinueOrderModal(
       dealFatFingerMessage(makeOrderInput),
     );
-    if (isContinue !== null && !isContinue) return;
+    if (isContinue !== null && !isContinue) {
+      apartOrderRef.value?.focus();
+      return;
+    }
 
     isShowConfirmModal.value = true;
-    curOrderVolume.value = Number(makeOrderInput.volume);
+    curOrderVolume.value = makeOrderInput.volume;
     curOrderType.value = makeOrderInput.instrument_type;
   } catch (e) {
     if ((<Error>e).message) {
@@ -402,13 +620,19 @@ async function handleApartOrder(): Promise<void> {
 // 拆单弹窗确认回调
 async function handleApartedConfirm(volumeList: number[]): Promise<void> {
   try {
-    if (!makeOrderData.value || !currentGlobalKfLocation.value) return;
+    if (!makeOrderData.value || !currentGlobalKfLocation.value) {
+      apartOrderRef.value?.focus();
+      return;
+    }
 
     const tdProcessId = await confirmOrderPlace(
       makeOrderData.value,
       volumeList.length,
     );
-    if (!tdProcessId) return;
+    if (!tdProcessId) {
+      apartOrderRef.value?.focus();
+      return;
+    }
 
     const apartOrderInput: KungfuApi.MakeOrderInput = makeOrderData.value;
 
@@ -422,6 +646,7 @@ async function handleApartedConfirm(volumeList: number[]): Promise<void> {
         );
       }),
     );
+    apartOrderRef.value?.focus();
   } catch (e) {
     if ((<Error>e).message) {
       error((<Error>e).message);
@@ -531,8 +756,8 @@ async function confirmApartCloseToOpen(
 
     if (side === SideEnum.Buy) {
       if (currentPositionWithShortDirection.value) {
-        closableVolume = Number(
-          getPosClosableVolume(currentPositionWithShortDirection.value),
+        closableVolume = getPosClosableVolume(
+          currentPositionWithShortDirection.value,
         );
 
         direction = t('tradingConfig.short');
@@ -540,8 +765,8 @@ async function confirmApartCloseToOpen(
       }
     } else if (side === SideEnum.Sell) {
       if (currentPositionWithLongDirection.value) {
-        closableVolume = Number(
-          getPosClosableVolume(currentPositionWithLongDirection.value),
+        closableVolume = getPosClosableVolume(
+          currentPositionWithLongDirection.value,
         );
 
         direction = t('tradingConfig.long');
@@ -553,15 +778,15 @@ async function confirmApartCloseToOpen(
       return [makeOrderInput];
 
     if (volume > closableVolume) {
-      const openVolume = volume - Number(closableVolume);
+      const openVolume = dealKfDecimalPrecision(volume - closableVolume);
       const firstOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
-        volume: Number(closableVolume),
+        volume: closableVolume,
       };
       const secondOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         offset: OffsetEnum.Open,
-        volume: volume - Number(closableVolume),
+        volume: dealKfDecimalPrecision(volume - closableVolume),
       };
       const flag = await confirmContinueOrderModal(
         t('tradingConfig.close_apart_open_modal', {
@@ -605,9 +830,12 @@ async function handleMakeOrder(): Promise<void> {
 
     for (let orderInput of makeOrderInputs) {
       const tdProcessId = await confirmOrderPlace(orderInput);
-      if (!tdProcessId) continue;
+      if (!tdProcessId) {
+        continue;
+      }
       await placeOrder(orderInput, currentGlobalKfLocation.value, tdProcessId);
     }
+    makeOrderRef.value?.focus();
     app?.proxy?.$globalBus.next({
       tag: 'main',
       name: 'click:makeOrder',
@@ -660,7 +888,10 @@ const orderTriggerBtnVisible = computed(() => {
 // 预埋
 async function handleOrderTrigger() {
   try {
-    if (!currentGlobalKfLocation.value) return;
+    if (!currentGlobalKfLocation.value) {
+      orderTriggerRef.value?.focus();
+      return;
+    }
 
     await formRef.value.validate();
     orderTriggerInput.value = await initOrderInputData();
@@ -673,6 +904,7 @@ async function handleOrderTrigger() {
 
     if (processStatusData.value[tdProcessId] !== 'online') {
       error(t('tradingConfig.start_process', { process: tdProcessId }));
+      orderTriggerRef.value?.focus();
       return;
     }
 
@@ -693,7 +925,10 @@ async function handleOrderTrigger() {
 }
 
 function handleOrderTriggerConfirm() {
-  if (!currentGlobalKfLocation.value) return;
+  if (!currentGlobalKfLocation.value) {
+    orderTriggerRef.value?.focus();
+    return;
+  }
   const orderInput: KungfuApi.MakeOrderTriggerInput = {
     ...(orderTriggerInput.value as KungfuApi.MakeOrderInput),
   };
@@ -706,6 +941,7 @@ function handleOrderTriggerConfirm() {
 
   if (processStatusData.value[tdProcessId] !== 'online') {
     error(t('tradingConfig.start_process', { process: tdProcessId }));
+    orderTriggerRef.value?.focus();
     return;
   }
 
@@ -721,6 +957,7 @@ function handleOrderTriggerConfirm() {
     .catch((e) => {
       error((<Error>e).message);
     });
+  orderTriggerRef.value?.focus();
 }
 
 // 展示平仓弹窗
@@ -735,7 +972,7 @@ function showCloseModal(
   const { result, relationship } = closeModalConditions(
     closeRange,
     makeOrderInput,
-    Number(currentPosition.value?.closable_volume || 0),
+    currentPosition.value?.closable_volume || 0,
   );
 
   if (result) {
@@ -767,7 +1004,9 @@ function closeModalConditions(
     return { result: false };
   }
 
-  const positionVolumeResolved = positionVolume * (closeRange / 100);
+  const positionVolumeResolved = dealKfDecimalPrecision(
+    positionVolume * (closeRange / 100),
+  );
 
   if (makeOrderInput.volume === positionVolumeResolved) {
     return {
@@ -851,7 +1090,11 @@ watch(
 
 <template>
   <div class="kf-make-order-dashboard__warp">
-    <KfDashboard @boardSizeChange="handleBodySizeChange">
+    <KfDashboard
+      ref="boardRef"
+      tabindex="0"
+      @boardSizeChange="handleBodySizeChange"
+    >
       <template v-slot:title>
         <span v-if="currentGlobalKfLocation">
           <a-tag
@@ -864,6 +1107,18 @@ watch(
             {{ getCurrentGlobalKfLocationId(currentGlobalKfLocation) }}
           </span>
         </span>
+      </template>
+      <template #header>
+        <KfDashboardItem>
+          <a-button
+            tabindex="-2"
+            style="flex: 0"
+            size="small"
+            @click="handleResetMakeOrderForm"
+          >
+            {{ $t('tradingConfig.reset_order') }}
+          </a-button>
+        </KfDashboardItem>
       </template>
       <div class="make-order__wrap">
         <div class="make-order-content">
@@ -882,6 +1137,7 @@ watch(
               <a-col :span="LABEL_COL + WRAPPER_COL">
                 <a-button
                   v-for="percent in percentList"
+                  tabindex="-1"
                   :class="{
                     'percent-button': true,
                     'percent-button-active': currentPercent === percent,
@@ -898,7 +1154,7 @@ watch(
               </a-col>
             </div>
             <template v-if="isAccountOrInstrumentConfirmed">
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     showAmountOrPosition === 'amount'
@@ -914,10 +1170,12 @@ watch(
                   }}
                 </a-col>
               </div>
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
-                    isShotable(instrumentResolved?.instrumentType)
+                    isMarginMakeOrder
+                      ? $t('交易金额')
+                      : isShotable(instrumentResolved?.instrumentType)
                       ? formState.offset === OffsetEnum.Open
                         ? t('保证金占用')
                         : t('保证金返还')
@@ -928,7 +1186,7 @@ watch(
                   {{ currentTradeAmount }}
                 </a-col>
               </div>
-              <div class="make-order-position">
+              <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL" class="position-label">
                   {{
                     showAmountOrPosition === 'amount'
@@ -946,6 +1204,7 @@ watch(
               </div>
               <a-card
                 v-if="availTradingTaskExtensionList.length"
+                tabindex="-1"
                 class="make-order-algorithm__wrap"
                 :title="$t('tradingConfig.algorithm')"
                 size="small"
@@ -955,9 +1214,11 @@ watch(
                 }"
               >
                 <a-button
+                  tabindex="-1"
                   class="make-order-algorithm-btns"
                   v-for="item in availTradingTaskExtensionList"
                   @click="handleOpenTradingTaskConfigModal(item)"
+                  :key="item.key"
                 >
                   {{
                     isLanguageKeyAvailable(item.name)
@@ -971,19 +1232,20 @@ watch(
         </div>
         <div class="make-order-btns">
           <a-button
-            style="flex: 0"
-            size="small"
-            @click="handleResetMakeOrderForm"
+            ref="makeOrderRef"
+            class="make-order"
+            @click="handleMakeOrder"
           >
-            {{ $t('tradingConfig.reset_order') }}
-          </a-button>
-          <a-button class="make-order" @click="handleMakeOrder">
             {{ $t('tradingConfig.place_order') }}
           </a-button>
-          <a-button v-if="orderTriggerBtnVisible" @click="handleOrderTrigger">
+          <a-button
+            ref="orderTriggerRef"
+            v-if="orderTriggerBtnVisible"
+            @click="handleOrderTrigger"
+          >
             {{ $t('tradingConfig.order_trigger') }}
           </a-button>
-          <a-button @click="handleApartOrder">
+          <a-button ref="apartOrderRef" @click="handleApartOrder">
             {{ $t('tradingConfig.apart_order') }}
           </a-button>
         </div>
@@ -993,6 +1255,11 @@ watch(
       v-if="isShowOrderTriggerConfirmModal"
       v-model:visible="isShowOrderTriggerConfirmModal"
       :orderTriggerInput="orderTriggerInputResolved"
+      @close="
+        () => {
+          orderTriggerRef && orderTriggerRef.focus();
+        }
+      "
       @confirm="handleOrderTriggerConfirm"
     ></OrderTriggerConfirmModal>
     <OrderConfirmModal
@@ -1000,6 +1267,11 @@ watch(
       v-model:visible="isShowConfirmModal"
       :curOrderVolume="curOrderVolume"
       :curOrderType="curOrderType"
+      @close="
+        () => {
+          apartOrderRef && apartOrderRef.focus();
+        }
+      "
       @confirm="handleApartedConfirm"
     ></OrderConfirmModal>
   </div>
@@ -1114,6 +1386,7 @@ watch(
           margin-bottom: 0px;
         }
       }
+
       .make-order {
         height: 72%;
         flex: 4;
@@ -1124,6 +1397,7 @@ watch(
   .green {
     color: @green-base !important;
   }
+
   .red {
     color: @red-base !important;
   }
@@ -1133,12 +1407,15 @@ watch(
   .root-node {
     display: flex;
     flex-wrap: nowrap;
+
     .green {
       color: @green-base !important;
     }
+
     .red {
       color: @red-base !important;
     }
+
     .order-number {
       flex: 1;
       margin-top: 10%;

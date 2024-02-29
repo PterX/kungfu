@@ -127,6 +127,7 @@ app
   .use(Tree)
   .use(List)
   .use(Badge)
+  .use(Tooltip)
 
   .use(Statistic)
   .use(Divider)
@@ -150,7 +151,6 @@ app.config.globalProperties.$tradingDataSubject = tradingDataSubject;
 app.use(VueI18n);
 
 const globalStore = useGlobalStore();
-const __BYPASS_ARCHIVE__ = false;
 let appMounted = false;
 
 globalBus.subscribe((data) => {
@@ -188,10 +188,9 @@ const afterWatchIsLive = () => {
   const watcherIsLiveObervable = buildIfWatcherLiveObservable(window.watcher);
   watcherIsLiveObervable.pipe(first()).subscribe(() => {
     kfLogger.info('watcher is live');
-    delayMilliSeconds(2000)
+    delayMilliSeconds(1000)
       .then(() => startLedger(false))
       .then(() => postStartAll())
-      .then(() => delayMilliSeconds(1000))
       .then(() => {
         globalBus.next({
           tag: 'processStatus',
@@ -229,7 +228,7 @@ const initStartAll = (bypassArchive = false) => {
           });
         });
       })
-      .then(() => tryArchive(bypassArchive || __BYPASS_ARCHIVE__))
+      .then(() => tryArchive(bypassArchive))
       .then(() => startMaster(false))
       .catch((err) => kfLogger.error(err.message))
       .finally(() => syncProcessStatusToPinia());

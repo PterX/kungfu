@@ -78,7 +78,7 @@ export class TradeTable extends Table {
           side,
           offset,
           trade.price,
-          Number(trade.volume),
+          trade.volume,
           last,
           trade.latency_trade,
         ],

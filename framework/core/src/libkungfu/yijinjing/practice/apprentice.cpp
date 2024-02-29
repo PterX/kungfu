@@ -22,8 +22,8 @@ namespace fs = std::filesystem;
 
 namespace kungfu::yijinjing::practice {
 
-apprentice::apprentice(location_ptr home, bool low_latency, std::string arguments)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), cleaner_(*this), arguments_(std::move(arguments)) {}
+apprentice::apprentice(const data::location_ptr &home, bool low_latency, std::string arguments)
+    : hero(std::make_shared<io_device_client>(home, low_latency)), manager_(*this), arguments_(std::move(arguments)) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -37,25 +37,27 @@ int64_t apprentice::get_last_active_time() const { return last_active_time_; }
 
 const cache::bank &apprentice::get_state_bank() const { return state_bank_; }
 
-void apprentice::request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
-  require_read_from(trigger_time, get_master_command_uid(), source_id, from_time);
+void apprentice::request_read_from(int64_t trigger_time, uint32_t source_id, int64_t from_time, uint64_t page_size) {
+  require_read_from(trigger_time, get_master_command_uid(), source_id, from_time, page_size);
 }
 
-void apprentice::request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
-  require_read_from_public(trigger_time, get_master_command_uid(), source_id, from_time);
+void apprentice::request_read_from_public(int64_t trigger_time, uint32_t source_id, int64_t from_time,
+                                          uint64_t page_size) {
+  require_read_from_public(trigger_time, get_master_command_uid(), source_id, from_time, page_size);
 }
 
-void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time) {
-  require_read_from_sync(trigger_time, get_master_command_uid(), source_id, from_time);
+void apprentice::request_read_from_sync(int64_t trigger_time, uint32_t source_id, int64_t from_time,
+                                        uint64_t page_size) {
+  require_read_from_sync(trigger_time, get_master_command_uid(), source_id, from_time, page_size);
 }
 
 void apprentice::request_read_from_source_to_dest(int64_t trigger_time, const location_ptr &source_location,
-                                                  uint32_t dest_id) {
-  reader_join(source_location->uid, dest_id, trigger_time);
+                                                  uint32_t dest_id, uint64_t page_size) {
+  reader_join(source_location->uid, dest_id, trigger_time, page_size);
 }
 
-void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id) {
-  require_write_to(trigger_time, get_master_command_uid(), dest_id);
+void apprentice::request_write_to(int64_t trigger_time, uint32_t dest_id, uint64_t page_size) {
+  require_write_to(trigger_time, get_master_command_uid(), dest_id, page_size);
 }
 
 void apprentice::request_write_to_band(int64_t trigger_time, const location_ptr &location, uint64_t page_size) {
@@ -83,13 +85,18 @@ int32_t apprentice::add_time_interval(int64_t duration, const std::function<void
   return timer_id;
 }
 
-bool apprentice::release_page() {
-  bool result = false;
-  result |= reader_->release_page();
+void apprentice::release_page() {
+  reader_->release_page();
   for (auto &iter : writers_) {
-    result |= iter.second->release_page();
+    iter.second->release_page();
   }
-  return result;
+}
+
+void apprentice::preload_next_page() {
+  reader_->preload_next_page();
+  for (auto &iter : writers_) {
+    iter.second->preload_next_page();
+  }
 }
 
 void apprentice::react() {
@@ -109,7 +116,7 @@ void apprentice::react() {
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
-  cleaner_.on_react();
+  manager_.on_react();
 
   if (get_io_device()->get_home()->mode != mode::BACKTEST) {
     events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
@@ -201,7 +208,7 @@ void apprentice::on_deregister(const event_ptr &event) {
     return;
   }
 
-  reader_->disjoin(location_uid);
+  disjoin(location_uid);
   deregister_channel(location_uid);
   deregister_band(location_uid);
   deregister_location(event->trigger_time(), location_uid);
@@ -221,9 +228,10 @@ void apprentice::on_request_read_from_others(const event_ptr &event) {
 }
 
 void apprentice::on_write_to(const event_ptr &event) {
-  auto dest_id = event->data<RequestWriteTo>().dest_id;
+  const auto &request = event->data<RequestWriteTo>();
+  auto dest_id = request.dest_id;
   if (writers_.find(dest_id) == writers_.end()) {
-    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id));
+    writers_.emplace(dest_id, get_io_device()->open_writer(dest_id, request.page_size));
     if (dest_id == get_master_command_uid()) {
       master_cmd_writer_for_thread_ = get_writer(dest_id);
     }
@@ -248,7 +256,7 @@ void apprentice::on_write_to_band(const event_ptr &event) {
   return get_io_device()->get_observer()->get_recv_timeout();
 }
 
-void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time) {
+void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time, uint64_t page_size) {
 
   if (not has_location(source_id)) {
     SPDLOG_ERROR("no location {}", source_id);
@@ -267,6 +275,7 @@ void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_
   request.source_id = source_id;
   request.dest_id = dest_id;
   request.from_time = from_time;
+  request.page_size = page_size;
   writer->close_data();
 }
 
@@ -316,7 +325,7 @@ void apprentice::reset_time(const longfist::types::TimeReset &time_reset) {
   time::reset(time_reset.system_clock_count, time_reset.steady_clock_count);
 }
 
-std::thread &apprentice::get_cleaning_worker() { return cleaner_.get_cleaning_worker(); }
+std::thread &apprentice::get_resource_management_worker() { return manager_.get_resource_management_worker(); }
 
 void apprentice::clear_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, false); }
 
@@ -324,10 +333,10 @@ bool apprentice::is_timer_enabled(int32_t timer_id) { return timers_.try_emplace
 
 void apprentice::enable_timer(int32_t timer_id) { timers_.insert_or_assign(timer_id, true); }
 
-journal::writer_ptr &apprentice::get_thread_writer() {
+journal::writer_ptr &apprentice::get_thread_writer(uint64_t page_size) {
   if (not thread_writer_) {
     uint32_t dest_id = util::get_thread_id();
-    thread_writer_ = get_io_device()->open_writer(dest_id);
+    thread_writer_ = get_io_device()->open_writer(dest_id, page_size);
 
     /// join channel in sub-thread will crash, so tell master to ask myself to join
     /// do not use writer because of multi-thread concurrency issues

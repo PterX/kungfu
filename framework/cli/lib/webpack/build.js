@@ -70,6 +70,7 @@ const run = (distDir, distName = 'cli') => {
       mode: 'production',
       distDir: distDir,
       distName: distName,
+      enableThreadLoader: false,
     };
 
     const cliConfig = require('./webpack.cli.config');

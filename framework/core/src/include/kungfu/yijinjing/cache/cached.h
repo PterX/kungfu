@@ -17,7 +17,7 @@ typedef yijinjing::cache::typed_bank<ProfileDataTypesType, ProfileStateMapType> 
 
 class cached {
 public:
-  explicit cached(const yijinjing::io_device_ptr &io_device, bool bypass_cached = false);
+  explicit cached(const yijinjing::io_device_ptr &io_device);
 
   ~cached();
 
@@ -36,6 +36,8 @@ public:
   void try_ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
 
   void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
+
+  bool check_cached_storage_exists(const yijinjing::data::location_ptr &location, uint32_t dest);
 
   void cache_reset(const event_ptr &event);
 
@@ -107,7 +109,7 @@ private:
   ProfileStateBank profile_restore_bank_ = ProfileStateBank(longfist::ProfileDataTypes);
   std::unordered_map<uint32_t, yijinjing::cache::shift> app_states_shift_ = {};
   yijinjing::cache::bank states_feed_bank_;
-  const bool bypass_cached_;
+  bool bypass_cached_;
   std::thread store_states_worker_;
   std::thread store_profile_worker_;
   std::mutex feed_mutex_;
@@ -115,6 +117,7 @@ private:
   std::mutex profile_store_mutex_;
   std::atomic<bool> m_quit_ = false;
   std::atomic_bool storage_pause_ = false;
+  bool is_otc_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
 

@@ -13,7 +13,7 @@ import Icon, {
   SettingOutlined,
   DeleteOutlined,
   FormOutlined,
-  BankOutlined,
+  EyeOutlined,
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
@@ -56,7 +56,7 @@ const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { operator } = toRefs(useAllKfConfigData());
 const operatorIdList = computed(() => {
   return operator.value.map((item: KungfuApi.KfLocation): string =>
-    getIdByKfLocation(item),
+    item.group === 'default' ? item.name : `${item.group}-${item.name}`,
   );
 });
 const { processStatusData, getProcessStatusName } =
@@ -295,6 +295,11 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
               style="font-size: 12px; margin-left: 7px"
             />
           </template>
+          <template v-else-if="column.dataIndex === 'remarks'">
+            {{
+              JSON.parse((record as KungfuApi.KfConfig).value).remarks || '--'
+            }}
+          </template>
           <template v-else-if="column.dataIndex === 'operatorFile'">
             {{ getOperatorPathShowName(record) }}
           </template>
@@ -330,10 +335,10 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
                 style="font-size: 12px"
                 @click.stop="handleOpenReplayConfirmView(record)"
               ></HistoryOutlined>
-              <BankOutlined
-                style="font-size: 12px"
+              <EyeOutlined
+                style="font-size: 14px"
                 @click.stop="handleOpenJournalView(record)"
-              ></BankOutlined>
+              ></EyeOutlined>
               <FileTextOutlined
                 style="font-size: 12px"
                 @click.stop="handleOpenLogview(record)"

@@ -148,11 +148,7 @@ function getTradeListForIndexMap(
 ) {
   let tradeList: KungfuApi.TradeResolved[] = [];
   if (tradeIndexMapList.length === 1) {
-    const compare = (a, b) => Number(b.trade_time) - Number(a.trade_time);
-
-    tradeList = tradeIndexMapList[0]
-      .getCommonList()
-      .sort((a, b) => compare(a, b));
+    tradeList = tradeIndexMapList[0].getCommonList();
   } else {
     const listMap: Record<number, KungfuApi.TradeResolved[]> = {};
     let everyLatestTradeResolved = tradeIndexMapList.map(

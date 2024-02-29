@@ -170,16 +170,10 @@ function getOrderListFromIndexMap(
 ) {
   let orderList: KungfuApi.OrderResolved[] = [];
   if (orderIndexMapList.length === 1) {
-    const compare = (a, b) => Number(b.insert_time) - Number(a.insert_time);
     if (unfinishedOrder.value) {
-      orderList = orderIndexMapList[0]
-        .getUnfinishedList()
-        .slice(0, 50000)
-        .sort((a, b) => compare(a, b));
+      orderList = orderIndexMapList[0].getUnfinishedList().slice(0, 50000);
     } else {
-      orderList = orderIndexMapList[0]
-        .getCommonList()
-        .sort((a, b) => compare(a, b));
+      orderList = orderIndexMapList[0].getCommonList().slice(0, 50000);
     }
   } else {
     const listMap: Record<number, KungfuApi.OrderResolved[]> = {};

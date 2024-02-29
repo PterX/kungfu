@@ -1498,6 +1498,8 @@ declare namespace KungfuApi {
       type: string,
       isFinished?: boolean,
     ): void;
+    sortCommonList(compareFn: (a: V, b: V) => number): void;
+    sortUnfinishedList(compareFn: (a: V, b: V) => number): void;
     deleteLastCommonValue(): void;
     getCommonListIndexForKey(key: K): number | undefined;
     getUnfinishedListIndexForKey(key: K): number | undefined;

@@ -363,7 +363,6 @@ defineExpose({
 watch(
   () => props.hasData,
   (hasData) => {
-    console.log('hasData', hasData);
     isShowEmpty();
   },
   { immediate: true },
@@ -374,7 +373,6 @@ watch(
   (columns) => {
     if (listTable) {
       listTable.updateColumns(columns);
-      console.log('columns', columns);
     }
   },
 );

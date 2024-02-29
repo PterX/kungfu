@@ -117,6 +117,13 @@ public:
 
   void ensure_storage(uint32_t dest);
 
+  bool check_storage_exists(uint32_t dest);
+
+  StateStoragePtr get_storage(uint32_t dest) {
+    ensure_storage(dest);
+    return storage_map_.at(dest);
+  }
+
   template <typename TargetType> void operator>>(TargetType &target) {
     for (auto dest : location_->locator->list_location_dest_by_db(location_)) {
       ensure_storage(dest);

@@ -33,3 +33,16 @@ jobs:
         pull-request-title: ${{ github.event.pull_request.title }}
       secrets:
         GITHUB_PUSH_TOKEN: ${{ secrets.KUNGFU_GITHUB_TOKEN }}
+
+  sync-release-page:
+    needs: [release]
+    uses: kungfu-trader/workflows/.github/workflows/.sync-release-page.yml@dev/v1/v1.2
+    with:
+      product: artifact-kungfu
+      release-url: https://releases.libkungfu.cc
+      repo: kungfu
+      release-path: artifact-kungfu
+      product-name: kungfu-core
+      lower-edge: 2.0.0
+    secrets:
+      AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}

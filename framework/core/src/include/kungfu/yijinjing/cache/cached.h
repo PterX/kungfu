@@ -37,6 +37,8 @@ public:
 
   void ensure_cached_storage(const yijinjing::data::location_ptr &location, uint32_t dest);
 
+  bool check_cached_storage_exists(const yijinjing::data::location_ptr &location, uint32_t dest);
+
   void cache_reset(const event_ptr &event);
 
   void feed(const event_ptr &event);
@@ -71,6 +73,24 @@ public:
   yijinjing::index::SessionMap &get_all_sessions();
 
   void switch_feed_storage(bool pause_storage);
+
+  template <typename DataType>
+  void restore_continuing_data(const yijinjing::journal::writer_ptr &writer,
+                               const yijinjing::data::location_ptr &location, uint32_t dest) {
+    auto from = yijinjing::time::today_start();
+    ensure_cached_storage(location, dest);
+    auto &state_shift = app_states_shift_.at(location->uid);
+    auto storage = state_shift.get_storage(dest);
+    auto states = storage->get_all<DataType>(sqlite_orm::where(
+        sqlite_orm::and_(sqlite_orm::and_(sqlite_orm::greater_or_equal(&DataType::insert_time, from),
+                                          sqlite_orm::lesser_or_equal(&DataType::insert_time, INT64_MAX)),
+                         sqlite_orm::in(&DataType::status, longfist::enums::CONTINUING_STATUS))
+
+            ));
+    for (auto &data : states) {
+      writer->write_as(0, data, location->uid, dest);
+    }
+  }
 
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
@@ -115,6 +135,7 @@ private:
   std::mutex profile_store_mutex_;
   std::atomic<bool> m_quit_ = false;
   std::atomic_bool storage_pause_ = false;
+  bool is_otc_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
 

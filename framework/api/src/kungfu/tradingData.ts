@@ -270,9 +270,7 @@ export function useWatcher() {
   const drainStatesBySync = async () => {
     if (watcher === null) return;
 
-    console.time('sync');
     watcher.sync();
-    console.timeEnd('sync');
     const orderStatList = Object.values(watcher.ledger.OrderStat);
     const orderList = Object.values(watcher.ledger.Order);
     const tradeList = Object.values(watcher.ledger.Trade);
@@ -319,7 +317,6 @@ export function useWatcher() {
             data.tradeList,
             data.orderStatList,
           );
-          console.time('sortDataMap');
 
           const sortDataMapValues = Array.from(sortDataMap.values());
           const sortPromises: Promise<void>[] = [];
@@ -334,8 +331,6 @@ export function useWatcher() {
           }
 
           await Promise.all(sortPromises);
-
-          console.timeEnd('sortDataMap');
         }
       }
       isProcessing = false;

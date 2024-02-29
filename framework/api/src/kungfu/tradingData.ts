@@ -55,7 +55,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     this.commonList.push(value);
 
     this.keyValueMap[key] = value;
-    if ((type === 'order' || type === 'position') && !isFinished) {
+    if (type === 'order' && !isFinished) {
       this.unfinishedList.push(value);
     }
   }
@@ -202,7 +202,6 @@ type AfterSync = (
 
 const DEFAULT_SPLIT_LENGTH = 20;
 const DEFAULT_TRADING_DATA_LENGTH = 50000;
-const DEFAULT_POSITION_DATA_LENGTH = 500;
 
 export function useWatcher() {
   let dataQueue: TradingDataList[] = [];
@@ -211,12 +210,68 @@ export function useWatcher() {
     order: {
       td: {},
       strategy: {},
-      position: {},
     },
     trade: {
       td: {},
       strategy: {},
-      position: {},
+    },
+    orderForEach: function (
+      callback: (
+        tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      ) => boolean,
+      type: 'order' | 'trade',
+      category: 'td' | 'strategy',
+      listGetter: 'getUnfinishedList' | 'getCommonList',
+      keys: number[] | null,
+      length: number = 0,
+      filterCount: number = 1000,
+    ): void {
+      const indexMapList: KungfuApi.KfDynamicTradingDataIndexedMap<
+        string,
+        KungfuApi.OrderResolved | KungfuApi.TradeResolved
+      >[] = keys
+        ? keys.map((item) => this[type][category][item]).filter((item) => item)
+        : Object.values(this[type][category]);
+      const listMap: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[][] =
+        [];
+
+      const everyLatestDataResolved = indexMapList.map((item, index) => {
+        const list = item[listGetter]();
+        let firstData = list[0];
+        if (!firstData) return;
+        listMap[index] = list.slice(0, filterCount);
+        return { data: firstData, index, position: 0 };
+      });
+
+      const compare = (a, b) => {
+        const str = a.data.trade_id ? 'trade_time' : 'insert_time';
+        return Number(b.data[str]) - Number(a.data[str]);
+      };
+
+      while (everyLatestDataResolved.length > 0 && length > 0) {
+        everyLatestDataResolved.sort(compare);
+        const maxItem = everyLatestDataResolved.shift();
+
+        if (!maxItem) break;
+
+        const isProcessed = callback(maxItem.data);
+        if (isProcessed) {
+          length--;
+        }
+
+        if (!isProcessed || maxItem.position + 1 < filterCount) {
+          const nextPosition = maxItem.position + 1;
+          const nextData = listMap[maxItem.index][nextPosition];
+
+          if (nextData) {
+            everyLatestDataResolved.push({
+              data: nextData,
+              index: maxItem.index,
+              position: nextPosition,
+            });
+          }
+        }
+      }
     },
   };
   globalThis.tradingDataObject = tradingDataObject;
@@ -236,11 +291,8 @@ export function useWatcher() {
     const { category, key, orderUKey, orderResolved } = data;
 
     let defaultLength = 0;
-    if (category === 'position') {
-      defaultLength = DEFAULT_POSITION_DATA_LENGTH;
-    } else {
-      defaultLength = DEFAULT_TRADING_DATA_LENGTH;
-    }
+
+    defaultLength = DEFAULT_TRADING_DATA_LENGTH;
 
     if (!tradingDataObject[dataType][category][key]) {
       tradingDataObject[dataType][category][key] =
@@ -317,6 +369,7 @@ export function useWatcher() {
             data.tradeList,
             data.orderStatList,
           );
+          console.time('sort');
 
           const sortDataMapValues = Array.from(sortDataMap.values());
           const sortPromises: Promise<void>[] = [];
@@ -331,6 +384,7 @@ export function useWatcher() {
           }
 
           await Promise.all(sortPromises);
+          console.timeEnd('sort');
         }
       }
       isProcessing = false;
@@ -368,13 +422,7 @@ export function useWatcher() {
           const order = slicedOrderList[i];
           if (!order || !watcher) continue;
 
-          const {
-            instrument_id,
-            exchange_id,
-            source,
-            dest,
-            uid_key: orderUKey,
-          } = order;
+          const { source, dest, uid_key: orderUKey } = order;
           const orderIndexMap = tradingDataObject.order.td[source];
 
           const OldOrderResolved = orderIndexMap
@@ -387,7 +435,6 @@ export function useWatcher() {
             order,
             orderStatsMap.order[orderUKey] || null,
           );
-          const instrumentId = `${exchange_id}_${instrument_id}`;
 
           delete orderStatsMap.order[orderUKey];
 
@@ -414,19 +461,6 @@ export function useWatcher() {
               }),
             ),
           );
-
-          tasks.push(
-            Promise.resolve(
-              processData({
-                type: 'order',
-                category: 'position',
-                key: instrumentId,
-
-                orderUKey,
-                orderResolved,
-              }),
-            ),
-          );
         }
 
         await Promise.all(tasks);
@@ -446,7 +480,7 @@ export function useWatcher() {
         for (let i = 0; i < slicedTradeList.length; i++) {
           const trade = slicedTradeList[i];
           if (!trade || !watcher) continue;
-          const { instrument_id, exchange_id, source, dest } = trade;
+          const { source, dest } = trade;
           const orderUKey = hashSingleUKey(trade.order_id);
 
           const indexMap = tradingDataObject.trade.td[source];
@@ -459,7 +493,7 @@ export function useWatcher() {
             trade,
             orderStatsMap.trade[orderUKey] || null,
           );
-          const instrumentId = `${exchange_id}_${instrument_id}`;
+
           delete orderStatsMap.trade[orderUKey];
 
           tasks.push(
@@ -480,18 +514,6 @@ export function useWatcher() {
                 type: 'trade',
                 category: 'strategy',
                 key: dest,
-                orderUKey,
-                orderResolved: tradeResolved,
-              }),
-            ),
-          );
-
-          tasks.push(
-            Promise.resolve(
-              processData({
-                type: 'trade',
-                category: 'position',
-                key: instrumentId,
                 orderUKey,
                 orderResolved: tradeResolved,
               }),
@@ -530,20 +552,11 @@ export function useWatcher() {
           order,
           orderStat,
         );
-        const instrumentId = `${order.exchange_id}_${order.instrument_id}`;
         const isFinished = !UnfinishedOrderStatus.includes(
           orderResolved.status,
         );
 
         indexMap.updateKeyWithValue(key, orderResolved, 'order', isFinished);
-        if (tradingDataObject.order.position[instrumentId]) {
-          tradingDataObject.order.position[instrumentId].updateKeyWithValue(
-            key,
-            orderResolved,
-            'position',
-            isFinished,
-          );
-        }
       }
 
       for (let k = 0; k < strategyKeys.length; k++) {
@@ -593,15 +606,7 @@ export function useWatcher() {
             trade,
             orderStat,
           );
-          const instrumentId = `${trade.exchange_id}_${trade.instrument_id}`;
           indexMap.updateKeyWithValue(key, tradeResolved, 'trade');
-          if (tradingDataObject.trade.position[instrumentId]) {
-            tradingDataObject.trade.position[instrumentId].updateKeyWithValue(
-              key,
-              tradeResolved,
-              'position',
-            );
-          }
         }
 
         const strategyKeys = Object.keys(tradingDataObject.trade.strategy);

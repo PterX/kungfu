@@ -1518,9 +1518,6 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
-      position: {
-        [key: string]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
-      };
     };
     trade: {
       td: {
@@ -1529,10 +1526,18 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
-      position: {
-        [key: string]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
-      };
     };
+    orderForEach: (
+      callback: (
+        tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      ) => boolean,
+      type: 'order' | 'trade',
+      category: 'td' | 'strategy',
+      listGetter: 'getUnfinishedList' | 'getCommonList',
+      tds: number[] | null,
+      length: number,
+      filterCount: number,
+    ) => void;
   }
 
   export interface Session {

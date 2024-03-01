@@ -5,7 +5,7 @@
     :board-id="id"
     :style="{
       height,
-      flex: 'unset',
+      flex: height ? 'unset' : '1',
       paddingBottom: id !== 0 ? '6px' : '0',
     }"
   >
@@ -85,7 +85,7 @@ export default defineComponent({
           return `${this.boardInfo?.height}px`;
         }
       } else {
-        return ``;
+        return '';
       }
     },
   },

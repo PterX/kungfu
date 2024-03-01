@@ -3,7 +3,7 @@
     class="kf-drag-col__warp"
     :style="{
       width,
-      flex: 'unset',
+      flex: width ? 'unset' : '1',
       paddingRight: id !== 0 ? '6px' : '0',
     }"
     :board-id="id"
@@ -81,7 +81,7 @@ export default defineComponent({
           return `${this.boardInfo.width}px`;
         }
       } else {
-        return `flex: 1;`;
+        return '';
       }
     },
   },

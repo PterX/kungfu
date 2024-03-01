@@ -1,5 +1,10 @@
 @import '@kungfu-trader/kungfu-app/src/renderer/assets/less/variables.less';
 
+.animated-element {
+  transform: translateZ(0); /* 触发硬件加速 */
+  will-change: transform; /* 提前告知浏览器该元素将变化 */
+}
+
 .kf-translateZ {
   position: relative;
   transform: translateZ(0);

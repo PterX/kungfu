@@ -726,15 +726,11 @@ export const listProcessStatus = (): Promise<{
   processStatus: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
 }> => {
-  return Promise.resolve({
-    processStatus: Object.freeze(buildProcessStatus([])),
-    processStatusWithDetail: Object.freeze(buildProcessStatusWidthDetail([])),
+  return pm2List().then((pList: ProcessDescription[]) => {
+    const processStatus = buildProcessStatus(pList);
+    const processStatusWithDetail = buildProcessStatusWidthDetail(pList);
+    return { processStatus, processStatusWithDetail };
   });
-  // return pm2List().then((pList: ProcessDescription[]) => {
-  //   const processStatus = buildProcessStatus(pList);
-  //   const processStatusWithDetail = buildProcessStatusWidthDetail(pList);
-  //   return { processStatus, processStatusWithDetail };
-  // });
 };
 
 export const listProcessStatusWithDetail =

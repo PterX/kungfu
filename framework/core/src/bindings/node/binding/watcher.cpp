@@ -129,6 +129,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
+      register_apps_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),           //
       strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),         //
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)), //
       update_state(state_ref_),                                                                   //
@@ -172,6 +173,7 @@ Watcher::~Watcher() {
   strategy_states_ref_.Reset();
   config_ref_.Reset();
   app_states_ref_.Reset();
+  register_apps_ref_.Reset();
   ledger_ref_.Reset();
   state_ref_.Reset();
   SPDLOG_INFO("~Watcher Done");
@@ -235,6 +237,8 @@ Napi::Value Watcher::GetState(const Napi::CallbackInfo &info) { return state_ref
 Napi::Value Watcher::GetLedger(const Napi::CallbackInfo &info) { return ledger_ref_.Value(); }
 
 Napi::Value Watcher::GetAppStates(const Napi::CallbackInfo &info) { return app_states_ref_.Value(); }
+
+Napi::Value Watcher::GetRegisterApps(const Napi::CallbackInfo &info) { return register_apps_ref_.Value(); }
 
 Napi::Value Watcher::GetStrategyStates(const Napi::CallbackInfo &info) { return strategy_states_ref_.Value(); }
 
@@ -391,35 +395,36 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func =
       DefineClass(env, "Watcher",
                   {
-                      InstanceMethod("now", &Watcher::Now),                                             //
-                      InstanceMethod("isUsable", &Watcher::IsUsable),                                   //
-                      InstanceMethod("isLive", &Watcher::IsLive),                                       //
-                      InstanceMethod("isStarted", &Watcher::IsStarted),                                 //
-                      InstanceMethod("requestStop", &Watcher::RequestStop),                             //
-                      InstanceMethod("hasLocation", &Watcher::HasLocation),                             //
-                      InstanceMethod("getLocation", &Watcher::GetLocation),                             //
-                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),                       //
-                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),                 //
-                      InstanceMethod("publishState", &Watcher::PublishState),                           //
-                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),                 //
-                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),                     //
-                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),                 //
-                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),                 //
-                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                               //
-                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),                       //
-                      InstanceMethod("issueMark", &Watcher::IssueMark),                                 //
-                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                             //
-                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),                     //
-                      InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),               //
-                      InstanceMethod("toggleAlgoOrder", &Watcher::ToggleAlgoOrder),                     //
-                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),                 //
-                      InstanceMethod("requestPosition", &Watcher::RequestPosition),                     //
-                      InstanceMethod("start", &Watcher::Start),                                         //
-                      InstanceMethod("sync", &Watcher::Sync),                                           //
-                      InstanceMethod("quit", &Watcher::Quit),                                           //
-                      InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
-                      InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
-                      InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
+                      InstanceMethod("now", &Watcher::Now),                                   //
+                      InstanceMethod("isUsable", &Watcher::IsUsable),                         //
+                      InstanceMethod("isLive", &Watcher::IsLive),                             //
+                      InstanceMethod("isStarted", &Watcher::IsStarted),                       //
+                      InstanceMethod("requestStop", &Watcher::RequestStop),                   //
+                      InstanceMethod("hasLocation", &Watcher::HasLocation),                   //
+                      InstanceMethod("getLocation", &Watcher::GetLocation),                   //
+                      InstanceMethod("getLocationUID", &Watcher::GetLocationUID),             //
+                      InstanceMethod("getInstrumentType", &Watcher::GetInstrumentType),       //
+                      InstanceMethod("publishState", &Watcher::PublishState),                 //
+                      InstanceMethod("isReadyToInteract", &Watcher::IsReadyToInteract),       //
+                      InstanceMethod("issueCustomData", &Watcher::IssueCustomData),           //
+                      InstanceMethod("issueBlockMessage", &Watcher::IssueBlockMessage),       //
+                      InstanceMethod("issueOrderTrigger", &Watcher::IssueOrderTrigger),       //
+                      InstanceMethod("issueOrder", &Watcher::IssueOrder),                     //
+                      InstanceMethod("issueAlgoOrder", &Watcher::IssueAlgoOrder),             //
+                      InstanceMethod("issueMark", &Watcher::IssueMark),                       //
+                      InstanceMethod("cancelOrder", &Watcher::CancelOrder),                   //
+                      InstanceMethod("cancelAlgoOrder", &Watcher::CancelAlgoOrder),           //
+                      InstanceMethod("cancelOrderTrigger", &Watcher::CancelOrderTrigger),     //
+                      InstanceMethod("toggleAlgoOrder", &Watcher::ToggleAlgoOrder),           //
+                      InstanceMethod("requestMarketData", &Watcher::RequestMarketData),       //
+                      InstanceMethod("requestPosition", &Watcher::RequestPosition),           //
+                      InstanceMethod("start", &Watcher::Start),                               //
+                      InstanceMethod("sync", &Watcher::Sync),                                 //
+                      InstanceMethod("quit", &Watcher::Quit),                                 //
+                      InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),         //
+                      InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),       //
+                      InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet), //
+                      InstanceAccessor("registerApps", &Watcher::GetRegisterApps, &Watcher::NoSet),
                       InstanceAccessor("strategyStates", &Watcher::GetStrategyStates, &Watcher::NoSet), //
                   });
 
@@ -479,8 +484,6 @@ void Watcher::on_start() {
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));
-  //  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
-  //  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   events_ | is(BrokerStateUpdate::tag) |
       $$(UpdateBrokerOperatorState<BrokerStateUpdate>(event->source(), event->dest(),
                                                       event->data<BrokerStateUpdate>()));
@@ -534,6 +537,7 @@ Napi::Value Watcher::Start(const Napi::CallbackInfo &info) {
 void Watcher::Sync(const Napi::CallbackInfo &info) {
   std::lock_guard<std::mutex> guard(feed_mutex_);
   SyncEventCache();
+  SyncRegisterStates(info);
   SyncAppStates();
   SyncStrategyStates();
   SyncLedger();
@@ -562,15 +566,22 @@ void Watcher::SyncTradingData() {
 }
 
 void Watcher::SyncAppStates() {
-  for (auto &s : location_uid_states_map_) {
+  for (auto &s : broker_states_map_) {
     auto app_state = Napi::Number::New(app_states_ref_.Env(), s.second);
     app_states_ref_.Set(format(s.first), app_state);
   }
-  location_uid_states_map_.clear();
+  broker_states_map_.clear();
+}
+
+void Watcher::SyncRegisterStates(const Napi::CallbackInfo &info) {
+  serialize::initObjectReference(info, register_apps_ref_);
+  for (auto &register_app : get_registry()) {
+    register_apps_ref_.Set(format(register_app.first), Napi::Boolean::New(info.Env(), true));
+  }
 }
 
 void Watcher::SyncStrategyStates() {
-  for (auto &s : location_uid_strategy_states_map_) {
+  for (auto &s : strategy_states_map_) {
     auto strategy_state_obj = Napi::Object::New(strategy_states_ref_.Env());
     strategy_state_obj.Set("state", Napi::Number::New(strategy_states_ref_.Env(), int(s.second.state)));
     strategy_state_obj.Set("update_time", Napi::Number::New(strategy_states_ref_.Env(), s.second.update_time));
@@ -580,7 +591,7 @@ void Watcher::SyncStrategyStates() {
     strategy_state_obj.Set("value", Napi::String::New(strategy_states_ref_.Env(), s.second.value));
     strategy_states_ref_.Set(format(s.first), strategy_state_obj);
   }
-  location_uid_strategy_states_map_.clear();
+  strategy_states_map_.clear();
 }
 
 void Watcher::SyncEventCache() {
@@ -649,12 +660,12 @@ void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_loc
   //  events_ | is(Quote::tag) | from(md_location->uid) | first() |
   //      $(
   //          [&, trigger_time, md_location](const event_ptr &event) {
-  //            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
+  //            broker_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
   //            events_ | from(md_location->uid) | is(Quote::tag) |
   //                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
   //                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
   //                  if (is_location_live(md_location->uid)) {
-  //                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
+  //                    broker_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
   //                    MonitorMarketData(trigger_time, md_location);
   //                  }
   //                });
@@ -671,7 +682,7 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   auto app_location = get_location(app_uid);
   if (app_location->category == category::MD or app_location->category == category::TD or
       app_location->category == category::OPERATOR) {
-    location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
+    broker_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
 
   if (app_location->category == category::MD and app_location->mode == mode::LIVE) {
@@ -683,7 +694,7 @@ void Watcher::OnDeregister(int64_t trigger_time, const Deregister &deregister_da
   auto app_location = location::make_shared(deregister_data, get_locator());
   if (app_location->category == category::MD or app_location->category == category::TD or
       app_location->category == category::OPERATOR) {
-    location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
+    broker_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
 
   if (app_location->category == category::SYSTEM and app_location->group == "master" and
@@ -762,15 +773,16 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   disjoin(get_master_command_uid());
   writers_.clear();
-  serialize::InitObjectReference(info, app_states_ref_);
-  serialize::InitObjectReference(info, strategy_states_ref_);
+  serialize::initObjectReference(info, app_states_ref_);
+  serialize::initObjectReference(info, register_apps_ref_);
+  serialize::initObjectReference(info, strategy_states_ref_);
   serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitStateMap(info, ledger_ref_, "ledger");
 }
 
 void Watcher::UpdateStrategyState(uint32_t strategy_uid, const StrategyStateUpdate &state) {
   auto app_location = get_location(strategy_uid);
-  location_uid_strategy_states_map_.insert_or_assign(app_location->uid, state);
+  strategy_states_map_.insert_or_assign(app_location->uid, state);
 }
 
 void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {

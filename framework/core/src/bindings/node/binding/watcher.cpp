@@ -598,7 +598,7 @@ void Watcher::SyncAppStates() {
 }
 
 void Watcher::SyncRegisterStates(const Napi::CallbackInfo &info) {
-  serialize::initObjectReference(info, register_apps_ref_);
+  serialize::InitObjectReference(info, register_apps_ref_);
   for (auto &register_app : get_registry()) {
     register_apps_ref_.Set(format(register_app.first), Napi::Boolean::New(info.Env(), true));
   }
@@ -797,9 +797,9 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   Napi::HandleScope scope(info.Env());
   disjoin(get_master_command_uid());
   writers_.clear();
-  serialize::initObjectReference(info, app_states_ref_);
-  serialize::initObjectReference(info, register_apps_ref_);
-  serialize::initObjectReference(info, strategy_states_ref_);
+  serialize::InitObjectReference(info, app_states_ref_);
+  serialize::InitObjectReference(info, register_apps_ref_);
+  serialize::InitObjectReference(info, strategy_states_ref_);
   serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
 }

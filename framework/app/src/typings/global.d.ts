@@ -7,7 +7,7 @@ declare module '@vue/runtime-core' {
     $globalBus: Subject<KfBusEvent>;
     $tradingDataSubject: Subject<{
       watcher: KungfuApi.Watcher;
-      tradingDataObject: KungfuApi.TradingDataObject;
+      tradingData: KungfuApi.tradingData;
     }>;
     $availKfBoards: string[];
     _: any; //vue3 shit

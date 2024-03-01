@@ -1510,7 +1510,7 @@ declare namespace KungfuApi {
     getUnfinishedList(): V[];
   }
 
-  export interface TradingDataObject {
+  export interface tradingData {
     order: {
       td: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
@@ -1527,17 +1527,15 @@ declare namespace KungfuApi {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
     };
-    orderForEach: (
+    tradingDataForEach: (
       callback: (
         tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
       ) => boolean,
-      type: 'order' | 'trade',
-      category: 'td' | 'strategy',
-      listGetter: 'getUnfinishedList' | 'getCommonList',
-      tds: number[] | null,
-      length: number,
-      filterCount: number,
-    ) => void;
+      tradingDataType: 'order' | 'trade',
+      tradingDataGroup: 'td' | 'strategy',
+      listGetterType: 'common' | 'unfinished',
+      groupFilterKeys?: number[],
+    ) => Promise<void>;
   }
 
   export interface Session {

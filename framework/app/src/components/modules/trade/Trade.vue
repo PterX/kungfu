@@ -53,15 +53,13 @@ import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const DEFAULT_TRADE_LIST_LENGTH = 50000;
-const DEFAULT_POSITION_LIST_LENGTH = 500;
-const DEFAULT_POSITION_FILTER_LENGTH = 1000;
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
-const currentTradingDataObject = ref<KungfuApi.TradingDataObject>();
+const currentTradingData = ref<KungfuApi.tradingData>();
 
 const canvasRef = ref();
 const historyDate = ref<Dayjs>();
@@ -93,37 +91,39 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
+const isSorting = ref<boolean>(false);
 
 const searchKeyword = ref<string>('');
 
-function getTradeList(
-  tradingDataObject: KungfuApi.TradingDataObject,
-): KungfuApi.TradeResolved[] {
+async function getTradeList(
+  tradingData: KungfuApi.tradingData,
+): Promise<KungfuApi.TradeResolved[]> {
   let tradeList: KungfuApi.TradeResolved[] = [];
   if (!currentGlobalKfLocation.value) tradeList = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
+    isSorting.value = true;
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
     const addTradeResolved = (
-      orderResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
-      const instrumentId = `${orderResolved.exchange_id}_${orderResolved.instrument_id}`;
-      if (instrumentId === locationId) {
-        tradeList.push(orderResolved as KungfuApi.TradeResolved);
-        return true;
-      } else {
+      const instrumentId = `${tradeResolved.exchange_id}_${tradeResolved.instrument_id}`;
+      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
         return false;
+      } else {
+        if (instrumentId === locationId) {
+          tradeList.push(tradeResolved as KungfuApi.TradeResolved);
+        }
+        return true;
       }
     };
     console.time('globalPos');
-    tradingDataObject.orderForEach(
+    await tradingData.tradingDataForEach(
       addTradeResolved,
       'trade',
       'td',
-      'getCommonList',
-      null,
-      DEFAULT_POSITION_LIST_LENGTH,
-      DEFAULT_POSITION_FILTER_LENGTH,
+      'common',
     );
+    isSorting.value = false;
     console.timeEnd('globalPos');
     console.log('globalPos', tradeList);
   } else if (
@@ -134,31 +134,33 @@ function getTradeList(
       currentGlobalKfLocation.value,
     );
     const indexMap =
-      tradingDataObject.trade[currentGlobalKfLocation.value.category][
-        locationId
-      ];
+      tradingData.trade[currentGlobalKfLocation.value.category][locationId];
     if (indexMap) {
       tradeList = indexMap.getCommonList().slice(0, 50000);
     } else {
       tradeList = [];
     }
   } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
+    isSorting.value = true;
     console.time('tdGroup');
     const addTradeResolved = (
-      orderResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
-      tradeList.push(orderResolved as KungfuApi.TradeResolved);
-      return true;
+      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
+        return false;
+      } else {
+        tradeList.push(tradeResolved as KungfuApi.TradeResolved);
+        return true;
+      }
     };
-    tradingDataObject.orderForEach(
+    await tradingData.tradingDataForEach(
       addTradeResolved,
       'trade',
       'td',
-      'getCommonList',
+      'common',
       tdChildrenLocationIdList.value,
-      DEFAULT_TRADE_LIST_LENGTH,
-      DEFAULT_TRADE_LIST_LENGTH,
     );
+    isSorting.value = false;
     console.timeEnd('tdGroup');
     console.log('tdGroup', tradeList);
   } else {
@@ -167,10 +169,10 @@ function getTradeList(
   return tradeList;
 }
 
-function processTradingData(tradingDataObject: KungfuApi.TradingDataObject) {
-  currentTradingDataObject.value = tradingDataObject;
+async function processTradingData(tradingData: KungfuApi.tradingData) {
+  currentTradingData.value = tradingData;
 
-  const tradeList = getTradeList(tradingDataObject);
+  const tradeList = await getTradeList(tradingData);
 
   nextTick(() => {
     if (tradeList.length > 0) {
@@ -210,7 +212,7 @@ const hasData = computed(() => {
 
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
-    const { tradingDataObject } = data;
+    const { tradingData } = data;
     if (historyDate.value) {
       return;
     }
@@ -219,7 +221,9 @@ onActivated(() => {
       return;
     }
 
-    processTradingData(tradingDataObject);
+    if (isSorting.value) return;
+
+    processTradingData(tradingData);
   });
 
   onBeforeUnmount(() => {
@@ -236,10 +240,7 @@ watch(
   () => {
     historyDate.value = undefined;
     allTrades.value = [];
-    if (
-      currentGlobalKfLocation.value === null ||
-      !currentTradingDataObject.value
-    ) {
+    if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
       return;
     }
     tdChildrenLocationIdList.value = [];
@@ -254,7 +255,7 @@ watch(
         });
       }
     }
-    processTradingData(currentTradingDataObject.value);
+    processTradingData(currentTradingData.value);
   },
   { immediate: true },
 );

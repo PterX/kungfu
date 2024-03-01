@@ -65,8 +65,6 @@ public:
 
   Napi::Value GetAppStates(const Napi::CallbackInfo &info);
 
-  Napi::Value GetRegisterApps(const Napi::CallbackInfo &info);
-
   Napi::Value GetStrategyStates(const Napi::CallbackInfo &info);
 
   Napi::Value Now(const Napi::CallbackInfo &info);

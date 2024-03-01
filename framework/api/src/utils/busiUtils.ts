@@ -43,7 +43,6 @@ import {
   StrategyStateStatusEnum,
   UnderweightEnum,
   HistoryDateEnum,
-  AppRegisterTypes,
 } from '../typings/enums';
 import { kfLogger } from '../utils/logUtils';
 import {

@@ -1,5 +1,12 @@
 import { Pm2ProcessStatusTypes } from '../typings/common';
 
+export enum AppRegisterEnum {
+  online = 1,
+  stopped = 0,
+}
+
+export type AppRegisterTypes = keyof typeof AppRegisterEnum;
+
 export enum BrokerStateStatusEnum {
   Pending = 0,
   Idle = 1,

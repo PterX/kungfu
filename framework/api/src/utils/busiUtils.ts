@@ -43,6 +43,7 @@ import {
   StrategyStateStatusEnum,
   UnderweightEnum,
   HistoryDateEnum,
+  AppRegisterTypes,
 } from '../typings/enums';
 import { kfLogger } from '../utils/logUtils';
 import {
@@ -698,6 +699,23 @@ export const getLedgerCategory = (category: KfCategoryTypes): 0 | 1 => {
   }
 
   return LedgerCategoryEnum[category as LedgerCategoryTypes];
+};
+
+export const dealRegisterApps = (
+  watcher: KungfuApi.Watcher | null,
+  registerApps: Record<string, boolean>,
+): Record<string, AppRegisterTypes> => {
+  if (!watcher) {
+    return {} as Record<string, AppRegisterTypes>;
+  }
+
+  return Object.keys(registerApps || {}).reduce((registerAppsResolved, key) => {
+    const kfLocation = watcher.getLocation(key);
+    const processId = getProcessIdByKfLocation(kfLocation);
+
+    registerAppsResolved[processId] = registerApps[key] ? 'online' : 'stopped';
+    return registerAppsResolved;
+  }, {} as Record<string, AppRegisterTypes>);
 };
 
 export const dealAppStates = (

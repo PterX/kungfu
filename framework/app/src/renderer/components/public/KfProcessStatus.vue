@@ -1,11 +1,7 @@
 <template>
   <div class="kf-state-status">
     <div
-      :class="[
-        'kf-dot',
-        stateStatusData?.color || '',
-        isWaveStatus(stateStatusData?.color) ? 'kf-dot-wave' : '',
-      ]"
+      :class="['kf-dot', stateStatusData?.color || '']"
       v-if="stateStatusData && (stateStatusData.level || 0) !== 0"
     ></div>
     {{ +(stateStatusData?.level || 0) === 0 ? '--' : stateStatusData?.name }}
@@ -30,15 +26,12 @@ export default defineComponent({
       return getStateStatusData(this.statusName);
     },
   },
-
-  methods: {
-    isWaveStatus(statusColor: KungfuApi.AntInKungfuColorTypes | undefined) {
-      if (statusColor === undefined) return false;
-      if (statusColor === 'kf-color-error') return false;
-      return true;
-    },
-  },
 });
 </script>
 
-<style lang="less"></style>
+<style lang="less">
+.kf-state-status {
+  display: inline-flex;
+  align-items: center;
+}
+</style>

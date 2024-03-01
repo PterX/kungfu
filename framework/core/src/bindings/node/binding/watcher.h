@@ -65,6 +65,8 @@ public:
 
   Napi::Value GetAppStates(const Napi::CallbackInfo &info);
 
+  Napi::Value GetRegisterApps(const Napi::CallbackInfo &info);
+
   Napi::Value GetStrategyStates(const Napi::CallbackInfo &info);
 
   Napi::Value Now(const Napi::CallbackInfo &info);
@@ -151,8 +153,9 @@ private:
   Napi::ObjectReference state_ref_;
   Napi::ObjectReference ledger_ref_;
   Napi::ObjectReference app_states_ref_;
-  Napi::ObjectReference config_ref_;
   Napi::ObjectReference strategy_states_ref_;
+  Napi::ObjectReference register_apps_ref_;
+  Napi::ObjectReference config_ref_;
   serialize::JsUpdateState update_state;
   serialize::JsUpdateState update_ledger;
   serialize::JsPublishState publish;
@@ -161,8 +164,8 @@ private:
   yijinjing::cache::bank unfinished_trading_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
-  std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
-  std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
+  std::unordered_map<uint32_t, int> broker_states_map_ = {};
+  std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> strategy_states_map_ = {};
 
   typedef kungfu::longfist::enums::mode mode;
   typedef kungfu::longfist::enums::category category;
@@ -216,7 +219,7 @@ private:
     auto source_location = get_location(state.location_uid);
     if (source_location->category == category::TD or source_location->category == category::MD or
         source_location->category == category::OPERATOR) {
-      location_uid_states_map_.insert_or_assign(source_location->uid, int(state.state));
+      broker_states_map_.insert_or_assign(source_location->uid, int(state.state));
     }
   };
 
@@ -235,6 +238,8 @@ private:
   void SyncTradingData();
 
   void SyncAppStates();
+
+  void SyncRegisterStates(const Napi::CallbackInfo &info);
 
   void SyncStrategyStates();
 

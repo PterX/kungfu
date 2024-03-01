@@ -154,7 +154,6 @@ private:
   Napi::ObjectReference ledger_ref_;
   Napi::ObjectReference app_states_ref_;
   Napi::ObjectReference strategy_states_ref_;
-  Napi::ObjectReference register_apps_ref_;
   Napi::ObjectReference config_ref_;
   serialize::JsUpdateState update_state;
   serialize::JsUpdateState update_ledger;
@@ -238,8 +237,6 @@ private:
   void SyncTradingData();
 
   void SyncAppStates();
-
-  void SyncRegisterStates(const Napi::CallbackInfo &info);
 
   void SyncStrategyStates();
 

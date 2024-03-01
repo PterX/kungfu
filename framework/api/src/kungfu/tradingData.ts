@@ -19,7 +19,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   private commonList: V[];
   private unfinishedList: V[];
   private updateFinishedIndexList: number[] = [];
-  private maxCommonListLength = 50000;
+  // private maxCommonListLength = 50000;
 
   constructor(key: string, maxLength = 500) {
     this.key = key;
@@ -28,7 +28,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     this.unfinishedKeyIndexMap = {};
     this.commonList = [];
     this.unfinishedList = [];
-    this.maxCommonListLength = maxLength;
+    // this.maxCommonListLength = maxLength;
   }
 
   countSmallerNumbers(num) {
@@ -128,7 +128,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   sortCommonList(compareFn: (a: V, b: V) => number): void {
     this.commonList = this.commonList
       .sort(compareFn)
-      .slice(0, this.maxCommonListLength);
+      .slice(0, globalThis.tradingDataLength);
     this.resetCommonOptions();
   }
   resetCommonOptions(): void {
@@ -158,7 +158,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   sortUnfinishedList(compareFn: (a: V, b: V) => number): void {
     this.unfinishedList = this.unfinishedList
       .sort(compareFn)
-      .slice(0, this.maxCommonListLength);
+      .slice(0, globalThis.tradingDataLength);
     this.resetUnfinishedOptions();
   }
 }
@@ -202,6 +202,7 @@ type AfterSync = (
 
 const DEFAULT_SPLIT_LENGTH = 100;
 const DEFAULT_TRADING_DATA_LENGTH = 50000;
+globalThis.tradingDataLength = 50000;
 
 const bestEventLoopTask =
   typeof window !== 'undefined'

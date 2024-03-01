@@ -107,7 +107,7 @@ async function getTradeList(
       tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
       const instrumentId = `${tradeResolved.exchange_id}_${tradeResolved.instrument_id}`;
-      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
+      if (tradeList.length >= globalThis.tradingDataLength) {
         return false;
       } else {
         if (instrumentId === locationId) {
@@ -116,7 +116,6 @@ async function getTradeList(
         return true;
       }
     };
-    console.time('globalPos');
     await tradingData.tradingDataForEach(
       addTradeResolved,
       'trade',
@@ -124,8 +123,6 @@ async function getTradeList(
       'common',
     );
     isSorting.value = false;
-    console.timeEnd('globalPos');
-    console.log('globalPos', tradeList);
   } else if (
     currentGlobalKfLocation.value?.category === 'td' ||
     currentGlobalKfLocation.value?.category === 'strategy'
@@ -136,17 +133,21 @@ async function getTradeList(
     const indexMap =
       tradingData.trade[currentGlobalKfLocation.value.category][locationId];
     if (indexMap) {
-      tradeList = indexMap.getCommonList().slice(0, 50000);
+      tradeList = indexMap
+        .getCommonList()
+        .slice(0, globalThis.tradingDataLength || DEFAULT_TRADE_LIST_LENGTH);
     } else {
       tradeList = [];
     }
   } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
     isSorting.value = true;
-    console.time('tdGroup');
     const addTradeResolved = (
       tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
-      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
+      if (
+        tradeList.length >= globalThis.tradingDataLength ||
+        DEFAULT_TRADE_LIST_LENGTH
+      ) {
         return false;
       } else {
         tradeList.push(tradeResolved as KungfuApi.TradeResolved);
@@ -161,8 +162,6 @@ async function getTradeList(
       tdChildrenLocationIdList.value,
     );
     isSorting.value = false;
-    console.timeEnd('tdGroup');
-    console.log('tdGroup', tradeList);
   } else {
     tradeList = [];
   }

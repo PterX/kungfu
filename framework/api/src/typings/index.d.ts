@@ -1355,7 +1355,6 @@ declare namespace KungfuApi {
   }
 
   export interface Watcher {
-    registerApps: Record<string, boolean>;
     appStates: Record<string, BrokerStateStatusEnum>;
     strategyStates: Record<string, StrategyStateDataOrigin>;
     ledger: TradingData;

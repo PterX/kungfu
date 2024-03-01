@@ -85,9 +85,6 @@ const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 const searchKeyword = ref<string>('');
 const currentTradingData = ref<KungfuApi.tradingData>();
-const orderIndexMapList = ref<
-  KungfuApi.KfDynamicTradingDataIndexedMap<string, KungfuApi.OrderResolved>[]
->([]);
 
 const {
   currentGlobalKfLocation,
@@ -118,7 +115,10 @@ const columns = computed(() => {
 const tdChildrenLocationIdList = ref<number[]>([]);
 const isSorting = ref(false);
 
-async function getOrderList(tradingData: KungfuApi.tradingData) {
+async function getOrderList(
+  tradingData: KungfuApi.tradingData,
+  isGetAllUnfinishedOrder = false,
+) {
   let orderList: KungfuApi.OrderResolved[] = [];
   if (!currentGlobalKfLocation.value) orderList = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
@@ -161,7 +161,7 @@ async function getOrderList(tradingData: KungfuApi.tradingData) {
     const indexMap =
       tradingData.order[currentGlobalKfLocation.value.category][locationId];
     if (indexMap) {
-      if (unfinishedOrder.value) {
+      if (unfinishedOrder.value || isGetAllUnfinishedOrder) {
         orderList = indexMap
           .getUnfinishedList()
           .slice(0, globalThis.tradingDataLength || DEFAULT_ORDER_LIST_LENGTH);
@@ -275,7 +275,7 @@ onActivated(() => {
 
 watch(
   currentGlobalKfLocation,
-  () => {
+  async () => {
     historyDate.value = undefined;
     allOrders.value = [];
     clearCaches();
@@ -294,7 +294,7 @@ watch(
         });
       }
     }
-    const orderList = getOrderList(currentTradingData.value);
+    const orderList = await getOrderList(currentTradingData.value);
 
     nextTick(() => {
       if (orderList.length > 0) {
@@ -417,12 +417,12 @@ function handleCancelAllOrders(): void {
     `${t('orderConfig.confirm')} ${currentCategoryData.value?.name} ${name} ${t(
       'orderConfig.cancel_all',
     )}`,
-  ).then((flag) => {
+  ).then(async (flag) => {
     if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
       return;
     }
 
-    const orders = getTargetCancelOrders();
+    const orders = await getTargetCancelOrders();
     return kfCancelAllOrders(window.watcher, orders)
       .then(() => {
         success();
@@ -439,7 +439,7 @@ function filterUnfinishedOrders(
   return orders.filter((item) => UnfinishedOrderStatus.includes(item.status));
 }
 
-function getTargetCancelOrders(): KungfuApi.OrderResolved[] {
+async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   if (
     !currentGlobalKfLocation.value ||
     !window.watcher ||
@@ -447,15 +447,12 @@ function getTargetCancelOrders(): KungfuApi.OrderResolved[] {
   ) {
     return [];
   }
-  const indexMapList = getOrderIndexMapList(currentTradingData.value);
-  if (orderIndexMapList.value.length <= 0) {
+  const orderList = await getOrderList(currentTradingData.value, true);
+  if (orderList.length <= 0) {
     return [];
   }
-  const allUnfinishedOrders = indexMapList
-    .map((orderIndexMap) => orderIndexMap.getUnfinishedList())
-    .flat();
 
-  return filterUnfinishedOrders(allUnfinishedOrders);
+  return filterUnfinishedOrders(orderList);
 }
 
 function handleClickCell(args: VTable.MousePointerCellEvent) {

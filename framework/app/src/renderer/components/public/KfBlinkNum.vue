@@ -70,7 +70,7 @@ watch(
 </script>
 <template>
   <div
-    :class="['kf-blink-num', mode, classname, blinkType, compareZeroClassname]"
+    :class="['kf-blink-num', mode, blinkType, compareZeroClassname]"
     :title="num"
     :key="num"
   >

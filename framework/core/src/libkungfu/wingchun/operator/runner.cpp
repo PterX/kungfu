@@ -129,7 +129,10 @@ void Runner::post_start() {
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
-void Runner::post_stop() { invoke(&Operator::post_stop); }
+void Runner::post_stop() { 
+  invoke(&Operator::post_stop); 
+  stop(*context_);
+}
 
 bool Runner::is_reactable(const event_ptr &event) {
   auto iter = map_is_own_event.find(event->msg_type());

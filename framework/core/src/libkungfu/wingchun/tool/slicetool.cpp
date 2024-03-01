@@ -31,7 +31,7 @@ SliceTool::SliceTool(longfist::enums::category c, std::string group, std::string
 }
 
 SliceTool::~SliceTool() {
-  SPDLOG_INFO("SliceTool {} is destroyed", name_);
+  SPDLOG_DEBUG("SliceTool {} is destroyed", name_);
   for (auto it = lease_locations_.begin(); it != lease_locations_.end();) {
     for (const auto &expired_location : it->second) {
       SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",

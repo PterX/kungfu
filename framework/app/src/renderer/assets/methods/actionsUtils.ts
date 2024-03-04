@@ -490,7 +490,7 @@ export const useAddUpdateRemoveKfConfig = (): {
             mode: 'live',
           };
 
-          return new Promise<void>((ModalResolve, reject) => {
+          return new Promise<void>((modalResolve, reject) => {
             setKfConfig(
               kfLocation,
               JSON.stringify({
@@ -504,7 +504,7 @@ export const useAddUpdateRemoveKfConfig = (): {
               })
               .then(() => {
                 useGlobalStore().setKfConfigList();
-                ModalResolve();
+                modalResolve();
                 handleResolve();
               })
               .catch((err: Error) => {

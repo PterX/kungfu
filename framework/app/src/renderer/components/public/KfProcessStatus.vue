@@ -1,10 +1,12 @@
 <template>
   <div class="kf-state-status">
     <div
-      :class="['kf-dot', stateStatusData?.color || '']"
       v-if="stateStatusData && (stateStatusData.level || 0) !== 0"
+      :class="['kf-dot', stateStatusData?.color || '']"
     ></div>
-    {{ +(stateStatusData?.level || 0) === 0 ? '--' : stateStatusData?.name }}
+    <div class="kf-state-name">
+      {{ +(stateStatusData?.level || 0) === 0 ? '--' : stateStatusData?.name }}
+    </div>
   </div>
 </template>
 
@@ -33,5 +35,10 @@ export default defineComponent({
 .kf-state-status {
   display: inline-flex;
   align-items: center;
+
+  .kf-state-name {
+    position: relative;
+    top: -1px;
+  }
 }
 </style>

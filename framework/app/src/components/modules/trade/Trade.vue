@@ -91,7 +91,7 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
-const isSorting = ref<boolean>(false);
+const isRendering = ref<boolean>(false);
 
 const searchKeyword = ref<string>('');
 
@@ -101,13 +101,12 @@ async function getTradeList(
   let tradeList: KungfuApi.TradeResolved[] = [];
   if (!currentGlobalKfLocation.value) tradeList = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
-    isSorting.value = true;
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
     const addTradeResolved = (
       tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
       const instrumentId = `${tradeResolved.exchange_id}_${tradeResolved.instrument_id}`;
-      if (tradeList.length >= globalThis.tradingDataLength) {
+      if (tradeList.length >= globalThis.posGlobalLength) {
         return false;
       } else {
         if (instrumentId === locationId) {
@@ -122,7 +121,6 @@ async function getTradeList(
       'td',
       'common',
     );
-    isSorting.value = false;
   } else if (
     currentGlobalKfLocation.value?.category === 'td' ||
     currentGlobalKfLocation.value?.category === 'strategy'
@@ -140,14 +138,11 @@ async function getTradeList(
       tradeList = [];
     }
   } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-    isSorting.value = true;
+    isRendering.value = true;
     const addTradeResolved = (
       tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
-      if (
-        tradeList.length >= globalThis.tradingDataLength ||
-        DEFAULT_TRADE_LIST_LENGTH
-      ) {
+      if (tradeList.length >= globalThis.tradingDataLength) {
         return false;
       } else {
         tradeList.push(tradeResolved as KungfuApi.TradeResolved);
@@ -161,7 +156,6 @@ async function getTradeList(
       'common',
       tdChildrenLocationIdList.value,
     );
-    isSorting.value = false;
   } else {
     tradeList = [];
   }
@@ -169,6 +163,8 @@ async function getTradeList(
 }
 
 async function processTradingData(tradingData: KungfuApi.tradingData) {
+  if (isRendering.value) return;
+  isRendering.value = true;
   currentTradingData.value = tradingData;
 
   const tradeList = await getTradeList(tradingData);
@@ -203,6 +199,7 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
       canvasRef.value.getListTable()?.setRecords([]);
     }
   });
+  isRendering.value = false;
 }
 
 const hasData = computed(() => {
@@ -219,8 +216,6 @@ onActivated(() => {
     if (currentGlobalKfLocation.value === null) {
       return;
     }
-
-    if (isSorting.value) return;
 
     processTradingData(tradingData);
   });

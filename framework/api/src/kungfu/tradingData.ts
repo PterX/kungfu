@@ -10,9 +10,10 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { hashSingleUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-// import { btree } from 'sorted-btree';
+import BTree from 'sorted-btree';
+
 export class DynamicTradingDataIndexedMap<K extends string | number, V> {
-  private key: string;
+  private tradingDataType: 'order' | 'trade';
   private keyValueMap: { [key in K]?: V };
   private commonKeyIndexMap: { [key in K]?: number };
   private unfinishedKeyIndexMap: { [key in K]?: number };
@@ -20,15 +21,44 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   private unfinishedList: V[];
   private updateFinishedIndexList: number[] = [];
   // private maxCommonListLength = 50000;
+  private commonTree: BTree<any>;
+  private unfinishedTree: BTree<any>;
+  private sortStr1 = '';
+  private sortStr2 = '';
 
-  constructor(key: string, maxLength = 500) {
-    this.key = key;
+  constructor(type: 'order' | 'trade', _maxLength = 500) {
+    this.tradingDataType = type;
     this.keyValueMap = {};
     this.commonKeyIndexMap = {};
     this.unfinishedKeyIndexMap = {};
     this.commonList = [];
     this.unfinishedList = [];
-    // this.maxCommonListLength = maxLength;
+
+    if (this.tradingDataType === 'order') {
+      this.sortStr1 = 'insert_time';
+      this.sortStr2 = 'order_id';
+    } else {
+      this.sortStr1 = 'trade_time';
+      this.sortStr2 = 'trade_id';
+    }
+    this.commonTree = new BTree(undefined, (a, b) => {
+      if (a[this.sortStr1] > b[this.sortStr1]) return 1;
+      else if (a[this.sortStr1] < b[this.sortStr1]) return -1;
+      else {
+        return a[this.sortStr2]
+          .toString()
+          .localeCompare(b[this.sortStr2].toString());
+      }
+    });
+    this.unfinishedTree = new BTree(undefined, (a, b) => {
+      if (a[this.sortStr1] > b[this.sortStr1]) return 1;
+      else if (a[this.sortStr1] < b[this.sortStr1]) return -1;
+      else {
+        return a[this.sortStr2]
+          .toString()
+          .localeCompare(b[this.sortStr2].toString());
+      }
+    });
   }
 
   countSmallerNumbers(num) {
@@ -52,21 +82,35 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   }
 
   insertKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
-    this.commonList.push(value);
+    this.commonTree.set(
+      {
+        [this.sortStr1]: value[this.sortStr1],
+        [this.sortStr2]: value[this.sortStr2],
+      },
+      value,
+      true,
+    );
 
     this.keyValueMap[key] = value;
     if (type === 'order' && !isFinished) {
-      this.unfinishedList.push(value);
+      this.unfinishedTree.set(
+        {
+          [this.sortStr1]: value[this.sortStr1],
+          [this.sortStr2]: value[this.sortStr2],
+        },
+        value,
+        true,
+      );
     }
   }
   updateKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
-    const correctIndex = this.getCommonListIndexForKey(key);
-    if (correctIndex !== undefined) {
-      this.keyValueMap[key] = value;
-      this.commonList.splice(correctIndex, 1, value);
-    } else {
-      return;
-    }
+    this.commonTree.changeIfPresent(
+      {
+        [this.sortStr1]: value[this.sortStr1],
+        [this.sortStr2]: value[this.sortStr2],
+      },
+      value,
+    );
 
     if (type === 'trade') {
       return;
@@ -75,11 +119,18 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     const unfinishedCorrectIndex = this.getUnfinishedListIndexForKey(key);
     if (unfinishedCorrectIndex !== undefined) {
       if (isFinished) {
-        this.unfinishedList.splice(unfinishedCorrectIndex, 1);
-        this.updateFinishedIndexList.push(this.unfinishedKeyIndexMap[key] || 0);
-        delete this.unfinishedKeyIndexMap[key];
+        this.unfinishedTree.delete({
+          [this.sortStr1]: value[this.sortStr1],
+          [this.sortStr2]: value[this.sortStr2],
+        });
       } else {
-        this.unfinishedList.splice(unfinishedCorrectIndex, 1, value);
+        this.unfinishedTree.changeIfPresent(
+          {
+            [this.sortStr1]: value[this.sortStr1],
+            [this.sortStr2]: value[this.sortStr2],
+          },
+          value,
+        );
       }
     }
   }
@@ -125,41 +176,18 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     return [...this.unfinishedList];
   }
 
-  sortCommonList(compareFn: (a: V, b: V) => number): void {
-    this.commonList = this.commonList
-      .sort(compareFn)
+  sortCommonList(_compareFn: (a: V, b: V) => number): void {
+    this.commonList = this.commonTree
+      .valuesArray()
+      .reverse()
       .slice(0, globalThis.tradingDataLength);
-    this.resetCommonOptions();
-  }
-  resetCommonOptions(): void {
-    this.commonKeyIndexMap = {};
-    const isTrade =
-      this.commonList[0] &&
-      (this.commonList[0] as unknown as KungfuApi.TradeResolved).trade_id;
-    for (let i = 0; i < this.commonList.length; i++) {
-      const key = isTrade
-        ? hashSingleUKey(
-            (this.commonList[i] as unknown as KungfuApi.TradeResolved)
-              .order_id + '',
-          )
-        : this.commonList[i][this.key];
-      this.commonKeyIndexMap[key] = i;
-    }
   }
 
-  resetUnfinishedOptions(): void {
-    this.unfinishedKeyIndexMap = {};
-    for (let i = 0; i < this.unfinishedList.length; i++) {
-      this.unfinishedKeyIndexMap[this.unfinishedList[i][this.key]] = i;
-    }
-    this.updateFinishedIndexList = [];
-  }
-
-  sortUnfinishedList(compareFn: (a: V, b: V) => number): void {
-    this.unfinishedList = this.unfinishedList
-      .sort(compareFn)
+  sortUnfinishedList(_compareFn: (a: V, b: V) => number): void {
+    this.unfinishedList = this.unfinishedTree
+      .valuesArray()
+      .reverse()
       .slice(0, globalThis.tradingDataLength);
-    this.resetUnfinishedOptions();
   }
 }
 
@@ -201,8 +229,9 @@ type AfterSync = (
 ) => void;
 
 const DEFAULT_SPLIT_LENGTH = 100;
-const DEFAULT_TRADING_DATA_LENGTH = 50000;
+// const DEFAULT_TRADING_DATA_LENGTH = 50000;
 globalThis.tradingDataLength = 50000;
+globalThis.posGlobalLength = 50000;
 
 const bestEventLoopTask =
   typeof window !== 'undefined'
@@ -246,7 +275,7 @@ export function useWatcher() {
 
       const everyLatestDataResolved = indexMapList.map((item, index) => {
         const list = item[listGetter]();
-        let firstData = list[0];
+        const firstData = list[0];
         if (!firstData) return;
         listMap[index] = list;
         return { data: firstData, index, position: 0 };
@@ -292,7 +321,9 @@ export function useWatcher() {
       }
     },
   };
+
   globalThis.tradingData = tradingData;
+
   const sortDataMap = new Map<
     string,
     KungfuApi.KfDynamicTradingDataIndexedMap<
@@ -308,15 +339,15 @@ export function useWatcher() {
   ) {
     const { category, key, orderUKey, orderResolved } = data;
 
-    let defaultLength = 0;
+    // let defaultLength = 0;
 
-    defaultLength = DEFAULT_TRADING_DATA_LENGTH;
+    // defaultLength = DEFAULT_TRADING_DATA_LENGTH;
 
     if (!tradingData[dataType][category][key]) {
       tradingData[dataType][category][key] = new DynamicTradingDataIndexedMap<
         string,
         KungfuApi.OrderResolved
-      >('uid_key', defaultLength);
+      >(dataType);
     }
 
     const target = tradingData[dataType][category][key];

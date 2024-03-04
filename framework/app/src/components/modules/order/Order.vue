@@ -113,7 +113,7 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
-const isSorting = ref(false);
+const isRendering = ref(false);
 
 async function getOrderList(
   tradingData: KungfuApi.tradingData,
@@ -122,20 +122,17 @@ async function getOrderList(
   let orderList: KungfuApi.OrderResolved[] = [];
   if (!currentGlobalKfLocation.value) orderList = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
+    // console.time('globalPos');
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
     const listGetterType: 'common' | 'unfinished' = unfinishedOrder.value
       ? 'unfinished'
       : 'common';
-    isSorting.value = true;
     const addOrderResolved = (
       orderResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
       const instrumentId = `${orderResolved.exchange_id}_${orderResolved.instrument_id}`;
 
-      if (
-        orderList.length >= globalThis.tradingDataLength ||
-        DEFAULT_ORDER_LIST_LENGTH
-      ) {
+      if (orderList.length >= globalThis.posGlobalLength) {
         return false;
       } else {
         if (instrumentId === locationId) {
@@ -150,7 +147,7 @@ async function getOrderList(
       'td',
       listGetterType,
     );
-    isSorting.value = false;
+    // console.timeEnd('globalPos');
   } else if (
     currentGlobalKfLocation.value?.category === 'td' ||
     currentGlobalKfLocation.value?.category === 'strategy'
@@ -174,7 +171,7 @@ async function getOrderList(
       orderList = [];
     }
   } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-    isSorting.value = true;
+    // console.time('tdGroup');
     const listGetterType: 'common' | 'unfinished' = unfinishedOrder.value
       ? 'unfinished'
       : 'common';
@@ -196,7 +193,7 @@ async function getOrderList(
       listGetterType,
       tdChildrenLocationIdList.value,
     );
-    isSorting.value = false;
+    // console.timeEnd('tdGroup');
   } else {
     orderList = [];
   }
@@ -209,6 +206,8 @@ const hasData = computed(() => {
 });
 
 async function processTradingData(tradingData: KungfuApi.tradingData) {
+  if (isRendering.value) return;
+  isRendering.value = true;
   currentTradingData.value = tradingData;
 
   const orderList = await getOrderList(tradingData);
@@ -244,13 +243,13 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
       canvasRef.value.getListTable()?.setRecords([]);
     }
   });
+  isRendering.value = false;
 }
 
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
       const { tradingData } = data;
-      if (isSorting.value) return;
       if (
         !historyDate.value &&
         currentGlobalKfLocation.value !== null &&

@@ -76,7 +76,7 @@ export const hashUkey = (...args: Array<string | number>) => {
   return ukeyCacheMap.get(cacheKey) || '';
 };
 
-export const hashSingleUKey = (arg: string | number | BigInt) => {
+export const hashSingleUKey = (arg: string | number | bigint) => {
   const uKey = `${arg}`;
   if (!ukeyCacheMap.has(uKey))
     ukeyCacheMap.set(uKey, arg.toString(16).padStart(16, '0'));

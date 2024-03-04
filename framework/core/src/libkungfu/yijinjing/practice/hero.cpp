@@ -61,8 +61,8 @@ hero::~hero() {
   io_device_.reset();
   ensure_sqlite_shutdown();
   os::reset_hero_instance();
-  clear_rocksdb(&master_db_);
-  clear_rocksdb(&app_db_);
+  rocks::clear_rocksdb(&master_db_);
+  rocks::clear_rocksdb(&app_db_);
 }
 
 bool hero::is_usable() { return io_device_->is_usable(); }
@@ -518,7 +518,7 @@ rocksdb::DB *hero::get_master_rocksdb() const {
   SPDLOG_DEBUG("get_master_rocksdb from dir: {}", master_db_dir);
   if (io_device_->is_lazy()) {
     std::lock_guard<std::mutex> lk(master_db_mtx_);
-    clear_rocksdb(&master_db_);
+    rocks::clear_rocksdb(&master_db_);
     rocksdb::Status status = rocks::open_db(master_db_dir, &master_db_, false);
     if (not status.ok()) {
       const std::string msg = fmt::format("OpenForReadOnly for {} failed, {}", master_db_dir, status.ToString());
@@ -605,7 +605,7 @@ void hero::ensure_master_rocksdb() const {
     SPDLOG_DEBUG("catch exception: {}", e.what());
     std::lock_guard<std::mutex> lk(master_db_mtx_);
     rocks::open_db(get_locator()->layout_dir(get_master_home_location(), layout::MAP), &master_db_, true);
-    clear_rocksdb(&master_db_);
+    rocks::clear_rocksdb(&master_db_);
   }
 }
 
@@ -679,10 +679,4 @@ void hero::read_location_from_rocksdb() {
     }
   }
 }
-
-void hero::clear_rocksdb(rocksdb::DB **db) {
-  delete *db;
-  *db = nullptr;
-}
-
 } // namespace kungfu::yijinjing::practice

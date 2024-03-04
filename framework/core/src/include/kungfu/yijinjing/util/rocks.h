@@ -40,6 +40,8 @@ public:
 
   static std::map<std::string, std::string> get_kvs(const std::set<std::string> &keys, const std::string &dir);
 
+  static void clear_rocksdb(rocksdb::DB **db);
+
 private:
   rocksdb::ReadOptions read_options_ = {};
   rocksdb::WriteOptions write_options_ = {};

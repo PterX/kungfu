@@ -133,4 +133,9 @@ std::map<std::string, std::string> rocks::get_kvs(const std::set<std::string> &k
   return result;
 }
 
+void rocks::clear_rocksdb(rocksdb::DB **db) {
+  delete *db;
+  *db = nullptr;
+}
+
 } // namespace kungfu::yijinjing::util

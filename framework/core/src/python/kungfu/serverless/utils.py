@@ -38,7 +38,7 @@ def ensure_token_json(file_path):
 def write_token_json(file_path, stage, data={}):
     with open(TOKEN_FILE, "r") as file:
         total_data = json.load(file)
-    
+
     with open(file_path, "w") as file:
         total_data[stage] = data
         json.dump(total_data, file)

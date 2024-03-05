@@ -57,7 +57,7 @@ class SSO:
         if sign_in_resp["statusCode"] != 200:
             print("Login Error", sign_in_resp["statusCode"], sign_in_resp["message"])
             return
-        
+
         access_token = sign_in_resp["data"]["access_token"]
         refresh_token = sign_in_resp["data"]["refresh_token"]
         id_token = sign_in_resp["data"]["id_token"]

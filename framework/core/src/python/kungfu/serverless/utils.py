@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 
 
 def record_tokens(stage, access_token, refresh_token, id_token, expires_in):
-    
     write_token_json(
         TOKEN_FILE,
         stage,

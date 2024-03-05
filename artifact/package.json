@@ -30,6 +30,7 @@
     "@kungfu-trader/kfx-broker-xtp-demo": "^3.0.0-alpha.2",
     "@kungfu-trader/kfx-operator-bar": "^3.0.0-alpha.2",
     "@kungfu-trader/kfx-ui-login-authing": "^3.0.0-alpha.2",
+    "@kungfu-trader/kfx-ui-wallet": "^3.0.0-alpha.2",
     "@kungfu-trader/kungfu-app": "^3.0.0-alpha.2",
     "@kungfu-trader/kungfu-cli": "^3.0.0-alpha.2",
     "@kungfu-trader/kungfu-core": "^3.0.0-alpha.2",

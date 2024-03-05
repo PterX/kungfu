@@ -2,10 +2,12 @@ from kungfu.serverless.config import TOKEN_FILE, APP_PARAMS, AUTHING_APP_CONFIG
 import boto3
 import json
 import os
+import time
 from urllib.parse import urlparse
 
 
-def record_tokens(stage, access_token, refresh_token, id_token):
+def record_tokens(stage, access_token, refresh_token, id_token, expires_in):
+    
     write_token_json(
         TOKEN_FILE,
         stage,
@@ -13,6 +15,8 @@ def record_tokens(stage, access_token, refresh_token, id_token):
             "access_token": access_token,
             "refresh_token": refresh_token,
             "id_token": id_token,
+            "expires_in": expires_in,
+            "gen_time": int(time.time()),
         },
     )
 

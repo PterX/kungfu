@@ -5,9 +5,10 @@ import os
 from urllib.parse import urlparse
 
 
-def record_tokens(access_token, refresh_token, id_token):
+def record_tokens(stage, access_token, refresh_token, id_token):
     write_token_json(
         TOKEN_FILE,
+        stage,
         {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -16,10 +17,11 @@ def record_tokens(access_token, refresh_token, id_token):
     )
 
 
-def get_tokens():
+def get_tokens(stage):
     ensure_token_json(TOKEN_FILE)
     with open(TOKEN_FILE, "r") as file:
-        loaded_data = json.load(file)
+        total_data = json.load(file)
+        loaded_data = total_data.get(stage, {})
         return (
             loaded_data.get("access_token", ""),
             loaded_data.get("refresh_token", ""),
@@ -33,9 +35,13 @@ def ensure_token_json(file_path):
             json.dump({}, file)
 
 
-def write_token_json(file_path, data={}):
+def write_token_json(file_path, stage, data={}):
+    with open(TOKEN_FILE, "r") as file:
+        total_data = json.load(file)
+    
     with open(file_path, "w") as file:
-        json.dump(data, file)
+        total_data[stage] = data
+        json.dump(total_data, file)
 
 
 def get_sls_kungfu_params(stage):
@@ -45,7 +51,7 @@ def get_sls_kungfu_params(stage):
 def get_credentials_for_identity(stage):
     client = boto3.client("cognito-identity", region_name="cn-north-1")
     host_name = urlparse(AUTHING_APP_CONFIG[stage]["appHost"]).netloc
-    access_token, refresh_token, id_token = get_tokens()
+    access_token, refresh_token, id_token = get_tokens(stage)
     login_info = {f"{host_name}/oidc": id_token}
     identity_pool_id = get_sls_kungfu_params(stage)["identity_pool_id"]["value"]
     identity_id_resp = client.get_id(

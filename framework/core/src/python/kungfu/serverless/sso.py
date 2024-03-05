@@ -13,7 +13,7 @@ class SSO:
         )
 
     def get_profile(self):
-        access_token, refresh_token, id_token = get_tokens()
+        access_token, refresh_token, id_token = get_tokens(self.stage)
         self.ac.set_access_token(access_token)
         resp = self.ac.get_profile()
         if resp["statusCode"] != 200:
@@ -41,7 +41,7 @@ class SSO:
         access_token = sign_in_resp["data"]["access_token"]
         refresh_token = sign_in_resp["data"]["refresh_token"]
         id_token = sign_in_resp["data"]["id_token"]
-        record_tokens(access_token, refresh_token, id_token)
+        record_tokens(self.stage, access_token, refresh_token, id_token)
 
     def send_sms_code(self, phone_number):
         self.ac.send_sms(channel="CHANNEL_LOGIN", phone_number=phone_number)
@@ -60,10 +60,10 @@ class SSO:
         access_token = sign_in_resp["data"]["access_token"]
         refresh_token = sign_in_resp["data"]["refresh_token"]
         id_token = sign_in_resp["data"]["id_token"]
-        record_tokens(access_token, refresh_token, id_token)
+        record_tokens(self.stage, access_token, refresh_token, id_token)
 
     def get_new_access_token_by_refresh_token(self):
-        access_token, refresh_token, id_token = get_tokens()
+        access_token, refresh_token, id_token = get_tokens(self.stage)
         get_access_token_resp = self.ac.get_new_access_token_by_refresh_token(
             refresh_token
         )
@@ -79,10 +79,10 @@ class SSO:
         access_token = get_access_token_resp["access_token"]
         refresh_token = get_access_token_resp["refresh_token"]
         id_token = get_access_token_resp["id_token"]
-        record_tokens(access_token, refresh_token, id_token)
+        record_tokens(self.stage, access_token, refresh_token, id_token)
 
     def introspect_token(self):
-        access_token, refresh_token, id_token = get_tokens()
+        access_token, refresh_token, id_token = get_tokens(self.stage)
         resp = self.ac.introspect_token(access_token)
         if resp.get("active", False) == True:
             return True

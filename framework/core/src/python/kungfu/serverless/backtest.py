@@ -52,7 +52,7 @@ class Backtest:
         self.__monit_log(log_group_name, job_id, access_key, secret_key, session_token)
 
     def check_data_range(self):
-        access_token, refresh_token, id_token = get_tokens()
+        access_token, refresh_token, id_token = get_tokens(self.stage)
         resp = requests.get(
             f"https://api.kungfu-trader.com/{self.stage}/dataset/meta",
             headers={
@@ -154,7 +154,7 @@ class Backtest:
             },
         }
 
-        access_token, refresh_token, id_token = get_tokens()
+        access_token, refresh_token, id_token = get_tokens(self.stage)
         headers = {
             "Content-Type": "application/json",
             "Authorization": id_token,

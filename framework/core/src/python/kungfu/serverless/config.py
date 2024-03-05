@@ -23,7 +23,7 @@ AUTHING_APP_CONFIG = {
 
 
 TOKEN_FILE = os.path.join(
-    os.path.dirname(get_default_home_dir()), "config", "auth_token.json"
+    os.path.dirname(get_default_home_dir()), "config", "authingCredentials.json"
 )
 
 APP_PARAMS = {

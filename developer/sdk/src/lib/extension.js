@@ -2,6 +2,7 @@ const axios = require('axios');
 const ejs = require('ejs');
 const fse = require('fs-extra');
 const path = require('path');
+const inquirer = require('inquirer');
 const os = require('os');
 const { spawnSync } = require('child_process');
 const { glob } = require('glob');
@@ -467,6 +468,57 @@ exports.generateAssets = () => {
       },
     });
   }
+};
+
+exports.init = () => {
+  const sdkDir = path.dirname(
+    path.dirname(customResolve('@kungfu-trader/kungfu-sdk')),
+  );
+
+  inquirer
+    .prompt([
+      {
+        type: 'input',
+        name: 'folderName',
+        message: 'Create a folder name:',
+      },
+      {
+        type: 'list',
+        name: 'type',
+        message: 'Select type:',
+        choices: ['broker', 'strategy'],
+      },
+    ])
+    .then((answers) => {
+      const templatePath = path.join(sdkDir, 'templates', 'init', answers.type);
+
+      fse.readdir(templatePath, (err, files) => {
+        if (err)
+          return console.error('Error reading the template directory:', err);
+
+        inquirer
+          .prompt([
+            {
+              type: 'list',
+              name: 'selectedTemplate',
+              message: 'Select a template to create:',
+              choices: files,
+            },
+          ])
+          .then((fileAnswer) => {
+            const targetPath = path.join(process.cwd(), answers.folderName);
+
+            const src = path.join(templatePath, fileAnswer.selectedTemplate);
+            const dest = path.join(targetPath, fileAnswer.selectedTemplate);
+
+            fse.copy(src, dest, (err) => {
+              if (err) console.error(`Create template false:`, err);
+              else
+                console.log(`Template created successfully at ${targetPath}`);
+            });
+          });
+      });
+    });
 };
 
 function updatePackageJson(packageJson) {

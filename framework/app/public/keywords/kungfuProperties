@@ -44,6 +44,8 @@ long_positions
 short_positions
 order_inputs
 algo_order_inputs
+price
+volume
 mode
 category
 group
@@ -118,7 +120,6 @@ unsettled_interest
 repayment_qty
 total_liability_qty
 direction
-volume
 yesterday_volume
 frozen_total
 frozen_yesterday
@@ -160,7 +161,6 @@ trade_id
 parent_order_id
 external_trade_id
 trade_time
-price
 order_action_id
 action_flag
 opponent_seat
@@ -346,6 +346,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

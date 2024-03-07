@@ -44,6 +44,8 @@ long_positions
 short_positions
 order_inputs
 algo_order_inputs
+price
+volume
 mode
 category
 group
@@ -118,7 +120,6 @@ unsettled_interest
 repayment_qty
 total_liability_qty
 direction
-volume
 yesterday_volume
 frozen_total
 frozen_yesterday
@@ -160,7 +161,6 @@ trade_id
 parent_order_id
 external_trade_id
 trade_time
-price
 order_action_id
 action_flag
 opponent_seat
@@ -349,6 +349,12 @@ has_book
 get_book
 get_books
 set_accounting_method
+__iter__
+__next__
+begin
+get_bids
+get_asks
+setBidMap
 set_begin_time
 set_end_time
 get_location
@@ -436,6 +442,8 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
+set_orderbook
+get_orderbook
 on_order
 on_order_trigger
 on_algo_order
@@ -571,6 +579,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

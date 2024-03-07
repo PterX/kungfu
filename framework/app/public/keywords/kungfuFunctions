@@ -23,6 +23,12 @@ has_book
 get_book
 get_books
 set_accounting_method
+__iter__
+__next__
+begin
+get_bids
+get_asks
+setBidMap
 set_begin_time
 set_end_time
 get_location
@@ -110,6 +116,8 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
+set_orderbook
+get_orderbook
 on_order
 on_order_trigger
 on_algo_order

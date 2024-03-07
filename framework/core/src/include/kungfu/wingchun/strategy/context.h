@@ -11,10 +11,12 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
-#include <kungfu/wingchun/orderbook/orderbook.h>
+#include <kungfu/wingchun/orderbooks/depthorderbooks.h>
+#include <kungfu/wingchun/orderbooks/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
+using namespace kungfu::wingchun::orderbook;
 namespace kungfu::wingchun::strategy {
 
 class Context : public std::enable_shared_from_this<Context> {
@@ -384,9 +386,9 @@ public:
    */
   virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
 
-  virtual void set_orderbook(std::shared_ptr<orderbook::Orderbook> orderbook); // todo 传引用或者传智能指针
+  virtual void set_orderbook(std::shared_ptr<DepthOrderbooks> orderbook);
 
-  virtual std::shared_ptr<orderbook::Orderbook> get_orderbook();
+  virtual std::shared_ptr<DepthOrderbooks> get_orderbook();
 
 protected:
   yijinjing::practice::apprentice &app_;

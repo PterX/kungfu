@@ -3,9 +3,13 @@ from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.serverless.backtest import Backtest
 
 
+backtest_command_context = kfc.pass_context("backtest_client")
+
+
 @kfc.group(cls=PrioritizedCommandGroup, help_priority=2)
 @kfc.pass_context()
 def backtest(ctx):
+    ctx.backtest_client = Backtest(ctx.stage)
     pass
 
 
@@ -35,8 +39,21 @@ def backtest(ctx):
     required=True,
     help="level1 or level2 data source for backtest",
 )
-@kfc.pass_context()
+@backtest_command_context
 def submit(ctx, file_path, begin_time, end_time, data_level):
-    ctx.backtest_client = Backtest(ctx.stage)
     ctx.backtest_client.submit(file_path, begin_time, end_time, data_level)
     pass
+
+
+@backtest.command()
+@backtest_command_context
+def datarange(ctx):
+    categories = ctx.backtest_client.check_data_range()
+    print("Support Daterange for L2_Quote, L2_Order, L2_Tick: ")
+    for key in categories.keys():
+        print(f"{key}")
+        for item in categories[key]:
+            print(
+                f'  {item["security_tyep"]} {item["exchange"]} start {item["start_time"]} end {item["end_time"]}'
+            )
+        print("\n")

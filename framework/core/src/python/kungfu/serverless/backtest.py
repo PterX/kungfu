@@ -5,6 +5,7 @@ import kungfu
 import requests
 import time
 import signal
+from datetime import datetime
 from kungfu.serverless.sso import SSO
 from kungfu.serverless.utils import (
     get_credentials_for_identity,
@@ -49,6 +50,38 @@ class Backtest:
         job_id = self.__run_job(file_path, begin_time, end_time, level, parameter_map)
         log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]
         self.__monit_log(log_group_name, job_id, access_key, secret_key, session_token)
+
+    def check_data_range(self):
+        access_token, refresh_token, id_token = get_tokens(self.stage)
+        resp = requests.get(
+            f"https://api.kungfu-trader.com/{self.stage}/dataset/meta",
+            headers={
+                "Authorization": id_token,
+            },
+        ).text
+
+        categories = {}
+        datasets = json.loads(resp)[0]["subsets"]
+        for item in datasets:
+            security_tyep = item["securitytype"]
+            exchange = item["exchange"]
+            category = item["category"]
+            start_time = item["startdate"]
+            end_time = item["enddate"]
+
+            categories[category] = (
+                [] if not categories.get(category, None) else categories[category]
+            )
+            categories[category].append(
+                {
+                    "security_tyep": security_tyep,
+                    "exchange": exchange,
+                    "category": category,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                }
+            )
+        return categories
 
     def __get_params_name(self):
         JOB_DEFINITION_ARN_PARAM_NAME = (
@@ -121,7 +154,7 @@ class Backtest:
             },
         }
 
-        access_token, refresh_token, id_token = get_tokens()
+        access_token, refresh_token, id_token = get_tokens(self.stage)
         headers = {
             "Content-Type": "application/json",
             "Authorization": id_token,

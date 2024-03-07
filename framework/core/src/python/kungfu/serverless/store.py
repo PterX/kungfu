@@ -76,7 +76,7 @@ class FeatureStore:
         return feature_map
     
     def get_public_feature_date_range(self, feature_key):
-        results = self.get_public_feature_data(feature_key)
+        results = self.__get_public_feature_date_meta(feature_key)
         
         def get_date(item):
             return datetime.strptime(item["timestamp"], "%Y%m%d")
@@ -85,14 +85,22 @@ class FeatureStore:
         return dates
     
     def get_public_feature_data(self, feature_key):
-        results = self.get_public_feature_data(feature_key)
-        for item in results:
-            result = item["result"]
-            
-            
+        results = self.__get_public_feature_date_meta(feature_key)
         return results
     
+    
     def __get_public_feature_date_meta(self, feature_key):
+        access_token, refresh_token, id_token = get_tokens(self.stage)
+        headers = {
+            "Authorization": id_token,
+        }
+        payload = {
+            "author": 'kungfu-trader',
+        }
+        resp = requests.get(f"{BASE_URL}/{self.stage}/extensions/{feature_key}/results", params=payload, headers=headers).text
+        resp = json.loads(resp)
+        results = resp.get("results", [])
+        return results
     
     
     def list_features(self):

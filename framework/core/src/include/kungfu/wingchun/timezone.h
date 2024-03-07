@@ -67,13 +67,12 @@ struct LocalTimeInfo {
 };
 
 namespace TimeUtil {
-[[maybe_unused]] time_t TimeToSeconds(const std::string &time, bool is_gmt);
-time_t TimeToSeconds(int year, int month, int day, int hour, int minute, int second, [[maybe_unused]] bool is_gmt);
+time_t TimeToSeconds(const std::string &time, bool is_gmt);
+time_t TimeToSeconds(int year, int month, int day, int hour, int minute, int second, bool is_gmt);
 
-[[maybe_unused]] time_t DateToSeconds(const std::string &time, bool is_gmt);
+time_t DateToSeconds(const std::string &time, bool is_gmt);
 
-[[maybe_unused]] time_t TranslateLocalTimeToGMTime(time_t local_seconds, LocationTimeType loc_type,
-                                                   LocalTimeInfo *info = nullptr);
+time_t TranslateLocalTimeToGMTime(time_t local_seconds, LocationTimeType loc_type, LocalTimeInfo *info = nullptr);
 std::shared_ptr<LocalTimeInfo> TranslateGMTimeToLocalTime(time_t gmt, LocationTimeType loc_type);
 } // namespace TimeUtil
 
@@ -81,9 +80,8 @@ std::shared_ptr<LocalTimeInfo> TranslateGMTimeToLocalTime(time_t gmt, LocationTi
 // param1: local time
 // param2: exchangeid
 // params3:  YYYYMMDD
-[[maybe_unused]] inline std::string
-translate_GMTime_to_localdate_by_exchange_id(time_t lTime, const std::string &exchangeId,
-                                             const std::string &strformat = "%Y%m%d") {
+inline std::string translate_GMTime_to_localdate_by_exchange_id(time_t lTime, const std::string &exchangeId,
+                                                                const std::string &strformat = "%Y%m%d") {
   // ExchangeId LocationTime
   static const std::unordered_map<std::string, LocationTimeType> location_time_exchange_id_map = {
       {EXCHANGE_US, LocationTimeType::AmericaEastern},           //

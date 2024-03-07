@@ -43,15 +43,16 @@ struct journal_key {
   uint32_t dest_id;
 };
 
-typedef std::map<journal_key, journal> JournalMap;
+typedef std::map<journal_key, journal_ptr> JournalMap;
 class journal {
 public:
-  journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency, bus_ptr bus,
-          uint64_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low);
+  explicit journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency,
+                   bus_ptr bus, uint64_t page_size,
+                   longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
   journal(const journal &other);
 
-  ~journal();
+  virtual ~journal();
 
   [[nodiscard]] frame_ptr &current_frame() { return frame_; }
 
@@ -70,18 +71,22 @@ public:
   /**
    * move current frame to the next available one
    */
-  void next();
+  virtual void next();
 
   /**
    * makes sure after this call, next time user calls current_frame() gets the right available frame
    * (gen_time() > nanotime or writable)
    * @param nanotime
    */
-  void seek_to_time(int64_t nanotime);
+  virtual void seek_to_time(int64_t nanotime);
 
-  void release_page();
+  virtual void release_page();
 
-private:
+  const bus_ptr &get_bus() { return bus_; }
+
+  const page_ptr &get_page() { return page_; }
+
+protected:
   const data::location_ptr location_;
   const uint64_t page_size_;
   const uint32_t dest_id_;
@@ -102,16 +107,16 @@ private:
   bool keep_page_ = false;
   uint32_t max_pre_create_size_ = 0;
 
-  void load_page(uint32_t page_id);
+  virtual void load_page(uint32_t page_id);
 
-  void close_page(int64_t trigger_time, int64_t last_gen_time);
+  virtual void close_page(int64_t trigger_time, int64_t last_gen_time);
 
   /** load next page, current page will be released if not empty */
-  void load_next_page();
+  virtual void load_next_page();
 
-  void preload_next_page();
+  virtual void preload_next_page();
 
-  void try_load_next_extra_page();
+  virtual void try_load_next_extra_page();
 
   friend class reader;
 
@@ -123,11 +128,11 @@ private:
 class reader {
 public:
   explicit reader(bool lazy, bool low_latency, bus_ptr bus)
-      : lazy_(lazy), low_latency_(low_latency), bus_(std::move(bus)), current_(nullptr){};
+      : lazy_(lazy), low_latency_(low_latency), bus_(std::move(bus)), current_(nullptr) {}
 
   reader(const reader &other);
 
-  ~reader();
+  virtual ~reader();
 
   /**
    * join journal at given data location
@@ -135,14 +140,14 @@ public:
    * @param dest_id journal dest id
    * @param from_time subscribe events after this time, 0 means from start
    */
-  void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0,
-            longfist::enums::Priority priority = longfist::enums::Priority::Low);
+  virtual void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0,
+                    longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
-  void disjoin(uint32_t location_uid);
+  virtual void disjoin(uint32_t location_uid);
 
-  void disjoin(const data::location_ptr &location, uint32_t dest_id);
+  virtual void disjoin(const data::location_ptr &location, uint32_t dest_id);
 
-  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+  virtual void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 
@@ -154,25 +159,25 @@ public:
 
   [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
-  [[maybe_unused]] journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
+  journal_ptr get_journal(const data::location_ptr &location, uint32_t dest_id);
 
-  bool data_available();
+  virtual bool data_available();
 
   /** seek journal to time */
-  void seek_to_time(int64_t nanotime);
+  virtual void seek_to_time(int64_t nanotime);
 
   /** seek next frame */
-  void next();
+  virtual void next();
 
-  void sort();
+  virtual void sort();
 
-  void release_page();
+  virtual void release_page();
 
-  void preload_next_page();
+  virtual void preload_next_page();
 
   static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
-private:
+protected:
   void sort_without_buffer();
 
   void build_buffer();
@@ -194,20 +199,25 @@ private:
 
 class writer {
 public:
-  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
-         const bus_ptr &bus);
-  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
-         const bus_ptr &bus, uint64_t page_size);
-  writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher, bool low_latency,
-         const bus_ptr &bus, uint64_t page_size, int64_t begin_time);
+  explicit writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                  bool low_latency, const bus_ptr &bus);
 
-  [[nodiscard]] const data::location_ptr &get_location() const { return journal_.location_; }
+  explicit writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                  bool low_latency, const bus_ptr &bus, uint64_t page_size);
 
-  [[maybe_unused]] [[nodiscard]] uint32_t get_dest() const { return journal_.dest_id_; }
+  explicit writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                  bool low_latency, const bus_ptr &bus, uint64_t page_size, int64_t begin_time);
 
-  [[maybe_unused]] [[nodiscard]] const journal &get_journal() const { return journal_; }
+  explicit writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
+                  bool low_latency, const bus_ptr &bus, const journal_ptr &journal, int64_t begin_time);
 
-  [[nodiscard]] page_ptr get_current_page() const { return journal_.page_; }
+  [[nodiscard]] const data::location_ptr &get_location() const { return journal_->location_; }
+
+  [[nodiscard]] uint32_t get_dest() const { return journal_->dest_id_; }
+
+  [[nodiscard]] const journal_ptr get_journal() const { return journal_; }
+
+  [[nodiscard]] page_ptr get_current_page() const { return journal_->page_; }
 
   virtual uint64_t current_frame_uid();
 
@@ -217,21 +227,20 @@ public:
 
   virtual void copy_frame(const frame_ptr &source);
 
-  void mark(int64_t trigger_time, int32_t msg_type);
+  virtual void release_page();
 
-  [[maybe_unused]] void mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type);
+  virtual void preload_next_page();
 
-  [[maybe_unused]] void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
+  virtual void mark(int64_t trigger_time, int32_t msg_type);
 
-  [[maybe_unused]] void write_bytes(int64_t trigger_time, int32_t msg_type, const std::vector<uint8_t> &data,
-                                    uint32_t length);
+  virtual void mark_at(int64_t gen_time, int64_t trigger_time, int32_t msg_type);
 
-  void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
-                       uintptr_t data, uint32_t length);
+  virtual void write_raw(int64_t trigger_time, int32_t msg_type, uintptr_t data, uint32_t length);
 
-  void release_page();
+  virtual void write_bytes(int64_t trigger_time, int32_t msg_type, const std::vector<uint8_t> &data, uint32_t length);
 
-  void preload_next_page();
+  virtual void write_raw_at_as(int64_t gen_time, int64_t trigger_time, uint32_t source, uint32_t dest, int32_t msg_type,
+                               uintptr_t data, uint32_t length);
 
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.
@@ -245,12 +254,12 @@ public:
     return const_cast<T &>(frame->template data<T>());
   }
 
-  template <typename T> [[maybe_unused]] T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
+  template <typename T> T &open_custom_data(int32_t msg_type, int64_t trigger_time = 0) {
     auto frame = open_frame(trigger_time, msg_type, sizeof(T));
     return const_cast<T &>(*reinterpret_cast<const T *>(frame->data_address()));
   }
 
-  void close_data(int64_t gen_time = time::now_in_nano());
+  virtual void close_data(int64_t gen_time = time::now_in_nano());
 
   template <typename T>
   std::enable_if_t<size_fixed_v<T>> write(int64_t trigger_time, const T &data, int32_t msg_type = T::tag) {
@@ -289,14 +298,14 @@ public:
   }
 
   template <typename T>
-  [[maybe_unused]] std::enable_if_t<size_fixed_v<T>> write_at(int64_t gen_time, int64_t trigger_time, const T &data) {
+  std::enable_if_t<size_fixed_v<T>> write_at(int64_t gen_time, int64_t trigger_time, const T &data) {
     auto frame = open_frame(trigger_time, T::tag, sizeof(T));
     auto size = frame->copy_data(data);
     close_frame(size, gen_time);
   }
 
   template <typename T>
-  [[maybe_unused]] std::enable_if_t<size_unfixed_v<T>> write_at(int64_t gen_time, int64_t trigger_time, const T &data) {
+  std::enable_if_t<size_unfixed_v<T>> write_at(int64_t gen_time, int64_t trigger_time, const T &data) {
     auto s = data.to_string();
     auto size = s.length();
     auto frame = open_frame(trigger_time, T::tag, size);
@@ -305,10 +314,8 @@ public:
   }
 
 protected:
-  journal journal_;
+  journal_ptr journal_;
   std::mutex writer_mtx_ = {};
-
-private:
   const uint64_t frame_id_base_;
   publisher_ptr publisher_;
   size_t size_to_write_;

@@ -122,7 +122,7 @@ void kf_os_signal_handler(int signum) {
   }
 }
 
-[[maybe_unused]] void disable_os_signals_handler() { signals_handler_enabled = false; }
+void disable_os_signals_handler() { signals_handler_enabled = false; }
 
 void handle_os_signals(void *hero) {
   if (hero_instance != nullptr) {

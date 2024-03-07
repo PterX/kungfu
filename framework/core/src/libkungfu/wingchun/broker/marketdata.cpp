@@ -41,11 +41,11 @@ void MarketDataVendor::on_start() {
 
 BrokerService_ptr MarketDataVendor::get_service() { return service_; }
 
-[[maybe_unused]] bool MarketData::has_instrument(const std::string &instrument_id) const {
+bool MarketData::has_instrument(const std::string &instrument_id) const {
   return instruments_.find(instrument_id) != instruments_.end();
 }
 
-[[maybe_unused]] const Instrument &MarketData::get_instrument(const std::string &instrument_id) const {
+const Instrument &MarketData::get_instrument(const std::string &instrument_id) const {
   return instruments_.at(instrument_id);
 }
 

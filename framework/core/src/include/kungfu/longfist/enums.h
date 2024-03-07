@@ -759,7 +759,7 @@ public:
   inline static const uint32_t All = 0b00100000;     // read all journal
 };
 
-template <typename T, typename U> [[maybe_unused]] inline T sub_data_bitwise(const T &a, const T &b) {
+template <typename T, typename U> inline T sub_data_bitwise(const T &a, const T &b) {
   return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
 }
 

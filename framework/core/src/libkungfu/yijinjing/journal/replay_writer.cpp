@@ -36,9 +36,9 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, size
     cloned_frame_->set_header_length();
     cloned_frame_->set_trigger_time(trigger_time);
     cloned_frame_->set_msg_type(msg_type);
-    cloned_frame_->set_source(journal_.location_->uid);
-    cloned_frame_->set_initial_source(journal_.location_->uid);
-    cloned_frame_->set_dest(journal_.dest_id_);
+    cloned_frame_->set_source(journal_->location_->uid);
+    cloned_frame_->set_initial_source(journal_->location_->uid);
+    cloned_frame_->set_dest(journal_->dest_id_);
     return cloned_frame_;
   }
 

@@ -79,8 +79,7 @@ struct console_table {
 io_device_console::io_device_console(data::location_ptr home, int32_t console_width, int32_t console_height)
     : io_device(std::move(home), false, true), console_width_(console_width), console_height_(console_height) {}
 
-[[maybe_unused]] void io_device_console::trace(int64_t begin_time, int64_t end_time, bool in, bool out,
-                                               std::string csv) {
+void io_device_console::trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv) {
   SPDLOG_INFO("trace begin_time {} end_time {}", begin_time, end_time);
   auto tracer = std::make_shared<yijinjing::journal::tracer>(home_, in, out, begin_time, end_time);
   auto &locations = tracer->get_all_locations();
@@ -146,8 +145,7 @@ io_device_console::io_device_console(data::location_ptr home, int32_t console_wi
   }
 }
 
-[[maybe_unused]] void io_device_console::show(int64_t begin_time, int64_t end_time, bool in, bool out,
-                                              std::string csv) {
+void io_device_console::show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv) {
   SPDLOG_INFO("show begin_time {} end_time {}", begin_time, end_time);
   auto tracer = std::make_shared<yijinjing::journal::tracer>(home_, in, out, begin_time, end_time);
   auto &locations = tracer->get_all_locations();

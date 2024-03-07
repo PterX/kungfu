@@ -109,13 +109,13 @@ public:
 
   [[nodiscard]] const yijinjing::cache::bank &get_state_bank() const;
 
-  [[maybe_unused]] [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
+  [[nodiscard]] bool check_if_stored_instruments(const std::string &trading_day) const;
 
-  [[maybe_unused]] void record_stored_instruments_trading_day(const std::string &trading_day);
+  void record_stored_instruments_trading_day(const std::string &trading_day);
 
-  [[maybe_unused]] [[nodiscard]] bool check_if_stored_baskets(const std::string &trading_day) const;
+  [[nodiscard]] bool check_if_stored_baskets(const std::string &trading_day) const;
 
-  [[maybe_unused]] void record_stored_baskets_trading_day(const std::string &trading_Day);
+  void record_stored_baskets_trading_day(const std::string &trading_Day);
 
   int32_t add_timer(int64_t nanotime, const std::function<void(const event_ptr &)> &callback);
 
@@ -125,11 +125,11 @@ public:
 
   void update_broker_state(BrokerState state);
 
-  [[maybe_unused]] void request_deregister() { vendor_.request_deregister(); }
+  void request_deregister() { vendor_.request_deregister(); }
 
   [[nodiscard]] BrokerVendor &get_vendor() const { return vendor_; }
 
-  [[maybe_unused]] uint32_t request_band(const std::string &band_name, uint64_t page_size = 0) {
+  uint32_t request_band(const std::string &band_name, uint64_t page_size = 0) {
     return vendor_.request_band(band_name, page_size);
   }
 

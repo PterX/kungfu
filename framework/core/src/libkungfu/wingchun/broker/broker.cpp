@@ -124,7 +124,7 @@ bool BrokerService::has_band_writer(uint32_t dest_id) const { return vendor_.has
 
 const cache::bank &BrokerService::get_state_bank() const { return vendor_.get_state_bank(); }
 
-[[maybe_unused]] bool BrokerService::check_if_stored_instruments(const std::string &trading_day) const {
+bool BrokerService::check_if_stored_instruments(const std::string &trading_day) const {
   SPDLOG_INFO("CHECK_IF_STORED_INSTRUMENTS trading_day {}", trading_day);
   auto &time_key_value_map = get_state_bank()[boost::hana::type_c<TimeKeyValue>];
   return std::any_of(time_key_value_map.begin(), time_key_value_map.end(), [&](const auto &pair) {
@@ -156,7 +156,7 @@ void BrokerService::record_stored_instruments_trading_day(const std::string &tra
   SPDLOG_INFO("STORED_INSTRUMENT_TRADING_DAY {}", trading_day);
 }
 
-[[maybe_unused]] bool BrokerService::check_if_stored_baskets(const std::string &trading_day) const {
+bool BrokerService::check_if_stored_baskets(const std::string &trading_day) const {
   SPDLOG_INFO("CHECK_IF_STORED_BASKETS trading_day {}", trading_day);
   auto &time_key_value_map = get_state_bank()[boost::hana::type_c<TimeKeyValue>];
   return std::any_of(time_key_value_map.begin(), time_key_value_map.end(), [&](const auto &pair) {
@@ -164,7 +164,7 @@ void BrokerService::record_stored_instruments_trading_day(const std::string &tra
   });
 }
 
-[[maybe_unused]] void BrokerService::record_stored_baskets_trading_day(const std::string &trading_day) {
+void BrokerService::record_stored_baskets_trading_day(const std::string &trading_day) {
   if (not get_public_writer()) {
     SPDLOG_ERROR("has no writer for PUBLIC: {:8x}:{}", location::PUBLIC,
                  get_vendor().get_location_uname(location::PUBLIC));

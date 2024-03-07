@@ -22,8 +22,9 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::yijinjing::practice {
 
 master::master(const location_ptr &home, bool low_latency)
-    : hero(std::make_shared<io_device_master>(home, low_latency)), last_check_(0), cached_(get_io_device()) {
+    : master(std::make_shared<io_device_master>(home, low_latency)) {}
 
+master::master(const yijinjing::io_device_ptr &io_device) : hero(io_device), last_check_(0), cached_(io_device) {
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(begin_time_, location::make_shared(app_location, get_locator()));
   }
@@ -31,9 +32,8 @@ master::master(const location_ptr &home, bool low_latency)
     try_add_location(begin_time_, location::make_shared(config, get_locator()));
   }
 
-  auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
   cached_.open_session(master_home_location_, begin_time_);
-  writers_.insert_or_assign(location::PUBLIC, io_device->open_writer(location::PUBLIC));
+  writers_.insert_or_assign(location::PUBLIC, get_io_device()->open_writer(location::PUBLIC));
   cached_.run_store_workers();
   get_writer(location::PUBLIC)->mark(begin_time_, SessionStart::tag);
 }
@@ -90,8 +90,7 @@ void master::mark_session_end_on_exit() {
 void master::on_notify() { get_io_device()->get_publisher()->notify(); }
 
 void master::register_app(const event_ptr &event) {
-  auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
-  auto home = io_device->get_home();
+  auto home = get_io_device()->get_home();
 
   auto request_data = event->data_as_string();
   Register register_data(request_data.c_str(), request_data.length());
@@ -281,8 +280,7 @@ void master::on_request_write_to_band(const event_ptr &event) {
   const RequestWriteToBand &request = event->data<RequestWriteToBand>();
   auto trigger_time = event->gen_time();
   auto app_uid = event->source();
-  auto io_device = std::dynamic_pointer_cast<io_device_master>(get_io_device());
-  auto home = io_device->get_home();
+  auto home = get_io_device()->get_home();
   auto target_location = location::make_shared(request, home->locator);
   auto page_size = request.page_size;
 

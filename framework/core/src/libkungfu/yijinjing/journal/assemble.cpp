@@ -140,7 +140,7 @@ assemble &assemble::operator+=(const assemble &other) {
         const auto &other_reader = other.readers_.at(other_locator_index);
         for (const auto &other_pair : other_reader->get_journals()) {
           const auto &other_journal = other_pair.second;
-          this_reader->join(other_journal.get_location(), other_journal.get_dest(), other.from_time_);
+          this_reader->join(other_journal->get_location(), other_journal->get_dest(), other.from_time_);
         }
         other_same_index.emplace(other_locator_index);
         break;
@@ -160,7 +160,7 @@ assemble &assemble::operator+=(const assemble &other) {
     auto &this_reader = readers_.back();
     for (const auto &other_pair : other_reader->get_journals()) {
       const auto &other_journal = other_pair.second;
-      this_reader->join(other_journal.get_location(), other_journal.get_dest(), other.from_time_);
+      this_reader->join(other_journal->get_location(), other_journal->get_dest(), other.from_time_);
     }
   }
 
@@ -177,7 +177,7 @@ assemble &assemble::operator-=(const assemble &other) {
         const auto &other_reader = other.readers_.at(other_locator_index);
         for (const auto &other_pair : other_reader->get_journals()) {
           const auto &other_journal = other_pair.second;
-          this_reader->disjoin_channel(other_journal.get_location()->location_uid, other_journal.get_dest());
+          this_reader->disjoin_channel(other_journal->get_location()->location_uid, other_journal->get_dest());
         }
         break;
       }
@@ -220,14 +220,14 @@ void assemble::sort() {
   }
 }
 
-[[maybe_unused]] void assemble::seek_to_time(int64_t nano_time) {
+void assemble::seek_to_time(int64_t nano_time) {
   for (auto &reader : readers_) {
     reader->seek_to_time(nano_time);
   }
   sort();
 }
 
-[[maybe_unused]] std::vector<frame_header> assemble::read_headers(int32_t msg_type, int64_t end_time) {
+std::vector<frame_header> assemble::read_headers(int32_t msg_type, int64_t end_time) {
   std::vector<frame_header> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
     if (msg_type == 0 or current_frame()->msg_type() == msg_type) {

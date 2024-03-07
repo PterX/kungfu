@@ -76,11 +76,11 @@ public:
 
   const std::string &get_home_uname() const;
 
-  [[maybe_unused]] const yijinjing::data::location_ptr &get_live_home() const;
+  const yijinjing::data::location_ptr &get_live_home() const;
 
   uint32_t get_live_home_uid() const;
 
-  [[maybe_unused]] [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
+  [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
   virtual bool has_writer(uint32_t dest_id) const;
 
@@ -90,7 +90,7 @@ public:
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
 
-  [[maybe_unused]] [[nodiscard]] const WriterMap &get_writers() const;
+  [[nodiscard]] const WriterMap &get_writers() const;
 
   bool has_location(uint32_t uid) const;
 
@@ -104,21 +104,21 @@ public:
 
   bool has_channel(uint64_t hash) const;
 
-  [[maybe_unused]] const longfist::types::Channel &get_channel(uint32_t source, uint32_t dest) const;
+  const longfist::types::Channel &get_channel(uint32_t source, uint32_t dest) const;
 
   const longfist::types::Channel &get_channel(uint64_t hash) const;
 
-  [[maybe_unused]] const std::unordered_map<uint64_t, longfist::types::Channel> &get_channels() const;
+  const std::unordered_map<uint64_t, longfist::types::Channel> &get_channels() const;
 
-  [[maybe_unused]] bool has_band(uint32_t source, uint32_t dest) const;
+  bool has_band(uint32_t source, uint32_t dest) const;
 
   bool has_band(uint64_t hash) const;
 
-  [[maybe_unused]] const longfist::types::Band &get_band(uint32_t source, uint32_t dest) const;
+  const longfist::types::Band &get_band(uint32_t source, uint32_t dest) const;
 
   const longfist::types::Band &get_band(uint64_t hash) const;
 
-  [[maybe_unused]] const std::unordered_map<uint64_t, longfist::types::Band> &get_bands() const;
+  const std::unordered_map<uint64_t, longfist::types::Band> &get_bands() const;
 
   const std::unordered_map<uint32_t, longfist::types::Register> &get_registry() const;
 
@@ -226,13 +226,13 @@ protected:
 
   void add_location(int64_t trigger_time, const longfist::types::Location &location);
 
-  [[maybe_unused]] void remove_location(int64_t trigger_time, uint32_t location_uid);
+  void remove_location(int64_t trigger_time, uint32_t location_uid);
 
   void register_location(int64_t trigger_time, const longfist::types::Register &register_data);
 
   void deregister_location(int64_t trigger_time, uint32_t location_uid);
 
-  void register_channel([[maybe_unused]] int64_t trigger_time, const longfist::types::Channel &channel);
+  void register_channel(int64_t trigger_time, const longfist::types::Channel &channel);
 
   void deregister_channel(uint32_t source_id);
 

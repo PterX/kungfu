@@ -10,8 +10,9 @@
 #include <string>
 
 namespace kungfu::wingchun {
-[[maybe_unused]] std::string gbk2utf8(const std::string &str);
-[[maybe_unused]] std::string utf82gbk(const std::string &str);
+std::string gbk2utf8(const std::string &str);
+
+std::string utf82gbk(const std::string &str);
 } // namespace kungfu::wingchun
 
 #endif // KUNGFU_ENCODING_H

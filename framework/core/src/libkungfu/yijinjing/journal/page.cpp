@@ -8,8 +8,8 @@
 namespace kungfu::yijinjing::journal {
 using namespace longfist::types;
 
-page::page(data::location_ptr location, uint32_t dest_id, const uint32_t page_id, const size_t size, const bool lazy,
-           const bool is_writing, uintptr_t address)
+page::page(data::location_ptr location, uint32_t dest_id, uint32_t page_id, size_t size, bool lazy, bool is_writing,
+           uintptr_t address)
     : location_(std::move(location)), dest_id_(dest_id), page_id_(page_id), lazy_(lazy), size_(size),
       is_writing_(is_writing), header_(reinterpret_cast<page_header *>(address)) {
   assert(address > 0);

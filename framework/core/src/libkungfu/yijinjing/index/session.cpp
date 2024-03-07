@@ -40,15 +40,14 @@ int64_t session_finder::find_last_active_time(const data::location_ptr &source_l
   return sessions.empty() ? INT64_MIN : sessions.front().end_time;
 }
 
-[[maybe_unused]] SessionVector session_finder::find_sessions(int64_t from, int64_t to) {
+SessionVector session_finder::find_sessions(int64_t from, int64_t to) {
   auto bt = &Session::begin_time;
   auto ut = &Session::update_time;
   auto range = where(greater_or_equal(ut, from) and lesser_or_equal(ut, to));
   return session_storage_->get_all<Session>(range, order_by(bt));
 }
 
-[[maybe_unused]] SessionVector session_finder::find_sessions_for(const location_ptr &source_location, int64_t from,
-                                                                 int64_t to) {
+SessionVector session_finder::find_sessions_for(const location_ptr &source_location, int64_t from, int64_t to) {
   auto bt = &Session::begin_time;
   auto ut = &Session::update_time;
   auto match_uid = eq(&Session::location_uid, source_location->uid);
@@ -134,7 +133,7 @@ void session_builder::update_session(const frame_ptr &frame) {
   session.data_size += frame->frame_length();
 }
 
-[[maybe_unused]] void session_builder::rebuild_index_db() {
+void session_builder::rebuild_index_db() {
   std::lock_guard<std::mutex> lock(update_session_mutex_);
   SPDLOG_INFO("rebuild_index_db");
   std::unordered_map<std::string, location_ptr> formatstr_to_locations = {};
@@ -194,7 +193,7 @@ void session_builder::update_session(const frame_ptr &frame) {
   }
 }
 
-[[maybe_unused]] void session_builder::update_index_db() {
+void session_builder::update_index_db() {
   std::lock_guard<std::mutex> lock(update_session_mutex_);
   SPDLOG_INFO("update_index_db");
   auto locator = io_device_->get_locator();

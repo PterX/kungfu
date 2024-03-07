@@ -314,7 +314,7 @@ public:
 
   void on_risk_setting(const longfist::types::RiskSetting &risk_setting);
 
-  [[maybe_unused]] [[nodiscard]] const std::string &get_account_id() const;
+  [[nodiscard]] const std::string &get_account_id() const;
 
   [[nodiscard]] yijinjing::journal::writer_ptr get_asset_writer() const;
 

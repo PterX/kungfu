@@ -65,11 +65,6 @@ struct frame : event {
     return length;
   }
 
-private:
-  longfist::types::frame_header *header_ = nullptr;
-
-  frame() = default;
-
   void set_address(uintptr_t address) { header_ = reinterpret_cast<longfist::types::frame_header *>(address); }
 
   void move_to_next() { set_address(address() + frame_length()); }
@@ -97,6 +92,11 @@ private:
   void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
+
+  frame() = default;
+
+protected:
+  longfist::types::frame_header *header_ = nullptr;
 
   friend struct cloned_frame;
 

@@ -79,7 +79,7 @@ bool Ledger::bypass_refresh_book() {
   return bypass_refresh_book;
 }
 
-void Ledger::on_deregister([[maybe_unused]] const Deregister &deregister) {
+void Ledger::on_deregister(const Deregister &deregister) {
   uint32_t location_uid = deregister.location_uid;
   broker_states_.erase(location_uid);
   SPDLOG_INFO("deregister location [{:08x}] {}, from broker_states_", location_uid, get_location_uname(location_uid));
@@ -191,7 +191,7 @@ void Ledger::inspect_channel(int64_t trigger_time, const Channel &channel) {
   }
 }
 
-void Ledger::keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid) {
+void Ledger::keep_positions(int64_t trigger_time, uint32_t strategy_uid) {
   if (bookkeeper_.has_book(strategy_uid)) {
     auto strategy_book = bookkeeper_.get_book(strategy_uid);
     tmp_books_.insert_or_assign(strategy_uid, *strategy_book);

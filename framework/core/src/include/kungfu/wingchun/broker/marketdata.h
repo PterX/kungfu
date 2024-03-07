@@ -52,10 +52,9 @@ public:
   virtual void on_band(const event_ptr &event) {}
 
 protected:
-  [[maybe_unused]] [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;
+  [[nodiscard]] bool has_instrument(const std::string &instrument_id) const;
 
-  [[maybe_unused]] [[nodiscard]] const longfist::types::Instrument &
-  get_instrument(const std::string &instrument_id) const;
+  [[nodiscard]] const longfist::types::Instrument &get_instrument(const std::string &instrument_id) const;
 
   void update_instrument(longfist::types::Instrument instrument);
 

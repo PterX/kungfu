@@ -97,7 +97,7 @@ class wingchun_error : public std::runtime_error {
 public:
   explicit wingchun_error(const std::string &_s) : std::runtime_error(_s) {}
 
-  [[maybe_unused]] explicit wingchun_error(const char *_s) : std::runtime_error(_s) {}
+  explicit wingchun_error(const char *_s) : std::runtime_error(_s) {}
 
   ~wingchun_error() noexcept override = default;
 };
@@ -108,7 +108,7 @@ inline bool is_less(double x, double y) { return std::isless(x - y, EPSILON * -1
 
 inline bool is_equal(double x, double y) { return std::abs(x - y) <= EPSILON * std::abs(x); }
 
-[[maybe_unused]] inline bool is_greater_equal(double x, double y) { return is_greater(x, y) || is_equal(x, y); }
+inline bool is_greater_equal(double x, double y) { return is_greater(x, y) || is_equal(x, y); }
 
 inline bool is_less_equal(double x, double y) { return is_less(x, y) || is_equal(x, y); }
 
@@ -118,7 +118,7 @@ inline bool is_too_large(double x) { return is_greater(x, DOUBLEMAX); }
 
 inline bool is_valid_price(double price) { return !is_less_equal(price, 0.0) && !is_too_large(price); }
 
-[[maybe_unused]] inline double rounded(double x, int n) {
+inline double rounded(double x, int n) {
   if (is_too_large(x) || is_zero(x) || is_too_large(std::abs(x))) {
     return 0.0;
   } else {
@@ -138,7 +138,7 @@ inline bool string_equals_n(const std::string &s1, const std::string &s2, size_t
   return std::strncmp(s1.c_str(), s2.c_str(), l) == 0;
 }
 
-[[maybe_unused]] inline bool endswith(const std::string &str, const std::string &suffix) {
+inline bool endswith(const std::string &str, const std::string &suffix) {
   return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
@@ -170,7 +170,7 @@ inline bool is_convertible_bond(const std::string &instrument_id, const std::str
           string_equals(exchange_id, EXCHANGE_SSE));
 }
 
-[[maybe_unused]] inline bool is_repo(const std::string &instrument_id, const std::string &exchange_id) {
+inline bool is_repo(const std::string &instrument_id, const std::string &exchange_id) {
   return (string_equals_n(instrument_id, "204", 3) && string_equals(exchange_id, EXCHANGE_SSE)) ||
          (string_equals_n(instrument_id, "1318", 4) && string_equals(exchange_id, EXCHANGE_SZE));
 }
@@ -659,7 +659,7 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
   order.parent_id = input.parent_id;
 }
 
-[[maybe_unused]] inline void trade_from_order(const longfist::types::Order &order, longfist::types::Trade &trade) {
+inline void trade_from_order(const longfist::types::Order &order, longfist::types::Trade &trade) {
   trade.order_id = order.order_id;
   strcpy(trade.instrument_id, order.instrument_id);
   strcpy(trade.exchange_id, order.exchange_id);

@@ -39,6 +39,8 @@ class apprentice : public hero {
 public:
   explicit apprentice(const data::location_ptr &home, bool low_latency = false, std::string arguments = "{}");
 
+  explicit apprentice(const yijinjing::io_device_ptr &io_device, std::string arguments = "{}");
+
   bool is_started() const;
 
   void pause();
@@ -207,7 +209,7 @@ protected:
 
   virtual void on_write_to_band(const event_ptr &event);
 
-  [[maybe_unused]] int get_observer_recv_timeout() const;
+  int get_observer_recv_timeout() const;
 
   int32_t get_timer_usage_count() { return timer_usage_count_++; }
 

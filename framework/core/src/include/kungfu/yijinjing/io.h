@@ -49,20 +49,20 @@ public:
 
   [[nodiscard]] const journal::bus_ptr &get_bus() const { return bus_; }
 
-  journal::reader_ptr open_reader_to_subscribe();
+  virtual journal::reader_ptr open_reader_to_subscribe();
 
-  [[maybe_unused]] journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
+  virtual journal::reader_ptr open_reader(const data::location_ptr &location, uint32_t dest_id);
 
-  journal::writer_ptr open_writer(uint32_t dest_id, uint64_t page_size = 0);
+  virtual journal::writer_ptr open_writer(uint32_t dest_id, uint64_t page_size = 0);
 
-  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size = 0);
+  virtual journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                             uint64_t page_size = 0);
 
   journal::writer_ptr open_hookable_writer(uint32_t dest_id, const journal::writer_hook_ptr &hook,
                                            uint64_t page_size = 0);
 
-  [[maybe_unused]] journal::writer_ptr open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
-                                                               const journal::writer_hook_ptr &hook,
-                                                               uint64_t page_size = 0);
+  journal::writer_ptr open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const journal::writer_hook_ptr &hook, uint64_t page_size = 0);
 
   [[nodiscard]] nanomsg::url_factory_ptr get_url_factory() const { return url_factory_; }
 
@@ -110,9 +110,9 @@ class io_device_console : public io_device {
 public:
   io_device_console(data::location_ptr home, int32_t console_width, int32_t console_height);
 
-  [[maybe_unused]] void trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
+  void trace(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
 
-  [[maybe_unused]] void show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
+  void show(int64_t begin_time, int64_t end_time, bool in, bool out, std::string csv);
 
 private:
   int32_t console_width_;

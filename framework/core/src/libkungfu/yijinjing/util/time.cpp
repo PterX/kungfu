@@ -47,7 +47,7 @@ uint32_t time::nano_hashed(int64_t nano_time) {
   return kungfu::hash_32((const unsigned char *)&nano_time, sizeof(nano_time));
 }
 
-[[maybe_unused]] int64_t time::next_minute(int64_t nanotime) {
+int64_t time::next_minute(int64_t nanotime) {
   return nanotime - nanotime % time_unit::NANOSECONDS_PER_MINUTE + time_unit::NANOSECONDS_PER_MINUTE;
 }
 

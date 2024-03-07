@@ -93,6 +93,9 @@ class ExecutorRegistry:
             self.executors["system"]["service"].load_service(ctx)
 
     def register_extensions(self, root):
+        self.ctx.logger.debug(f"root: {root}")
+        sys.path.append(root)
+        site.setup(root)
         for child in os.listdir(root):
             extension_dir = path.abspath(path.join(root, child))
             self.read_config(extension_dir)
@@ -311,6 +314,7 @@ class ExtensionExecutor(Executor):
             site.setup(loader.extension_dir)
             sys.path.insert(0, loader.extension_dir)
         elif use_ctx_path and self.ctx.path:
+            self.ctx.logger.info(f"path: {self.ctx.path}")
             dirname = os.path.dirname(self.ctx.path)
             site.setup(dirname)
             sys.path.insert(0, dirname)
@@ -386,8 +390,10 @@ class StrategyRunner(ExtensionExecutor):
             from_indexer, to_indexer = parse_from_to_indexer(
                 ctx, begin_time_stamp, end_time_stamp
             )
-            ctx.strategy_runner.set_from_indexer(from_indexer)
-            ctx.strategy_runner.set_to_indexer(to_indexer)
+            if from_indexer:
+                ctx.strategy_runner.set_from_indexer(from_indexer)
+            if to_indexer:
+                ctx.strategy_runner.set_to_indexer(to_indexer)
             if ctx.report:
                 self.report = load_module(
                     ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
@@ -404,6 +410,10 @@ class StrategyRunner(ExtensionExecutor):
             ctx.strategy_runner.set_end_time(end_time_stamp)
 
         ctx.strategy_runner.add_strategy(ctx.strategy)
+        if "build_api_version" in dir(ctx):
+            ctx.strategy_runner.set_build_api_version(ctx.build_api_version)
+        if "build_platform_version" in dir(ctx):
+            ctx.strategy_runner.set_build_platform_version(ctx.build_platform_version)
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE and "is_cpp_module" not in dir(
             ctx
@@ -464,8 +474,10 @@ class OperatorRunner(ExtensionExecutor):
             from_indexer, to_indexer = parse_from_to_indexer(
                 ctx, begin_time_stamp, end_time_stamp
             )
-            ctx.op_runner.set_from_indexer(from_indexer)
-            ctx.op_runner.set_to_indexer(to_indexer)
+            if from_indexer:
+                ctx.op_runner.set_from_indexer(from_indexer)
+            if to_indexer:
+                ctx.op_runner.set_to_indexer(to_indexer)
             if ctx.report:
                 self.report = load_module(
                     ctx, ctx.report, Path(ctx.report).stem.split(".")[0], Report
@@ -481,6 +493,10 @@ class OperatorRunner(ExtensionExecutor):
             ctx.op_runner.set_end_time(end_time_stamp)
 
         ctx.op_runner.add_operator(ctx.operator)
+        if "build_api_version" in dir(ctx):
+            ctx.op_runner.set_build_api_version(ctx.build_api_version)
+        if "build_platform_version" in dir(ctx):
+            ctx.op_runner.set_build_platform_version(ctx.build_platform_version)
         return ctx.op_runner
 
     def post_run(self):
@@ -522,7 +538,13 @@ def try_load_cpp_module(ctx, path, key, cls, cls_name):
         module = importlib.import_module(key)
         ctx.logger.debug(f"import as cpp {cls_name} success")
         factory_func = getattr(module, cls_name.lower())
+        build_api_version_func = getattr(module, "build_api_version", None)
+        build_platform_version_func = getattr(module, "build_platform_version", None)
         ctx.is_cpp_module = True
+        if build_api_version_func:
+            ctx.build_api_version = build_api_version_func()
+        if build_platform_version_func:
+            ctx.build_platform_version = build_platform_version_func()
         return factory_func()
     except AttributeError as e:
         sys.modules.pop(key)
@@ -604,6 +626,9 @@ def load_service_vendor_builder(ctx):
 
 def parse_begin_end(ctx):
     ctx.logger.debug(f"ctx.mode: {ctx.mode}")
+    config_dict = json.loads(parse_backtest_config(ctx))
+    ctx.begin = config_dict.get("begin_time", None) if ctx.begin is None else ctx.begin
+    ctx.end = config_dict.get("end_time", None) if ctx.end is None else ctx.end
 
     if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (not ctx.begin or not ctx.end):
         raise ValueError("backtest mode must specify begin and end")

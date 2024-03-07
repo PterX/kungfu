@@ -15,9 +15,10 @@ void reader::join(const data::location_ptr &location, uint32_t dest_id, const in
   SPDLOG_TRACE("join location: {}, dest_id: {}, page_size: {} ", location->to_string(), dest_id, page_size);
   auto key = journal_key(location, dest_id);
   auto size = lazy_ ? find_page_size(location, dest_id) : page::find_page_size(location, dest_id, page_size);
-  auto result = journals_.try_emplace(key, location, dest_id, false, lazy_, low_latency_, bus_, size, priority);
+  auto result = journals_.try_emplace(
+      key, std::make_shared<journal>(location, dest_id, false, lazy_, low_latency_, bus_, size, priority));
   if (result.second) {
-    journals_.at(key).seek_to_time(from_time);
+    journals_.at(key)->seek_to_time(from_time);
   }
   if (current_ == nullptr) {
     sort_without_buffer(); // do not sort if current_ is set (because we could be in process of reading)
@@ -63,7 +64,7 @@ bool reader::data_available() {
 
 void reader::seek_to_time(int64_t nanotime) {
   for (auto &pair : journals_) {
-    pair.second.seek_to_time(nanotime);
+    pair.second->seek_to_time(nanotime);
   }
   sort_without_buffer();
 }
@@ -81,8 +82,8 @@ void reader::sort_without_buffer() {
   std::vector<journal *> has_data_journals;
   for (auto &pair : journals_) {
     auto &journal = pair.second;
-    if (journal.current_frame()->has_data()) {
-      has_data_journals.push_back(&journal);
+    if (journal->current_frame()->has_data()) {
+      has_data_journals.push_back(journal.get());
     }
   }
   auto min_journal_it = std::max_element(has_data_journals.cbegin(), has_data_journals.cend(), later{});
@@ -120,32 +121,32 @@ void reader::build_buffer() {
   no_data_journals_buffer_.clear();
   has_data_journals_heap_ = {};
   std::transform(journals_.begin(), journals_.end(), std::back_inserter(no_data_journals_buffer_),
-                 [](auto &pair) { return std::addressof(pair.second); });
+                 [](auto &pair) { return pair.second.get(); });
   buffer_built_ = true;
 }
 
 void reader::release_page() {
   for (auto &iter : journals_) {
-    iter.second.release_page();
+    iter.second->release_page();
   }
 }
 
 void reader::preload_next_page() {
   for (auto &iter : journals_) {
-    iter.second.preload_next_page();
+    iter.second->preload_next_page();
   }
 }
 
 reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low_latency_), bus_(other.bus_) {
   for (auto &j : other.journals_) {
     journals_.emplace(j.first, j.second);
-    if (other.current_->get_source() == j.second.get_source() and other.current_->get_dest() == j.second.get_dest()) {
-      current_ = &(journals_.find(j.first)->second);
+    if (other.current_->get_source() == j.second->get_source() and other.current_->get_dest() == j.second->get_dest()) {
+      current_ = journals_.find(j.first)->second.get();
     }
   }
 }
 
-[[maybe_unused]] journal &reader::get_journal_ref(const data::location_ptr &location, uint32_t dest_id) {
+journal_ptr reader::get_journal(const data::location_ptr &location, uint32_t dest_id) {
   auto key = journal_key(location, dest_id);
   auto iter = journals_.find(key);
   if (iter != journals_.end()) {
@@ -153,7 +154,7 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
   }
 
   SPDLOG_ERROR("no journal found for location: {}, dest_id: {}", location->uname, dest_id);
-  throw journal_error(fmt::format("no journal found for location: {}, dest_id: {} ", location->uname, dest_id));
+  return nullptr;
 }
 
 uint64_t reader::find_page_size(const data::location_ptr &location, uint32_t dest_id) {

@@ -26,10 +26,9 @@ public:
 
   virtual int64_t find_last_active_time(const data::location_ptr &source_location);
 
-  [[maybe_unused]] SessionVector find_sessions(int64_t from = 0, int64_t to = INT64_MAX);
+  SessionVector find_sessions(int64_t from = 0, int64_t to = INT64_MAX);
 
-  [[maybe_unused]] SessionVector find_sessions_for(const data::location_ptr &source_location, int64_t from = 0,
-                                                   int64_t to = INT64_MAX);
+  SessionVector find_sessions_for(const data::location_ptr &source_location, int64_t from = 0, int64_t to = INT64_MAX);
 
 protected:
   yijinjing::io_device_ptr io_device_;
@@ -50,9 +49,9 @@ public:
 
   void update_session(const journal::frame_ptr &frame);
 
-  [[maybe_unused]] void rebuild_index_db();
+  void rebuild_index_db();
 
-  [[maybe_unused]] void update_index_db();
+  void update_index_db();
 
   SessionMap &get_all_sessions();
 

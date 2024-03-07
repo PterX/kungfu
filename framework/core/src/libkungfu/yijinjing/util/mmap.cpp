@@ -108,7 +108,7 @@ bool flush_mmap_buffer(uintptr_t address, size_t size, bool lazy) {
   return true;
 }
 
-bool release_mmap_buffer(uintptr_t address, [[maybe_unused]] size_t size, bool lazy) {
+bool release_mmap_buffer(uintptr_t address, size_t size, bool lazy) {
   void *buffer = reinterpret_cast<void *>(address);
 #ifdef _WINDOWS
   FlushViewOfFile(buffer, 0);

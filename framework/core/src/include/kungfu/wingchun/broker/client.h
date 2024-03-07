@@ -38,7 +38,7 @@ struct StatelessResumePolicy : public ResumePolicy {
 /**
  * Always resume from the last unread frame, is intended to be used by system services that needs continuity.
  */
-struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
+struct ContinuousResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                         const longfist::types::Register &target) const override;
 };
@@ -47,7 +47,7 @@ struct [[maybe_unused]] ContinuousResumePolicy : public ResumePolicy {
  * Resumes from the last unread frame, or the start of today if the last unread frame was before it.
  * This policy ensures the client does not look back data before today, is intended to be used by strategies.
  */
-struct [[maybe_unused]] IntradayResumePolicy : public ResumePolicy {
+struct IntradayResumePolicy : public ResumePolicy {
   [[nodiscard]] int64_t get_resume_time(const yijinjing::practice::apprentice &app,
                                         const longfist::types::Register &target) const override;
 };
@@ -90,7 +90,7 @@ public:
                                                       const std::string &exchange_id,
                                                       longfist::enums::InstrumentType kf_instrument_type) const = 0;
 
-  [[maybe_unused]] [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
+  [[nodiscard]] virtual bool is_all_subscribed(uint32_t md_location_uid) const = 0;
 
   [[nodiscard]] virtual bool is_subscribed(const std::string &exchange_id, const std::string &instrument_id) const;
 
@@ -115,7 +115,7 @@ public:
 
   virtual void sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
 
-  [[maybe_unused]] virtual bool try_sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
+  virtual bool try_sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_location);
 
   virtual void on_start(const rx::connectable_observable<event_ptr> &events);
 

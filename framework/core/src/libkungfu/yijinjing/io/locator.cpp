@@ -100,8 +100,7 @@ std::string locator::layout_file(const location_ptr &location, es::layout layout
   return path.string();
 }
 
-[[maybe_unused]] std::string locator::default_to_system_db(const location_ptr &location,
-                                                           const std::string &name) const {
+std::string locator::default_to_system_db(const location_ptr &location, const std::string &name) const {
   auto sqlite_layout = es::layout::SQLITE;
   auto db_file = layout_file(location, sqlite_layout, name);
   if (not fs::exists(db_file)) {

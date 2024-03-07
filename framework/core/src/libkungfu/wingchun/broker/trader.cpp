@@ -31,7 +31,7 @@ bool Trader::insert_algo_order(const event_ptr &event) {
   return true;
 }
 
-[[maybe_unused]] const std::string &Trader::get_account_id() const { return get_live_home()->name; }
+const std::string &Trader::get_account_id() const { return get_live_home()->name; }
 
 yijinjing::journal::writer_ptr Trader::get_asset_writer() const {
   return get_writer(sync_asset_ ? location::SYNC : location::PUBLIC);
@@ -234,7 +234,7 @@ void Trader::deal_read_frame() {
 
 uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
-[[maybe_unused]] void Trader::disable_recover() { disable_recover_ = true; }
+void Trader::disable_recover() { disable_recover_ = true; }
 
 void Trader::try_req_account() {
   if (is_sync_account() and BrokerState::Ready == state_) {

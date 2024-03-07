@@ -179,11 +179,9 @@ template <typename T, size_t N> struct array {
   array<T, N> &operator=(const array<T, N> &other) { return operator=(other.value); }
 } KF_PACK_TYPE_END;
 
-template <typename T, size_t N> [[maybe_unused]] void to_json(nlohmann::json &j, const array<T, N> &value) {
-  j = value.value;
-}
+template <typename T, size_t N> void to_json(nlohmann::json &j, const array<T, N> &value) { j = value.value; }
 
-template <typename T, size_t N> [[maybe_unused]] void from_json(const nlohmann::json &j, array<T, N> &value) {
+template <typename T, size_t N> void from_json(const nlohmann::json &j, array<T, N> &value) {
   for (int i = 0; i < N; i++) {
     value.value[i] = j[i].get<T>();
   }
@@ -232,7 +230,7 @@ struct size_fixed<DataType, std::enable_if_t<std::is_class_v<DataType> and DataT
   static constexpr bool value = boost::hana::fold(
       boost::hana::transform(boost::hana::accessors<DataType>(),
                              [](auto it) {
-                               [[maybe_unused]] auto accessor = boost::hana::second(it);
+                               auto accessor = boost::hana::second(it);
                                using AttrType = std::decay_t<decltype(accessor(std::forward<DataType &>(DataType{})))>;
                                return std::is_arithmetic_v<AttrType> or std::is_enum_v<AttrType> or
                                       is_array_v<AttrType>;

@@ -130,11 +130,11 @@ uint32_t hero::get_home_uid() const { return get_io_device()->get_home()->uid; }
 
 const std::string &hero::get_home_uname() const { return get_io_device()->get_home()->uname; }
 
-[[maybe_unused]] const location_ptr &hero::get_live_home() const { return get_io_device()->get_live_home(); }
+const location_ptr &hero::get_live_home() const { return get_io_device()->get_live_home(); }
 
 uint32_t hero::get_live_home_uid() const { return get_io_device()->get_live_home()->uid; }
 
-[[maybe_unused]] reader_ptr hero::get_reader() const { return reader_; }
+reader_ptr hero::get_reader() const { return reader_; }
 
 bool hero::has_writer(uint32_t dest_id) const {
   if (util::get_thread_id() != main_thread_id_) {
@@ -174,7 +174,7 @@ writer_ptr hero::get_band_writer(uint32_t dest_id) const {
   return band_writers_.at(dest_id);
 }
 
-[[maybe_unused]] const WriterMap &hero::get_writers() const { return writers_; }
+const WriterMap &hero::get_writers() const { return writers_; }
 
 bool hero::has_location(uint32_t uid) const { return locations_.find(uid) != locations_.end(); }
 
@@ -212,7 +212,7 @@ bool hero::has_channel(uint32_t source, uint32_t dest) const {
 
 bool hero::has_channel(uint64_t hash) const { return channels_.find(hash) != channels_.end(); }
 
-[[maybe_unused]] const longfist::types::Channel &hero::get_channel(uint32_t source, uint32_t dest) const {
+const longfist::types::Channel &hero::get_channel(uint32_t source, uint32_t dest) const {
   return get_channel(make_source_dest_hash(source, dest));
 }
 
@@ -221,9 +221,7 @@ const Channel &hero::get_channel(uint64_t hash) const {
   return channels_.at(hash);
 }
 
-[[maybe_unused]] const std::unordered_map<uint64_t, longfist::types::Channel> &hero::get_channels() const {
-  return channels_;
-}
+const std::unordered_map<uint64_t, longfist::types::Channel> &hero::get_channels() const { return channels_; }
 
 const std::unordered_map<uint32_t, longfist::types::Register> &hero::get_registry() const { return registry_; }
 

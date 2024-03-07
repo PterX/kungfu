@@ -163,7 +163,7 @@ void Client::sync(int64_t trigger_time, const yijinjing::data::location_ptr &td_
   writer->mark(trigger_time, PositionRequest::tag);
 }
 
-[[maybe_unused]] bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
+bool Client::try_sync(int64_t trigger_time, const location_ptr &td_location) {
   if (ready_td_locations_.find(td_location->uid) == ready_td_locations_.end()) {
     return false;
   }

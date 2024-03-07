@@ -44,7 +44,7 @@ inline std::string get_protocol_name(protocol p) {
   }
 }
 
-[[maybe_unused]] inline protocol get_opposite_protol(protocol p) {
+inline protocol get_opposite_protol(protocol p) {
   switch (p) {
   case protocol::REPLY:
     return protocol::REQUEST;
@@ -78,7 +78,7 @@ public:
 
   [[nodiscard]] const char *what() const noexcept override;
 
-  [[maybe_unused]] [[nodiscard]] int num() const;
+  [[nodiscard]] int num() const;
 
 private:
   int errno_;
@@ -125,7 +125,7 @@ public:
 
   nlohmann::json recv_json(int flags = NNG_FLAG_ALLOC);
 
-  [[maybe_unused]] [[nodiscard]] protocol get_protocol() const { return protocol_; };
+  [[nodiscard]] protocol get_protocol() const { return protocol_; };
 
   [[nodiscard]] const std::string &get_url() const { return url_; };
 

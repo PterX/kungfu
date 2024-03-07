@@ -11,7 +11,7 @@ namespace kungfu::yijinjing::nanomsg {
 
 const char *nn_exception::what() const throw() { return nng_strerror(errno_); }
 
-[[maybe_unused]] int nn_exception::num() const { return errno_; }
+int nn_exception::num() const { return errno_; }
 
 socket::socket(protocol p, int buffer_size) : protocol_(p), buf_size_(buffer_size) {
   int rc;
@@ -172,7 +172,7 @@ const std::string &socket::recv_msg(int flags) {
   return message_;
 }
 
-[[maybe_unused]] nlohmann::json socket::recv_json(int flags) {
+nlohmann::json socket::recv_json(int flags) {
 
   int rc = 0;
   if ((rc = recv(flags)) == 0) {

@@ -12,7 +12,7 @@ namespace kungfu::yijinjing::journal {
 class page {
 
 public:
-  ~page();
+  virtual ~page();
 
   void flush();
 
@@ -53,6 +53,13 @@ public:
 
   [[nodiscard]] bool is_pre_open() const { return header_->status == longfist::enums::PageStatus::PreOpen; };
 
+  /**
+   * update page header when new frame added
+   */
+  void set_last_frame_position(uint64_t position);
+
+  void enable_page();
+
   static page_ptr load(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size, uint32_t page_id,
                        bool is_writing, bool lazy, bool pre_open = false);
 
@@ -69,7 +76,7 @@ public:
 
   static bool check_page_existed(const data::location_ptr &location, uint32_t dest_id, uint32_t page_id);
 
-private:
+protected:
   const data::location_ptr location_;
   const uint32_t dest_id_;
   const uint32_t page_id_;
@@ -80,13 +87,6 @@ private:
 
   page(data::location_ptr location, uint32_t dest_id, uint32_t page_id, size_t size, bool lazy, bool is_writing,
        uintptr_t address);
-
-  /**
-   * update page header when new frame added
-   */
-  void set_last_frame_position(uint64_t position);
-
-  void enable_page();
 
   friend class journal;
 

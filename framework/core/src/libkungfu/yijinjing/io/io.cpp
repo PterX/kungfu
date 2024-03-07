@@ -193,8 +193,8 @@ writer_ptr io_device::open_hookable_writer(uint32_t dest_id, const writer_hook_p
   }
 }
 
-[[maybe_unused]] writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
-                                                               const writer_hook_ptr &hook, uint64_t page_size) {
+writer_ptr io_device::open_hookable_writer_at(const data::location_ptr &location, uint32_t dest_id,
+                                              const writer_hook_ptr &hook, uint64_t page_size) {
   if (home_->mode != mode::REPLAY) {
     return std::make_shared<hookable_writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size, hook);
   } else {

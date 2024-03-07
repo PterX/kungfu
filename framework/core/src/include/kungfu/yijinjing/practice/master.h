@@ -25,6 +25,8 @@ class master : public hero {
 public:
   explicit master(const yijinjing::data::location_ptr &home, bool low_latency = false);
 
+  explicit master(const yijinjing::io_device_ptr &io_device);
+
   void on_exit() override;
 
   void notify_deregister_on_exit();
@@ -43,7 +45,7 @@ public:
 
   void register_app(const event_ptr &event);
 
-  [[maybe_unused]] void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
+  void deregister_app(int64_t trigger_time, uint32_t app_location_uid);
 
   void on_request_deregister(const event_ptr &event);
 

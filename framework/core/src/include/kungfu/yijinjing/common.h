@@ -90,8 +90,7 @@ public:
   [[nodiscard]] virtual std::string layout_file(const location_ptr &location, longfist::enums::layout layout,
                                                 const std::string &name) const;
 
-  [[maybe_unused]] [[nodiscard]] virtual std::string default_to_system_db(const location_ptr &location,
-                                                                          const std::string &name) const;
+  [[nodiscard]] virtual std::string default_to_system_db(const location_ptr &location, const std::string &name) const;
 
   [[nodiscard]] virtual std::vector<uint32_t> list_page_id(const location_ptr &location, uint32_t dest_id) const;
 
@@ -186,9 +185,9 @@ using namespace rxcpp;
 using namespace rxcpp::operators;
 using namespace rxcpp::util;
 
-[[maybe_unused]] static constexpr auto noop_event_handler = []() { return [](const event_ptr &event) {}; };
+static constexpr auto noop_event_handler = []() { return [](const event_ptr &event) {}; };
 
-[[maybe_unused]] static constexpr auto error_handler_log = [](const std::string &subscriber_name) {
+static constexpr auto error_handler_log = [](const std::string &subscriber_name) {
   return [=](const std::exception_ptr &e) {
     try {
       std::rethrow_exception(e);
@@ -198,7 +197,7 @@ using namespace rxcpp::util;
   };
 };
 
-[[maybe_unused]] static constexpr auto complete_handler_log = [](const std::string &subscriber_name) {
+static constexpr auto complete_handler_log = [](const std::string &subscriber_name) {
   return [=]() { SPDLOG_DEBUG("subscriber {} completed", subscriber_name); };
 };
 
@@ -210,7 +209,7 @@ static constexpr auto is_custom_event = [](const event_ptr &event) -> bool {
   return event->msg_type() > 0 and longfist::AllTypesTags.find(event->msg_type()) == longfist::AllTypesTags.end();
 };
 
-[[maybe_unused]] static constexpr auto is_custom = []() {
+static constexpr auto is_custom = []() {
   return filter([](const event_ptr &event) { return is_custom_event(event); });
 };
 
@@ -252,7 +251,7 @@ template <typename... Ts> constexpr decltype(auto) from(Ts... arg) {
   return event_filter_any<Ts...>(&event::source)(arg...);
 }
 
-template <typename... Ts> [[maybe_unused]] constexpr decltype(auto) while_from(Ts... arg) {
+template <typename... Ts> constexpr decltype(auto) while_from(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::source)(arg...);
 }
 
@@ -260,7 +259,7 @@ template <typename... Ts> constexpr decltype(auto) to(Ts... arg) {
   return event_filter_any<Ts...>(&event::dest)(arg...);
 }
 
-template <typename... Ts> [[maybe_unused]] constexpr decltype(auto) while_to(Ts... arg) {
+template <typename... Ts> constexpr decltype(auto) while_to(Ts... arg) {
   return lambda_filter_any<Ts...>(&event::dest)(arg...);
 }
 
@@ -302,11 +301,11 @@ template <class T, class Observable, class Subject> struct steppable : public op
 
   steppable(source_type o, subject_type sub) : state(std::make_shared<steppable_state>(std::move(o), std::move(sub))) {}
 
-  template <class Subscriber> [[maybe_unused]] void on_subscribe(Subscriber &&o) const {
+  template <class Subscriber> void on_subscribe(Subscriber &&o) const {
     state->subject_value.get_observable().subscribe(std::forward<Subscriber>(o));
   }
 
-  [[maybe_unused]] void on_connect(composite_subscription cs) const {
+  void on_connect(composite_subscription cs) const {
     auto destination = state->subject_value.get_subscriber();
     if (state->connection.empty()) {
 

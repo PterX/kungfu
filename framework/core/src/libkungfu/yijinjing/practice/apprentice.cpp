@@ -23,7 +23,10 @@ namespace fs = std::filesystem;
 namespace kungfu::yijinjing::practice {
 
 apprentice::apprentice(const data::location_ptr &home, bool low_latency, std::string arguments)
-    : hero(std::make_shared<io_device_client>(home, low_latency)), manager_(*this), arguments_(std::move(arguments)) {}
+    : apprentice(std::make_shared<io_device_client>(home, low_latency), std::move(arguments)) {}
+
+apprentice::apprentice(const yijinjing::io_device_ptr &io_device, std::string arguments)
+    : hero(io_device), manager_(*this), arguments_(std::move(arguments)) {}
 
 bool apprentice::is_started() const { return started_; }
 
@@ -254,9 +257,7 @@ void apprentice::on_write_to_band(const event_ptr &event) {
   }
 }
 
-[[maybe_unused]] int apprentice::get_observer_recv_timeout() const {
-  return get_io_device()->get_observer()->get_recv_timeout();
-}
+int apprentice::get_observer_recv_timeout() const { return get_io_device()->get_observer()->get_recv_timeout(); }
 
 void apprentice::reader_join(uint32_t source_id, uint32_t dest_id, int64_t from_time, uint64_t page_size) {
 

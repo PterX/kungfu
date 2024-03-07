@@ -62,13 +62,13 @@ public:
 protected:
   std::unordered_map<uint64_t, double> commission_map_ = {};
 
-  [[maybe_unused]] virtual void apply_buy(Book_ptr &book, const Trade &trade) {}
+  virtual void apply_buy(Book_ptr &book, const Trade &trade) {}
 
-  [[maybe_unused]] virtual void apply_sell(Book_ptr &book, const Trade &trade) {}
+  virtual void apply_sell(Book_ptr &book, const Trade &trade) {}
 
-  [[maybe_unused]] double calculate_commission(const Trade &trade) { return trade.commission; }
+  double calculate_commission(const Trade &trade) { return trade.commission; }
 
-  [[maybe_unused]] double calculate_tax(const Trade &trade) { return trade.tax; }
+  double calculate_tax(const Trade &trade) { return trade.tax; }
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_CRYPTO_H

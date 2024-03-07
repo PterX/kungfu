@@ -12,6 +12,7 @@ from kungfu.serverless.utils import (
     read_file_content,
     get_tokens,
 )
+from kungfu.serverless.config import BASE_URL
 
 yjj = kungfu.__binding__.yijinjing
 
@@ -54,7 +55,7 @@ class Backtest:
     def check_data_range(self):
         access_token, refresh_token, id_token = get_tokens(self.stage)
         resp = requests.get(
-            f"https://api.kungfu-trader.com/{self.stage}/dataset/meta",
+            f"{BASE_URL}/{self.stage}/dataset/meta",
             headers={
                 "Authorization": id_token,
             },
@@ -160,7 +161,7 @@ class Backtest:
             "Authorization": id_token,
         }
         resp = requests.post(
-            f"https://api.kungfu-trader.com/{self.stage}/backtest/submitjob",
+            f"{BASE_URL}/{self.stage}/backtest/submitjob",
             data=json.dumps(data),
             headers=headers,
         ).text

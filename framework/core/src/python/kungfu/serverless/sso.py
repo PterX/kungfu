@@ -28,8 +28,8 @@ class SSO:
 
     def sign_in_by_account_password(self, account, password):
         sign_in_resp = self.ac.sign_in_by_account_password(
-            account,
-            password,
+            str(account),
+            str(password),
             options={"scope": "phone profile email openid offline_access backtest"},
         )
 
@@ -45,11 +45,11 @@ class SSO:
         record_tokens(self.stage, access_token, refresh_token, id_token, expires_in)
 
     def send_sms_code(self, phone_number):
-        self.ac.send_sms(channel="CHANNEL_LOGIN", phone_number=phone_number)
+        self.ac.send_sms(channel="CHANNEL_LOGIN", phone_number=str(phone_number))
 
     def sign_in_by_phone_passcode(self, phone, pass_code):
         sign_in_resp = self.ac.sign_in_by_phone_passcode(
-            phone=phone,
+            phone=str(phone),
             pass_code=str(pass_code),
             options={"scope": "phone profile email openid offline_access backtest"},
         )
@@ -91,11 +91,3 @@ class SSO:
             return True
         else:
             return False
-
-
-# sso = SSO("alpha")
-# sso.sign_in_by_account_password(account="13151998870", password="")
-# AccessKeyId, SecretKey, SessionToken = sso.get_credentials_for_identity()
-# buckets = sso.list_buckets(AccessKeyId, SecretKey, SessionToken)
-# objects = sso.list_objects("kungfu", AccessKeyId, SecretKey, SessionToken)
-# object = sso.get_object("kungfu", objects[0]["Key"], AccessKeyId, SecretKey, SessionToken)

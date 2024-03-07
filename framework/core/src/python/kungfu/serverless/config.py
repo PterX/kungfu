@@ -31,3 +31,5 @@ APP_PARAMS = {
     "dev": dev.PARAMS,
     "prod": prod.PARAMS,
 }
+
+BASE_URL = "https://api.kungfu-trader.com"

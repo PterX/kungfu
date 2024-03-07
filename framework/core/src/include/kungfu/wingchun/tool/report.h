@@ -42,6 +42,14 @@ public:
   // @param tree              行情数据
   virtual void on_tree(const longfist::types::Tree &tree){};
 
+  // 行情数据更新回调
+  // @param depth 行情数据
+  virtual void on_depth(const longfist::types::Depth &depth){};
+
+  // 行情数据更新回调
+  // @param tick              行情数据
+  virtual void on_tick(const longfist::types::Tick &tick){};
+
   // 接收合成数据更新回调
   // @param synthetic_data    合成数据
   virtual void on_read_synthetic_data(const longfist::types::SyntheticData &synthetic_data){};

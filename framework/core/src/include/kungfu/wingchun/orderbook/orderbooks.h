@@ -45,41 +45,47 @@ protected:
   virtual void on_quote(const longfist::types::Quote &quote) = 0;
 };
 
-template <typename OS> class OrderbooksImpl : public Orderbooks {
+template <typename OBS> class OrderbooksImpl : public Orderbooks {
 public:
 
-  const OS &get_bids(std::string instrument_id, std::string exchange_id) {
-    if (bids_.find(instrument_id + exchange_id) == bids_.end()) {
-      bids_.try_emplace(instrument_id + exchange_id, longfist::enums::Side::Buy);
+  const OBS &get_bids(std::string instrument_id, std::string exchange_id) {
+    const auto instrument_exchange_id = instrument_id + exchange_id;
+    if (bids_.find(instrument_exchange_id) == bids_.end()) {
+      bids_.try_emplace(instrument_exchange_id, longfist::enums::Side::Buy);
     }
-    return bids_.at(instrument_id + exchange_id);
+    return bids_.at(instrument_exchange_id);
   }
 
-  const OS &get_asks(std::string instrument_id, std::string exchange_id) {
-    if (asks_.find(instrument_id + exchange_id) == asks_.end()) {
-      asks_.try_emplace(instrument_id + exchange_id, longfist::enums::Side::Sell);
+  const OBS &get_asks(std::string instrument_id, std::string exchange_id) {
+    const auto instrument_exchange_id = instrument_id + exchange_id;
+    if (asks_.find(instrument_exchange_id) == asks_.end()) {
+      asks_.try_emplace(instrument_exchange_id, longfist::enums::Side::Sell);
     }
-    return asks_.at(instrument_id + exchange_id);
+    return asks_.at(instrument_exchange_id);
   }
 
 protected:
   void on_entrust(const longfist::types::Entrust &entrust) override {
-    const_cast<OS &>(get_bids(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
+    const_cast<OBS &>(get_bids(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
   }
+
   void on_transaction(const longfist::types::Transaction &transaction) override {
-    const_cast<OS &>(get_asks(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
+    const_cast<OBS &>(get_asks(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
   }
+  
   void on_quote(const longfist::types::Quote &quote) override {
-    const_cast<OS &>(get_asks(quote.instrument_id, quote.exchange_id)).on_quote(quote);
+    const_cast<OBS &>(get_asks(quote.instrument_id, quote.exchange_id)).on_quote(quote);
   }
 
 private:
-  std::unordered_map<std::string, OS> bids_;
-  std::unordered_map<std::string, OS> asks_;
+  std::unordered_map<std::string, OBS> bids_;
+  std::unordered_map<std::string, OBS> asks_;
 };
 
 class OrderbookSide {
 public:
+  OrderbookSide() = delete;
+
   OrderbookSide(const OrderbookSide &) = delete;
 
   OrderbookSide &operator=(const OrderbookSide &) = delete;
@@ -91,7 +97,9 @@ protected:
   OrderbookSide(longfist::enums::Side side) : side_(side){};
 
   void on_entrust(const longfist::types::Entrust &entrust){};
+
   void on_transaction(const longfist::types::Transaction &transaction){};
+
   void on_quote(const longfist::types::Quote &quote){};
 
 private:

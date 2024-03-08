@@ -91,7 +91,10 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
+const firstRender = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
+const subscribeNext = ref<boolean>(false);
+const stopSubscribe = ref<boolean>(false);
 
 const searchKeyword = ref<string>('');
 
@@ -106,14 +109,11 @@ async function getTradeList(
       tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
       const instrumentId = `${tradeResolved.exchange_id}_${tradeResolved.instrument_id}`;
-      if (tradeList.length >= globalThis.posGlobalLength) {
-        return false;
-      } else {
-        if (instrumentId === locationId) {
-          tradeList.push(tradeResolved as KungfuApi.TradeResolved);
-        }
-        return true;
+
+      if (instrumentId === locationId) {
+        tradeList.push(tradeResolved as KungfuApi.TradeResolved);
       }
+      return true;
     };
     await tradingData.tradingDataForEach(
       addTradeResolved,
@@ -131,18 +131,25 @@ async function getTradeList(
     const indexMap =
       tradingData.trade[currentGlobalKfLocation.value.category][locationId];
     if (indexMap) {
-      tradeList = indexMap
-        .getCommonList()
-        .slice(0, globalThis.tradingDataLength || DEFAULT_TRADE_LIST_LENGTH);
+      tradeList = indexMap.getCommonList();
     } else {
       tradeList = [];
     }
   } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-    isRendering.value = true;
+    tdChildrenLocationIdList.value = [];
+    const locationList = (
+      currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
+    ).children;
+    if (locationList) {
+      locationList.forEach((location) => {
+        const locationId = location.location_uid;
+        tdChildrenLocationIdList.value.push(locationId);
+      });
+    }
     const addTradeResolved = (
       tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
-      if (tradeList.length >= globalThis.tradingDataLength) {
+      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
         return false;
       } else {
         tradeList.push(tradeResolved as KungfuApi.TradeResolved);
@@ -190,12 +197,13 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
         },
       );
       if (tradeList.length) {
-        canvasRef.value.getListTable()?.setRecords(tableData);
         allTrades.value = toRaw(tableData);
+        canvasRef.value.getListTable()?.setRecords(tableData);
       } else {
         canvasRef.value.getListTable()?.setRecords([]);
       }
     } else {
+      allTrades.value = [];
       canvasRef.value.getListTable()?.setRecords([]);
     }
   });
@@ -207,54 +215,56 @@ const hasData = computed(() => {
 });
 
 onActivated(() => {
-  const subscription = app?.proxy?.$tradingDataSubject.subscribe((data) => {
-    const { tradingData } = data;
-    if (historyDate.value) {
-      return;
-    }
+  const subscription = app?.proxy?.$tradingDataSubject.subscribe(
+    async (data) => {
+      const { tradingData, update } = data;
+      if (historyDate.value) {
+        return;
+      }
 
-    if (currentGlobalKfLocation.value === null) {
-      return;
-    }
+      if (currentGlobalKfLocation.value === null) {
+        return;
+      }
 
-    processTradingData(tradingData);
-  });
+      if (
+        (update || subscribeNext.value || firstRender.value) &&
+        !stopSubscribe.value
+      ) {
+        firstRender.value = false;
+        subscribeNext.value = false;
+        await processTradingData(tradingData);
+      }
+    },
+  );
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();
   });
 
   onDeactivated(() => {
+    firstRender.value = true;
     subscription?.unsubscribe();
   });
 });
 
 watch(
-  currentGlobalKfLocation,
-  () => {
+  () => currentGlobalKfLocation.value,
+  async () => {
     historyDate.value = undefined;
     allTrades.value = [];
     if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
       return;
     }
-    tdChildrenLocationIdList.value = [];
-    if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-      const locationList = (
-        currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
-      ).children;
-      if (locationList) {
-        locationList.forEach((location) => {
-          const locationId = location.location_uid;
-          tdChildrenLocationIdList.value.push(locationId);
-        });
-      }
-    }
-    processTradingData(currentTradingData.value);
+    stopSubscribe.value = true;
+
+    await processTradingData(currentTradingData.value);
+    stopSubscribe.value = false;
   },
   { immediate: true },
 );
 
 watch(historyDate, async (newDate) => {
+  subscribeNext.value = true;
   if (!newDate) {
     return;
   }
@@ -318,6 +328,10 @@ watch(historyDate, async (newDate) => {
     .finally(() => {
       historyDataLoading.value = false;
     });
+});
+
+watch(searchKeyword, () => {
+  subscribeNext.value = true;
 });
 
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {

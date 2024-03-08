@@ -1147,26 +1147,28 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
 };
 
 export const sorter = (
-  a,
-  b,
+  a: string | number,
+  b: string | number,
   sorterOrder: 'asc' | 'desc' | 'normal',
 ): 0 | 1 | -1 => {
+  a = a === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : a;
+  b = b === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : b;
+
+  const numA = isNaN(Number(a)) ? null : Number(a);
+  const numB = isNaN(Number(b)) ? null : Number(b);
+
   if (sorterOrder === 'asc') {
-    a = a === '--' ? Infinity : a;
-    b = b === '--' ? Infinity : b;
-    if (typeof a === 'string' && typeof b === 'string') {
+    if (numA !== null && numB !== null) {
+      return Math.sign(numA - numB) as 0 | 1 | -1;
+    } else if (typeof a === 'string' && typeof b === 'string') {
       return Math.sign(a.localeCompare(b)) as 0 | 1 | -1;
     }
-
-    return Math.sign(Number(a) - Number(b)) as 0 | 1 | -1;
   } else if (sorterOrder === 'desc') {
-    a = a === '--' ? -Infinity : a;
-    b = b === '--' ? -Infinity : b;
-    if (typeof a === 'string' && typeof b === 'string') {
+    if (numA !== null && numB !== null) {
+      return Math.sign(numB - numA) as 0 | 1 | -1;
+    } else if (typeof a === 'string' && typeof b === 'string') {
       return Math.sign(b.localeCompare(a)) as 0 | 1 | -1;
     }
-    return Math.sign(Number(b) - Number(a)) as 0 | 1 | -1;
-  } else {
-    return 0;
   }
+  return 0;
 };

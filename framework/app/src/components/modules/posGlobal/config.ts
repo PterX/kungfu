@@ -3,7 +3,6 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import {
   sorter,
   dealKfPrice,
-  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
@@ -96,9 +95,6 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     },
     headerStyle: {
       textAlign: 'right',
-    },
-    fieldFormat: (args) => {
-      return dealKfDecimalPrecision(args.volume - args.yesterday_volume);
     },
     sort: sorter,
   },

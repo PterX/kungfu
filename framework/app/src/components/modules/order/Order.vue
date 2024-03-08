@@ -113,7 +113,10 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
-const isRendering = ref(false);
+const firstRender = ref<boolean>(true);
+const isRendering = ref<boolean>(false);
+const subscribeNext = ref<boolean>(false);
+const stopSubscribe = ref<boolean>(false);
 
 async function getOrderList(
   tradingData: KungfuApi.tradingData,
@@ -122,7 +125,6 @@ async function getOrderList(
   let orderList: KungfuApi.OrderResolved[] = [];
   if (!currentGlobalKfLocation.value) orderList = [];
   if (currentGlobalKfLocation.value?.category === 'globalPos') {
-    // console.time('globalPos');
     const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
     const listGetterType: 'common' | 'unfinished' = unfinishedOrder.value
       ? 'unfinished'
@@ -132,14 +134,10 @@ async function getOrderList(
     ) => {
       const instrumentId = `${orderResolved.exchange_id}_${orderResolved.instrument_id}`;
 
-      if (orderList.length >= globalThis.posGlobalLength) {
-        return false;
-      } else {
-        if (instrumentId === locationId) {
-          orderList.push(orderResolved as KungfuApi.OrderResolved);
-        }
-        return true;
+      if (instrumentId === locationId) {
+        orderList.push(orderResolved as KungfuApi.OrderResolved);
       }
+      return true;
     };
     await tradingData.tradingDataForEach(
       addOrderResolved,
@@ -147,7 +145,6 @@ async function getOrderList(
       'td',
       listGetterType,
     );
-    // console.timeEnd('globalPos');
   } else if (
     currentGlobalKfLocation.value?.category === 'td' ||
     currentGlobalKfLocation.value?.category === 'strategy'
@@ -158,27 +155,34 @@ async function getOrderList(
     const indexMap =
       tradingData.order[currentGlobalKfLocation.value.category][locationId];
     if (indexMap) {
-      if (unfinishedOrder.value || isGetAllUnfinishedOrder) {
-        orderList = indexMap
-          .getUnfinishedList()
-          .slice(0, globalThis.tradingDataLength || DEFAULT_ORDER_LIST_LENGTH);
+      if (isGetAllUnfinishedOrder) {
+        orderList = indexMap.getAllUnfinishedList();
+      } else if (unfinishedOrder.value) {
+        orderList = indexMap.getUnfinishedList();
       } else {
-        orderList = indexMap
-          .getCommonList()
-          .slice(0, globalThis.tradingDataLength || DEFAULT_ORDER_LIST_LENGTH);
+        orderList = indexMap.getCommonList();
       }
     } else {
       orderList = [];
     }
   } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-    // console.time('tdGroup');
+    tdChildrenLocationIdList.value = [];
+    const locationList = (
+      currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
+    ).children;
+    if (locationList) {
+      locationList.forEach((location) => {
+        const locationId = location.location_uid;
+        tdChildrenLocationIdList.value.push(locationId);
+      });
+    }
     const listGetterType: 'common' | 'unfinished' = unfinishedOrder.value
       ? 'unfinished'
       : 'common';
     const addOrderResolved = (
       orderResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
     ) => {
-      if (orderList.length >= globalThis.tradingDataLength) {
+      if (orderList.length >= DEFAULT_ORDER_LIST_LENGTH) {
         return false;
       } else {
         orderList.push(orderResolved as KungfuApi.OrderResolved);
@@ -193,7 +197,6 @@ async function getOrderList(
       listGetterType,
       tdChildrenLocationIdList.value,
     );
-    // console.timeEnd('tdGroup');
   } else {
     orderList = [];
   }
@@ -234,12 +237,9 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
       );
       allOrders.value = toRaw(tableData);
 
-      if (orderList.length) {
-        canvasRef.value.getListTable()?.setRecords(tableData);
-      } else {
-        canvasRef.value.getListTable()?.setRecords([]);
-      }
+      canvasRef.value.getListTable()?.setRecords(tableData);
     } else {
+      allOrders.value = [];
       canvasRef.value.getListTable()?.setRecords([]);
     }
   });
@@ -249,15 +249,25 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
-      const { tradingData } = data;
-      if (
-        !historyDate.value &&
-        currentGlobalKfLocation.value !== null &&
-        !adjustOrderMaskVisible.value
-      ) {
-        currentTradingData.value = tradingData;
+      const { tradingData, update } = data;
+      if (historyDate.value) {
+        return;
       }
-      {
+
+      if (currentGlobalKfLocation.value === null) {
+        return;
+      }
+
+      if (adjustOrderMaskVisible.value) {
+        return;
+      }
+
+      if (
+        (update || subscribeNext.value || firstRender.value) &&
+        !stopSubscribe.value
+      ) {
+        firstRender.value = false;
+        subscribeNext.value = false;
         await processTradingData(tradingData);
       }
     },
@@ -269,49 +279,32 @@ onActivated(() => {
 
   onDeactivated(() => {
     subscription?.unsubscribe();
+    firstRender.value = true;
   });
 });
 
-watch(
-  currentGlobalKfLocation,
-  async () => {
-    historyDate.value = undefined;
-    allOrders.value = [];
-    clearCaches();
-    if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
-      return;
-    }
-    tdChildrenLocationIdList.value = [];
-    if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-      const locationList = (
-        currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
-      ).children;
-      if (locationList) {
-        locationList.forEach((location) => {
-          const locationId = location.location_uid;
-          tdChildrenLocationIdList.value.push(locationId);
-        });
-      }
-    }
-    const orderList = await getOrderList(currentTradingData.value);
+watch(currentGlobalKfLocation, async () => {
+  historyDate.value = undefined;
+  allOrders.value = [];
+  clearCaches();
+  if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
+    return;
+  }
+  stopSubscribe.value = true;
+  await processTradingData(currentTradingData.value);
+  stopSubscribe.value = false;
+});
 
-    nextTick(() => {
-      if (orderList.length > 0) {
-        if (!orderList.length) {
-          canvasRef.value.getListTable()?.setRecords(orderList);
-          allOrders.value = toRaw(orderList);
-        } else {
-          canvasRef.value.getListTable()?.setRecords([]);
-        }
-      } else {
-        canvasRef.value.getListTable()?.setRecords([]);
-      }
-    });
-  },
-  { immediate: true },
-);
+watch(unfinishedOrder, () => {
+  subscribeNext.value = true;
+});
+
+watch(searchKeyword, () => {
+  subscribeNext.value = true;
+});
 
 watch(historyDate, async (newDate) => {
+  subscribeNext.value = true;
   clearCaches();
   if (!newDate) {
     return;

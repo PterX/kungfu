@@ -27,6 +27,7 @@ import {
   ref,
   toRaw,
   watch,
+  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getColumns, getPositionLastPrice } from './config';
@@ -175,7 +176,9 @@ onActivated(() => {
           'account_id_resolved',
         ],
       );
-      canvasRef.value.getListTable()?.setRecords(tableData);
+      nextTick(() => {
+        canvasRef.value.getListTable()?.setRecords(tableData);
+      });
     });
 
     onBeforeUnmount(() => {
@@ -241,6 +244,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
   );
   showTradingDataDetail(originData, t('posGlobalConfig.pos_detail_header'), [
     'last_price_resolved',
+    'holder_uid',
   ]);
 }
 </script>

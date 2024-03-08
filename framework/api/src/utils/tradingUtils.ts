@@ -971,7 +971,7 @@ export const getOrderStatResolve = (
       trade_time: bigint;
       avg_price: number;
     }
-  | {} => {
+  | object => {
   if (!orderStat) {
     const obj: Record<string, unknown> = {};
     return obj;
@@ -1278,6 +1278,9 @@ export const dealPosition = (
     unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl, pricePrecision),
     volume: dealKfDecimalPrecision(pos.volume), // 数量
     yesterday_volume: dealKfDecimalPrecision(pos.yesterday_volume), // 昨仓数量
+    today_volume:
+      dealKfDecimalPrecision(pos.volume) -
+      dealKfDecimalPrecision(pos.yesterday_volume), // 今仓数量
     frozen_total: dealKfDecimalPrecision(pos.frozen_total), // 冻结数量
     frozen_yesterday: dealKfDecimalPrecision(pos.frozen_yesterday), // 冻结昨仓
     static_yesterday: dealKfDecimalPrecision(pos.static_yesterday), // 固定昨仓数量

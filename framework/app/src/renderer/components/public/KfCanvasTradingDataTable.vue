@@ -1,5 +1,8 @@
 <template>
-  <div ref="listTableRef" style="width: 100%; height: 100%"></div>
+  <div
+    ref="listTableRef"
+    style="width: 100%; height: 100%; margin-top: -1px"
+  ></div>
   <a-empty
     v-if="showEmpty"
     ref="emptyRef"
@@ -9,9 +12,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, getCurrentInstance, computed } from 'vue';
+import {
+  onMounted,
+  ref,
+  watch,
+  getCurrentInstance,
+  computed,
+  nextTick,
+} from 'vue';
 import { Empty } from 'ant-design-vue';
-import { getCustomFont } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 import {
@@ -51,7 +60,7 @@ const props = withDefaults(
     columnResizeMode?: 'all' | 'body' | 'header' | 'none';
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
-    ScrollableContianerWidth?: number;
+    ScrollableContainerWidth?: number;
   }>(),
   {
     columns: () => [],
@@ -134,7 +143,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     borderLineWidth: 1,
     borderColor: '#141414',
     color: '#ffffffd9',
-    lineHeight: 35,
+    // lineHeight: 35,
     hover: {
       cellBgColor: '#333',
       inlineRowBgColor: '#333',
@@ -176,7 +185,7 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   select: {
     disableSelect: true,
   },
-  defaultRowHeight: 28,
+  defaultRowHeight: 30,
   columnResizeMode,
   widthMode,
   limitMaxAutoWidth: 300,
@@ -198,7 +207,7 @@ const option = computed<VTable.ListTableConstructorOptions>(() => {
 });
 let listTable: VTable.ListTable | null = null;
 
-const contianerWidth = ref<number>(10);
+const containerWidth = ref<number>(10);
 
 const initCustomLayoutOptions = () => {
   const customLayoutOption = props.customLayout || {};
@@ -278,15 +287,18 @@ const initCustomLayoutOptions = () => {
 const isShowEmpty = () => {
   if (listTable) {
     if (!props.hasData) {
-      listTableRef.value.style.height = `35px`;
-      if (
-        defaultTheme.scrollStyle &&
-        defaultTheme.scrollStyle.visible !== 'none'
-      ) {
-        defaultTheme.scrollStyle.visible = 'none';
-        listTable.updateTheme(defaultTheme);
-      }
-      showEmpty.value = true;
+      nextTick(() => {
+        listTableRef.value.style.height = `35px`;
+        if (
+          defaultTheme.scrollStyle &&
+          defaultTheme.scrollStyle.visible !== 'none'
+        ) {
+          defaultTheme.scrollStyle.visible = 'none';
+          listTable?.updateTheme(defaultTheme);
+        }
+        listTable?.setRecords([]);
+        showEmpty.value = true;
+      });
     } else {
       listTableRef.value.style.height = `100%`;
       if (
@@ -301,8 +313,8 @@ const isShowEmpty = () => {
   }
 };
 
-onMounted(async () => {
-  font = await getCustomFont();
+onMounted(() => {
+  font = document.body.style.fontFamily;
   if (font) {
     if (defaultTheme.defaultStyle) {
       defaultTheme.defaultStyle.fontFamily = font;
@@ -329,7 +341,7 @@ onMounted(async () => {
 
   const rowList = listTable?.getAllColumnHeaderCells();
   if (rowList && rowList[0]) {
-    contianerWidth.value = rowList[0].reduce((pre, cur) => {
+    containerWidth.value = rowList[0].reduce((pre, cur) => {
       return pre + Number(cur?.cellRange?.width);
     }, 0);
   }
@@ -339,7 +351,7 @@ onMounted(async () => {
       if (!listTable) return;
       const { width } = entries[0].contentRect;
       const defaultWidth =
-        props.ScrollableContianerWidth || contianerWidth.value;
+        props.ScrollableContainerWidth || containerWidth.value;
       if (!defaultWidth) return;
       if (width < defaultWidth && listTable.widthMode === 'adaptive') {
         listTable.widthMode = widthMode;
@@ -362,7 +374,7 @@ defineExpose({
 
 watch(
   () => props.hasData,
-  (hasData) => {
+  () => {
     isShowEmpty();
   },
   { immediate: true },

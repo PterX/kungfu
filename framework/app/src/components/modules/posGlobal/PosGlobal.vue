@@ -17,6 +17,7 @@ import {
   onDeactivated,
   ref,
   toRaw,
+  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -180,7 +181,9 @@ onActivated(() => {
             'direction',
           ],
         );
-        canvasRef.value.getListTable()?.setRecords(tableData);
+        nextTick(() => {
+          canvasRef.value?.getListTable()?.setRecords(tableData);
+        });
       });
     });
 
@@ -288,6 +291,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
   showTradingDataDetail(originData, t('posGlobalConfig.pos_detail_header'), [
     'account_id_resolved',
     'last_price_resolved',
+    'holder_uid',
   ]);
 }
 </script>

@@ -3,7 +3,6 @@ import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   sorter,
   dealKfPrice,
-  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
@@ -109,9 +108,6 @@ export const getColumns = (
         },
         headerStyle: {
           textAlign: 'right',
-        },
-        fieldFormat: (args) => {
-          return dealKfDecimalPrecision(args.volume - args.yesterday_volume);
         },
         sort: sorter,
       },

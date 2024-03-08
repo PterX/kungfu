@@ -1162,6 +1162,7 @@ declare namespace KungfuApi {
     avg_open_price_resolved: number | string;
     unrealized_pnl_resolved: number | string;
     close_volume: number;
+    today_volume: number;
   }
 
   export interface Quote {

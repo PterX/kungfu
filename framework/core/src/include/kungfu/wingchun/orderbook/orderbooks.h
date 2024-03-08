@@ -67,13 +67,16 @@ public:
 protected:
   void on_entrust(const longfist::types::Entrust &entrust) override {
     const_cast<OBS &>(get_bids(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
+    const_cast<OBS &>(get_asks(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
   }
 
   void on_transaction(const longfist::types::Transaction &transaction) override {
+    const_cast<OBS &>(get_bids(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
     const_cast<OBS &>(get_asks(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
   }
   
   void on_quote(const longfist::types::Quote &quote) override {
+    const_cast<OBS &>(get_bids(quote.instrument_id, quote.exchange_id)).on_quote(quote);
     const_cast<OBS &>(get_asks(quote.instrument_id, quote.exchange_id)).on_quote(quote);
   }
 

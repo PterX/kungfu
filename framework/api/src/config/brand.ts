@@ -15,6 +15,19 @@ export const getLogoPath = () => {
   }
 };
 
+export const getLogoNoBgPath = () => {
+  const replaceLogoPath = path.join(
+    globalThis.__publicResources,
+    'logo',
+    'logo-no-data.png',
+  );
+
+  if (!fse.existsSync(replaceLogoPath)) {
+    return null;
+  }
+  return replaceLogoPath;
+};
+
 export const getDialogLogoPath = () => {
   const replaceLogoPath = path.join(
     globalThis.__publicResources,
@@ -39,6 +52,19 @@ export const isDefaultLogo = () => {
     globalThis.__publicResources,
     'logo',
     'logo-replace.png',
+  );
+  if (!fse.existsSync(replaceLogoPath)) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+export const isNoDataDefaultLogo = () => {
+  const replaceLogoPath = path.join(
+    globalThis.__publicResources,
+    'logo',
+    'logo-no-data.png',
   );
   if (!fse.existsSync(replaceLogoPath)) {
     return true;

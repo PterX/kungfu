@@ -1,7 +1,7 @@
 const sdk = require('@kungfu-trader/kungfu-sdk');
 
 module.exports = {
-  flags: 'Init',
+  flags: 'init',
   desc: 'Init template',
   run: () => {
     sdk.lib.extension.init();

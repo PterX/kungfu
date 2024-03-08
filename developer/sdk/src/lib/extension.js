@@ -475,48 +475,90 @@ exports.init = () => {
     path.dirname(customResolve('@kungfu-trader/kungfu-sdk')),
   );
 
-  inquirer
-    .prompt([
+  function promptFolderName() {
+    return inquirer.prompt([
       {
         type: 'input',
         name: 'folderName',
         message: 'Input your extension project name:',
+        validate: function (input) {
+          const folderPath = path.join(process.cwd(), input);
+          if (fse.existsSync(folderPath)) {
+            return 'Folder already exists, please input a different name.';
+          }
+          return true;
+        },
       },
+    ]);
+  }
+
+  function promptExtensionType() {
+    return inquirer.prompt([
       {
         type: 'list',
         name: 'type',
         message: 'Select the extension type:',
         choices: ['broker', 'strategy'],
       },
-    ])
-    .then((answers) => {
-      const templatePath = path.join(sdkDir, 'templates', 'init', answers.type);
+    ]);
+  }
 
-      fse.readdir(templatePath, (err, files) => {
-        if (err)
-          return console.error('Error reading the template directory:', err);
-
-        inquirer
-          .prompt([
-            {
-              type: 'list',
-              name: 'selectedTemplate',
-              message: 'Select a template to init extension project:',
-              choices: files,
-            },
-          ])
-          .then((fileAnswer) => {
-            const targetPath = path.join(process.cwd(), answers.folderName);
-
-            const src = path.join(templatePath, fileAnswer.selectedTemplate);
-
-            fse.copy(src, targetPath, (err) => {
-              if (err) console.error(`Create template false:`, err);
-              else
-                console.log(`Template created successfully at ${targetPath}`);
-            });
-          });
+  function listDirectoriesAndPrompt(templatePath) {
+    return fse
+      .readdir(templatePath, { withFileTypes: true })
+      .then((entries) => {
+        const directories = entries
+          .filter((entry) => entry.isDirectory())
+          .map((dir) => dir.name);
+        return inquirer.prompt([
+          {
+            type: 'list',
+            name: 'selectedTemplate',
+            message: 'Select a template to init your extension project:',
+            choices: directories,
+          },
+        ]);
       });
+  }
+
+  function copyTemplateAndModifyPackage(
+    selectedTemplate,
+    templatePath,
+    folderName,
+  ) {
+    const targetPath = path.join(process.cwd(), folderName);
+    const src = path.join(templatePath, selectedTemplate);
+
+    fse.ensureDirSync(targetPath);
+    fse.copySync(src, targetPath);
+    console.log(`Template created successfully at ${targetPath}`);
+
+    const packageJsonPath = path.join(targetPath, 'package.json');
+    const packageObj = fse.readJsonSync(packageJsonPath);
+    packageObj.name = folderName;
+    fse.writeJsonSync(packageJsonPath, packageObj, { spaces: 2 });
+  }
+
+  promptFolderName()
+    .then((folderAnswer) => {
+      return promptExtensionType().then((typeAnswer) => {
+        const templatePath = path.join(
+          sdkDir,
+          'templates',
+          'init',
+          typeAnswer.type,
+        );
+        return listDirectoriesAndPrompt(templatePath).then((templateAnswer) => {
+          copyTemplateAndModifyPackage(
+            templateAnswer.selectedTemplate,
+            templatePath,
+            folderAnswer.folderName,
+          );
+        });
+      });
+    })
+    .catch((err) => {
+      console.error('Operation failed:', err);
     });
 };
 

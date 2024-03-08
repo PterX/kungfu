@@ -30,7 +30,14 @@ struct Level final {
 
 class Orderbooks {
 public:
+  Orderbooks() = default;
+
+  Orderbooks(const Orderbooks &) = delete;
+
+  Orderbooks &operator=(const Orderbooks &) = delete;
+
   virtual ~Orderbooks() = default;
+
   void on_start(const rx::connectable_observable<event_ptr> &events); // todo 函数级别可能需要调整 可以利用友元函数处理
 protected:
   virtual void on_entrust(const longfist::types::Entrust &entrust) = 0;
@@ -40,9 +47,6 @@ protected:
 
 template <typename OS> class OrderbooksImpl : public Orderbooks {
 public:
-  explicit OrderbooksImpl() = default;
-
-  virtual ~OrderbooksImpl() = default;
 
   const OS &get_bids(std::string instrument_id, std::string exchange_id) {
     if (bids_.find(instrument_id + exchange_id) == bids_.end()) {
@@ -76,20 +80,24 @@ private:
 
 class OrderbookSide {
 public:
-  OrderbookSide(longfist::enums::Side side) : side_(side){};
+  OrderbookSide(const OrderbookSide &) = delete;
+
+  OrderbookSide &operator=(const OrderbookSide &) = delete;
 
   virtual ~OrderbookSide() = default;
 
   longfist::enums::Side get_side() const { return side_; }
+protected:
+  OrderbookSide(longfist::enums::Side side) : side_(side){};
 
-  virtual void on_entrust(const longfist::types::Entrust &entrust){};
-  virtual void on_transaction(const longfist::types::Transaction &transaction){};
-  virtual void on_quote(const longfist::types::Quote &quote){};
+  void on_entrust(const longfist::types::Entrust &entrust){};
+  void on_transaction(const longfist::types::Transaction &transaction){};
+  void on_quote(const longfist::types::Quote &quote){};
 
 private:
-  // friend OrderbooksImpl<OrderbookSide>;
   longfist::enums::Side side_;
 };
+
 
 } // namespace kungfu::wingchun::orderbook
 #endif // WINGCHUN_ORDERBOOK_H

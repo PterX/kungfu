@@ -40,13 +40,16 @@ public:
   private:
     Container::const_iterator iter_;
   };
+  
   iterator begin() const { return iterator(levels_.begin()); }
 
   iterator end() const { return iterator(levels_.end()); }
 
-  using OrderbookSide::OrderbookSide;
-  void on_quote(const Quote &quote) override;
-
+  QuoteOrderbookSide(longfist::enums::Side side) : OrderbookSide(side){};
+  
+protected:
+  friend OrderbooksImpl<QuoteOrderbookSide>;
+  void on_quote(const Quote &quote);
 private:
   Container levels_;
 };

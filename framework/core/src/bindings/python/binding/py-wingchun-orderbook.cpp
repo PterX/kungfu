@@ -26,6 +26,9 @@ void bind_orderbook(pybind11::module &m) {
       .def_readonly("data_time", &Level::data_time)
       .def("__repr__", &Level::to_string);
 
+  py::class_<OrderbookSide, std::shared_ptr<OrderbookSide>>(m, "OrderbookSide")
+      .def_property_readonly("side", &OrderbookSide::get_side);
+
   py::class_<QuoteOrderbookSide, std::shared_ptr<QuoteOrderbookSide>, OrderbookSide>(m, "QuoteOrderbookSide")
       .def(
           "__iter__",
@@ -35,7 +38,6 @@ void bind_orderbook(pybind11::module &m) {
           py::keep_alive<0, 1>());
 
   py::class_<QuoteOrderbooks, std::shared_ptr<QuoteOrderbooks>, Orderbooks>(m, "QuoteOrderbooks")
-      .def(py::init<>())
       .def("get_bids", &QuoteOrderbooks::get_bids, py::return_value_policy::reference)
       .def("get_asks", &QuoteOrderbooks::get_asks, py::return_value_policy::reference);
 }

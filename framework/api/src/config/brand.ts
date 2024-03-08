@@ -19,7 +19,7 @@ export const getLogoNoBgPath = () => {
   const replaceLogoPath = path.join(
     globalThis.__publicResources,
     'logo',
-    'logo-no-data.png',
+    'logo-no-bg-replace.png',
   );
 
   if (!fse.existsSync(replaceLogoPath)) {
@@ -64,7 +64,7 @@ export const isNoDataDefaultLogo = () => {
   const replaceLogoPath = path.join(
     globalThis.__publicResources,
     'logo',
-    'logo-no-data.png',
+    'logo-no-bg-replace.png',
   );
   if (!fse.existsSync(replaceLogoPath)) {
     return true;

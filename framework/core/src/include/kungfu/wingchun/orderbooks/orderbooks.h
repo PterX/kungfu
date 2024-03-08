@@ -3,14 +3,14 @@
 #ifndef WINGCHUN_ORDERBOOK_H
 #define WINGCHUN_ORDERBOOK_H
 
-#include <kungfu/longfist/types.h>
 #include <kungfu/longfist/enums.h>
-#include <kungfu/yijinjing/common.h>
+#include <kungfu/longfist/types.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::orderbook {
-struct Level final{
+struct Level final {
   double price;
   int64_t volume;
   int64_t data_time;
@@ -28,7 +28,6 @@ struct Level final{
   }
 };
 
-
 class Orderbooks {
 public:
   virtual ~Orderbooks() = default;
@@ -39,8 +38,7 @@ protected:
   virtual void on_quote(const longfist::types::Quote &quote) = 0;
 };
 
-template <typename OS>
-class OrderbooksImpl : public Orderbooks {
+template <typename OS> class OrderbooksImpl : public Orderbooks {
 public:
   explicit OrderbooksImpl() = default;
 
@@ -53,14 +51,14 @@ public:
     return bids_.at(instrument_id + exchange_id);
   }
 
-  const OS &get_asks(std::string instrument_id, std::string exchange_id){
+  const OS &get_asks(std::string instrument_id, std::string exchange_id) {
     if (asks_.find(instrument_id + exchange_id) == asks_.end()) {
       asks_.try_emplace(instrument_id + exchange_id, longfist::enums::Side::Sell);
     }
     return asks_.at(instrument_id + exchange_id);
   }
-protected:
 
+protected:
   void on_entrust(const longfist::types::Entrust &entrust) override {
     const_cast<OS &>(get_bids(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
   }
@@ -70,6 +68,7 @@ protected:
   void on_quote(const longfist::types::Quote &quote) override {
     const_cast<OS &>(get_asks(quote.instrument_id, quote.exchange_id)).on_quote(quote);
   }
+
 private:
   std::unordered_map<std::string, OS> bids_;
   std::unordered_map<std::string, OS> asks_;
@@ -82,9 +81,11 @@ public:
   virtual ~OrderbookSide() = default;
 
   longfist::enums::Side get_side() const { return side_; }
-  virtual void on_entrust(const longfist::types::Entrust &entrust) {};
-  virtual void on_transaction(const longfist::types::Transaction &transaction) {};
-  virtual void on_quote(const longfist::types::Quote &quote) {};
+
+  virtual void on_entrust(const longfist::types::Entrust &entrust){};
+  virtual void on_transaction(const longfist::types::Transaction &transaction){};
+  virtual void on_quote(const longfist::types::Quote &quote){};
+
 private:
   // friend OrderbooksImpl<OrderbookSide>;
   longfist::enums::Side side_;

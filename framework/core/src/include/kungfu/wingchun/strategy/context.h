@@ -387,7 +387,7 @@ public:
 
   /**
    * attach the orderbooks to market data received.
-   * @param orderbooks 
+   * @param orderbooks
    */
   void attach_orderbooks(Orderbooks &orderbooks);
 

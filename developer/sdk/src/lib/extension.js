@@ -480,12 +480,12 @@ exports.init = () => {
       {
         type: 'input',
         name: 'folderName',
-        message: 'Create a folder name:',
+        message: 'Input your extension project name:',
       },
       {
         type: 'list',
         name: 'type',
-        message: 'Select type:',
+        message: 'Select the extension type:',
         choices: ['broker', 'strategy'],
       },
     ])
@@ -501,7 +501,7 @@ exports.init = () => {
             {
               type: 'list',
               name: 'selectedTemplate',
-              message: 'Select a template to create:',
+              message: 'Select a template to init extension project:',
               choices: files,
             },
           ])
@@ -509,9 +509,8 @@ exports.init = () => {
             const targetPath = path.join(process.cwd(), answers.folderName);
 
             const src = path.join(templatePath, fileAnswer.selectedTemplate);
-            const dest = path.join(targetPath, fileAnswer.selectedTemplate);
 
-            fse.copy(src, dest, (err) => {
+            fse.copy(src, targetPath, (err) => {
               if (err) console.error(`Create template false:`, err);
               else
                 console.log(`Template created successfully at ${targetPath}`);

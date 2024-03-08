@@ -11,7 +11,6 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
-#include <kungfu/wingchun/orderbooks/depthorderbooks.h>
 #include <kungfu/wingchun/orderbooks/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
@@ -386,9 +385,11 @@ public:
    */
   virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
 
-  virtual void set_orderbook(std::shared_ptr<DepthOrderbooks> orderbook);
-
-  virtual std::shared_ptr<DepthOrderbooks> get_orderbook();
+  /**
+   * attach the orderbooks to market data received.
+   * @param orderbooks 
+   */
+  void attach_orderbooks(Orderbooks &orderbooks);
 
 protected:
   yijinjing::practice::apprentice &app_;

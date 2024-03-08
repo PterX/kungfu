@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: Apache-2.0
+
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+
+#include <kungfu/wingchun/orderbooks/quoteorderbooks.h>
+#include <kungfu/wingchun/orderbooks/orderbooks.h>
+
+using namespace kungfu::longfist;
+using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
+using namespace kungfu::yijinjing;
+using namespace kungfu::yijinjing::data;
+using namespace kungfu::yijinjing::journal;
+using namespace kungfu::wingchun;
+using namespace kungfu::wingchun::orderbook;
+
+namespace py = pybind11;
+namespace kungfu::wingchun::pybind {
+
+void bind_orderbook(pybind11::module &m) {
+
+  py::class_<Level, std::shared_ptr<Level>>(m, "Level")
+      .def_readonly("price", &Level::price)
+      .def_readonly("volume", &Level::volume)
+      .def_readonly("data_time", &Level::data_time)
+      .def("__repr__", &Level::to_string);
+
+  py::class_<QuoteOrderbookSide, std::shared_ptr<QuoteOrderbookSide>, OrderbookSide>(m, "QuoteOrderbookSide")
+      .def("__iter__", [](const QuoteOrderbookSide &orderbook_side) {
+        return py::make_iterator(orderbook_side.begin(), orderbook_side.end());
+      }, py::keep_alive<0, 1>());
+
+  py::class_<QuoteOrderbooks, std::shared_ptr<QuoteOrderbooks>, Orderbooks>(m, "QuoteOrderbooks")
+      .def(py::init<>())
+      .def("get_bids", &QuoteOrderbooks::get_bids, py::return_value_policy::reference)
+      .def("get_asks", &QuoteOrderbooks::get_asks, py::return_value_policy::reference);
+
+
+}
+} // namespace kungfu::wingchun::pybind

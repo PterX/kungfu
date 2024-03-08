@@ -4,14 +4,13 @@
 #define WINGCHUN_ORDERBOOK_H
 
 #include <kungfu/longfist/types.h>
-#include <kungfu/wingchun/book/accounting.h>
-#include <kungfu/wingchun/book/staticdata.h>
+#include <kungfu/longfist/enums.h>
+#include <kungfu/yijinjing/common.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-using namespace kungfu::longfist::types;
 namespace kungfu::wingchun::orderbook {
-struct Level {
+struct Level final{
   double price;
   int64_t volume;
   int64_t data_time;
@@ -19,8 +18,6 @@ struct Level {
   Level() = default;
 
   Level(double p, int64_t v, int64_t ut) : price(p), volume(v), data_time(ut) {}
-
-  virtual ~Level() = default;
 
   std::string to_string() const {
     nlohmann::json j;
@@ -31,53 +28,67 @@ struct Level {
   }
 };
 
-// 自定义迭代器
-class LevelIterator {
+
+class Orderbooks {
 public:
-  LevelIterator() = default;
+  virtual ~Orderbooks() = default;
+  void on_start(const rx::connectable_observable<event_ptr> &events); // todo 函数级别可能需要调整 可以利用友元函数处理
+protected:
+  virtual void on_entrust(const longfist::types::Entrust &entrust) = 0;
+  virtual void on_transaction(const longfist::types::Transaction &transaction) = 0;
+  virtual void on_quote(const longfist::types::Quote &quote) = 0;
+};
 
-  virtual ~LevelIterator() = default;
+template <typename OS>
+class OrderbooksImpl : public Orderbooks {
+public:
+  explicit OrderbooksImpl() = default;
 
+  virtual ~OrderbooksImpl() = default;
 
+  const OS &get_bids(std::string instrument_id, std::string exchange_id) {
+    if (bids_.find(instrument_id + exchange_id) == bids_.end()) {
+      bids_.try_emplace(instrument_id + exchange_id, longfist::enums::Side::Buy);
+    }
+    return bids_.at(instrument_id + exchange_id);
+  }
 
-  // virtual LevelIterator &operator++() = 0;
+  const OS &get_asks(std::string instrument_id, std::string exchange_id){
+    if (asks_.find(instrument_id + exchange_id) == asks_.end()) {
+      asks_.try_emplace(instrument_id + exchange_id, longfist::enums::Side::Sell);
+    }
+    return asks_.at(instrument_id + exchange_id);
+  }
+protected:
 
-  // virtual LevelIterator operator++(int) = 0;
-
-  // virtual const Level &operator*() const = 0;
-
-  // virtual bool operator==(const LevelIterator &other) const = 0;
-
-  // virtual bool operator!=(const LevelIterator &other) const = 0;
+  void on_entrust(const longfist::types::Entrust &entrust) override {
+    const_cast<OS &>(get_bids(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
+  }
+  void on_transaction(const longfist::types::Transaction &transaction) override {
+    const_cast<OS &>(get_asks(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
+  }
+  void on_quote(const longfist::types::Quote &quote) override {
+    const_cast<OS &>(get_asks(quote.instrument_id, quote.exchange_id)).on_quote(quote);
+  }
+private:
+  std::unordered_map<std::string, OS> bids_;
+  std::unordered_map<std::string, OS> asks_;
 };
 
 class OrderbookSide {
 public:
-  OrderbookSide() = default;
+  OrderbookSide(longfist::enums::Side side) : side_(side){};
 
   virtual ~OrderbookSide() = default;
 
-  virtual const LevelIterator &begin() const = 0;
-
-  virtual const LevelIterator &end() const = 0;
+  longfist::enums::Side get_side() const { return side_; }
+  virtual void on_entrust(const longfist::types::Entrust &entrust) {};
+  virtual void on_transaction(const longfist::types::Transaction &transaction) {};
+  virtual void on_quote(const longfist::types::Quote &quote) {};
+private:
+  // friend OrderbooksImpl<OrderbookSide>;
+  longfist::enums::Side side_;
 };
 
-class Orderbooks {
-public:
-  explicit Orderbooks() = default;
-
-  virtual ~Orderbooks() = default;
-
-  void on_start(const rx::connectable_observable<event_ptr> &events); // todo 函数级别可能需要调整 可以利用友元函数处理
-
-  virtual OrderbookSide &get_bids(std::string instrument_id, std::string exchange_id) = 0;
-
-  virtual OrderbookSide &get_asks(std::string instrument_id, std::string exchange_id) = 0;
-
-protected:
-  virtual void on_entrust(const event_ptr &event) = 0;
-
-  virtual void on_transaction(const event_ptr &event) = 0;
-};
 } // namespace kungfu::wingchun::orderbook
 #endif // WINGCHUN_ORDERBOOK_H

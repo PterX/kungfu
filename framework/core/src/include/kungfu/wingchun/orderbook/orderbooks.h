@@ -12,12 +12,12 @@
 namespace kungfu::wingchun::orderbook {
 struct Level final {
   double price;
-  int64_t volume;
+  double volume;
   int64_t data_time;
 
   Level() = default;
 
-  Level(double p, int64_t v, int64_t ut) : price(p), volume(v), data_time(ut) {}
+  Level(double p, double v, int64_t ut) : price(p), volume(v), data_time(ut) {}
 
   std::string to_string() const {
     nlohmann::json j;
@@ -45,45 +45,42 @@ protected:
   virtual void on_quote(const longfist::types::Quote &quote) = 0;
 };
 
-template <typename OBS> class OrderbooksImpl : public Orderbooks {
+template <typename OB> 
+class OrderbooksImpl : public Orderbooks {
 public:
-
-  const OBS &get_bids(std::string instrument_id, std::string exchange_id) {
-    const auto instrument_exchange_id = instrument_id + exchange_id;
-    if (bids_.find(instrument_exchange_id) == bids_.end()) {
-      bids_.try_emplace(instrument_exchange_id, longfist::enums::Side::Buy);
-    }
-    return bids_.at(instrument_exchange_id);
+  const OB::BidSide &get_bids(std::string instrument_id, std::string exchange_id) {
+    const auto instrument_exchange_id = get_key(instrument_id, exchange_id);
+    return obs_[instrument_exchange_id].get_bid_side();
   }
 
-  const OBS &get_asks(std::string instrument_id, std::string exchange_id) {
-    const auto instrument_exchange_id = instrument_id + exchange_id;
-    if (asks_.find(instrument_exchange_id) == asks_.end()) {
-      asks_.try_emplace(instrument_exchange_id, longfist::enums::Side::Sell);
-    }
-    return asks_.at(instrument_exchange_id);
+  const OB::AskSide &get_asks(std::string instrument_id, std::string exchange_id) {
+    const auto instrument_exchange_id = get_key(instrument_id, exchange_id);
+    return obs_[instrument_exchange_id].get_ask_side();
   }
 
 protected:
+  std::string get_key(const std::string &instrument_id, const std::string &exchange_id) const {
+    return instrument_id + exchange_id;
+  }
   void on_entrust(const longfist::types::Entrust &entrust) override {
-    const_cast<OBS &>(get_bids(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
-    const_cast<OBS &>(get_asks(entrust.instrument_id, entrust.exchange_id)).on_entrust(entrust);
+    const auto instrument_exchange_id = get_key(entrust.instrument_id, entrust.exchange_id);
+    obs_[instrument_exchange_id].on_entrust(entrust);
   }
 
   void on_transaction(const longfist::types::Transaction &transaction) override {
-    const_cast<OBS &>(get_bids(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
-    const_cast<OBS &>(get_asks(transaction.instrument_id, transaction.exchange_id)).on_transaction(transaction);
+    const auto instrument_exchange_id = get_key(transaction.instrument_id, transaction.exchange_id);
+    obs_[instrument_exchange_id].on_transaction(transaction);
   }
-  
+
   void on_quote(const longfist::types::Quote &quote) override {
-    const_cast<OBS &>(get_bids(quote.instrument_id, quote.exchange_id)).on_quote(quote);
-    const_cast<OBS &>(get_asks(quote.instrument_id, quote.exchange_id)).on_quote(quote);
+    const auto instrument_exchange_id = get_key(quote.instrument_id, quote.exchange_id);
+    obs_[instrument_exchange_id].on_quote(quote);
   }
 
 private:
-  std::unordered_map<std::string, OBS> bids_;
-  std::unordered_map<std::string, OBS> asks_;
+  std::unordered_map<std::string, OB> obs_;
 };
+
 
 class OrderbookSide {
 public:
@@ -96,19 +93,37 @@ public:
   virtual ~OrderbookSide() = default;
 
   longfist::enums::Side get_side() const { return side_; }
+
 protected:
   OrderbookSide(longfist::enums::Side side) : side_(side){};
-
-  void on_entrust(const longfist::types::Entrust &entrust){};
-
-  void on_transaction(const longfist::types::Transaction &transaction){};
-
-  void on_quote(const longfist::types::Quote &quote){};
-
 private:
   longfist::enums::Side side_;
 };
 
+template <typename BS, typename AS>
+class Orderbook {
+
+  public:
+  using BidSide = BS;
+  using AskSide = AS;
+    Orderbook() : bid_side_(longfist::enums::Side::Buy), ask_side_(longfist::enums::Side::Sell) {}
+
+    Orderbook(const Orderbook &) = delete;
+
+    Orderbook &operator=(const Orderbook &) = delete;
+
+    const BS &get_bid_side() { return bid_side_; }
+    const AS &get_ask_side() { return ask_side_; }
+
+    void on_entrust(const longfist::types::Entrust &entrust){};
+
+    void on_transaction(const longfist::types::Transaction &transaction){};
+
+    void on_quote(const longfist::types::Quote &quote){};
+  protected:
+    BS bid_side_;
+    AS ask_side_;
+};
 
 } // namespace kungfu::wingchun::orderbook
 #endif // WINGCHUN_ORDERBOOK_H

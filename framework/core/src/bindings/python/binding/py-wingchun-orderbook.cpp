@@ -29,10 +29,10 @@ void bind_orderbook(pybind11::module &m) {
   py::class_<OrderbookSide, std::shared_ptr<OrderbookSide>>(m, "OrderbookSide")
       .def_property_readonly("side", &OrderbookSide::get_side);
 
-  py::class_<QuoteOrderbookSide, std::shared_ptr<QuoteOrderbookSide>, OrderbookSide>(m, "QuoteOrderbookSide")
+  py::class_<BidirectionMapOrderbookSide, std::shared_ptr<BidirectionMapOrderbookSide>, OrderbookSide>(m, "BidirectionMapOrderbookSide")
       .def(
           "__iter__",
-          [](const QuoteOrderbookSide &orderbook_side) {
+          [](const BidirectionMapOrderbookSide &orderbook_side) {
             return py::make_iterator(orderbook_side.begin(), orderbook_side.end());
           },
           py::keep_alive<0, 1>());

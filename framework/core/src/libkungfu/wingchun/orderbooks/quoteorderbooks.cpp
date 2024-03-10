@@ -2,20 +2,25 @@
 
 namespace kungfu::wingchun::orderbook {
 
-void QuoteOrderbookSide::on_quote(const Quote &quote) {
-  if (get_side() == Side::Buy) {
-    for (int i = 0; i < 10; i++) {
-      levels_[i].price = quote.bid_price[i];
-      levels_[i].volume = quote.bid_volume[i];
-    }
-  } else {
-    for (int i = 0; i < 10; i++) {
-      levels_[i].price = quote.ask_price[i];
-      levels_[i].volume = quote.ask_volume[i];
-    }
-  }
+void QuoteOrderbook::on_quote(const Quote &quote) {
+  Level level = bid_side_.levels_[1.0];
+  std::map<double, Level> &bid_map = bid_side_.levels_;
+  std::map<double, Level> &ask_map = ask_side_.levels_;
+  // bid map, ask map 都能拿到了随便玩吧。
+  
+
 }
 
+// 验证可编译性的，到时候删掉。
+using TestOrderbooks = OrderbooksImpl<QuoteOrderbook>;
+void test_init_template() {
 
-
+  TestOrderbooks test_orderbooks;
+  for (Level level : test_orderbooks.get_bids("test", "test")) {
+    std::cout << level.price << std::endl;
+  }
+  for (Level level : test_orderbooks.get_asks("test", "test")) {
+    std::cout << level.price << std::endl;
+  }
+}
 } // namespace kungfu::wingchun::orderbook

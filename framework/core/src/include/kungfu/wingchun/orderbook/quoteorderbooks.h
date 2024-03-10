@@ -7,7 +7,7 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
 namespace kungfu::wingchun::orderbook {
 
-class QuoteOrderbook;
+class DepthOrderbook;
 class BidirectionMapOrderbookSide : public OrderbookSide {
   using Container = std::map<double, Level>;
 
@@ -62,15 +62,16 @@ public:
   };
 
 private:
-  friend QuoteOrderbook;
+  friend DepthOrderbook;
   Container levels_;
 };
-class QuoteOrderbook : public Orderbook<BidirectionMapOrderbookSide, BidirectionMapOrderbookSide> {
+class DepthOrderbook : public Orderbook<BidirectionMapOrderbookSide, BidirectionMapOrderbookSide> {
   public:
-    void on_quote(const longfist::types::Quote &quote);
+    void on_entrust(const longfist::types::Entrust &entrust);
+    void on_transaction(const longfist::types::Transaction &transaction);
 };
 
-using QuoteOrderbooks = OrderbooksImpl<QuoteOrderbook>;
+using DepthOrderbooks = OrderbooksImpl<DepthOrderbook>;
 
 } // namespace kungfu::wingchun::orderbook
 

@@ -39,9 +39,9 @@ void bind_orderbook(pybind11::module &m) {
 
   py::class_<Orderbooks, std::shared_ptr<Orderbooks>>(m, "Orderbooks");
 
-  py::class_<QuoteOrderbooks, std::shared_ptr<QuoteOrderbooks>, Orderbooks>(m, "QuoteOrderbooks")
+  py::class_<DepthOrderbooks, std::shared_ptr<DepthOrderbooks>, Orderbooks>(m, "DepthOrderbooks")
       .def(py::init<>())
-      .def("get_bids", &QuoteOrderbooks::get_bids, py::return_value_policy::reference)
-      .def("get_asks", &QuoteOrderbooks::get_asks, py::return_value_policy::reference);
+      .def("get_bids", &DepthOrderbooks::get_bids, py::return_value_policy::reference)
+      .def("get_asks", &DepthOrderbooks::get_asks, py::return_value_policy::reference);
 }
 } // namespace kungfu::wingchun::pybind

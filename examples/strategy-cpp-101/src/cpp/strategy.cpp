@@ -1,5 +1,5 @@
 #include <kungfu/wingchun/extension.h>
-#include <kungfu/wingchun/orderbook/quoteorderbooks.h>
+#include <kungfu/wingchun/orderbook/quoteorderderbooks.h>
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/context.h>
 #include <kungfu/wingchun/strategy/strategy.h>
@@ -24,7 +24,7 @@ public:
     context->subscribe("sim", {"600000"}, {"SSE"});
     context->subscribe("xtp", {"600009"}, {"SSE"});
     SPDLOG_INFO("测试 start");
-    auto orderbooks = QuoteOrderbooks();
+    auto orderbooks = DepthOrderbooks();
     for (const auto &level: orderbooks.get_asks("600000", "SSE")) {
       SPDLOG_INFO("测试 base for 循环 level: {}", level.to_string());
     }

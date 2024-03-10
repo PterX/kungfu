@@ -20,7 +20,7 @@ def pre_start(context):
     context.throttle_insert_order = {}
     context.log.info("测试 start")
 
-    depth_orderbook = wc.QuoteOrderbooks()
+    depth_orderbook = wc.DepthOrderbooks()
     context.attach_orderbooks(depth_orderbook)
     bids = depth_orderbook.get_bids("000001", "SZE")
     for level in bids:

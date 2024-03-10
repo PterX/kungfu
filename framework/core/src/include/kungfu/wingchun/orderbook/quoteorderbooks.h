@@ -40,7 +40,7 @@ public:
       return temp;
     }
 
-    bool operator==(const iterator &rhs) const { return iter_ == rhs.iter_; }
+    bool operator==(const iterator &rhs) const { return is_bid() ? reiter_ == rhs.reiter_ : iter_ == rhs.iter_; }
     bool operator!=(const iterator &rhs) const { return !operator==(rhs); }
 
   private:
@@ -54,7 +54,12 @@ public:
 
   iterator end() const { return iterator(levels_.end(), levels_.rend(), get_side()); }
 
-  BidirectionMapOrderbookSide(longfist::enums::Side side) : OrderbookSide(side){};
+  BidirectionMapOrderbookSide(longfist::enums::Side side) : OrderbookSide(side){
+    // TODO  to be deleted
+    levels_[1.0] = Level(1.0, 1.0, 1);
+    levels_[2.0] = Level(2.0, 3, 2);
+    levels_[3.0] = Level(3.0, 3, 3);
+  };
 
 private:
   friend QuoteOrderbook;

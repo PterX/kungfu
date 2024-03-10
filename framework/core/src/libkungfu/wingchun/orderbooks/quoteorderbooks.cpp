@@ -20,16 +20,5 @@ void DepthOrderbook::on_transaction(const Transaction &transaction) {
 
 }
 
-// 验证可编译性的，到时候删掉。
-using TestOrderbooks = OrderbooksImpl<DepthOrderbook>;
-void test_init_template() {
 
-  TestOrderbooks test_orderbooks;
-  for (Level level : test_orderbooks.get_bids("test", "test")) {
-    std::cout << level.price << std::endl;
-  }
-  for (Level level : test_orderbooks.get_asks("test", "test")) {
-    std::cout << level.price << std::endl;
-  }
-}
 } // namespace kungfu::wingchun::orderbook

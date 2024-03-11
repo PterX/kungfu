@@ -376,10 +376,21 @@ watch(
 );
 
 watch(
+  () => props.customLayout,
+  (customLayout) => {
+    if (customLayout && listTable) {
+      initCustomLayoutOptions();
+      listTable.updateOption(option.value);
+    }
+  },
+);
+
+watch(
   () => props.columns,
-  (columns) => {
+  () => {
     if (listTable) {
-      listTable.updateColumns(columns);
+      initCustomLayoutOptions();
+      listTable.updateOption(option.value);
     }
   },
 );

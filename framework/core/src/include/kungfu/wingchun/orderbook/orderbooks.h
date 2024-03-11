@@ -45,8 +45,7 @@ protected:
   virtual void on_quote(const longfist::types::Quote &quote) = 0;
 };
 
-template <typename OB> 
-class OrderbooksImpl : public Orderbooks {
+template <typename OB> class OrderbooksImpl : public Orderbooks {
 public:
   const OB::BidSide &get_bids(std::string instrument_id, std::string exchange_id) {
     const auto instrument_exchange_id = get_key(instrument_id, exchange_id);
@@ -81,7 +80,6 @@ private:
   std::unordered_map<std::string, OB> obs_;
 };
 
-
 class OrderbookSide {
 public:
   OrderbookSide() = delete;
@@ -96,33 +94,34 @@ public:
 
 protected:
   OrderbookSide(longfist::enums::Side side) : side_(side){};
+
 private:
   longfist::enums::Side side_;
 };
 
-template <typename BS, typename AS>
-class Orderbook {
+template <typename BS, typename AS> class Orderbook {
 
-  public:
+public:
   using BidSide = BS;
   using AskSide = AS;
-    Orderbook() : bid_side_(longfist::enums::Side::Buy), ask_side_(longfist::enums::Side::Sell) {}
+  Orderbook() : bid_side_(longfist::enums::Side::Buy), ask_side_(longfist::enums::Side::Sell) {}
 
-    Orderbook(const Orderbook &) = delete;
+  Orderbook(const Orderbook &) = delete;
 
-    Orderbook &operator=(const Orderbook &) = delete;
+  Orderbook &operator=(const Orderbook &) = delete;
 
-    const BS &get_bid_side() { return bid_side_; }
-    const AS &get_ask_side() { return ask_side_; }
+  const BS &get_bid_side() { return bid_side_; }
+  const AS &get_ask_side() { return ask_side_; }
 
-    void on_entrust(const longfist::types::Entrust &entrust){};
+  void on_entrust(const longfist::types::Entrust &entrust){};
 
-    void on_transaction(const longfist::types::Transaction &transaction){};
+  void on_transaction(const longfist::types::Transaction &transaction){};
 
-    void on_quote(const longfist::types::Quote &quote){};
-  protected:
-    BS bid_side_;
-    AS ask_side_;
+  void on_quote(const longfist::types::Quote &quote){};
+
+protected:
+  BS bid_side_;
+  AS ask_side_;
 };
 
 } // namespace kungfu::wingchun::orderbook

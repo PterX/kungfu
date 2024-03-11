@@ -3,8 +3,8 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
-#include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/orderbook/depthorderbooks.h>
+#include <kungfu/wingchun/orderbook/orderbooks.h>
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
@@ -29,7 +29,8 @@ void bind_orderbook(pybind11::module &m) {
   py::class_<OrderbookSide, std::shared_ptr<OrderbookSide>>(m, "OrderbookSide")
       .def_property_readonly("side", &OrderbookSide::get_side);
 
-  py::class_<BidirectionMapOrderbookSide, std::shared_ptr<BidirectionMapOrderbookSide>, OrderbookSide>(m, "BidirectionMapOrderbookSide")
+  py::class_<BidirectionMapOrderbookSide, std::shared_ptr<BidirectionMapOrderbookSide>, OrderbookSide>(
+      m, "BidirectionMapOrderbookSide")
       .def(
           "__iter__",
           [](const BidirectionMapOrderbookSide &orderbook_side) {

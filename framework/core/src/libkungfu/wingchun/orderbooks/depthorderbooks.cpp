@@ -7,8 +7,6 @@ void DepthOrderbook::on_entrust(const Entrust &quote) {
   std::map<double, Level> &bid_map = bid_side_.levels_;
   std::map<double, Level> &ask_map = ask_side_.levels_;
   // bid map, ask map 都能拿到了随便玩吧。
-  
-
 }
 
 void DepthOrderbook::on_transaction(const Transaction &transaction) {
@@ -16,9 +14,6 @@ void DepthOrderbook::on_transaction(const Transaction &transaction) {
   std::map<double, Level> &bid_map = bid_side_.levels_;
   std::map<double, Level> &ask_map = ask_side_.levels_;
   // bid map, ask map 都能拿到了随便玩吧。
-  
-
 }
-
 
 } // namespace kungfu::wingchun::orderbook

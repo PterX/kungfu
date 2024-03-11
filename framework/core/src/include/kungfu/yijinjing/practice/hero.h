@@ -36,7 +36,7 @@ public:
 
   virtual ~hero();
 
-  bool is_usable() override;
+  [[nodiscard]] bool is_usable() override;
 
   virtual void pre_setup();
 
@@ -46,128 +46,128 @@ public:
 
   void run();
 
-  bool is_live() const;
+  [[nodiscard]] bool is_live() const;
 
-  bool is_low_latency() const;
+  [[nodiscard]] bool is_low_latency() const;
 
-  const yijinjing::journal::bus_ptr &get_bus() const;
+  [[nodiscard]] const yijinjing::journal::bus_ptr &get_bus() const;
 
   void signal_stop();
 
-  int64_t now() const;
+  [[nodiscard]] int64_t now() const;
 
   void set_now(int64_t now);
 
   void set_begin_time(int64_t begin_time);
 
-  int64_t get_begin_time() const;
+  [[nodiscard]] int64_t get_begin_time() const;
 
   void set_end_time(int64_t end_time);
 
-  int64_t get_end_time() const;
+  [[nodiscard]] int64_t get_end_time() const;
 
   [[nodiscard]] const data::locator_ptr &get_locator() const;
 
   [[nodiscard]] yijinjing::io_device_ptr get_io_device() const;
 
-  const yijinjing::data::location_ptr &get_home() const;
+  [[nodiscard]] const yijinjing::data::location_ptr &get_home() const;
 
-  uint32_t get_home_uid() const;
+  [[nodiscard]] uint32_t get_home_uid() const;
 
-  const std::string &get_home_uname() const;
+  [[nodiscard]] const std::string &get_home_uname() const;
 
-  const yijinjing::data::location_ptr &get_live_home() const;
+  [[nodiscard]] const yijinjing::data::location_ptr &get_live_home() const;
 
-  uint32_t get_live_home_uid() const;
+  [[nodiscard]] uint32_t get_live_home_uid() const;
 
   [[nodiscard]] yijinjing::journal::reader_ptr get_reader() const;
 
-  virtual bool has_writer(uint32_t dest_id) const;
+  [[nodiscard]] virtual bool has_writer(uint32_t dest_id) const;
 
   [[nodiscard]] virtual yijinjing::journal::writer_ptr get_writer(uint32_t dest_id) const;
 
-  bool has_band_writer(uint32_t dest_id) const;
+  [[nodiscard]] virtual bool has_band_writer(uint32_t dest_id) const;
 
-  [[nodiscard]] yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
+  [[nodiscard]] virtual yijinjing::journal::writer_ptr get_band_writer(uint32_t dest_id) const;
 
   [[nodiscard]] const WriterMap &get_writers() const;
 
-  bool has_location(uint32_t uid) const;
+  [[nodiscard]] bool has_location(uint32_t uid) const;
 
   [[nodiscard]] yijinjing::data::location_ptr get_location(uint32_t uid) const;
 
   [[nodiscard]] std::string get_location_uname(uint32_t uid) const;
 
-  bool is_location_live(uint32_t uid) const;
+  [[nodiscard]] bool is_location_live(uint32_t uid) const;
 
-  bool has_channel(uint32_t source, uint32_t dest) const;
+  [[nodiscard]] bool has_channel(uint32_t source, uint32_t dest) const;
 
-  bool has_channel(uint64_t hash) const;
+  [[nodiscard]] bool has_channel(uint64_t hash) const;
 
-  const longfist::types::Channel &get_channel(uint32_t source, uint32_t dest) const;
+  [[nodiscard]] const longfist::types::Channel &get_channel(uint32_t source, uint32_t dest) const;
 
-  const longfist::types::Channel &get_channel(uint64_t hash) const;
+  [[nodiscard]] const longfist::types::Channel &get_channel(uint64_t hash) const;
 
-  const std::unordered_map<uint64_t, longfist::types::Channel> &get_channels() const;
+  [[nodiscard]] const std::unordered_map<uint64_t, longfist::types::Channel> &get_channels() const;
 
-  bool has_band(uint32_t source, uint32_t dest) const;
+  [[nodiscard]] bool has_band(uint32_t source, uint32_t dest) const;
 
-  bool has_band(uint64_t hash) const;
+  [[nodiscard]] bool has_band(uint64_t hash) const;
 
-  const longfist::types::Band &get_band(uint32_t source, uint32_t dest) const;
+  [[nodiscard]] const longfist::types::Band &get_band(uint32_t source, uint32_t dest) const;
 
-  const longfist::types::Band &get_band(uint64_t hash) const;
+  [[nodiscard]] const longfist::types::Band &get_band(uint64_t hash) const;
 
-  const std::unordered_map<uint64_t, longfist::types::Band> &get_bands() const;
+  [[nodiscard]] const std::unordered_map<uint64_t, longfist::types::Band> &get_bands() const;
 
-  const std::unordered_map<uint32_t, longfist::types::Register> &get_registry() const;
+  [[nodiscard]] const std::unordered_map<uint32_t, longfist::types::Register> &get_registry() const;
 
-  const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &get_locations() const;
+  [[nodiscard]] const std::unordered_map<uint32_t, yijinjing::data::location_ptr> &get_locations() const;
 
   virtual void on_notify();
 
   virtual void on_exit();
 
-  virtual bool is_reactable(const event_ptr &event);
+  [[nodiscard]] virtual bool is_reactable(const event_ptr &event);
 
-  void ensure_master_rocksdb() const;
+  [[nodiscard]] virtual rocksdb::DB *get_master_rocksdb() const;
 
-  rocksdb::DB *get_master_rocksdb() const;
+  [[nodiscard]] virtual rocksdb::DB *get_app_rocksdb() const;
 
-  rocksdb::DB *get_app_rocksdb() const;
+  [[nodiscard]] virtual std::string get_master_kv(const std::string &key) const;
 
-  std::string get_master_kv(const std::string &key) const;
+  [[nodiscard]] virtual std::map<std::string, std::string> get_master_kvs(const std::set<std::string> &keys) const;
 
-  std::map<std::string, std::string> get_master_kvs(const std::set<std::string> &keys) const;
+  virtual void put_master_kv(const std::string &key, const std::string &value) const;
 
-  void put_master_kv(const std::string &key, const std::string &value) const;
+  virtual void put_master_kvs(const std::map<std::string, std::string> &kvs) const;
 
-  void put_master_kvs(const std::map<std::string, std::string> &kvs) const;
+  [[nodiscard]] virtual std::string get_app_kv(const std::string &key) const;
 
-  std::string get_app_kv(const std::string &key) const;
+  [[nodiscard]] virtual std::map<std::string, std::string> get_app_kvs(const std::set<std::string> &keys) const;
 
-  std::map<std::string, std::string> get_app_kvs(const std::set<std::string> &keys) const;
+  virtual void put_app_kv(const std::string &key, const std::string &value) const;
 
-  void put_app_kv(const std::string &key, const std::string &value) const;
+  virtual void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
 
-  void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
+  virtual void write_location_to_rocksdb(const data::location_ptr &location);
 
-  void write_location_to_rocksdb(const data::location_ptr &location);
+  virtual void read_location_from_rocksdb();
 
-  void read_location_from_rocksdb();
+  virtual void ensure_master_rocksdb();
 
   void request_deregister() {
     continual_ = false;
     live_ = false;
   }
 
-  yijinjing::data::location_ptr get_ledger_home_location() const;
+  [[nodiscard]] yijinjing::data::location_ptr get_ledger_home_location() const;
 
-  yijinjing::data::location_ptr get_master_home_location() const;
+  [[nodiscard]] yijinjing::data::location_ptr get_master_home_location() const;
 
-  yijinjing::data::location_ptr get_master_cmd_location() const;
+  [[nodiscard]] yijinjing::data::location_ptr get_master_cmd_location() const;
 
-  const rx::connectable_observable<event_ptr> &get_events() const;
+  [[nodiscard]] const rx::connectable_observable<event_ptr> &get_events() const;
 
   void disjoin(const yijinjing::data::location_ptr &location);
 
@@ -262,7 +262,7 @@ protected:
 
   void cleanup_reader_disjoin();
 
-private:
+protected:
   yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
   int64_t now_;

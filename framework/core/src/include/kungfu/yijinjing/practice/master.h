@@ -51,6 +51,8 @@ public:
 
   bool is_reactable(const event_ptr &event) override;
 
+  void pre_setup() override;
+
 protected:
   int64_t last_check_;
   yijinjing::cache::cached cached_;

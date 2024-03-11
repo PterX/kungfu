@@ -24,7 +24,10 @@ namespace kungfu::yijinjing::practice {
 master::master(const location_ptr &home, bool low_latency)
     : master(std::make_shared<io_device_master>(home, low_latency)) {}
 
-master::master(const yijinjing::io_device_ptr &io_device) : hero(io_device), last_check_(0), cached_(io_device) {
+master::master(const yijinjing::io_device_ptr &io_device) : hero(io_device), last_check_(0), cached_(io_device) {}
+
+void master::pre_setup() {
+  hero::pre_setup();
   for (const auto &app_location : cached_.get_all(Location{})) {
     add_location(begin_time_, location::make_shared(app_location, get_locator()));
   }

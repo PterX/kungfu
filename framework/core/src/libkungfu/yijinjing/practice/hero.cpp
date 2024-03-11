@@ -42,14 +42,12 @@ hero::hero(io_device_ptr io_device)
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
   reader_ = io_device_->open_reader_to_subscribe();
-  ensure_master_rocksdb();
-  read_location_from_rocksdb();
   add_location(0, get_io_device()->get_live_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
   if (get_home()->mode != mode::LIVE) {
-    for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
+    for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
       add_location(0, l);
     }
   }
@@ -77,7 +75,10 @@ bool hero::setup() {
   return true;
 }
 
-void hero::pre_setup() {}
+void hero::pre_setup() {
+  ensure_master_rocksdb();
+  read_location_from_rocksdb();
+}
 
 void hero::step(uint32_t step_limit) {
   continual_ = false;
@@ -593,7 +594,7 @@ void hero::put_app_kv(const std::string &key, const std::string &value) const {
   }
 }
 
-void hero::ensure_master_rocksdb() const {
+void hero::ensure_master_rocksdb() {
   static const std::string master_db_dir = get_locator()->layout_dir(get_master_home_location(), layout::MAP);
   try {
     get_master_rocksdb();

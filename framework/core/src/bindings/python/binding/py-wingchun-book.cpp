@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "py-wingchun.h"
-
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
@@ -9,8 +7,7 @@
 #include <kungfu/wingchun/book/book.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
-#include <kungfu/wingchun/orderbooks/depthorderbooks.h>
-#include <kungfu/wingchun/orderbooks/orderbooks.h>
+#include <kungfu/wingchun/orderbook/orderbooks.h>
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
@@ -97,60 +94,6 @@ void bind_book(pybind11::module &m) {
       .def("get_books", &Bookkeeper::get_books)
       .def("set_accounting_method", &Bookkeeper::set_accounting_method)
       .def_property_readonly("static_data", &Bookkeeper::get_static_data, py::return_value_policy::reference);
-
-  py::class_<Level, std::shared_ptr<Level>>(m, "Level")
-      .def_readonly("price", &Level::price)
-      .def_readonly("volume", &Level::volume)
-      .def_readonly("data_time", &Level::data_time)
-      .def("__repr__", &Level::to_string);
-
-  py::class_<LevelIterator, std::shared_ptr<LevelIterator>>(m, "LevelIterator");
-  // .def("__iter__", [](const OrderbookSide &orderbookside) {
-  //   return py::make_iterator(orderbookside.begin(), orderbookside.end());
-  // });
-
-  // py::class_<DepthLevelIterator<std::map<double, Level>::const_iterator>, LevelIterator,
-  //            std::shared_ptr<DepthLevelIterator<std::map<double, Level>::const_iterator>>>(m, "DepthLevelIterator")
-  //     .def("__iter__", &DepthLevelIterator<std::map<double, Level>::const_iterator>::iter)
-  //     .def("__next__", [](DepthLevelIterator<std::map<double, Level>::const_iterator> &self) -> Level {
-  //       if (self.iter() != self.getEnd()) {
-  //         auto it = *self;
-  //         ++self;
-  //         return it;
-  //       }
-  //       throw py::stop_iteration();
-  //     });
-
-  // py::class_<DepthLevelIterator<std::map<double, Level, std::greater<double>>::const_iterator>, LevelIterator,
-  //            std::shared_ptr<DepthLevelIterator<std::map<double, Level, std::greater<double>>::const_iterator>>>(
-  //     m, "DepthLevelIterator")
-  //     .def("__iter__", &DepthLevelIterator<std::map<double, Level, std::greater<double>>::const_iterator>::iter)
-  //     .def("__next__",
-  //          [](DepthLevelIterator<std::map<double, Level, std::greater<double>>::const_iterator> &self) -> Level {
-  //            if (self.iter() != self.getEnd()) {
-  //              auto it = *self;
-  //              ++self;
-  //              return it;
-  //            }
-  //            throw py::stop_iteration();
-  //          });
-
-  py::class_<OrderbookSide, std::shared_ptr<OrderbookSide>>(m, "OrderbookSide")
-      .def("begin", &OrderbookSide::begin)
-      .def("end", &OrderbookSide::end);
-
-  py::class_<DepthOrderbookSide, std::shared_ptr<DepthOrderbookSide>>(m, "DepthOrderbookSide")
-      .def(py::init<>())
-      .def(py::init<const DepthLevelIterator &, const DepthLevelIterator &, Side>())
-      .def("__iter__", [](const DepthOrderbookSide &orderbookside) {
-        return py::make_iterator(orderbookside, orderbookside.end());
-      }, py::keep_alive<0, 1>());
-
-  py::class_<Orderbooks, std::shared_ptr<Orderbooks>>(m, "Orderbooks")
-      .def("get_bids", &Orderbooks::get_bids)
-      .def("get_asks", &Orderbooks::get_asks);
-
-  py::class_<DepthOrderbooks, std::shared_ptr<DepthOrderbooks>>(m, "DepthOrderbooks").def(py::init<>());
 
   py::class_<StaticData, std::shared_ptr<StaticData>>(m, "StaticData")
       .def_property_readonly("baskets", &StaticData::get_baskets)

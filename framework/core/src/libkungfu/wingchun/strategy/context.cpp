@@ -30,8 +30,8 @@ void Context::bypass_accounting() { bypass_accounting_ = true; }
 
 bool Context::is_bypass_accounting() const { return bypass_accounting_; }
 
-void Context::set_orderbook(std::shared_ptr<DepthOrderbooks> orderbook) {}
+void Context::attach_orderbooks(Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
-std::shared_ptr<DepthOrderbooks> Context::get_orderbook() { return nullptr; }
+// std::shared_ptr<Orderbooks> Context::get_orderbooks() { return orderbooks_; }
 
 } // namespace kungfu::wingchun::strategy

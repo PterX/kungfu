@@ -7,8 +7,7 @@
 #ifndef WINGCHUN_STRATEGY_LIVE_H
 #define WINGCHUN_STRATEGY_LIVE_H
 
-#include <kungfu/wingchun/orderbooks/depthorderbooks.h>
-#include <kungfu/wingchun/orderbooks/orderbooks.h>
+#include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/context.h>
 
 using namespace kungfu::wingchun::orderbook;
@@ -310,10 +309,6 @@ public:
 
   longfist::enums::ResumePolicy get_resume_policy() override;
 
-  void set_orderbook(std::shared_ptr<DepthOrderbooks> orderbook) override;
-
-  std::shared_ptr<DepthOrderbooks> get_orderbook() override;
-
 protected:
   virtual void on_start() override;
 
@@ -330,7 +325,6 @@ private:
 
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  std::shared_ptr<DepthOrderbooks> orderbooks_;
 };
 
 DECLARE_PTR(LiveContext)

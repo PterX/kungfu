@@ -280,9 +280,7 @@ class Strategy(wc.Strategy):
         self.ctx.get_account_uid = self.__get_account_uid
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.is_started = wc_context.is_started
-        self.ctx.set_orderbook = wc_context.set_orderbook
-        self.ctx.get_orderbook = wc_context.get_orderbook
-        # self.ctx.enable_orderbook = self.__enable_orderbook__ todo 不要传参 在这里处理一下
+        self.ctx.attach_orderbooks = wc_context.attach_orderbooks
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.ctx.static_data = wc_context.bookkeeper.static_data

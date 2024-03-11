@@ -35,7 +35,7 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
                                               std::move(to_indexer))),
       report_(std::move(report)), time_interval_(time_interval), backtest_config_(std::move(backtest_config)) {
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
-}
+  }
 
 void BacktestContext::post_stop() {
   std::vector<location_ptr> unreleased_locations;
@@ -87,7 +87,7 @@ void BacktestContext::on_start() {
          matcher_->on_order_action(order_action));
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
   events_ | $$(on_timer_check(););
-  init_time_events();
+init_time_events();
   report_->init();
 }
 
@@ -137,6 +137,7 @@ void BacktestContext::clear_timer(int32_t timer_id) {
     return;
   }
   std::erase_if(timer_tasks_, [timer_id](const auto &timer_task) { return timer_task.timer_id == timer_id; });
+  std::make_heap(std::begin(timer_tasks_), std::end(timer_tasks_));
 }
 
 void BacktestContext::on_timer_check() {
@@ -149,14 +150,14 @@ void BacktestContext::on_timer_check() {
     time_event["source"] = app_.get_live_home_uid();
     time_event["dest"] = app_.get_live_home_uid();
     time_event["data"] = nlohmann::json::object();
-    auto time_event_str = time_event.dump();
+    auto nanomsg_event = std::make_shared<nanomsg_json>(time_event.dump());
     while (!timer_tasks_.empty() && timer_tasks_.front().nanotime <= now_time) {
       // TODO use app_.make_nano_msg instead
       // Time time_event{};
       std::pop_heap(timer_tasks_.begin(), timer_tasks_.end());
       auto task = timer_tasks_.back();
       timer_tasks_.pop_back();
-      task.call_back(std::make_shared<nanomsg_json>(time_event_str));
+      task.call_back(nanomsg_event);
     }
   }
 }
@@ -193,18 +194,25 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
     boost::hana::for_each(longfist::MarketDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;
       int64_t slice_begin_time = app_.now() + 1;
-      int64_t slice_end_time{INT64_MAX};
-      do {
-        auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
-                                                                 exchange_id, DataType::tag);
-        slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
-                                                              exchange_id, DataType::tag);
-        if (not md_location)
-          continue;
-        subscribe_slice(md_location, slice_begin_time - 1, slice_end_time - slice_begin_time + 1);
-        add_location(app_, md_location);
-        broker_client_.subscribe(md_location, exchange_id, instrument_id);
-      } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+      subscribe_helper(slice_begin_time, source, instrument_id, exchange_id, DataType::tag);
+    });
+  }
+}
+
+void BacktestContext::subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id, const std::string &exchange_id, int32_t data_tag) {
+  auto md_location = from_indexer_->find_md_slice_location(begin_time, source, source, instrument_id, exchange_id, data_tag);
+  auto slice_end_time = from_indexer_->get_md_slice_end_time(begin_time, source, source, instrument_id, exchange_id, data_tag);
+  int64_t nanotime = begin_time - 1;
+  int64_t offset = slice_end_time - begin_time + 1;
+  if (md_location) {
+    subscribe_slice(md_location, nanotime, offset);
+    add_location(app_, md_location);
+    broker_client_.subscribe(md_location, exchange_id, instrument_id);
+  }
+  if (slice_end_time < app_.get_end_time()) {
+    // subscribe_helper(slice_end_time + 1, source, instrument_id, exchange_id, data_tag);
+    add_timer_helper(nanotime, 0, [this, slice_end_time, source, instrument_id, exchange_id, data_tag](event_ptr event) {
+      subscribe_helper(slice_end_time + 1, source, instrument_id, exchange_id, data_tag);
     });
   }
 }
@@ -295,7 +303,7 @@ void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int6
         for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
           SPDLOG_TRACE("disjoining subscribed dest {}, locator={}, location={}", dest_id,
                       slice_location->locator->get_root(), slice_location->uname);
-          app_.get_reader()->disjoin(slice_location, dest_id);
+          app_.disjoin_channel(slice_location, dest_id);
         }
         from_indexer_->submit_release_location(slice_location);
         reference_count.state = SliceState::Releasing;

@@ -133,9 +133,9 @@ public:
 
   [[nodiscard]] const std::vector<reader_ptr> &get_readers() const { return readers_; }
 
-  void disjoin(uint32_t location_uid);
+  void disjoin(const yijinjing::data::location_ptr &location);
 
-  void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+  void disjoin_channel(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 
 protected:
   std::vector<reader_ptr> readers_ = {};

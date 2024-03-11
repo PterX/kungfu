@@ -146,7 +146,7 @@ void BacktestContext::lease_expired_check() {
       for (const auto &expired_location : it->second) {
         SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",
                      expired_location->locator->get_root(), expired_location->uname);
-        app_.get_reader()->disjoin(expired_location, location::PUBLIC);
+        app_.get_reader()->disjoin_channel(expired_location, location::PUBLIC);
       }
       it = lease_locations_.erase(it);
     } else {

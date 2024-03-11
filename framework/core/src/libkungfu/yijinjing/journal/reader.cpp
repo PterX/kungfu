@@ -26,31 +26,19 @@ void reader::join(const data::location_ptr &location, uint32_t dest_id, const in
   buffer_built_ = false;
 }
 
-void reader::disjoin(const data::location_ptr &location, uint32_t dest_id) {
+void reader::disjoin_channel(const data::location_ptr &location, uint32_t dest_id) {
   auto key = journal_key(location, dest_id);
   journals_.erase(key);
   current_ = nullptr;
   sort_without_buffer();
 }
 
-void reader::disjoin(const uint32_t location_uid) {
+void reader::disjoin(const data::location_ptr &location) {
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first.location_uid != location_uid) {
+    if (it->first.location_uid != location->location_uid and it->first.locator_uid == location->locator->locator_uid) {
       it++;
     } else {
       it = journals_.erase(it);
-    }
-  }
-  current_ = nullptr;
-  sort_without_buffer();
-}
-
-void reader::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
-  for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first.location_uid == location_uid && it->first.dest_id == dest_id) {
-      it = journals_.erase(it);
-    } else {
-      it++;
     }
   }
   current_ = nullptr;

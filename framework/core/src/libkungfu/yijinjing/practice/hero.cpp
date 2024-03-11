@@ -483,10 +483,10 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 
 bool hero::is_reactable(const event_ptr &event) { return true; }
 
-void hero::disjoin(uint32_t location_uid) { disjoin_uids_.insert(location_uid); }
+void hero::disjoin(const location_ptr &location) { disjoin_locations_.insert(location); }
 
-void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
-  disjoin_channels_.insert({location_uid, dest_id});
+void hero::disjoin_channel(const location_ptr &location, uint32_t dest_id) {
+  disjoin_channels_.insert({location, dest_id});
 }
 
 void hero::cleanup_reader_disjoin() {
@@ -499,15 +499,13 @@ void hero::cleanup_reader_disjoin() {
    * specifically when the current frame dealt over and reader_->next() called.
    */
 
-  for (uint32_t uid : disjoin_uids_) {
-    reader_->disjoin(uid);
+  for (const auto &location : disjoin_locations_) {
+    reader_->disjoin(location);
   }
   for (auto &pair : disjoin_channels_) {
-    if (has_location(pair.first)) {
-      reader_->disjoin(get_location(pair.first), pair.second);
-    }
+    reader_->disjoin_channel(pair.first, pair.second);
   }
-  disjoin_uids_.clear();
+  disjoin_locations_.clear();
   disjoin_channels_.clear();
 }
 

@@ -213,7 +213,9 @@ void apprentice::on_deregister(const event_ptr &event) {
     return;
   }
 
-  disjoin(location_uid);
+  if (has_location(location_uid)) {
+    disjoin(get_location(location_uid));
+  }
   deregister_channel(location_uid);
   deregister_band(location_uid);
   deregister_location(event->trigger_time(), location_uid);

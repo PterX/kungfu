@@ -68,11 +68,13 @@ typedef std::unordered_map<uint32_t, location_ptr> location_map;
 
 class locator {
 public:
-  locator();
+  explicit locator();
+
+  explicit locator(const std::string &root, longfist::enums::mode m);
 
   explicit locator(longfist::enums::mode m, const std::vector<std::string> &tag = {});
 
-  explicit locator(const std::string &root) : root_(root), dir_mode_(longfist::enums::mode::LIVE) {}
+  explicit locator(const std::string &root);
 
   virtual ~locator() = default;
 
@@ -108,9 +110,9 @@ public:
 
   bool operator==(const locator &another) const;
 
-private:
-  std::filesystem::path root_;
-  longfist::enums::mode dir_mode_;
+  const std::filesystem::path root_;
+  const longfist::enums::mode dir_mode_;
+  const uint32_t locator_uid;
 };
 
 struct location : public std::enable_shared_from_this<location>, public longfist::types::Location {

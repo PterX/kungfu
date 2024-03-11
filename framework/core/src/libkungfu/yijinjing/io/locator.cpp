@@ -66,11 +66,14 @@ std::string get_root_dir(es::mode m, const std::vector<std::string> &tags) {
   }
 }
 
-locator::locator() : root_(get_runtime_dir()), dir_mode_(es::mode::LIVE) {}
+locator::locator(const std::string &root, es::mode m)
+    : root_(root), dir_mode_(m), locator_uid(util::hash_str_32(root)) {}
 
-locator::locator(es::mode m, const std::vector<std::string> &tags) : dir_mode_(m) {
-  root_ = get_root_dir(dir_mode_, tags);
-}
+locator::locator(const std::string &root) : locator(root, es::mode::LIVE) {}
+
+locator::locator() : locator(get_runtime_dir(), es::mode::LIVE) {}
+
+locator::locator(es::mode m, const std::vector<std::string> &tags) : locator(get_root_dir(m, tags)) {}
 
 bool locator::has_env(const std::string &name) const { return std::getenv(name.c_str()) != nullptr; }
 

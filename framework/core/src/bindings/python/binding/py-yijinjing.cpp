@@ -210,6 +210,7 @@ void bind(pybind11::module &&m) {
   py::class_<locator, PyLocator, locator_ptr>(m, "locator")
       .def(py::init())
       .def(py::init<const std::string &>())
+      .def(py::init<const std::string &, mode>())
       .def(py::init<mode, const std::vector<std::string> &>(), py::arg("mode"),
            py::arg("tags") = std::vector<std::string>{})
       .def("has_env", &locator::has_env)
@@ -254,8 +255,7 @@ void bind(pybind11::module &&m) {
       .def("next", &reader::next)
       .def("join", &reader::join, py::arg("location"), py::arg("dest_id"), py::arg("from_time"),
            py::arg("page_size") = 0, py::arg("priority") = Priority::Low)
-      .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
-      .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
+      .def("disjoin", &reader::disjoin)
       .def("disjoin_channel", &reader::disjoin_channel);
 
   py::class_<bus, bus_ptr>(m, "bus").def(py::init<bool>()).def("on_load_page", &bus::on_load_page);

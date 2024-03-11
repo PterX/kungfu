@@ -129,12 +129,6 @@ Napi::Value Reader::Join(const Napi::CallbackInfo &info) {
   return {};
 }
 
-Napi::Value Reader::Disjoin(const Napi::CallbackInfo &info) {
-  uint32_t dest_id = info[0].As<Napi::Number>().Int32Value();
-  disjoin(dest_id);
-  return {};
-}
-
 void Reader::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
   env.AddCleanupHook(cleanup);
@@ -147,7 +141,6 @@ void Reader::Init(Napi::Env env, Napi::Object exports) {
                                         InstanceMethod("dataAvailable", &Reader::DataAvailable), //
                                         InstanceMethod("next", &Reader::Next),                   //
                                         InstanceMethod("join", &Reader::Join),                   //
-                                        InstanceMethod("disjoin", &Reader::Disjoin),             //
                                     });
 
   constructor = Napi::Persistent(func);

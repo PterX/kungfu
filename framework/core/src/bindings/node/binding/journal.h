@@ -106,8 +106,6 @@ public:
 
   Napi::Value Join(const Napi::CallbackInfo &info);
 
-  Napi::Value Disjoin(const Napi::CallbackInfo &info);
-
   static void Init(Napi::Env env, Napi::Object exports);
 
   static Napi::Value NewInstance(Napi::Value arg);

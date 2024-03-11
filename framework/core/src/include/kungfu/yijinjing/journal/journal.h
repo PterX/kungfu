@@ -143,11 +143,9 @@ public:
   virtual void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0,
                     longfist::enums::Priority priority = longfist::enums::Priority::Low);
 
-  virtual void disjoin(uint32_t location_uid);
+  virtual void disjoin(const data::location_ptr &location);
 
-  virtual void disjoin(const data::location_ptr &location, uint32_t dest_id);
-
-  virtual void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
+  virtual void disjoin_channel(const data::location_ptr &location, uint32_t dest_id);
 
   [[nodiscard]] frame_ptr current_frame() const { return current_->current_frame(); }
 

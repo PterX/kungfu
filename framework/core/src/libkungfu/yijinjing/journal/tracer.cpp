@@ -81,7 +81,7 @@ tracer::tracer(const location_ptr location, bool in, bool out, int64_t begin, in
     }
   }
 
-  // init locations_;
+  // init `````````````````````````````````;
   for (auto location : get_locator()->list_locations(".*", ".*", ".*", ".*")) {
     locations_.emplace(location->uid, location);
   }
@@ -166,7 +166,7 @@ void tracer::join_for_in(const yijinjing::journal::frame_ptr &frame) const {
     }
   }
   if (frame->dest() == home_->uid and frame->msg_type() == Deregister::tag) {
-    reader_->disjoin(location::make_shared(frame->data<Deregister>(), get_locator())->uid);
+    reader_->disjoin(location::make_shared(frame->data<Deregister>(), get_locator()));
   }
 };
 

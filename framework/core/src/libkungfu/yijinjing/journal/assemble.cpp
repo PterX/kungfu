@@ -177,7 +177,7 @@ assemble &assemble::operator-=(const assemble &other) {
         const auto &other_reader = other.readers_.at(other_locator_index);
         for (const auto &other_pair : other_reader->get_journals()) {
           const auto &other_journal = other_pair.second;
-          this_reader->disjoin_channel(other_journal->get_location()->location_uid, other_journal->get_dest());
+          this_reader->disjoin_channel(other_journal->get_location(), other_journal->get_dest());
         }
         break;
       }
@@ -261,15 +261,15 @@ std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> asse
   return v;
 }
 
-void assemble::disjoin(uint32_t location_uid) {
+void assemble::disjoin(const data::location_ptr &location) {
   for (auto &reader : readers_) {
-    reader->disjoin(location_uid);
+    reader->disjoin(location);
   }
 }
 
-void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
+void assemble::disjoin_channel(const data::location_ptr &location, uint32_t dest_id) {
   for (auto &reader : readers_) {
-    reader->disjoin_channel(location_uid, dest_id);
+    reader->disjoin_channel(location, dest_id);
   }
 }
 

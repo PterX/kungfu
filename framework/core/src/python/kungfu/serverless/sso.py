@@ -1,6 +1,7 @@
 from authing import AuthenticationClient
 from kungfu.serverless.config import AUTHING_APP_CONFIG
 from kungfu.serverless.utils import record_tokens, get_tokens
+import logging
 
 
 class SSO:
@@ -17,7 +18,7 @@ class SSO:
         self.ac.set_access_token(access_token)
         resp = self.ac.get_profile()
         if resp["statusCode"] != 200:
-            print("Get Profile Failed", resp["statusCode"], resp["message"])
+            logging.exception("Get Profile Failed", resp["statusCode"], resp["message"])
             raise Exception("Get Profile Failed")
 
         data = resp["data"]
@@ -34,10 +35,12 @@ class SSO:
         )
 
         if sign_in_resp["statusCode"] != 200:
-            print("Login Error", sign_in_resp["statusCode"], sign_in_resp["message"])
+            logging.error(
+                "Login Error", sign_in_resp["statusCode"], sign_in_resp["message"]
+            )
             return
 
-        print("Login Success")
+        logging.info("Login Success")
         access_token = sign_in_resp["data"]["access_token"]
         refresh_token = sign_in_resp["data"]["refresh_token"]
         id_token = sign_in_resp["data"]["id_token"]
@@ -55,7 +58,9 @@ class SSO:
         )
 
         if sign_in_resp["statusCode"] != 200:
-            print("Login Error", sign_in_resp["statusCode"], sign_in_resp["message"])
+            logging.error(
+                "Login Error", sign_in_resp["statusCode"], sign_in_resp["message"]
+            )
             return
 
         access_token = sign_in_resp["data"]["access_token"]
@@ -71,7 +76,7 @@ class SSO:
         )
 
         if get_access_token_resp.get("error", None) is not None:
-            print(
+            logging.error(
                 "Get New Access Token Error:",
                 get_access_token_resp["error"],
                 get_access_token_resp["error_description"],

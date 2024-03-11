@@ -13,9 +13,10 @@ def select(modules, **kwargs):
     kwargs.pop("auto_envvar_prefix", None)
     next(m for m in modules if m.main(auto_envvar_prefix="KF", **kwargs))
 
+
 from kungfu.serverless.store import FeatureStore
 
-fs = FeatureStore("dev")
-print(fs.list_public_features())
-
-fs.get_public_feature_date_range("main-inflow-factor")
+# fs = FeatureStore("alpha")
+# print(fs.list_public_features())
+# print(fs.get_public_feature_date_range("main-inflow-factor"))
+# print(fs.get_public_feature_data("main-inflow-factor"))

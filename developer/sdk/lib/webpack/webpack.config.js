@@ -3,8 +3,10 @@
 const toolkit = require('@kungfu-trader/kungfu-js-api/toolkit');
 const path = require('path');
 const { merge } = require('webpack-merge');
+const CopyPlugin = require('copy-webpack-plugin');
 const {
   getWebpackExternals,
+  getSdkDefaultDistDir,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 const webpack = require('webpack');
 
@@ -44,6 +46,15 @@ const webpackConfig = (argv) => {
       }),
       new webpack.IgnorePlugin({
         resourceRegExp: /kungfu-app/,
+      }),
+      new CopyPlugin({
+        patterns: [
+          {
+            from: path.join(__dirname, '..', '..', 'templates'),
+            to: path.join(getSdkDefaultDistDir(), 'sdk', 'templates'),
+            context: path.resolve(getSdkDefaultDistDir(), 'sdk'),
+          },
+        ],
       }),
     ],
   });

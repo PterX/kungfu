@@ -25,15 +25,10 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 import {
   VTable,
-  resgisterVTableIconsAndEditers,
   ICustomActionOption,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 const { t } = VueI18n.global;
-
-if (!globalThis.hasRegisterVTableIconsAndEditers) {
-  resgisterVTableIconsAndEditers();
-}
 
 const app = getCurrentInstance();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;

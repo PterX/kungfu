@@ -13,21 +13,21 @@ import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradi
 import BTree from 'sorted-btree';
 export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   private tradingDataType: 'order' | 'trade';
-  private keyValueMap: { [key in K]?: V };
+  private keyValuesMap: { [key in K]?: V };
   private commonList: V[];
   private unfinishedList: V[];
-  private maxCommonListLength = 50000;
+  private maxListLength = 50000;
   private commonTree: BTree<unknown, V>;
   private unfinishedTree: BTree<unknown, V>;
   private sortStr1 = '';
   private sortStr2 = '';
 
-  constructor(type: 'order' | 'trade', maxLength = 50000) {
+  constructor(type: 'order' | 'trade', maxListLength = 50000) {
     this.tradingDataType = type;
-    this.keyValueMap = {};
+    this.keyValuesMap = {};
     this.commonList = [];
     this.unfinishedList = [];
-    this.maxCommonListLength = maxLength;
+    this.maxListLength = maxListLength;
 
     if (this.tradingDataType === 'order') {
       this.sortStr1 = 'insert_time';
@@ -57,7 +57,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   }
 
   insertKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
-    this.keyValueMap[key] = value;
+    this.keyValuesMap[key] = value;
 
     this.commonTree.set(
       {
@@ -80,7 +80,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     }
   }
   updateKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
-    this.keyValueMap[key] = value;
+    this.keyValuesMap[key] = value;
 
     this.commonTree.changeIfPresent(
       {
@@ -111,11 +111,11 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   }
 
   hasKey(key: K): boolean {
-    return this.keyValueMap[key] !== undefined;
+    return this.keyValuesMap[key] !== undefined;
   }
 
   getValueForKey(key: K): V | undefined {
-    return this.keyValueMap[key];
+    return this.keyValuesMap[key];
   }
 
   getCommonList(): V[] {
@@ -128,9 +128,9 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
 
   sortCommonList(): void {
     const keys = this.commonTree.keysArray();
-    if (keys.length > this.maxCommonListLength) {
+    if (keys.length > this.maxListLength) {
       //删除多余的数据
-      const redundantKeys = keys.slice(this.maxCommonListLength);
+      const redundantKeys = keys.slice(this.maxListLength);
       const lo = redundantKeys[0];
       const high = redundantKeys[redundantKeys.length - 1];
       this.commonTree.deleteRange(lo, high, true);
@@ -141,7 +141,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   sortUnfinishedList(): void {
     this.unfinishedList = this.unfinishedTree
       .valuesArray()
-      .slice(0, this.maxCommonListLength);
+      .slice(0, this.maxListLength);
   }
 
   getAllUnfinishedList(): V[] {
@@ -189,7 +189,7 @@ type AfterSync = (
 ) => void;
 
 const DEFAULT_SPLIT_LENGTH = 100;
-const DEFAULT_TRADING_DATA_LENGTH = 100000;
+const DEFAULT_TRADING_DATA_LENGTH = 50000;
 
 const bestEventLoopTask =
   typeof window !== 'undefined'
@@ -279,10 +279,6 @@ export function useWatcher() {
   ) {
     const { category, key, orderUKey, orderResolved } = data;
 
-    // let defaultLength = 0;
-
-    // defaultLength = DEFAULT_TRADING_DATA_LENGTH;
-
     if (!tradingData[dataType][category][key]) {
       tradingData[dataType][category][key] = new DynamicTradingDataIndexedMap<
         string,
@@ -331,6 +327,11 @@ export function useWatcher() {
     }, interval);
   };
 
+  const compare = (a, b) => {
+    const str = a.trade_id ? 'trade_time' : 'insert_time';
+    return Number(b[str]) - Number(a[str]);
+  };
+
   //处理队列中的数据
   async function processQueue() {
     if (isProcessing) {
@@ -339,10 +340,6 @@ export function useWatcher() {
 
     isProcessing = true;
     try {
-      const compare = (a, b) => {
-        const str = a.trade_id ? 'trade_time' : 'insert_time';
-        return Number(b[str]) - Number(a[str]);
-      };
       while (dataQueue.length > 0) {
         const data = dataQueue.shift();
         if (

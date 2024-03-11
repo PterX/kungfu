@@ -144,7 +144,7 @@ class CustomInputEditor implements VTable_editors.IEditor {
   }
 }
 
-const resgisterVTableIconsAndEditers = () => {
+const registerVTableIconsAndEditors = () => {
   VTable.register.icon('sort_upward', {
     type: 'svg',
     svg: caret_upward,
@@ -203,7 +203,8 @@ const resgisterVTableIconsAndEditers = () => {
     background: '#141414',
   });
   VTable.register.editor('input-editor', input_editor);
-  globalThis.hasRegisterVTableIconsAndEditers = true;
 };
 
-export { VTable, VTable_editors, resgisterVTableIconsAndEditers };
+registerVTableIconsAndEditors();
+
+export { VTable, VTable_editors };

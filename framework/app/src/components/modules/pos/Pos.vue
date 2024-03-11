@@ -75,6 +75,7 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
+const isRendering = ref(false);
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
@@ -134,6 +135,25 @@ const columns = computed(() => {
 
 const hasData = computed(() => pos.value.length > 0);
 
+const setTableData = () => {
+  if (isRendering.value) return;
+  isRendering.value = true;
+  const tableData = searchByKeyword<KungfuApi.PositionResolved>(
+    searchKeyword.value,
+    pos.value,
+    [
+      'instrument_id_resolved',
+      'exchange_id',
+      'direction',
+      'account_id_resolved',
+    ],
+  );
+  nextTick(() => {
+    canvasRef.value.getListTable()?.setRecords(tableData);
+    isRendering.value = false;
+  });
+};
+
 onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
@@ -166,19 +186,7 @@ onActivated(() => {
           );
         }),
       );
-      const tableData = searchByKeyword<KungfuApi.PositionResolved>(
-        searchKeyword.value,
-        pos.value,
-        [
-          'instrument_id_resolved',
-          'exchange_id',
-          'direction',
-          'account_id_resolved',
-        ],
-      );
-      nextTick(() => {
-        canvasRef.value.getListTable()?.setRecords(tableData);
-      });
+      setTableData();
     });
 
     onBeforeUnmount(() => {
@@ -193,6 +201,7 @@ onActivated(() => {
 
 watch(currentGlobalKfLocation, () => {
   pos.value = [];
+  setTableData();
 });
 
 function handleClickRow(args: VTable.MousePointerCellEvent) {

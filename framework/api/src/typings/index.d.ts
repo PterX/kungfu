@@ -1487,7 +1487,6 @@ declare namespace KungfuApi {
     K extends string | number,
     V,
   > {
-    countSmallerNumbers(num: number): number;
     insertKeyWithValue(
       key: K,
       value: V,
@@ -1502,14 +1501,11 @@ declare namespace KungfuApi {
     ): void;
     sortCommonList(compareFn: (a: V, b: V) => number): void;
     sortUnfinishedList(compareFn: (a: V, b: V) => number): void;
-    deleteLastCommonValue(): void;
-    getCommonListIndexForKey(key: K): number | undefined;
-    getUnfinishedListIndexForKey(key: K): number | undefined;
     hasKey(key: K): boolean;
     getValueForKey(key: K): V | undefined;
-    getKeyIndexMap(): { [key in K]?: number };
     getCommonList(): V[];
     getUnfinishedList(): V[];
+    getAllUnfinishedList(): V[];
   }
 
   export interface tradingData {

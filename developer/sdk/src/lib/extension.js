@@ -16,7 +16,9 @@ const {
   getCmakeNextCmdArgs,
   kfcName,
   dealPath,
+  isProduction,
 } = require('../utils');
+const { getSdkDir } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 const { shell, prebuilt } = require('@kungfu-trader/kungfu-core');
 const versioning = require('@mapbox/node-pre-gyp/lib/util/versioning');
 const project = require('./project');
@@ -471,9 +473,12 @@ exports.generateAssets = () => {
 };
 
 exports.init = () => {
-  const sdkDir = path.dirname(
-    path.dirname(customResolve('@kungfu-trader/kungfu-sdk')),
-  );
+  let initTemplatePath = '';
+  if (isProduction()) {
+    initTemplatePath = path.join(__dirname, 'templates', 'init');
+  } else {
+    initTemplatePath = path.join(getSdkDir(), 'templates', 'init');
+  }
 
   function promptFolderName() {
     return inquirer.prompt([
@@ -529,9 +534,14 @@ exports.init = () => {
     const targetPath = path.join(process.cwd(), folderName);
     const src = path.join(templatePath, selectedTemplate);
 
-    fse.ensureDirSync(targetPath);
-    fse.copySync(src, targetPath);
-    console.log(`Template created successfully at ${targetPath}`);
+    try {
+      fse.ensureDirSync(targetPath);
+      fse.copySync(src, targetPath);
+      console.log(`Template created successfully at ${targetPath}`);
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      return;
+    }
 
     const packageJsonPath = path.join(targetPath, 'package.json');
     const packageObj = fse.readJsonSync(packageJsonPath);
@@ -542,12 +552,7 @@ exports.init = () => {
   promptFolderName()
     .then((folderAnswer) => {
       return promptExtensionType().then((typeAnswer) => {
-        const templatePath = path.join(
-          sdkDir,
-          'templates',
-          'init',
-          typeAnswer.type,
-        );
+        const templatePath = path.join(initTemplatePath, typeAnswer.type);
         return listDirectoriesAndPrompt(templatePath).then((templateAnswer) => {
           copyTemplateAndModifyPackage(
             templateAnswer.selectedTemplate,

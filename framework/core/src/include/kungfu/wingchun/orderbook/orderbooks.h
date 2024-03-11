@@ -47,12 +47,12 @@ protected:
 
 template <typename OB> class OrderbooksImpl : public Orderbooks {
 public:
-  const typename OB::BidSide &get_bids(std::string instrument_id, std::string exchange_id) {
+  const typename OB::BidSide &get_bids(const std::string &instrument_id, const std::string &exchange_id) {
     const auto instrument_exchange_id = get_key(instrument_id, exchange_id);
     return obs_[instrument_exchange_id].get_bid_side();
   }
 
-  const typename OB::AskSide &get_asks(std::string instrument_id, std::string exchange_id) {
+  const typename OB::AskSide &get_asks(const std::string &instrument_id, const std::string &exchange_id) {
     const auto instrument_exchange_id = get_key(instrument_id, exchange_id);
     return obs_[instrument_exchange_id].get_ask_side();
   }

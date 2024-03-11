@@ -170,6 +170,8 @@ enum class SubscribeDataType : uint64_t {
   Entrust = 0x000000000002,     ///< 订阅逐笔委托数据
   Transaction = 0x000000000004, ///< 订阅逐笔成交数据
   Tree = 0x000000000008,        ///< 建树行情, 目前只有盛立有
+  Tick = 0x000000000016,        ///< 盘口数据 海外交易所
+  Depth = 0x000000000032,       ///< 深度增量 海外交易所
 };
 
 KF_JSON_SERIALIZE_ENUM(SubscribeDataType, {
@@ -178,6 +180,8 @@ KF_JSON_SERIALIZE_ENUM(SubscribeDataType, {
                                               {SubscribeDataType::Entrust, "Entrust"},
                                               {SubscribeDataType::Transaction, "Transaction"},
                                               {SubscribeDataType::Tree, "Tree"},
+                                              {SubscribeDataType::Depth, "Depth"},
+                                              {SubscribeDataType::Tick, "Tick"},
                                           })
 
 // for subscribe

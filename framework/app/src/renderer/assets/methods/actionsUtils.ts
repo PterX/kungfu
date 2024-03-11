@@ -476,7 +476,7 @@ export const useAddUpdateRemoveKfConfig = (): {
         : t('update_config_modal', {
             key: `${changeTypename} ${idByPrimaryKeys}`,
           });
-    return new Promise((resolve) => {
+    return new Promise((handleResolve) => {
       Modal.confirm({
         title: `${changeTypename}${categoryName} ${idByPrimaryKeys}`,
         content: context,
@@ -490,7 +490,7 @@ export const useAddUpdateRemoveKfConfig = (): {
             mode: 'live',
           };
 
-          return new Promise<void>((resolve, reject) => {
+          return new Promise<void>((modalResolve, reject) => {
             setKfConfig(
               kfLocation,
               JSON.stringify({
@@ -504,7 +504,8 @@ export const useAddUpdateRemoveKfConfig = (): {
               })
               .then(() => {
                 useGlobalStore().setKfConfigList();
-                resolve();
+                modalResolve();
+                handleResolve();
               })
               .catch((err: Error) => {
                 error(`${t('database_locked')}, ${t('please_wait_and_retry')}`);
@@ -514,7 +515,7 @@ export const useAddUpdateRemoveKfConfig = (): {
           });
         },
         onCancel() {
-          resolve();
+          handleResolve();
         },
       });
     });

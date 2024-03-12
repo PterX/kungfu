@@ -23,12 +23,6 @@ has_book
 get_book
 get_books
 set_accounting_method
-__iter__
-__next__
-begin
-get_bids
-get_asks
-setBidMap
 set_begin_time
 set_end_time
 get_location
@@ -102,6 +96,8 @@ on_synthetic_data
 on_deregister
 on_broker_state_change
 on_operator_state_change
+get_bids
+get_asks
 set_matcher
 add_strategy
 add_account
@@ -116,8 +112,7 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
-set_orderbook
-get_orderbook
+attach_orderbooks
 on_order
 on_order_trigger
 on_algo_order

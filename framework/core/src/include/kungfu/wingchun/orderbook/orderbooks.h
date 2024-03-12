@@ -119,9 +119,14 @@ public:
 
   void on_quote(const longfist::types::Quote &quote){};
 
+  int64_t getTradingDayStart(int64_t data_time) {};
+
+  bool is_new_day(int64_t data_time) {};
+
 protected:
   BS bid_side_;
   AS ask_side_;
+  int64_t tradingday_start;
 };
 
 } // namespace kungfu::wingchun::orderbook

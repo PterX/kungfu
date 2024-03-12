@@ -19,6 +19,7 @@ algo_order_actions
 context
 arguments
 bookkeeper
+side
 io_device
 usable
 begin_time
@@ -46,6 +47,7 @@ order_inputs
 algo_order_inputs
 price
 volume
+data_time
 mode
 category
 group
@@ -143,7 +145,6 @@ parent_id
 limit_price
 frozen_price
 is_swap
-side
 offset
 hedge_flag
 price_type
@@ -186,7 +187,6 @@ args
 is_last
 is_withdraw
 close_today_volume
-data_time
 turnover
 pre_open_interest
 open_interest

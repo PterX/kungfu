@@ -18,18 +18,9 @@ def pre_start(context):
     context.subscribe(md_source, ["sc2401"], Exchange.INE)  # 订阅行情
     # context.subscribe_operator("bar", "123") # 需从算子入口添加bar插件, 并定义bar的id为123
     context.throttle_insert_order = {}
-    context.log.info("测试 start")
 
-    depth_orderbook = wc.DepthOrderbooks()
-    context.attach_orderbooks(depth_orderbook)
-    bids = depth_orderbook.get_bids("000001", "SZE")
-    for level in bids:
-        context.log.info(f"测试: price{level}")
-    for level in depth_orderbook.get_asks("000001", "SZE"):
-        context.log.info(f"测试: price{level}")
-
-
-    context.log.info("测试 end")
+    context.depth_orderbook = wc.DepthOrderbooks()
+    context.attach_orderbooks(context.depth_orderbook)
 
 
 def post_start(context):
@@ -125,10 +116,18 @@ def on_broker_state_change(context, state, location):
 
 
 def on_entrust(context, entrust, location, dest):
-    depth_orderbook = context.get_orderbook()
-    bids = depth_orderbook.get_bids("300059", "SZE")
+    bids = context.depth_orderbook.get_bids("300059", "SZE")
     for level in bids:
-        context.log.info(f"测试: price{level}")
+        context.log.info(f"测试 Buy: {level}")
+    for level in context.depth_orderbook.get_asks("300059", "SZE"):
+        context.log.info(f"测试 Sell {level}")
+        
+def on_transaction(context, transaction, location, dest):
+    bids = context.depth_orderbook.get_bids("300059", "SZE")
+    for level in bids:
+        context.log.info(f"测试 Buy: {level}")
+    for level in context.depth_orderbook.get_asks("300059", "SZE"):
+        context.log.info(f"测试 Sell {level}")
 
 
 # # 当检测到本地持仓与远程持仓不一致时触发

@@ -11,6 +11,7 @@ using namespace kungfu::wingchun::strategy;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::wingchun::orderbook;
 int i = 0;
+// auto orderbooks = DepthOrderbooks();
 KUNGFU_MAIN_STRATEGY(KungfuStrategy101) {
 public:
   KungfuStrategy101() = default;
@@ -22,17 +23,9 @@ public:
     SPDLOG_INFO("arguments: {}", context->get_arguments());
     context->add_account("xtp", "15011218");
     context->subscribe("sim", {"600000"}, {"SSE"});
-    context->subscribe("xtp", {"600009"}, {"SSE"});
-    SPDLOG_INFO("测试 start");
-    auto orderbooks = DepthOrderbooks();
-    for (const auto &level: orderbooks.get_asks("600000", "SSE")) {
-      SPDLOG_INFO("测试 base for 循环 level: {}", level.to_string());
-    }
-    for (const auto &level: orderbooks.get_bids("600000", "SSE")) {
-      SPDLOG_INFO("测试 base for 循环 level: {}", level.to_string());
-    }
+    context->subscribe("xtp", {"300059"}, {"SZE"});
 
-
+    // context->attach_orderbooks(orderbooks);
   }
 
   void post_start(Context_ptr & context) override { SPDLOG_INFO("strategy started"); }
@@ -67,4 +60,28 @@ public:
     SPDLOG_WARN("on_custom_data length: {}", length);
   }
 
+  void on_entrust(Context_ptr & context, const Entrust &entrust, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("--------------on_entrust-----------------------");
+    // for (auto it = orderbooks.get_bids("300059", "SZE").begin(); it != orderbooks.get_bids("300059", "SZE").end();
+    //      ++it) {
+    //   SPDLOG_INFO("测试 Buy level: {}", (*it).to_string());
+    // }
+
+    // for (const auto &level : orderbooks.get_asks("300059", "SZE")) {
+    //   SPDLOG_INFO("测试 Sell level: {}", level.to_string());
+    // }
+  }
+
+  void on_transaction(Context_ptr & context, const Transaction &transaction, const location_ptr &location,
+                      uint32_t dest) override {
+    SPDLOG_INFO("--------------on_transaction-----------------------");
+    // for (auto it = orderbooks.get_bids("300059", "SZE").begin(); it != orderbooks.get_bids("300059", "SZE").end();
+    //      ++it) {
+    //   SPDLOG_INFO("测试 Buy level: {}", (*it).to_string());
+    // }
+
+    // for (const auto &level : orderbooks.get_asks("300059", "SZE")) {
+    //   SPDLOG_INFO("测试 Sell level: {}", level.to_string());
+    // }
+  };
 };

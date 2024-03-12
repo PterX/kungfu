@@ -2,9 +2,11 @@
 #define WINGCHUN_QUOTE_ORDERBOOK_H
 
 #include <kungfu/wingchun/orderbook/orderbooks.h>
+#include <kungfu/yijinjing/time.h>
 
 using namespace kungfu::longfist::enums;
 using namespace kungfu::longfist::types;
+using namespace kungfu::yijinjing;
 namespace kungfu::wingchun::orderbook {
 
 class DepthOrderbook;
@@ -55,21 +57,18 @@ public:
 
   iterator end() const { return iterator(levels_.end(), levels_.rend(), get_side()); }
 
-  BidirectionMapOrderbookSide(longfist::enums::Side side) : OrderbookSide(side) {
-    // TODO  to be deleted
-    levels_[1.0] = Level(1.0, 1.0, 1);
-    levels_[2.0] = Level(2.0, 3, 2);
-    levels_[3.0] = Level(3.0, 3, 3);
-  };
+  BidirectionMapOrderbookSide(longfist::enums::Side side) : OrderbookSide(side) {}
 
 private:
   friend DepthOrderbook;
   Container levels_;
+  std::unordered_map<int, Level> map_seq_id_2_level_;
 };
 class DepthOrderbook : public Orderbook<BidirectionMapOrderbookSide, BidirectionMapOrderbookSide> {
 public:
   void on_entrust(const longfist::types::Entrust &entrust);
   void on_transaction(const longfist::types::Transaction &transaction);
+  bool is_new_day(int64_t data_time);
 };
 
 using DepthOrderbooks = OrderbooksImpl<DepthOrderbook>;

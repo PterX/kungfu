@@ -15,8 +15,3 @@ def select(modules, **kwargs):
 
 
 from kungfu.serverless.store import FeatureStore
-
-# fs = FeatureStore("alpha")
-# print(fs.list_public_features())
-# print(fs.get_public_feature_date_range("main-inflow-factor"))
-# print(fs.get_public_feature_data("main-inflow-factor"))

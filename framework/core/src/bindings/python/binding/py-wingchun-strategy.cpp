@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "py-wingchun.h"
-
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
@@ -234,6 +232,7 @@ void bind_strategy(pybind11::module &m) {
       .def("bypass_accounting", &strategy::Context::bypass_accounting)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("set_resume_policy", &strategy::Context::set_resume_policy)
+      .def("attach_orderbooks", &strategy::Context::attach_orderbooks)
       .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");

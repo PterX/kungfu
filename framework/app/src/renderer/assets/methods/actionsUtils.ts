@@ -1882,6 +1882,7 @@ export const useCurrentGlobalKfLocation = (
   >;
   currentCategoryData: ComputedRef<KungfuApi.KfTradeValueCommonData | null>;
   currentUID: ComputedRef<number>;
+  tdGroupKey: Ref<string>;
   setCurrentGlobalKfLocation(
     kfConfig:
       | KungfuApi.KfLocation
@@ -1907,6 +1908,8 @@ export const useCurrentGlobalKfLocation = (
     kfConfig: KungfuApi.KfLocation | KungfuApi.KfConfig | null,
   ): string;
 } => {
+  const tdGroupKey = ref<string>('');
+
   const { currentGlobalKfLocation } = storeToRefs(useGlobalStore());
 
   const setCurrentGlobalKfLocation = (
@@ -1949,6 +1952,11 @@ export const useCurrentGlobalKfLocation = (
   ) => {
     return {
       onClick: () => {
+        if ('key' in record && record.category === 'tdGroup') {
+          tdGroupKey.value = record.key;
+        } else {
+          tdGroupKey.value = '';
+        }
         setCurrentGlobalKfLocation(record);
       },
     };
@@ -1990,6 +1998,7 @@ export const useCurrentGlobalKfLocation = (
     currentGlobalKfLocation,
     currentCategoryData,
     currentUID,
+    tdGroupKey,
     setCurrentGlobalKfLocation,
     resetCurrentGlobalKfLocation,
     dealRowClassName,

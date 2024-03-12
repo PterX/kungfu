@@ -107,8 +107,10 @@ const tdIdList = computed(() => {
 const {
   dealRowClassName,
   customRow,
+  tdGroupKey,
   currentGlobalKfLocation,
   resetCurrentGlobalKfLocation,
+  setCurrentGlobalKfLocation,
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { processStatusData, getProcessStatusName } =
@@ -540,6 +542,19 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
 
   return true;
 }
+
+function setTdGroupGlobalLocation() {
+  if (!tdGroupKey.value) return;
+  for (const item of tableDataResolved.value) {
+    if (
+      item.category === 'tdGroup' &&
+      tdGroupKey.value === (item as KungfuApi.KfExtraLocation).key
+    ) {
+      setCurrentGlobalKfLocation(item);
+      return;
+    }
+  }
+}
 </script>
 
 <template>
@@ -936,6 +951,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
     <SetTdGroupModal
       v-if="setTdGroupModalVisble"
       v-model:visible="setTdGroupModalVisble"
+      @set-global-location="setTdGroupGlobalLocation"
     ></SetTdGroupModal>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"

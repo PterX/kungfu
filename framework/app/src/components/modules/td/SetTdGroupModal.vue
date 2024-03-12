@@ -6,8 +6,9 @@ import {
   isInTdGroup,
   useModalVisible,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { AntTreeNodeDropEvent, DataNode } from 'ant-design-vue/lib/tree';
-import { computed, ComputedRef, getCurrentInstance, toRaw, toRefs } from 'vue';
+import { computed, ComputedRef, nextTick, toRaw, toRefs } from 'vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   useAllKfConfigData,
@@ -27,10 +28,10 @@ const props = withDefaults(
 defineEmits<{
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
-  (e: 'setGlobalLocation'): void;
 }>();
 
-const app = getCurrentInstance();
+const { currentGlobalKfLocation, setCurrentGlobalKfLocation } =
+  useCurrentGlobalKfLocation(window.watcher);
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 const { tdExtTypeMap } = useExtConfigsRelated();
@@ -98,6 +99,22 @@ function isGroup(node: DataNode): KungfuApi.KfExtraLocation | null {
   }
 }
 
+function setGlobalLocation() {
+  if (
+    currentGlobalKfLocation.value?.category === 'tdGroup' &&
+    tdTreeData.value.length > 0
+  ) {
+    for (const item of tdTreeData.value) {
+      if (item.name === currentGlobalKfLocation.value.name) {
+        setCurrentGlobalKfLocation(
+          item as unknown as KungfuApi.KfExtraLocation,
+        );
+        break;
+      }
+    }
+  }
+}
+
 function handleDrop(info: AntTreeNodeDropEvent) {
   const { dragNode, node, dropPosition, dropToGap } = info;
 
@@ -117,6 +134,10 @@ function handleDrop(info: AntTreeNodeDropEvent) {
 
   const group = isGroup(node);
   if (group) {
+    if (oldGroup && group.name === oldGroup.name) {
+      setGlobalLocation();
+      return;
+    }
     const groupIndex = tdGroup.value.findIndex(
       (group) => node.name === group.name,
     );
@@ -136,7 +157,7 @@ function handleDrop(info: AntTreeNodeDropEvent) {
 
   setTdGroup(toRaw(tdGroup.value)).then(() => {
     useGlobalStore().setTdGroups();
-    app?.emit('setGlobalLocation');
+    setGlobalLocation();
   });
 }
 

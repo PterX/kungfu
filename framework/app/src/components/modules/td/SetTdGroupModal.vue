@@ -8,7 +8,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { AntTreeNodeDropEvent, DataNode } from 'ant-design-vue/lib/tree';
-import { computed, ComputedRef, nextTick, toRaw, toRefs } from 'vue';
+import { computed, ComputedRef, toRaw, toRefs } from 'vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import {
   useAllKfConfigData,
@@ -135,7 +135,10 @@ function handleDrop(info: AntTreeNodeDropEvent) {
   const group = isGroup(node);
   if (group) {
     if (oldGroup && group.name === oldGroup.name) {
-      setGlobalLocation();
+      setTdGroup(toRaw(tdGroup.value)).then(() => {
+        useGlobalStore().setTdGroups();
+        setGlobalLocation();
+      });
       return;
     }
     const groupIndex = tdGroup.value.findIndex(

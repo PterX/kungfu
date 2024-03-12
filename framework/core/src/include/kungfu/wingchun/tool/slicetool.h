@@ -42,8 +42,8 @@ public:
   void write_at(int64_t gen_time, int64_t trigger_time, uint32_t dest_id, const DataType &data) {
     valid_time(gen_time, trigger_time);
     auto op_location = find_operator_slice_location(gen_time);
-    auto end_time = find_operator_slice_location(gen_time);
-    auto writer = get_writer(op_location, dest_id);
+    auto end_time = get_operator_slice_end_time(gen_time);
+    auto writer = get_writer(op_location, dest_id, end_time);
     writer->write_at(gen_time, trigger_time, data);
   }
 

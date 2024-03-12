@@ -1,4 +1,5 @@
 import boto3
+from botocore.exceptions import ClientError
 import os
 import json
 import kungfu
@@ -12,6 +13,8 @@ from kungfu.serverless.utils import (
     read_file_content,
     get_tokens,
 )
+from kungfu.serverless.config import BASE_URL
+import logging
 
 yjj = kungfu.__binding__.yijinjing
 
@@ -22,12 +25,12 @@ class Backtest:
         self.sso = SSO(stage)
 
         if self.sso.introspect_token() != True:
-            print("Please Login First, Try kfc login")
-            raise Exception("Login Required, Try kfc login")
+            logging.error("Please Login First, Try kfc login")
+            return
 
         self.sso.get_new_access_token_by_refresh_token()
         phone, username, user_id = self.sso.get_profile()
-        print(f"Backtest init successfully, phone {phone} username {username}")
+        logging.info(f"Backtest init successfully, phone {phone} username {username}")
         self.user_id = user_id
 
         (
@@ -54,7 +57,7 @@ class Backtest:
     def check_data_range(self):
         access_token, refresh_token, id_token = get_tokens(self.stage)
         resp = requests.get(
-            f"https://api.kungfu-trader.com/{self.stage}/dataset/meta",
+            f"{BASE_URL}/{self.stage}/dataset/meta",
             headers={
                 "Authorization": id_token,
             },
@@ -109,14 +112,18 @@ class Backtest:
             aws_secret_access_key=secret_key,
             aws_session_token=session_token,
         )
-        resp = client.get_parameters(
-            Names=[
-                self.JOB_DEFINITION_ARN_PARAM_NAME,
-                self.JOB_QUEUE_ARN_PARAM_NAME,
-                self.S3_BUCKET_PARAM_NAME,
-                self.LOG_GROUP_PARAM_NAME,
-            ]
-        )
+        try:
+            resp = client.get_parameters(
+                Names=[
+                    self.JOB_DEFINITION_ARN_PARAM_NAME,
+                    self.JOB_QUEUE_ARN_PARAM_NAME,
+                    self.S3_BUCKET_PARAM_NAME,
+                    self.LOG_GROUP_PARAM_NAME,
+                ]
+            )
+        except ClientError as err:
+            raise err
+
         parameters = resp["Parameters"]
         parameter_map = {}
         for item in parameters:
@@ -140,7 +147,11 @@ class Backtest:
         )
 
         bucket_name = parameter_map[self.S3_BUCKET_PARAM_NAME]
-        s3.put_object(Bucket=bucket_name, Key=objectKey, Body=file_content)
+
+        try:
+            s3.put_object(Bucket=bucket_name, Key=objectKey, Body=file_content)
+        except ClientError as err:
+            raise err
 
     def __run_job(self, file_path, begin_time, end_time, level, parameter_map):
         file_basename = os.path.basename(file_path)
@@ -160,17 +171,17 @@ class Backtest:
             "Authorization": id_token,
         }
         resp = requests.post(
-            f"https://api.kungfu-trader.com/{self.stage}/backtest/submitjob",
+            f"{BASE_URL}/{self.stage}/backtest/submitjob",
             data=json.dumps(data),
             headers=headers,
         ).text
         resp = json.loads(resp)
         jobId = resp.get("jobId", None)
         if not jobId:
-            print(resp.text["message"])
+            logging.error(f"Job sumbitted failed: {resp.text['message']}")
             raise Exception("Job sumbitted failed")
 
-        print(f"Job sumbitted, id: {jobId}")
+        logging.info(f"Job sumbitted, id: {jobId}")
         return jobId
 
     def __monit_log(
@@ -192,7 +203,11 @@ class Backtest:
         )
 
         def try_exit(signum, frame):
-            batch_client.terminate_job(jobId=job_id, reason="user triggered")
+            try:
+                batch_client.terminate_job(jobId=job_id, reason="user triggered")
+            except ClientError as err:
+                logging.exception(err)
+
             exit()
 
         signal.signal(signal.SIGINT, try_exit)
@@ -201,7 +216,12 @@ class Backtest:
         next_token = ""
         start_time = time.time()
         while True:
-            resp = batch_client.describe_jobs(jobs=[job_id])
+            try:
+                resp = batch_client.describe_jobs(jobs=[job_id])
+            except ClientError as err:
+                logging.exception(f"describe job failed: {err}")
+                return
+
             job = resp["jobs"][0]
             status = job.get("status", None)
             status_reason = job.get("status_reason", None)
@@ -214,7 +234,7 @@ class Backtest:
             }
 
             if status == "SUCCEEDED" or status == "FAILED" or status == "CANCELLED":
-                print(f"job finished, status {status}, reason {status_reason}")
+                logging.warn(f"job finished, status {status}, reason {status_reason}")
                 break
 
             if status == "RUNNING" and log_stream_name != None:
@@ -226,13 +246,20 @@ class Backtest:
                     if next_token != ""
                     else params
                 )
-                logs = logs_client.get_log_events(**args)
+
+                try:
+                    logs = logs_client.get_log_events(**args)
+                except ClientError as err:
+                    logging.exception(f"Error getting logs")
+
                 next_token = logs["nextForwardToken"]
                 events = logs["events"]
                 for item in events:
                     message = item["message"]
-                    print(message)
+                    logging.info(message)
             else:
-                print(f"Status: {status}, Takes: {time.time() - start_time}", end="\r")
+                logging.info(
+                    f"Status: {status}, Takes: {time.time() - start_time}", end="\r"
+                )
 
             time.sleep(1)

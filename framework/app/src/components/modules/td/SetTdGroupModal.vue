@@ -115,6 +115,13 @@ function setGlobalLocation() {
   }
 }
 
+function setTdGroupAndGlobalLocation() {
+  setTdGroup(toRaw(tdGroup.value)).then(() => {
+    useGlobalStore().setTdGroups();
+    setGlobalLocation();
+  });
+}
+
 function handleDrop(info: AntTreeNodeDropEvent) {
   const { dragNode, node, dropPosition, dropToGap } = info;
 
@@ -134,11 +141,8 @@ function handleDrop(info: AntTreeNodeDropEvent) {
 
   const group = isGroup(node);
   if (group) {
-    if (oldGroup && group.name === oldGroup.name) {
-      setTdGroup(toRaw(tdGroup.value)).then(() => {
-        useGlobalStore().setTdGroups();
-        setGlobalLocation();
-      });
+    if (dropPosition === -1) {
+      setTdGroupAndGlobalLocation();
       return;
     }
     const groupIndex = tdGroup.value.findIndex(
@@ -158,10 +162,7 @@ function handleDrop(info: AntTreeNodeDropEvent) {
     newGroup.children.push(targetAccountId);
   }
 
-  setTdGroup(toRaw(tdGroup.value)).then(() => {
-    useGlobalStore().setTdGroups();
-    setGlobalLocation();
-  });
+  setTdGroupAndGlobalLocation();
 }
 
 getInstrumentTypeColor;

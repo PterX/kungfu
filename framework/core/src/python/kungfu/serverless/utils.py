@@ -1,5 +1,6 @@
 from kungfu.serverless.config import TOKEN_FILE, APP_PARAMS, AUTHING_APP_CONFIG
 import boto3
+from botocore.exceptions import ClientError
 import json
 import os
 import time
@@ -57,14 +58,23 @@ def get_credentials_for_identity(stage):
     access_token, refresh_token, id_token = get_tokens(stage)
     login_info = {f"{host_name}/oidc": id_token}
     identity_pool_id = get_sls_kungfu_params(stage)["identity_pool_id"]["value"]
-    identity_id_resp = client.get_id(
-        IdentityPoolId=identity_pool_id,
-        Logins=login_info,
-    )
+
+    try:
+        identity_id_resp = client.get_id(
+            IdentityPoolId=identity_pool_id,
+            Logins=login_info,
+        )
+    except ClientError as err:
+        raise err
+
     identity_id = identity_id_resp["IdentityId"]
-    resp = client.get_credentials_for_identity(
-        IdentityId=identity_id, Logins=login_info
-    )
+
+    try:
+        resp = client.get_credentials_for_identity(
+            IdentityId=identity_id, Logins=login_info
+        )
+    except ClientError as err:
+        raise err
 
     credentials = resp["Credentials"]
     return (

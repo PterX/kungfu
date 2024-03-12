@@ -12,3 +12,6 @@ def available():
 def select(modules, **kwargs):
     kwargs.pop("auto_envvar_prefix", None)
     next(m for m in modules if m.main(auto_envvar_prefix="KF", **kwargs))
+
+
+from kungfu.serverless.store import FeatureStore

@@ -150,11 +150,11 @@ public:
 
   virtual void put_app_kvs(const std::map<std::string, std::string> &kvs) const;
 
-  virtual void write_location_to_rocksdb(const data::location_ptr &location);
-
   virtual void read_location_from_rocksdb();
 
   virtual void ensure_master_rocksdb();
+
+  void write_location_to_rocksdb(const data::location_ptr &location);
 
   void request_deregister() {
     continual_ = false;

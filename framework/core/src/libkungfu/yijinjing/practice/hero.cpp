@@ -42,15 +42,6 @@ hero::hero(io_device_ptr io_device)
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
   reader_ = io_device_->open_reader_to_subscribe();
-  add_location(0, get_io_device()->get_live_home());
-  add_location(0, master_home_location_);
-  add_location(0, master_cmd_location_);
-  add_location(0, ledger_home_location_);
-  if (get_home()->mode != mode::LIVE) {
-    for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
-      add_location(0, l);
-    }
-  }
 }
 
 hero::~hero() {
@@ -78,6 +69,15 @@ bool hero::setup() {
 void hero::pre_setup() {
   ensure_master_rocksdb();
   read_location_from_rocksdb();
+  add_location(0, get_io_device()->get_live_home());
+  add_location(0, master_home_location_);
+  add_location(0, master_cmd_location_);
+  add_location(0, ledger_home_location_);
+  if (get_home()->mode != mode::LIVE) {
+    for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
+      add_location(0, l);
+    }
+  }
 }
 
 void hero::step(uint32_t step_limit) {
@@ -669,6 +669,7 @@ void hero::read_location_from_rocksdb() {
     }
     std::map<std::string, std::string> map_str_location64s_ = get_master_kvs(location_uid64s_);
     for (const auto &pair : map_str_location64s_) {
+      SPDLOG_DEBUG("uid64: {}, location_json: {}", pair.first, pair.second);
       const location_ptr location = location::make_shared(Location{pair.second}, get_locator());
       SPDLOG_DEBUG("location: {}", location->to_string());
       locations_.try_emplace(location->uid, location);

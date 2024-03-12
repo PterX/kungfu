@@ -31,6 +31,10 @@ public:
     SPDLOG_INFO("on quote: {} i {} location->uid {}", quote.last_price, i, location->location_uid);
   }
 
+  void on_entrust(Context_ptr & context, const Entrust &entrust, const location_ptr &location, uint32_t dest) override {
+    SPDLOG_INFO("on entrust: {}", entrust.to_string());
+  }
+
   void on_tree(Context_ptr & context, const Tree &tree, const location_ptr &location, uint32_t dest) override {
     SPDLOG_INFO("on tree: {}", tree.to_string());
   }

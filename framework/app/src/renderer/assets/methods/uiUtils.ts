@@ -999,7 +999,6 @@ export const openNewBrowserWindow = (
   windowConfig?: Electron.BrowserWindowConstructorOptions,
 ): Promise<Electron.BrowserWindow> => {
   const currentWindow = getCurrentWindow();
-  const isParentFullScreen = currentWindow.isFullScreen();
   const modalPath =
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
@@ -1027,16 +1026,10 @@ export const openNewBrowserWindow = (
     const isMacOS = process.platform === 'darwin';
 
     win.on('ready-to-show', function () {
-      if (isMacOS && isParentFullScreen) {
-        win.setFullScreen(false);
-        win.setSize(1080, 766);
-        win.show();
-        win.center();
-        win.focus();
-      } else {
-        win.show();
-        win.focus();
-      }
+      win.setFullScreen(false);
+      win.show();
+      win.center();
+      win.focus();
     });
 
     win.on('closed', () => {
@@ -1044,46 +1037,8 @@ export const openNewBrowserWindow = (
     });
 
     if (isMacOS) {
-      win.on('minimize', (event) => {
-        event.preventDefault();
-
-        const [parentX, parentY, parentWidth, parentHeight] = [
-          currentWindow.getPosition()[0],
-          currentWindow.getPosition()[1],
-          currentWindow.getSize()[0],
-          currentWindow.getSize()[1],
-        ];
-
-        const newX = parentX + parentWidth - 300;
-        const newY = parentY + parentHeight - 30;
-        win.setSize(300, 30);
-        win.setPosition(newX, newY);
-        currentWindow.setSize(parentWidth, parentHeight);
-        currentWindow.setPosition(parentX, parentY);
-      });
-
-      if (win && !win.isDestroyed()) {
-        currentWindow.on('resize', () => {
-          if (
-            win &&
-            !win.isDestroyed() &&
-            win.getSize()[0] === 300 &&
-            win.getSize()[1] === 30
-          ) {
-            const [parentX, parentY, parentWidth, parentHeight] = [
-              currentWindow.getPosition()[0],
-              currentWindow.getPosition()[1],
-              currentWindow.getSize()[0],
-              currentWindow.getSize()[1],
-            ];
-
-            const newX = parentX + parentWidth - 300;
-            const newY = parentY + parentHeight - 30;
-
-            win.setPosition(newX, newY);
-          }
-        });
-      }
+      //禁用最小化按钮
+      win.setMinimizable(false);
     }
 
     win.webContents.loadURL(modalPath);

@@ -1026,9 +1026,12 @@ export const openNewBrowserWindow = (
     const isMacOS = process.platform === 'darwin';
 
     win.on('ready-to-show', function () {
+      const pos = win.getPosition();
       win.setFullScreen(false);
       win.show();
-      win.center();
+      if (pos && (pos[0] < 0 || pos[1] < 0)) {
+        win.center();
+      }
       win.focus();
     });
 

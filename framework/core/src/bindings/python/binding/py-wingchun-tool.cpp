@@ -133,6 +133,10 @@ void bind_tool(pybind11::module &m) {
 
     void on_tree(const Tree &tree) override { PYBIND11_OVERLOAD(void, Report, on_tree, tree); }
 
+    void on_depth(const Depth &depth) override { PYBIND11_OVERLOAD(void, Report, on_depth, depth); }
+
+    void on_tick(const Tick &tick) override { PYBIND11_OVERLOAD(void, Report, on_tick, tick); }
+
     void on_entrust(const Entrust &entrust) override { PYBIND11_OVERLOAD(void, Report, on_entrust, entrust); }
 
     void on_transaction(const Transaction &transaction) override {
@@ -160,6 +164,8 @@ void bind_tool(pybind11::module &m) {
       .def("sumerize", &Report::sumerize)
       .def("on_quote", &Report::on_quote)
       .def("on_tree", &Report::on_tree)
+      .def("on_depth", &Report::on_depth)
+      .def("on_tick", &Report::on_tick)
       .def("on_entrust", &Report::on_entrust)
       .def("on_transaction", &Report::on_transaction)
       .def("on_read_synthetic_data", &Report::on_read_synthetic_data)

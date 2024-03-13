@@ -39,6 +39,18 @@ public:
   virtual void on_tree(Context_ptr &context, const longfist::types::Tree &tree,
                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
 
+  // 行情数据更新回调
+  // @param tree              行情数据
+  // @param location          数据来源
+  virtual void on_depth(Context_ptr &context, const longfist::types::Depth &depth,
+                        const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
+  // 行情数据更新回调
+  // @param tree              行情数据
+  // @param location          数据来源
+  virtual void on_tick(Context_ptr &context, const longfist::types::Tick &tick,
+                       const kungfu::yijinjing::data::location_ptr &location, uint32_t dest){};
+
   // 逐笔委托更新回调
   // @param entrust           逐笔委托数据
   // @param location          数据来源

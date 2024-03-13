@@ -1027,7 +1027,6 @@ export const openNewBrowserWindow = (
 
     win.on('ready-to-show', function () {
       const pos = win.getPosition();
-      win.setFullScreen(false);
       win.show();
       if (pos && (pos[0] < 0 || pos[1] < 0)) {
         win.center();
@@ -1040,6 +1039,8 @@ export const openNewBrowserWindow = (
     });
 
     if (isMacOS) {
+      //禁用全屏按钮,避免子窗口退出全屏时导致主窗口上部出现空白
+      win.setFullScreen(false);
       //禁用最小化按钮
       win.setMinimizable(false);
     }

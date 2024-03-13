@@ -30,10 +30,10 @@ class FeatureStore:
         self.feature_config_map = self.__get_public_features()
 
     def login(self, account):
-        logging.info("Welcome, your phone number is: ", account)
+        logging.info(f"Welcome, your phone number is: {account}")
         self.sso.send_sms_code(account)
         pass_code = click.prompt("Please enter a valid sms code", type=int)
-        logging.info("Your pass code is: ", pass_code)
+        logging.info(f"Your pass code is: {pass_code}")
         self.sso.sign_in_by_phone_passcode(account, pass_code)
         logging.info("Login Success")
         self.feature_config_map = self.__get_public_features()

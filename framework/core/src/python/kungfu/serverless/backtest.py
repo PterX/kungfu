@@ -258,8 +258,6 @@ class Backtest:
                     message = item["message"]
                     logging.info(message)
             else:
-                logging.info(
-                    f"Status: {status}, Takes: {time.time() - start_time}", end="\r"
-                )
+                print(f"Status: {status}, Takes: {time.time() - start_time}", end="\r")
 
             time.sleep(1)

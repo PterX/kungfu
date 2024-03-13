@@ -1045,12 +1045,12 @@ export const openNewBrowserWindow = (
       //禁用最小化按钮
       win.setMinimizable(false);
 
-      // 当窗口获得焦点时，将其置顶
+      // 当窗口获得焦点时,将其置顶
       win.on('focus', () => {
         win.setAlwaysOnTop(true);
       });
 
-      // 当窗口失去焦点时，取消置顶
+      // 当窗口失去焦点时,取消置顶
       win.on('blur', () => {
         win.setAlwaysOnTop(false);
       });

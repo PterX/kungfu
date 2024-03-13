@@ -36,7 +36,7 @@ class SSO:
 
         if sign_in_resp["statusCode"] != 200:
             logging.error(
-                "Login Error", sign_in_resp["statusCode"], sign_in_resp["message"]
+                f'Login Error f{sign_in_resp["statusCode"]}, f{sign_in_resp["message"]}'
             )
             return
 
@@ -59,7 +59,7 @@ class SSO:
 
         if sign_in_resp["statusCode"] != 200:
             logging.error(
-                "Login Error", sign_in_resp["statusCode"], sign_in_resp["message"]
+                f'Login Error, {sign_in_resp["statusCode"]}, {sign_in_resp["message"]}'
             )
             return
 
@@ -77,9 +77,7 @@ class SSO:
 
         if get_access_token_resp.get("error", None) is not None:
             logging.error(
-                "Get New Access Token Error:",
-                get_access_token_resp["error"],
-                get_access_token_resp["error_description"],
+                f'Get New Access Token Error: {get_access_token_resp["error"]}, {get_access_token_resp["error_description"]}'
             )
             return
 

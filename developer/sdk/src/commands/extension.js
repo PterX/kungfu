@@ -9,6 +9,7 @@ const subcommands = [
   'format',
   'install',
   'list',
+  'init',
 ];
 
 module.exports = {

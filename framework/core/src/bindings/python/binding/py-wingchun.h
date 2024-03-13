@@ -21,6 +21,8 @@ void bind_map_types(pybind11::module &m);
 
 void bind_book(pybind11::module &m);
 
+void bind_orderbook(pybind11::module &m);
+
 void bind_broker(pybind11::module &m);
 
 void bind_service(pybind11::module &m);

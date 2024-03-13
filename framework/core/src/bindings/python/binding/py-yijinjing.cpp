@@ -403,7 +403,7 @@ void bind(pybind11::module &&m) {
       .def("get_home_uname", &apprentice::get_home_uname)
       .def("now", &apprentice::now)
       .def("run", &apprentice::run)
-      .def("pre_setup", &master::pre_setup)
+      .def("pre_setup", &apprentice::pre_setup)
       .def("setup", &apprentice::setup)
       .def("step", &apprentice::step)
       .def("is_live", &apprentice::is_live)

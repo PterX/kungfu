@@ -113,7 +113,6 @@ void reader::sort() {
   auto min_journal = has_data_journals_heap_.top();
   if (min_journal->current_frame()->gen_time() <= min_time) {
     current_ = min_journal;
-
   }
 }
 

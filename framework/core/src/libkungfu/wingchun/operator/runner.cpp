@@ -129,8 +129,8 @@ void Runner::post_start() {
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
-void Runner::post_stop() { 
-  invoke(&Operator::post_stop); 
+void Runner::post_stop() {
+  invoke(&Operator::post_stop);
   stop(*context_);
 }
 

@@ -130,7 +130,7 @@ protected:
 
   virtual void prepare(const event_ptr &event) override{};
 
-  virtual void  post_stop() override {};
+  virtual void post_stop() override{};
 
   template <typename DataType>
   void parse_then_write_in_timer(const nlohmann::json &config_obj, const yijinjing::journal::writer_ptr &writer) {

@@ -194,8 +194,8 @@ void Runner::post_start() {
 
 void Runner::pre_stop() { invoke(&Strategy::pre_stop); }
 
-void Runner::post_stop() { 
-  invoke(&Strategy::post_stop); 
+void Runner::post_stop() {
+  invoke(&Strategy::post_stop);
   stop(*context_);
 }
 

@@ -321,7 +321,7 @@ protected:
 
   virtual void prepare(const event_ptr &event) override;
 
-  virtual void  post_stop() override;
+  virtual void post_stop() override;
 
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;
@@ -361,7 +361,8 @@ private:
     int32_t timer_id;
     int64_t nanotime;
     std::function<void(event_ptr)> call_back;
-    TimerTask(int32_t id, int64_t nanotime, std::function<void(event_ptr)> cb) : timer_id(id), nanotime(nanotime), call_back(std::move(cb)){};
+    TimerTask(int32_t id, int64_t nanotime, std::function<void(event_ptr)> cb)
+        : timer_id(id), nanotime(nanotime), call_back(std::move(cb)){};
     bool operator<(const TimerTask &other) const { return other.nanotime < this->nanotime; }
   };
   broker::PassiveClient broker_client_;
@@ -392,7 +393,8 @@ private:
   void subscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
   void unsubscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
 
-  void subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id, const std::string &exchange_id, int32_t data_tag);
+  void subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id,
+                        const std::string &exchange_id, int32_t data_tag);
   void subscribe_operator_helper(int64_t nanotime, const std::string &group, const std::string &name);
 };
 

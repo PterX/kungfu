@@ -388,11 +388,11 @@ protected:
   const rx::connectable_observable<event_ptr> &events_;
   bool started_ = false;
 
-  virtual void on_start() {};
+  virtual void on_start(){};
 
   virtual void prepare(const event_ptr &event) = 0;
 
-  virtual void post_stop() {};
+  virtual void post_stop(){};
 
 private:
   bool book_held_ = false;

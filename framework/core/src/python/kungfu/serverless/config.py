@@ -15,7 +15,7 @@ AUTHING_APP_CONFIG = {
         "appHost": "https://serverless-kungfu-alpha.authing.cn",
     },
     "prod": {
-        "appId": "65c09924846922437110d676",
+        "appId": "643cfccef8215efb67ebefa5",
         "appSecret": "8730916236a807d1f1406a2d5baa5b3c",
         "appHost": "https://serverless-kungfu.authing.cn",
     },

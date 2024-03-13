@@ -49,6 +49,7 @@ export default {
   export_all_transaction_data: 'Export all transaction data',
   export_instrument_whitelists: 'Export instrument whitelists',
   open_inspect_tool: 'Open inspect tool',
+  open_console_tool: 'Open dev tool',
 
   website: 'Website',
   user_manual: 'User manual',

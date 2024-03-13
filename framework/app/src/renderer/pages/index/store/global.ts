@@ -8,7 +8,10 @@ import {
   getKfUIExtensionConfig,
   getKfExtensionConfig,
 } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  getIdByKfLocation,
+  getProcessIdByKfLocation,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getAllKfConfigOriginData,
   getAllRiskSettingList,
@@ -314,6 +317,16 @@ export const useGlobalStore = defineStore('global', {
     },
 
     setDefaultCurrentGlobalKfLocation() {
+      if (
+        this.currentGlobalKfLocation?.category === 'strategy' &&
+        this.currentGlobalKfLocation.group !== 'default' &&
+        this.processStatusWithDetail[
+          getProcessIdByKfLocation(this.currentGlobalKfLocation)
+        ]
+      ) {
+        return;
+      }
+
       if (
         !this.currentGlobalKfLocation ||
         !this.checkCurrentGlobalKfLocationExisted()

@@ -239,11 +239,10 @@ void assemble::sort() {
 }
 
 std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
-assemble::read_datas(int32_t msg_type, uint64_t nums_to_read, int64_t end_time) {
+assemble::read_datas(int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
-  for (int i = 0; i < nums_to_read && data_available(); i++) {
-    if (msg_type == 0 or
-        current_frame()->msg_type() == msg_type && current_page()->get_version() == __JOURNAL_VERSION__) {
+  while (data_available() and current_frame()->gen_time() < end_time) {
+    if (current_page()->get_version() == __JOURNAL_VERSION__) {
       const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
       std::vector<uint8_t> bytes{current_frame()->data_as_bytes(),
                                  current_frame()->data_as_bytes() + current_frame()->data_length()};
@@ -257,7 +256,6 @@ assemble::read_datas(int32_t msg_type, uint64_t nums_to_read, int64_t end_time) 
     }
 
     next();
-    data_read_num++;
   }
   return v;
 }

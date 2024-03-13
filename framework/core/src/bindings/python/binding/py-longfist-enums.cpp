@@ -18,7 +18,6 @@ void bind_enums(py::module &m) {
       .value("DATA", mode::DATA)
       .value("REPLAY", mode::REPLAY)
       .value("BACKTEST", mode::BACKTEST)
-      .value("REMOTE", mode::REMOTE)
       .export_values();
   m_enums.def("get_mode_name", &get_mode_name);
   m_enums.def("get_mode_by_name", &get_mode_by_name);

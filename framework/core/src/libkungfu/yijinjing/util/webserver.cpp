@@ -41,16 +41,23 @@ stream::~stream() {
   nng_aio_free(aio_send_);
 }
 uint64_t stream::get_stream_id() { return stream_id_; }
+
+uint64_t stream::get_opposite_stream_id(){
+  nng_sockaddr local_address, remote_address;
+  nng_stream_get_addr(s_, NNG_OPT_REMADDR, &remote_address);
+  nng_stream_get_addr(s_, NNG_OPT_LOCADDR, &local_address);
+  return (static_cast<uint64_t>(local_address.s_in.sa_addr) << 32) |
+         (static_cast<uint64_t>(local_address.s_in.sa_port) << 16) | remote_address.s_in.sa_port;
+
+}
+
 void stream::start_recv() {
-  SPDLOG_DEBUG("start start_recv");
   nng_iov iov = {rec_buffer_.data(), rec_buffer_.size()};
   nng_aio_set_iov(aio_recv_, 1, &iov);
   nng_stream_recv(s_, aio_recv_);
-  SPDLOG_DEBUG("end start_recv");
 }
 
 void stream::stream_recv_cb() {
-  SPDLOG_DEBUG("stream_recv_cb");
   int rv = nng_aio_result(aio_recv_);
 
   auto len = nng_aio_count(aio_recv_);
@@ -58,7 +65,6 @@ void stream::stream_recv_cb() {
   case 0: {
     {
       std::string data((char *)rec_buffer_.data(), len);
-      SPDLOG_DEBUG("recv data:{}", data);
       std::lock_guard<std::mutex> lock(mtx_);
       data_received_.emplace_back((char *)rec_buffer_.data(), len);
     }
@@ -84,12 +90,37 @@ void stream::stream_send(const std::string &data) {
     fatal("nng_aio_set_iov", rv);
   }
   nng_stream_send(s_, aio_send_);
-  // nng_aio_wait(aio_send_);
+  nng_aio_wait(aio_send_);
   rv = nng_aio_result(aio_send_);
   if (rv != 0) {
     fatal("nng_aio_result", rv);
   }
 }
+
+int stream::stream_send(const char* data, const int len) {
+	nng_iov iov;
+	iov.iov_buf = (void*)data;
+	iov.iov_len = len;
+	int rv = nng_aio_set_iov(aio_send_, 1, &iov);
+	if (rv != 0) {
+		fatal("nng_aio_set_iov", rv);
+	}
+	nng_stream_send(s_, aio_send_);
+	nng_aio_wait(aio_send_);
+	rv = nng_aio_result(aio_send_);
+	if (rv != 0) {
+		fatal("nng_aio_result", rv);
+	}
+	return rv;
+}
+
+std::vector<std::string> stream::get_and_clear_data(){
+  std::lock_guard<std::mutex> lock(mtx_);
+  std::vector<std::string> result = data_received_; // 返回数据的副本
+  data_received_.clear();
+  return result;
+}
+
 void stream::cancel() {
   nng_aio_cancel(aio_recv_);
   nng_aio_wait(aio_recv_);
@@ -275,17 +306,27 @@ stream_manage::stream_manage() {}
 stream_manage::~stream_manage() {}
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
-  SPDLOG_DEBUG("publish msg:{}", msg);
+  if (!streams_.contains(stream_id)) {
+    SPDLOG_ERROR("publish failed:{}",msg);
+    return -1;
+  }
+  streams_.at(stream_id)->stream_send(msg);
+  return 0;
+}
+int stream_manage::publish(uint64_t stream_id, const char* data, const int len){
   if (!streams_.contains(stream_id)) {
     SPDLOG_DEBUG("publish failed");
     return -1;
   }
-  streams_.at(stream_id)->stream_send(msg);
-  SPDLOG_DEBUG("publish success");
+  streams_.at(stream_id)->stream_send(data, len);
+  //SPDLOG_DEBUG("publish success");
   return 0;
+
 }
-std::vector<std::string> &stream_manage::get_notice(uint64_t stream_id) {
-  return streams_.find(stream_id)->second->data_received_;
+
+
+std::vector<std::string> stream_manage::get_notice(uint64_t stream_id) {
+  return streams_.find(stream_id)->second->get_and_clear_data();
 }
 void stream_manage::clear_notice(uint64_t stream_id) { streams_.find(stream_id)->second->data_received_.clear(); }
 

@@ -303,7 +303,7 @@ class ExtensionExecutor(Executor):
     def __init__(self, ctx, loader):
         super().__init__(ctx)
         self.loader = loader
-        self.setup_env(self.loader, use_ctx_path=True)
+        self.setup_env(self.loader, use_ctx_path=False)
         self._executor = self.build_executor(self.loader)
 
     def setup_env(self, loader, use_ctx_path=True):

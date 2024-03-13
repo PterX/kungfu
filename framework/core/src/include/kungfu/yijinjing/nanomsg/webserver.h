@@ -84,13 +84,16 @@ public:
   // the first vector is used for callback function receive data, the second vector is used for cache the data have
   // received when call get_data(), will return the
   std::vector<std::string> data_received_;       // used for receive data
-  std::vector<std::string> data_received_cache_; // cache data_received
+  //std::vector<std::string> data_received_cache_; // cache data_received, two buffer or just simple lock？
   stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size = 32768);
   ~stream();
   void start_recv();
   void stream_recv_cb();
   void stream_send(const std::string &data);
+  int  stream_send(const char* data, const int len);
   uint64_t get_stream_id();
+  uint64_t get_opposite_stream_id();
+  std::vector<std::string> get_and_clear_data();
 };
 DECLARE_PTR(stream)
 
@@ -184,7 +187,8 @@ public:
   stream_manage();
   ~stream_manage();
   int publish(uint64_t stream_id, const std::string &msg);
-  std::vector<std::string> &get_notice(uint64_t stream_id);
+  int publish(uint64_t stream_id, const char* data, const int len);
+  std::vector<std::string> get_notice(uint64_t stream_id);
   void clear_notice(uint64_t stream_id);
   stream_ptr get_stream_by_id(uint64_t stream_id);
   std::unordered_map<uint64_t, stream_ptr> &get_all_streams();

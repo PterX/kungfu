@@ -121,7 +121,7 @@ void Trader::on_asset_sync() {
   if (state_ == BrokerState::Ready) {
     req_account();
     disable_sync_account();
-  }
+}
 }
 
 void Trader::on_position_sync() {

@@ -145,10 +145,10 @@ DECLARE_PTR(io_device_network)
 
 class io_device_network_server : public io_device_network {
 public:
-  io_device_network_server(const std::string &address, const std::vector<std::string> &paths)
+  io_device_network_server(const std::string &address, const std::vector<std::string> &paths, bool is_text_mode = true)
       : http_server_(std::make_shared<kungfu::yijinjing::webserver::http_server>(address)) {
     for (auto path : paths) {
-      http_server_->add_websocket(stream_manager_, path, true);
+      http_server_->add_websocket(stream_manager_, path, is_text_mode);
     }
   };
   ~io_device_network_server(){};

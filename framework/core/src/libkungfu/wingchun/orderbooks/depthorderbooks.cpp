@@ -2,28 +2,32 @@
 
 namespace kungfu::wingchun::orderbook {
 
-int64_t DepthOrderbook::getTradingDayStart(int64_t data_time) {
-  int64_t end_offset = 16 * time_unit::NANOSECONDS_PER_HOUR;
+int64_t DepthOrderbook::get_next_trading_day_start(int64_t data_time) {
+  int64_t end_offset = 16 * kungfu::yijinjing::time_unit::NANOSECONDS_PER_HOUR;
   int64_t trading_day_start =
-      data_time - ((data_time + time_unit::UTC_OFFSET) % time_unit::NANOSECONDS_PER_DAY) + end_offset;
+      data_time - ((data_time + kungfu::yijinjing::time_unit::UTC_OFFSET) % kungfu::yijinjing::time_unit::NANOSECONDS_PER_DAY) + end_offset;
   if (trading_day_start < data_time) {
-    trading_day_start += time_unit::NANOSECONDS_PER_DAY;
+    trading_day_start += kungfu::yijinjing::time_unit::NANOSECONDS_PER_DAY;
   }
-  trading_day_start -= time_unit::NANOSECONDS_PER_DAY;
   return trading_day_start;
 }
 
-bool DepthOrderbook::is_new_day(int64_t data_time) {
-  int64_t new_trading_day_start = getTradingDayStart(data_time);
-  if (tradingday_start == 0 || new_trading_day_start > tradingday_start) {
+bool DepthOrderbook::is_new_trading_day(int64_t data_time) {
+  if (next_trading_day_start_ <= data_time) {
     SPDLOG_INFO("-- 触发跨日 --");
-    tradingday_start = new_trading_day_start;
     return true;
   }
   return false;
 }
 
-void DepthOrderbook::on_entrust(const Entrust &entrust) {
+void DepthOrderbook::clear_book() {
+  bid_side_.levels_.clear();
+  ask_side_.levels_.clear();
+  bid_side_.map_seq_id_2_level_.clear();
+  ask_side_.map_seq_id_2_level_.clear();
+}
+
+void DepthOrderbook::on_entrust(const longfist::types::Entrust &entrust) {
   std::map<double, Level> &bid_map = bid_side_.levels_;
   std::map<double, Level> &ask_map = ask_side_.levels_;
   std::unordered_map<int, Level> &bid_seq_id_map = bid_side_.map_seq_id_2_level_;
@@ -32,17 +36,18 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
   double price = entrust.price;
   double volume = entrust.volume;
   int64_t data_time = entrust.data_time;
-  Side entrust_side = entrust.side;
+  longfist::enums::Side entrust_side = entrust.side;
 
-  if (is_new_day(data_time)) {
-    bid_map.clear();
-    ask_map.clear();
-    bid_seq_id_map.clear();
-    ask_seq_id_map.clear();
+  if (next_trading_day_start_ == 0) {
+    next_trading_day_start_ = get_next_trading_day_start(data_time);
+  }
+  if (is_new_trading_day(data_time)) {
+    clear_book();
+    next_trading_day_start_ = get_next_trading_day_start(data_time);
   }
 
   SPDLOG_DEBUG("Entrust : {}", entrust.to_string());
-  if (entrust_side == Side::Buy) {
+  if (entrust_side == longfist::enums::Side::Buy) {
     bid_seq_id_map[entrust.seq] = Level(price, volume, data_time);
     if (bid_map.find(price) != bid_map.end()) {
       bid_map.at(price).volume += volume;
@@ -83,7 +88,7 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
   }
 }
 
-void DepthOrderbook::on_transaction(const Transaction &transaction) {
+void DepthOrderbook::on_transaction(const longfist::types::Transaction &transaction) {
   std::map<double, Level> &bid_map = bid_side_.levels_;
   std::map<double, Level> &ask_map = ask_side_.levels_;
   std::unordered_map<int, Level> &bid_seq_id_map = bid_side_.map_seq_id_2_level_;
@@ -92,20 +97,21 @@ void DepthOrderbook::on_transaction(const Transaction &transaction) {
   double price = transaction.price;
   double volume = transaction.volume;
   int64_t data_time = transaction.data_time;
-  ExecType exec_type = transaction.exec_type;
-  Side transaction_side = transaction.side;
-  if (is_new_day(data_time)) {
-    bid_map.clear();
-    ask_map.clear();
-    bid_seq_id_map.clear();
-    ask_seq_id_map.clear();
+  longfist::enums::ExecType exec_type = transaction.exec_type;
+  longfist::enums::Side transaction_side = transaction.side;
+  if (next_trading_day_start_ == 0) {
+    next_trading_day_start_ = get_next_trading_day_start(data_time);
+  }
+  if (is_new_trading_day(data_time)) {
+    clear_book();
+    next_trading_day_start_ = get_next_trading_day_start(data_time);
   }
 
   SPDLOG_DEBUG("Transaction : {}", transaction.to_string());
-  if (exec_type != ExecType::Cancel) {
+  if (exec_type != longfist::enums::ExecType::Cancel) {
     return;
   }
-  if (transaction_side == Side::Buy) {
+  if (transaction_side == longfist::enums::Side::Buy) {
     if (bid_seq_id_map.find(transaction.bid_no) != bid_seq_id_map.end()) {
       double transaction_price = bid_seq_id_map[transaction.bid_no].price;
       if (bid_map.find(transaction_price) != bid_map.end()) {

@@ -295,6 +295,8 @@ Quote
 Entrust
 Transaction
 Tree
+Depth
+Tick
 InstrumentKey
 CustomSubscribe
 BrokerStateUpdate
@@ -354,6 +356,8 @@ Snapshot
 Entrust
 Transaction
 Tree
+Tick
+Depth
 SubscribeDataType
 Stock
 Future

@@ -86,6 +86,8 @@ on_quote
 on_entrust
 on_transaction
 on_tree
+on_depth
+on_tick
 on_synthetic_data
 on_deregister
 on_broker_state_change

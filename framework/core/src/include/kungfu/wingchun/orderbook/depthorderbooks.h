@@ -68,7 +68,11 @@ class DepthOrderbook : public Orderbook<BidirectionMapOrderbookSide, Bidirection
 public:
   void on_entrust(const longfist::types::Entrust &entrust);
   void on_transaction(const longfist::types::Transaction &transaction);
+  int64_t getTradingDayStart(int64_t data_time);
   bool is_new_day(int64_t data_time);
+
+protected:
+  int64_t tradingday_start;
 };
 
 using DepthOrderbooks = OrderbooksImpl<DepthOrderbook>;

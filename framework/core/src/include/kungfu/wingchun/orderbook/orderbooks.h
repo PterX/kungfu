@@ -38,7 +38,8 @@ public:
 
   virtual ~Orderbooks() = default;
 
-  void on_start(const rx::connectable_observable<event_ptr> &events); // todo 函数级别可能需要调整 可以利用友元函数处理
+  void on_start(const rx::connectable_observable<event_ptr> &events);
+
 protected:
   virtual void on_entrust(const longfist::types::Entrust &entrust) = 0;
   virtual void on_transaction(const longfist::types::Transaction &transaction) = 0;
@@ -119,14 +120,9 @@ public:
 
   void on_quote(const longfist::types::Quote &quote){};
 
-  int64_t getTradingDayStart(int64_t data_time) {};
-
-  bool is_new_day(int64_t data_time) {};
-
 protected:
   BS bid_side_;
   AS ask_side_;
-  int64_t tradingday_start;
 };
 
 } // namespace kungfu::wingchun::orderbook

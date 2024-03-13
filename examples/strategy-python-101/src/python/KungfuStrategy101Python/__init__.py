@@ -19,9 +19,6 @@ def pre_start(context):
     # context.subscribe_operator("bar", "123") # 需从算子入口添加bar插件, 并定义bar的id为123
     context.throttle_insert_order = {}
 
-    context.depth_orderbook = wc.DepthOrderbooks()
-    context.attach_orderbooks(context.depth_orderbook)
-
 
 def post_start(context):
     account_uid = context.get_account_uid(source, account)
@@ -115,36 +112,21 @@ def on_broker_state_change(context, state, location):
     context.log.warn(f"on_broker_state_change {state} {location}")
 
 
-def on_entrust(context, entrust, location, dest):
-    bids = context.depth_orderbook.get_bids("300059", "SZE")
-    for level in bids:
-        context.log.info(f"测试 Buy: {level}")
-    for level in context.depth_orderbook.get_asks("300059", "SZE"):
-        context.log.info(f"测试 Sell {level}")
-        
-def on_transaction(context, transaction, location, dest):
-    bids = context.depth_orderbook.get_bids("300059", "SZE")
-    for level in bids:
-        context.log.info(f"测试 Buy: {level}")
-    for level in context.depth_orderbook.get_asks("300059", "SZE"):
-        context.log.info(f"测试 Sell {level}")
+# 当检测到本地持仓与远程持仓不一致时触发
+def on_position_sync_reset(context, new_book, old_book):
+    context.log.warn(f"on_position_sync_reset")
+    context.log.warn(f"new_book long_positions")
+    for key in new_book.long_positions:
+        pos = new_book.long_positions[key]
+        context.log.log(f"new book, long pos: {pos}")
+    for key in new_book.short_positons:
+        pos = new_book.short_positons[key]
+        context.log.log(f"new book, short pos: {pos}")
 
-
-# # 当检测到本地持仓与远程持仓不一致时触发
-# def on_position_sync_reset(context, new_book, old_book):
-#     context.log.warn(f"on_position_sync_reset")
-#     context.log.warn(f"new_book long_positions")
-#     for key in new_book.long_positions:
-#         pos = new_book.long_positions[key]
-#         context.log.log(f"new book, long pos: {pos}")
-#     for key in new_book.short_positons:
-#         pos = new_book.short_positons[key]
-#         context.log.log(f"new book, short pos: {pos}")
-
-#     context.log.warn(f"old_book old_poistions")
-#     for key in old_book.long_positions:
-#         pos = new_book.long_positions[key]
-#         context.log.log(f"new book, long pos: {pos}")
-#     for key in new_book.short_positons:
-#         pos = new_book.short_positons[key]
-#         context.log.log(f"new book, short pos: {pos}")
+    context.log.warn(f"old_book old_poistions")
+    for key in old_book.long_positions:
+        pos = new_book.long_positions[key]
+        context.log.log(f"new book, long pos: {pos}")
+    for key in new_book.short_positons:
+        pos = new_book.short_positons[key]
+        context.log.log(f"new book, short pos: {pos}")

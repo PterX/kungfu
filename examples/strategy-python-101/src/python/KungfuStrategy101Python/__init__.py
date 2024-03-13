@@ -60,7 +60,7 @@ def on_synthetic_data(context, synthetic_dataa, location, dest):
 
 
 def on_order(context, order, location, dest):
-    # context.log.info(f"on_order: {order}, from {location} to {dest}")
+    context.log.info(f"on_order: {order}, from {location} to {dest}")
 
     if not wc.utils.is_final_status(order.status):
         context.cancel_order(order.order_id)

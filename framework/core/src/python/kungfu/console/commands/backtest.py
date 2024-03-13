@@ -1,14 +1,16 @@
 import click
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.serverless.backtest import Backtest
-
+import logging
 
 backtest_command_context = kfc.pass_context("backtest_client")
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 @kfc.group(cls=PrioritizedCommandGroup, help_priority=2)
 @kfc.pass_context()
 def backtest(ctx):
+    ctx.logger = logging.getLogger("backtest")
     ctx.backtest_client = Backtest(ctx.stage)
     pass
 
@@ -49,11 +51,11 @@ def submit(ctx, file_path, begin_time, end_time, data_level):
 @backtest_command_context
 def datarange(ctx):
     categories = ctx.backtest_client.check_data_range()
-    print("Support Daterange for L2_Quote, L2_Order, L2_Tick: ")
+    ("Support Daterange for L2_Quote, L2_Order, L2_Tick: ")
     for key in categories.keys():
-        print(f"{key}")
+        logging.info(f"{key}")
         for item in categories[key]:
-            print(
+            logging.info(
                 f'  {item["security_tyep"]} {item["exchange"]} start {item["start_time"]} end {item["end_time"]}'
             )
-        print("\n")
+        logging.info("\n")

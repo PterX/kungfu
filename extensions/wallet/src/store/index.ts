@@ -1,4 +1,4 @@
-import { ref, watchEffect, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { defineStore } from 'pinia';
 import { Wallet } from '../utils/Wallet';
 import { useAuthingCredential } from '@kungfu-trader/kfx-ui-login-authing/src/utils/externalUtils';
@@ -19,6 +19,8 @@ export const useWalletStore = defineStore('wallet', () => {
     return null;
   });
 
+  const credential = computed(() => getCurrentCredential());
+
   const setWallet = async (credential: Credential, force = false) => {
     if (force && currentWallet.value) return;
     if (!credential.access_token) return;
@@ -36,16 +38,20 @@ export const useWalletStore = defineStore('wallet', () => {
       });
   };
 
-  watchEffect(() => {
-    if (currentWallet.value) return;
-
-    const credential = getCurrentCredential();
-    if (credential) {
-      setWallet(credential, true);
-    } else {
-      currentWallet.value = null;
-    }
-  });
+  watch(
+    () => credential.value,
+    (newVal) => {
+      if (newVal) {
+        if (currentWallet.value) return;
+        setWallet(newVal, true);
+      } else {
+        currentWallet.value = null;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const refreshAll = () => {
     if (!currentWallet.value) return Promise.resolve();

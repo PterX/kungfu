@@ -21,7 +21,6 @@ import {
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import { dealOrderPlaceVNode, dealStockOffset } from './utils';
-import { dealOrderPlaceVNode, dealStockOffset } from './utils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   makeOrderByOrderInput,
@@ -64,7 +63,6 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from '../pos/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -132,7 +130,6 @@ const autoFillInstrument = ref<boolean>(false);
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 
-const TIP_EXTRA_COL = 1;
 const { triggerOrderBook } = useTriggerMakeOrder();
 const {
   showAmountOrPosition,

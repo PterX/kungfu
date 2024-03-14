@@ -51,7 +51,6 @@ import {
   initFormStateByConfig,
   enableCustomRadioType,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
@@ -84,12 +83,9 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const {
-  instrumentKeyAccountsMap,
-  uiExtConfigs,
-  globalSetting,
-  instrumentsMap,
-} = storeToRefs(useGlobalStore());
+const { instrumentKeyAccountsMap, globalSetting, instrumentsMap } = storeToRefs(
+  useGlobalStore(),
+);
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
@@ -134,7 +130,6 @@ const autoFillInstrument = ref<boolean>(false);
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 
-const TIP_EXTRA_COL = 1;
 const { triggerOrderBook } = useTriggerMakeOrder();
 const {
   showAmountOrPosition,
@@ -267,15 +262,6 @@ const makeOrderData = computed(() => {
     contract_id: contract_id || '',
   };
   return makeOrderInput;
-});
-
-const availTradingTaskExtensionList = computed(() => {
-  return (
-    getExtConfigList(
-      extConfigs.value,
-      'strategy',
-    ) as KungfuApi.KfStrategyExtConfig[]
-  ).filter((item) => uiExtConfigs.value[item.key]?.position === 'make_order');
 });
 
 const getResolvedOffset = (
@@ -1321,15 +1307,6 @@ watch(
 
       &:first-child {
         margin-top: 8px;
-      }
-    }
-
-    .make-order-algorithm__wrap {
-      width: 90%;
-      margin: 40px auto 8px;
-
-      .make-order-algorithm-btns {
-        margin: 8px 0 0 8px;
       }
     }
 

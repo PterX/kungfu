@@ -20,4 +20,6 @@ Quote = 401
 Entrust = 402
 Transaction = 403
 Tree = 404
+Depth = 405
+Tick = 406
 SyntheticData = 601

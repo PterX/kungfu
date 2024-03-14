@@ -5,10 +5,18 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch, onBeforeUnmount } from 'vue';
+import {
+  onMounted,
+  ref,
+  watch,
+  onBeforeUnmount,
+  getCurrentInstance,
+} from 'vue';
 import * as echarts from 'echarts';
+import { nextTick } from 'vue';
 
 const props = defineProps<{
+  id?: string;
   option: echarts.EChartsCoreOption;
 }>();
 
@@ -16,7 +24,8 @@ defineEmits<{
   (e: 'update:option', option: echarts.EChartsOption): void;
 }>();
 
-const id = ref(new Date().getTime().toString());
+const app = getCurrentInstance();
+const id = ref(props.id || app?.uid.toString() || Date.now().toString());
 const chart = ref();
 const chartWrapper = ref<HTMLElement>();
 let myChart: echarts.ECharts | null = null;
@@ -55,13 +64,16 @@ watch(
     deep: true,
   },
 );
-// watchEffect(() => {
-//   console.log('option', props.option);
-// });
 
 onMounted(() => {
-  initChart();
-  initResizeEvent();
+  if (app && !id.value) {
+    id.value = app.uid.toString();
+  }
+
+  nextTick(() => {
+    initChart();
+    initResizeEvent();
+  });
 });
 
 function handleWrapperResize() {

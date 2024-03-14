@@ -49,6 +49,7 @@ export default {
   export_all_transaction_data: '导出所有交易数据',
   export_instrument_whitelists: '导出标的白名单',
   open_inspect_tool: '打开诊断工具',
+  open_console_tool: '打开控制台',
 
   website: '官网',
   user_manual: '用户手册',

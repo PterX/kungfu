@@ -95,6 +95,9 @@ void master::register_app(const event_ptr &event) {
 
   auto request_data = event->data_as_string();
   Register register_data(request_data.c_str(), request_data.length());
+  if (not check_register(event->gen_time(), register_data)) {
+    return;
+  }
 
   auto app_location = location::make_shared(register_data, home->locator);
   if (is_location_live(app_location->uid)) {

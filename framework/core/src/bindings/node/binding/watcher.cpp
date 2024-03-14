@@ -483,8 +483,6 @@ void Watcher::on_start() {
   }
 
   events_ | is(Channel::tag) | $$(InspectChannel(event->gen_time(), event->data<Channel>()));
-  //  events_ | is(Register::tag) | $$(OnRegister(event->gen_time(), event->data<Register>()));
-  //  events_ | is(Deregister::tag) | $$(OnDeregister(event->gen_time(), event->data<Deregister>()));
   events_ | is(BrokerStateUpdate::tag) |
       $$(UpdateBrokerOperatorState<BrokerStateUpdate>(event->source(), event->dest(),
                                                       event->data<BrokerStateUpdate>()));
@@ -586,15 +584,15 @@ void Watcher::SyncTradingData() {
 }
 
 void Watcher::SyncAppStates() {
-  for (auto &s : location_uid_states_map_) {
+  for (auto &s : broker_states_map_) {
     auto app_state = Napi::Number::New(app_states_ref_.Env(), s.second);
     app_states_ref_.Set(format(s.first), app_state);
   }
-  location_uid_states_map_.clear();
+  broker_states_map_.clear();
 }
 
 void Watcher::SyncStrategyStates() {
-  for (auto &s : location_uid_strategy_states_map_) {
+  for (auto &s : strategy_states_map_) {
     auto strategy_state_obj = Napi::Object::New(strategy_states_ref_.Env());
     strategy_state_obj.Set("state", Napi::Number::New(strategy_states_ref_.Env(), int(s.second.state)));
     strategy_state_obj.Set("update_time", Napi::Number::New(strategy_states_ref_.Env(), s.second.update_time));
@@ -604,7 +602,7 @@ void Watcher::SyncStrategyStates() {
     strategy_state_obj.Set("value", Napi::String::New(strategy_states_ref_.Env(), s.second.value));
     strategy_states_ref_.Set(format(s.first), strategy_state_obj);
   }
-  location_uid_strategy_states_map_.clear();
+  strategy_states_map_.clear();
 }
 
 void Watcher::SyncEventCache() {
@@ -673,12 +671,12 @@ void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_loc
   //  events_ | is(Quote::tag) | from(md_location->uid) | first() |
   //      $(
   //          [&, trigger_time, md_location](const event_ptr &event) {
-  //            location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
+  //            broker_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Ready));
   //            events_ | from(md_location->uid) | is(Quote::tag) |
   //                timeout(std::chrono::seconds(15), get_timer_usage_count()) |
   //                $(noop_event_handler(), [&, trigger_time, md_location](std::exception_ptr e) {
   //                  if (is_location_live(md_location->uid)) {
-  //                    location_uid_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
+  //                    broker_states_map_.insert_or_assign(md_location->uid, int(BrokerState::Idle));
   //                    MonitorMarketData(trigger_time, md_location);
   //                  }
   //                });
@@ -695,7 +693,7 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   auto app_location = get_location(app_uid);
   if (app_location->category == category::MD or app_location->category == category::TD or
       app_location->category == category::OPERATOR) {
-    location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
+    broker_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
 
   if (app_location->category == category::MD and app_location->mode == mode::LIVE) {
@@ -707,7 +705,7 @@ void Watcher::OnDeregister(int64_t trigger_time, const Deregister &deregister_da
   auto app_location = location::make_shared(deregister_data, get_locator());
   if (app_location->category == category::MD or app_location->category == category::TD or
       app_location->category == category::OPERATOR) {
-    location_uid_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
+    broker_states_map_.insert_or_assign(app_location->uid, int(BrokerState::Pending));
   }
 
   if (app_location->category == category::SYSTEM and app_location->group == "master" and
@@ -794,7 +792,7 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
 
 void Watcher::UpdateStrategyState(uint32_t strategy_uid, const StrategyStateUpdate &state) {
   auto app_location = get_location(strategy_uid);
-  location_uid_strategy_states_map_.insert_or_assign(app_location->uid, state);
+  strategy_states_map_.insert_or_assign(app_location->uid, state);
 }
 
 void Watcher::UpdateAsset(const event_ptr &event, uint32_t book_uid) {
@@ -823,7 +821,8 @@ void Watcher::UpdateBook(const event_ptr &event, const Quote &quote) {
 }
 
 bool Watcher::is_reactable(const event_ptr &event) {
-  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Tree::tag) {
+  if (event->msg_type() == Transaction::tag or event->msg_type() == Entrust::tag or event->msg_type() == Tree::tag or
+      event->msg_type() == Tick::tag or event->msg_type() == Depth::tag) {
     return false;
   }
 

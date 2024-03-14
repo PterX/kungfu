@@ -39,10 +39,12 @@ jobs:
     uses: kungfu-trader/workflows/.github/workflows/.sync-release-page.yml@dev/v1/v1.2
     with:
       product: artifact-kungfu
+      cloudfront-id: E1FE73MM9VXU2T
       release-url: https://releases.libkungfu.cc
       repo: kungfu
       release-path: artifact-kungfu
-      product-name: kungfu-core
+      product-name: kungfu
       lower-edge: 2.0.0
     secrets:
+      GITHUB_PUSH_TOKEN: ${{ secrets.KUNGFU_GITHUB_TOKEN }}
       AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}

@@ -376,6 +376,12 @@ export default defineComponent({
       });
     },
   },
+
+  unmounted() {
+    this.$globalBus.next({
+      tag: 'resize',
+    } as KfEvent.ResizeEvent);
+  },
 });
 </script>
 <style lang="less">

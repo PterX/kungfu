@@ -20,11 +20,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
-import {
-  dealOrderPlaceVNode,
-  dealStockOffset,
-  transformOrderInputToExtConfigForm,
-} from './utils';
+import { dealOrderPlaceVNode, dealStockOffset } from './utils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   makeOrderByOrderInput,
@@ -55,7 +51,6 @@ import {
   initFormStateByConfig,
   enableCustomRadioType,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
@@ -68,9 +63,8 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
-import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from '../pos/utils';
-import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
 import {
@@ -89,13 +83,9 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const {
-  instrumentKeyAccountsMap,
-  uiExtConfigs,
-  globalSetting,
-  instrumentsMap,
-} = storeToRefs(useGlobalStore());
-const { isLanguageKeyAvailable } = useLanguage();
+const { instrumentKeyAccountsMap, globalSetting, instrumentsMap } = storeToRefs(
+  useGlobalStore(),
+);
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
@@ -260,15 +250,6 @@ const makeOrderData = computed(() => {
     contract_id: contract_id || '',
   };
   return makeOrderInput;
-});
-
-const availTradingTaskExtensionList = computed(() => {
-  return (
-    getExtConfigList(
-      extConfigs.value,
-      'strategy',
-    ) as KungfuApi.KfStrategyExtConfig[]
-  ).filter((item) => uiExtConfigs.value[item.key]?.position === 'make_order');
 });
 
 const getResolvedOffset = (
@@ -1022,24 +1003,6 @@ function closeModalConditions(
   }
 }
 
-const { handleOpenSetTradingTaskModal } = useTradingTask();
-async function handleOpenTradingTaskConfigModal(
-  kfExtConfig: KungfuApi.KfStrategyExtConfig,
-) {
-  try {
-    const taskInitValue = transformOrderInputToExtConfigForm(
-      formState.value,
-      configSettings.value,
-      kfExtConfig.settings,
-    );
-    handleOpenSetTradingTaskModal('add', kfExtConfig.key, taskInitValue);
-  } catch (e) {
-    if ((<Error>e).message) {
-      error((<Error>e).message);
-    }
-  }
-}
-
 const dealStringToNumber = (tar: string) =>
   Number.isNaN(Number(tar)) ? 0 : Number(tar);
 
@@ -1199,31 +1162,6 @@ watch(
                   }}
                 </a-col>
               </div>
-              <a-card
-                v-if="availTradingTaskExtensionList.length"
-                tabindex="-1"
-                class="make-order-algorithm__wrap"
-                :title="$t('tradingConfig.algorithm')"
-                size="small"
-                :bodyStyle="{
-                  padding: '0 8px 8px 0',
-                  height: 'fit-content',
-                }"
-              >
-                <a-button
-                  tabindex="-1"
-                  class="make-order-algorithm-btns"
-                  v-for="item in availTradingTaskExtensionList"
-                  @click="handleOpenTradingTaskConfigModal(item)"
-                  :key="item.key"
-                >
-                  {{
-                    isLanguageKeyAvailable(item.name)
-                      ? $t(item.name)
-                      : item.name
-                  }}
-                </a-button>
-              </a-card>
             </template>
           </div>
         </div>
@@ -1350,15 +1288,6 @@ watch(
 
       &:first-child {
         margin-top: 8px;
-      }
-    }
-
-    .make-order-algorithm__wrap {
-      width: 90%;
-      margin: 40px auto 8px;
-
-      .make-order-algorithm-btns {
-        margin: 8px 0 0 8px;
       }
     }
 

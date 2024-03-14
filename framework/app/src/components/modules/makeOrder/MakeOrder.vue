@@ -21,6 +21,7 @@ import {
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import { dealOrderPlaceVNode, dealStockOffset } from './utils';
+import { dealOrderPlaceVNode, dealStockOffset } from './utils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   makeOrderByOrderInput,
@@ -63,6 +64,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from '../pos/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -130,6 +132,7 @@ const autoFillInstrument = ref<boolean>(false);
 const { subscribeAllInstrumentByAppStates } = useInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 
+const TIP_EXTRA_COL = 1;
 const { triggerOrderBook } = useTriggerMakeOrder();
 const {
   showAmountOrPosition,
@@ -146,6 +149,18 @@ const {
   isAccountOrInstrumentConfirmed,
 } = useMakeOrderInfo(formState, isMarginMakeOrder);
 useMakeOrderSubscribe(formState);
+
+const availablePosOrAmount = computed(() => {
+  return showAmountOrPosition.value === 'amount'
+    ? currentAvailMoney.value
+    : currentAvailPosVolume.value;
+});
+
+const leftPosOrAmount = computed(() => {
+  return showAmountOrPosition.value === 'amount'
+    ? currentResidueMoney.value
+    : currentResiduePosVolume.value;
+});
 
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
@@ -1094,6 +1109,7 @@ watch(
               :rules="rules"
             ></KfConfigSettingsForm>
             <div class="percent-group__wrap">
+              <a-col :span="LABEL_COL - 2"></a-col>
               <a-col :span="LABEL_COL + WRAPPER_COL">
                 <a-button
                   v-for="percent in percentList"
@@ -1115,51 +1131,52 @@ watch(
             </div>
             <template v-if="isAccountOrInstrumentConfirmed">
               <div class="make-order-position" tabindex="-1">
-                <a-col :span="LABEL_COL" class="position-label">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? $t('可用资金')
-                      : $t('可用仓位')
-                  }}
-                </a-col>
-                <a-col :span="WRAPPER_COL" class="position-value">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? currentAvailMoney
-                      : currentAvailPosVolume
-                  }}
-                </a-col>
-              </div>
-              <div class="make-order-position" tabindex="-1">
-                <a-col :span="LABEL_COL" class="position-label">
-                  {{
-                    isMarginMakeOrder
-                      ? $t('交易金额')
-                      : isShotable(instrumentResolved?.instrumentType)
-                      ? formState.offset === OffsetEnum.Open
-                        ? t('保证金占用')
-                        : t('保证金返还')
-                      : $t('交易金额')
-                  }}
-                </a-col>
-                <a-col :span="WRAPPER_COL" class="position-value">
-                  {{ currentTradeAmount }}
+                <a-col :span="LABEL_COL - 2"></a-col>
+                <a-col :span="WRAPPER_COL">
+                  <span class="position-label">
+                    {{
+                      showAmountOrPosition === 'amount'
+                        ? $t('可用资金')
+                        : $t('可用仓位')
+                    }}
+                  </span>
+                  <span class="position-value">
+                    {{ availablePosOrAmount }}
+                  </span>
                 </a-col>
               </div>
               <div class="make-order-position" tabindex="-1">
-                <a-col :span="LABEL_COL" class="position-label">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? $t('剩余资金')
-                      : $t('剩余仓位')
-                  }}
+                <a-col :span="LABEL_COL - 2"></a-col>
+                <a-col :span="WRAPPER_COL">
+                  <span class="position-label">
+                    {{
+                      isMarginMakeOrder
+                        ? $t('交易金额')
+                        : isShotable(instrumentResolved?.instrumentType)
+                        ? formState.offset === OffsetEnum.Open
+                          ? t('保证金占用')
+                          : t('保证金返还')
+                        : $t('交易金额')
+                    }}
+                  </span>
+                  <span class="position-value">
+                    {{ currentTradeAmount }}
+                  </span>
                 </a-col>
-                <a-col :span="WRAPPER_COL" class="position-value">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? currentResidueMoney
-                      : currentResiduePosVolume
-                  }}
+              </div>
+              <div class="make-order-position" tabindex="-1">
+                <a-col :span="LABEL_COL - 2"></a-col>
+                <a-col :span="WRAPPER_COL">
+                  <span class="position-label">
+                    {{
+                      showAmountOrPosition === 'amount'
+                        ? $t('剩余资金')
+                        : $t('剩余仓位')
+                    }}
+                  </span>
+                  <span class="position-value">
+                    {{ leftPosOrAmount }}
+                  </span>
                 </a-col>
               </div>
             </template>
@@ -1251,6 +1268,8 @@ watch(
         padding-right: 16px;
         padding-left: 8px;
         box-sizing: border-box;
+        display: flex;
+        margin-bottom: 12px;
 
         .ant-col {
           margin: auto;
@@ -1273,17 +1292,20 @@ watch(
       display: flex;
       line-height: 1;
       font-size: 12px;
-      color: @text-color-secondary;
-      font-weight: bold;
-      margin: 8px 0px;
+      color: @text-color;
+      margin: 10px 0px;
 
       .position-label {
         padding-right: 8px;
-        text-align: right;
+        text-align: left;
       }
 
       .position-value {
         font-weight: bold;
+
+        &.dash {
+          color: @text-color-secondary;
+        }
       }
 
       &:first-child {

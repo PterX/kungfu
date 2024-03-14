@@ -5,7 +5,9 @@ namespace kungfu::wingchun::orderbook {
 int64_t DepthOrderbook::get_next_trading_day_start(int64_t data_time) {
   int64_t end_offset = 16 * kungfu::yijinjing::time_unit::NANOSECONDS_PER_HOUR;
   int64_t trading_day_start =
-      data_time - ((data_time + kungfu::yijinjing::time_unit::UTC_OFFSET) % kungfu::yijinjing::time_unit::NANOSECONDS_PER_DAY) + end_offset;
+      data_time -
+      ((data_time + kungfu::yijinjing::time_unit::UTC_OFFSET) % kungfu::yijinjing::time_unit::NANOSECONDS_PER_DAY) +
+      end_offset;
   if (trading_day_start < data_time) {
     trading_day_start += kungfu::yijinjing::time_unit::NANOSECONDS_PER_DAY;
   }
@@ -27,6 +29,16 @@ void DepthOrderbook::clear_book() {
   ask_side_.map_seq_id_2_level_.clear();
 }
 
+void DepthOrderbook::deal_trading_day(int64_t data_time) {
+  if (next_trading_day_start_ == 0) {
+    next_trading_day_start_ = get_next_trading_day_start(data_time);
+  }
+  if (is_new_trading_day(data_time)) {
+    clear_book();
+    next_trading_day_start_ = get_next_trading_day_start(data_time);
+  }
+}
+
 void DepthOrderbook::on_entrust(const longfist::types::Entrust &entrust) {
   std::map<double, Level> &bid_map = bid_side_.levels_;
   std::map<double, Level> &ask_map = ask_side_.levels_;
@@ -37,15 +49,7 @@ void DepthOrderbook::on_entrust(const longfist::types::Entrust &entrust) {
   double volume = entrust.volume;
   int64_t data_time = entrust.data_time;
   longfist::enums::Side entrust_side = entrust.side;
-
-  if (next_trading_day_start_ == 0) {
-    next_trading_day_start_ = get_next_trading_day_start(data_time);
-  }
-  if (is_new_trading_day(data_time)) {
-    clear_book();
-    next_trading_day_start_ = get_next_trading_day_start(data_time);
-  }
-
+  deal_trading_day(data_time);
   SPDLOG_DEBUG("Entrust : {}", entrust.to_string());
   if (entrust_side == longfist::enums::Side::Buy) {
     bid_seq_id_map[entrust.seq] = Level(price, volume, data_time);
@@ -99,14 +103,7 @@ void DepthOrderbook::on_transaction(const longfist::types::Transaction &transact
   int64_t data_time = transaction.data_time;
   longfist::enums::ExecType exec_type = transaction.exec_type;
   longfist::enums::Side transaction_side = transaction.side;
-  if (next_trading_day_start_ == 0) {
-    next_trading_day_start_ = get_next_trading_day_start(data_time);
-  }
-  if (is_new_trading_day(data_time)) {
-    clear_book();
-    next_trading_day_start_ = get_next_trading_day_start(data_time);
-  }
-
+  deal_trading_day(data_time);
   SPDLOG_DEBUG("Transaction : {}", transaction.to_string());
   if (exec_type != longfist::enums::ExecType::Cancel) {
     return;

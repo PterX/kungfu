@@ -19,7 +19,8 @@ public:
     typedef ptrdiff_t difference_type;
     typedef std::forward_iterator_tag iterator_category;
 
-    explicit iterator(Container::const_iterator iter, Container::const_reverse_iterator reiter, longfist::enums::Side side)
+    explicit iterator(Container::const_iterator iter, Container::const_reverse_iterator reiter,
+                      longfist::enums::Side side)
         : iter_(iter), reiter_(reiter), side_(side) {}
 
     reference operator*() const { return is_bid() ? reiter_->second : iter_->second; }
@@ -69,8 +70,8 @@ public:
 private:
   int64_t get_next_trading_day_start(int64_t data_time);
   bool is_new_trading_day(int64_t data_time);
+  void deal_trading_day(int64_t data_time);
   void clear_book();
-
   int64_t next_trading_day_start_;
 };
 

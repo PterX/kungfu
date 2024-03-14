@@ -44,8 +44,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(HistoryTrade),                     // 304
     TYPE_PAIR(RequestHistoryOrderError),         // 305
     TYPE_PAIR(RequestHistoryTradeError),         // 306
-    TYPE_PAIR(RequestRemoteData),                // 307
-    TYPE_PAIR(RemoteDataEnd),                    // 308
     TYPE_PAIR(AssetRequest),                     // 351
     TYPE_PAIR(PositionRequest),                  // 352
     TYPE_PAIR(AssetSync),                        // 353
@@ -99,11 +97,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(RequestWriteToBand),               // 10307
     TYPE_PAIR(Band),                             // 10308
     TYPE_PAIR(RequestReadFromOthers),            // 10309
-    TYPE_PAIR(RemoteRequestReadFrom),            // 10310
-    TYPE_PAIR(RemoteRequestReadFromPublic),      // 10311
-    TYPE_PAIR(RemoteRequestWriteTo),             // 10312
-    TYPE_PAIR(RemoteRequestConnect),             // 10313
-    TYPE_PAIR(RemoteConnectInfo),                // 10314
     TYPE_PAIR(ResetBookRequest),                 // 10451
     TYPE_PAIR(MirrorPositionsRequest),           // 10452
     TYPE_PAIR(KeepPositionsRequest),             // 10453
@@ -144,8 +137,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(HistoryTrade),                                          // 304
     TYPE_PAIR(RequestHistoryOrderError),                              // 305
     TYPE_PAIR(RequestHistoryTradeError),                              // 306
-    TYPE_PAIR(RequestRemoteData),                                     // 307
-    TYPE_PAIR(RemoteDataEnd),                                         // 308
     TYPE_PAIR(Quote),                                                 // 401
     TYPE_PAIR(Entrust),                                               // 402
     TYPE_PAIR(Transaction),                                           // 403
@@ -178,11 +169,6 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(RequestWriteToBand),                                    // 10307
     TYPE_PAIR(Band),                                                  // 10308
     TYPE_PAIR(RequestReadFromOthers),                                 // 10309
-    TYPE_PAIR(RemoteRequestReadFrom),                                 // 10310
-    TYPE_PAIR(RemoteRequestReadFromPublic),                           // 10311
-    TYPE_PAIR(RemoteRequestWriteTo),                                  // 10312
-    TYPE_PAIR(RemoteRequestConnect),                                  // 10313
-    TYPE_PAIR(RemoteConnectInfo),                                     // 10314
     TYPE_PAIR(TimeRequest),                                           // 10501
     TYPE_PAIR(TimeReset),                                             // 10502
     TYPE_PAIR(TradingDay),                                            // 10503

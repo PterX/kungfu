@@ -9,6 +9,24 @@ using namespace kungfu::yijinjing;
 using namespace longfist::types;
 using namespace longfist::enums;
 
+void order_from_order_trigger(const OrderTrigger &trigger, Order &order) {
+  order.order_id = trigger.trigger_id;
+  order.instrument_id = trigger.instrument_id;       // 合约ID
+  order.exchange_id = trigger.exchange_id;           // 交易所ID
+  order.instrument_type = trigger.instrument_type;   // 合约类型
+  order.limit_price = trigger.limit_price;           // 价格
+  order.frozen_price = trigger.frozen_price;         // 冻结价格, 市价单冻结价格为0
+  order.volume = trigger.volume;                     // 数量
+  order.is_swap = trigger.is_swap;                   // 互换单
+  order.side = trigger.side;                         // 买卖方向
+  order.offset = trigger.offset;                     // 开平方向
+  order.hedge_flag = trigger.hedge_flag;             // 投机套保标识
+  order.price_type = trigger.price_type;             // 价格类型
+  order.volume_condition = trigger.volume_condition; // 成交量类型
+  order.time_condition = trigger.time_condition;     // 成交时间类型
+  order.volume_left = order.volume;
+}
+
 TraderSim::TraderSim(broker::BrokerVendor &vendor) : Trader(vendor) {
   KUNGFU_SETUP_LOG();
   SPDLOG_DEBUG("arguments: {}", get_vendor().get_arguments());
@@ -50,6 +68,7 @@ bool TraderSim::insert_order(const event_ptr &event) {
     auto submitted_order = order;
     submitted_order.update_time = time::now_in_nano();
     submitted_order.status = OrderStatus::Submitted;
+    submitted_order.volume_left = submitted_order.volume;
     SPDLOG_DEBUG("Submitted Order: {}", submitted_order.to_string());
     try_write_to(submitted_order, event->source());
     generate_trade(order, event->source());
@@ -62,12 +81,30 @@ bool TraderSim::insert_order(const event_ptr &event) {
 
 bool TraderSim::cancel_order(const event_ptr &event) {
   const auto &action = event->data<OrderAction>();
+  if (not has_order(action.order_id)) {
+    OrderActionError error{};
+    error.error_id = -1;
+    error.error_msg = fmt::format("Order of order_id {} not exists", action.order_id).c_str();
+    error.order_action_id = action.order_action_id;
+    SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
+    try_write_to(error, event->source());
+    return false;
+  }
+
   if (action.action_flag == OrderActionFlag::Cancel) {
-    if (has_order(action.order_id)) {
-      auto &order_state = get_order(action.order_id);
-      order_state.data.status = OrderStatus::Cancelled;
-      try_write_to(order_state.data, order_state.dest);
-    }
+    cancel_order(action.order_id);
+  } else {
+    OrderTrigger trigger{};
+    trigger.trigger_id = action.order_action_id;
+    order_trigger_from_order(get_order(action.order_id).data, trigger);
+    trigger.insert_time = time::now_in_nano();
+    trigger.update_time = trigger.insert_time;
+    try_write_to(trigger, event->dest());
+
+    map_trigger_id_to_timer_id_.insert_or_assign(
+        trigger.trigger_id,
+        add_timer(time::now_in_nano() + int64_t(config_.trigger_delay * time_unit::NANOSECONDS_PER_SECOND),
+                  [&, trigger_id = trigger.trigger_id](const auto &) { trigger_start(trigger_id); }));
   }
   return true;
 }
@@ -208,12 +245,107 @@ bool TraderSim::verify_order(Order &order) {
   case MatchMode::PartialFillAndCancel:
   case MatchMode::PartialFill:
     order.volume_left -= min_vol;
+    if (order.volume_left == 0) {
+      order.status = OrderStatus::Filled;
+    }
     break;
   case MatchMode::Fill:
   case MatchMode::MultipleTransactions: {
     order.volume_left = 0;
   } break;
   }
+  return true;
+}
+
+void TraderSim::trigger_start(uint64_t trigger_id) {
+  if (not has_order_trigger(trigger_id)) {
+    SPDLOG_ERROR("no OrderTrigger of trigger_id: {}", trigger_id);
+    return;
+  }
+
+  auto &trigger_state = get_order_trigger(trigger_id);
+  trigger_state.data.status = OrderStatus::Filled;
+  trigger_state.update_time = time::now_in_nano();
+  try_write_to(trigger_state.data, trigger_state.dest);
+
+  if (trigger_state.data.action_flag == OrderTriggerFlag::TriggerCancel) {
+    cancel_order(trigger_state.data.order_id);
+  } else if (trigger_state.data.action_flag == OrderTriggerFlag::TriggerInsert) {
+    Order order{};
+    order_from_order_trigger(trigger_state.data, order);
+    order.external_order_id = std::to_string(order.order_id).c_str();
+    order.insert_time = now();
+    order.update_time = now();
+    order.status = OrderStatus::Pending;
+    try_write_to(order, location::PUBLIC);
+    SPDLOG_DEBUG("Order: {}", order.to_string());
+
+    if (verify_order(order)) {
+      auto submitted_order = order;
+      submitted_order.update_time = time::now_in_nano();
+      submitted_order.status = OrderStatus::Submitted;
+      submitted_order.volume_left = submitted_order.volume;
+      SPDLOG_DEBUG("Submitted Order: {}", submitted_order.to_string());
+      try_write_to(submitted_order, location::PUBLIC);
+      generate_trade(order, location::PUBLIC);
+    }
+    order.update_time = time::now_in_nano();
+    SPDLOG_DEBUG("Order: {}", order.to_string());
+    try_write_to(order, location::PUBLIC);
+  }
+}
+
+void TraderSim::cancel_order(uint64_t order_id) {
+  if (not has_order(order_id)) {
+    return;
+  }
+  auto &order_state = get_order(order_id);
+  order_state.data.status = OrderStatus::Cancelling;
+  order_state.data.update_time = time::now_in_nano();
+  SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
+  try_write_to(order_state.data, order_state.dest);
+  add_timer(time::now_in_nano() + int64_t(config_.cancel_delay * time_unit::NANOSECONDS_PER_SECOND), [&](const auto &) {
+    order_state.data.status = OrderStatus::Cancelled;
+    order_state.data.update_time = time::now_in_nano();
+    try_write_to(order_state.data, order_state.dest);
+  });
+}
+
+bool TraderSim::insert_order_trigger(const event_ptr &event) {
+  const OrderTriggerInput &trigger_input = event->data<OrderTriggerInput>();
+  SPDLOG_DEBUG("OrderTriggerInput: {}", trigger_input.to_string());
+  OrderTrigger trigger{};
+  order_trigger_from_input(trigger_input, trigger);
+  trigger.insert_time = time::now_in_nano();
+  trigger.update_time = trigger.insert_time;
+  SPDLOG_DEBUG("OrderTrigger: {}", trigger.to_string());
+  try_write_to(trigger, event->source());
+
+  map_trigger_id_to_timer_id_.insert_or_assign(
+      trigger.trigger_id,
+      add_timer(time::now_in_nano() + int64_t(config_.trigger_delay * time_unit::NANOSECONDS_PER_SECOND),
+                [&, trigger_id = trigger.trigger_id](const auto &) { trigger_start(trigger_id); }));
+}
+
+bool TraderSim::cancel_order_trigger(const event_ptr &event) {
+  auto &action = event->data<OrderTriggerAction>();
+  if (map_trigger_id_to_timer_id_.find(action.trigger_id) == map_trigger_id_to_timer_id_.end() or
+      not has_order_trigger(action.trigger_id)) {
+    OrderTriggerActionError error{};
+    error.trigger_id = action.trigger_id;
+    error.error_id = -1;
+    error.error_msg = fmt::format("OrderTrigger of trigger_id {} not exists", action.trigger_id).c_str();
+    error.order_trigger_action_id = action.order_trigger_action_id;
+    SPDLOG_DEBUG("OrderTriggerActionError: {}", error.to_string());
+    try_write_to(error, event->source());
+    return false;
+  }
+
+  clear_timer(map_trigger_id_to_timer_id_.at(action.trigger_id));
+  auto &trigger_state = get_order_trigger(action.trigger_id);
+  trigger_state.data.status = OrderStatus::Cancelled;
+  SPDLOG_DEBUG("OrderTrigger: {}", trigger_state.data.to_string());
+  try_write_to(trigger_state.data, trigger_state.dest);
   return true;
 }
 

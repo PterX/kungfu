@@ -110,8 +110,24 @@
             "name": "CppSim.asset",
             "type": "float",
             "required": true,
-            "default": 10000,
+            "default": 100000,
             "primary": false
+          },
+          {
+            "key": "cancel_delay",
+            "name": "撤单延迟",
+            "type": "float",
+            "required": true,
+            "primary": false,
+            "default": 1
+          },
+          {
+            "key": "trigger_delay",
+            "name": "预埋单触发延迟",
+            "type": "float",
+            "required": true,
+            "primary": false,
+            "default": 2
           },
           {
             "key": "position_list",

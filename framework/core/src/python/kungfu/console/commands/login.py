@@ -4,7 +4,6 @@ from kungfu.serverless.utils import create_logger
 import click
 
 
-
 @kfc.command(help_priority=1)
 @click.option(
     "-A", "--account", type=str, help="account phone number of kungfu account"

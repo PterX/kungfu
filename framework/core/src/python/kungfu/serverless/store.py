@@ -18,7 +18,6 @@ class FeatureStore:
         self.stage = stage
         self.sso = SSO(stage)
         self.logger = create_logger("featureStore")
-    
 
         if self.sso.introspect_token() != True:
             self.logger.error("Please Login First, Try kfc login")

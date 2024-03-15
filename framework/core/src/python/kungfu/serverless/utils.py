@@ -91,10 +91,10 @@ def read_file_content(filename):
         content = file.read()
     return content
 
+
 def create_logger(name, level="debug"):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler
     logger.addHandler(handler())
     logger.setLevel(LOG_LEVELS[level])
     return logger
-    

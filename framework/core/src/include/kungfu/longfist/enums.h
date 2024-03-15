@@ -517,16 +517,16 @@ inline std::ostream &operator<<(std::ostream &os, ETFStatus t) { return os << in
 
 enum class PriceLevel : int8_t {
   Last, // 最新价
-  Sell5,
-  Sell4,
-  Sell3,
-  Sell2,
-  Sell1,
-  Buy1,
-  Buy2,
-  Buy3,
-  Buy4,
-  Buy5,
+  Opposing5,
+  Opposing4,
+  Opposing3,
+  Opposing2,
+  Opposing1,
+  Own1,
+  Own2,
+  Own3,
+  Own4,
+  Own5,
   UpperLimitPrice, // 涨停价
   LowerLimitPrice, // 跌停价
   Unknown
@@ -534,16 +534,16 @@ enum class PriceLevel : int8_t {
 
 KF_JSON_SERIALIZE_ENUM(PriceLevel, {
                                        {PriceLevel::Last, "Last"},
-                                       {PriceLevel::Sell5, "Sell5"},
-                                       {PriceLevel::Sell4, "Sell4"},
-                                       {PriceLevel::Sell3, "Sell3"},
-                                       {PriceLevel::Sell2, "Sell2"},
-                                       {PriceLevel::Sell1, "Sell1"},
-                                       {PriceLevel::Buy5, "Buy5"},
-                                       {PriceLevel::Buy4, "Buy4"},
-                                       {PriceLevel::Buy3, "Buy3"},
-                                       {PriceLevel::Buy2, "Buy2"},
-                                       {PriceLevel::Buy1, "Buy1"},
+                                       {PriceLevel::Opposing5, "Opposing5"},
+                                       {PriceLevel::Opposing4, "Opposing4"},
+                                       {PriceLevel::Opposing3, "Opposing3"},
+                                       {PriceLevel::Opposing2, "Opposing2"},
+                                       {PriceLevel::Opposing1, "Opposing1"},
+                                       {PriceLevel::Own1, "Own1"},
+                                       {PriceLevel::Own2, "Own2"},
+                                       {PriceLevel::Own3, "Own3"},
+                                       {PriceLevel::Own4, "Own4"},
+                                       {PriceLevel::Own5, "Own5"},
                                        {PriceLevel::UpperLimitPrice, "UpperLimitPrice"},
                                        {PriceLevel::LowerLimitPrice, "LowerLimitPrice"},
                                        {PriceLevel::Unknown, "Unknown"},

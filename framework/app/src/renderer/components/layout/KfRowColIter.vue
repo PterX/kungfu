@@ -311,6 +311,12 @@ export default defineComponent({
       return !!this._.appContext.components[cname];
     },
   },
+
+  unmounted() {
+    this.$globalBus.next({
+      tag: 'resize',
+    } as KfEvent.ResizeEvent);
+  },
 });
 </script>
 <style lang="less">

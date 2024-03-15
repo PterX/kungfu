@@ -19,6 +19,7 @@ import {
   showKungfuInfo,
   openUrl,
   destoryAllWindows,
+  openDevTool,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
 import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
@@ -208,10 +209,7 @@ app.on('ready', () => {
   if (appReady && killExtraFinished) createWindow();
 
   globalShortcut.register('CommandOrControl+Shift+I', () => {
-    const focusedWin = BrowserWindow.getFocusedWindow();
-    if (focusedWin) {
-      focusedWin.webContents.openDevTools();
-    }
+    openDevTool();
   });
 });
 
@@ -355,6 +353,10 @@ function setMenu() {
           label: t('open_inspect_tool'),
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
+        },
+        {
+          label: t('open_console_tool'),
+          click: () => openDevTool(),
         },
       ],
     },

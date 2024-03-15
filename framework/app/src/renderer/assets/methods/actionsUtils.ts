@@ -2808,7 +2808,7 @@ export const useMakeOrderInfo = (
       const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
         ...instrumentResolved.value,
         price: currentPrice.value ?? 0,
-        volume,
+        volume: volume,
         direction: currentFormDirection.value || DirectionEnum.Long,
         accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
           currentAccountLocation.value,

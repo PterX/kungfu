@@ -95,6 +95,7 @@ const phoneNumberValidator = (rule, value) => {
         <a-input-number
           v-model:value="formState.phone"
           :controls="false"
+          @keyup.enter="() => handleConfirm().then(() => closeModal())"
         ></a-input-number>
       </a-form-item>
       <a-form-item
@@ -109,7 +110,11 @@ const phoneNumberValidator = (rule, value) => {
           },
         ]"
       >
-        <a-input-number v-model:value="formState.code" :controls="false">
+        <a-input-number
+          v-model:value="formState.code"
+          :controls="false"
+          @keyup.enter="() => handleConfirm().then(() => closeModal())"
+        >
           <template #addonAfter>
             <a-button
               type="text"

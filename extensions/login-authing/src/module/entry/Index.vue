@@ -22,11 +22,7 @@ import {
   LoginAuthingKeys,
 } from '../../configs';
 import { useAuthLoginStore } from '../../store';
-import {
-  clearCredentials,
-  readCredentials,
-  writeCredentials,
-} from '../../utils/credential';
+import { clearCredentials, readCredentials } from '../../utils/credential';
 import { useAuthingCredential } from '../../utils/externalUtils';
 import { kfLoginAuthing } from '../../io';
 const { t } = VueI18n.global;
@@ -86,9 +82,6 @@ onMounted(() => {
       if (data.tag === LoginAuthingKeys.CallLogin) {
         loginModalShow.value = true;
       }
-      if (data.tag === LoginAuthingKeys.CallSyncData) {
-        syncData(false);
-      }
       if (data.tag === LoginAuthingKeys.CallLogout) {
         logout(false);
       }
@@ -122,34 +115,6 @@ function logout(byManual = true) {
     });
 }
 
-function syncData(byManual = true) {
-  if (!credential.value) return;
-  return kfLoginAuthing
-    .getNewAccessTokenByRefreshToken(credential.value)
-    .then((newCredential) => {
-      writeCredentials(CURRENT_STAGE, newCredential);
-      authLoginStore.setCredentials(newCredential);
-
-      return kfLoginAuthing
-        .getCurrentUserInfo(newCredential)
-        .then((user) => {
-          authLoginStore.setCurrentAccount(user);
-          return user;
-        })
-        .then((user) => {
-          byManual && messagePrompt().success();
-          app?.proxy?.$globalBus.next({
-            tag: LoginAuthingKeys.DataSynced,
-            credential,
-            user,
-          });
-        });
-    })
-    .catch((err) => {
-      byManual && messagePrompt().error(err.message || null);
-    });
-}
-
 function handleLoginSuccess() {
   loginModalShow.value = false;
   isLoggedIn.value = true;
@@ -167,10 +132,6 @@ function handleOpenWallet() {
   app?.proxy?.$globalBus.next({
     tag: 'aws-wallet:show-records',
   });
-}
-
-function handleSyncData() {
-  return syncData();
 }
 
 function handleLogout() {
@@ -211,11 +172,6 @@ function handleLogout() {
         <div class="login-menu-item" @click="handleOpenWallet">
           <span>
             {{ $t('loginAuthing.transaction') }}
-          </span>
-        </div>
-        <div class="login-menu-item" @click="handleSyncData">
-          <span>
-            {{ $t('loginAuthing.syncData') }}
           </span>
         </div>
         <div class="login-menu-item" @click="handleGetLicense">

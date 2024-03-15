@@ -9,6 +9,10 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import {
+  isNoDataDefaultLogo,
+  getLogoNoBgPath,
+} from '@kungfu-trader/kungfu-js-api/config/brand';
 
 export default defineComponent({
   props: {
@@ -19,7 +23,9 @@ export default defineComponent({
 
   setup() {
     return {
-      logo: require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO-NO-BG.svg'),
+      logo: isNoDataDefaultLogo()
+        ? require('@kungfu-trader/kungfu-app/src/renderer/assets/svg/LOGO-NO-BG.svg')
+        : getLogoNoBgPath(),
     };
   },
 });
@@ -36,7 +42,8 @@ export default defineComponent({
       display: block;
       margin: auto;
       margin-top: 20px;
-      filter: invert(0) sepia(0%) saturate(0%) hue-rotate(0) brightness(32%) contrast(129%);
+      filter: invert(0) sepia(0%) saturate(0%) hue-rotate(0) brightness(32%)
+        contrast(129%);
     }
 
     p {

@@ -367,6 +367,12 @@ static constexpr bool is_own_event(const Client &broker_client, const event_ptr 
           (std::is_same_v<DataType, longfist::types::Tree> &&
            broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tree,
                                                   data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Depth> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Depth,
+                                                  data.exchange_id, data.instrument_type)) ||
+          (std::is_same_v<DataType, longfist::types::Tick> &&
+           broker_client.is_custom_subscribed_all(event->source(), kungfu::longfist::enums::SubscribeDataType::Tick,
+                                                  data.exchange_id, data.instrument_type)) ||
           (std::is_same_v<DataType, longfist::types::Transaction> &&
            broker_client.is_custom_subscribed_all(event->source(),
                                                   kungfu::longfist::enums::SubscribeDataType::Transaction,
@@ -420,6 +426,8 @@ template <typename DataType> static constexpr auto is_own(const Client &broker_c
 static const std::map<int32_t, std::function<bool(const Client &broker_client, const event_ptr &)>> map_is_own_event = {
     {longfist::types::Quote::tag, is_own_event<longfist::types::Quote>},
     {longfist::types::Tree::tag, is_own_event<longfist::types::Tree>},
+    {longfist::types::Depth::tag, is_own_event<longfist::types::Depth>},
+    {longfist::types::Tick::tag, is_own_event<longfist::types::Tick>},
     {longfist::types::Entrust::tag, is_own_event<longfist::types::Entrust>},
     {longfist::types::Transaction::tag, is_own_event<longfist::types::Transaction>},
     {longfist::types::BrokerStateUpdate::tag, is_own_event<longfist::types::BrokerStateUpdate>},

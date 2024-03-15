@@ -86,10 +86,14 @@ on_quote
 on_entrust
 on_transaction
 on_tree
+on_depth
+on_tick
 on_synthetic_data
 on_deregister
 on_broker_state_change
 on_operator_state_change
+get_bids
+get_asks
 set_matcher
 add_strategy
 add_account
@@ -104,6 +108,7 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
+attach_orderbooks
 on_order
 on_order_trigger
 on_algo_order

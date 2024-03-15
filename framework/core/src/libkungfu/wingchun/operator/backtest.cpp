@@ -33,6 +33,8 @@ void BacktestContext::on_start() {
   events_ | is(Entrust::tag) | $$(report_->on_entrust(event->data<Entrust>()););
   events_ | is(Transaction::tag) | $$(report_->on_transaction(event->data<Transaction>()););
   events_ | is(Tree::tag) | $$(report_->on_tree(event->data<Tree>()););
+  events_ | is(Depth::tag) | $$(report_->on_depth(event->data<Depth>()););
+  events_ | is(Tick::tag) | $$(report_->on_tick(event->data<Tick>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | $$(on_timer_check(); lease_expired_check(););
   init_time_events();

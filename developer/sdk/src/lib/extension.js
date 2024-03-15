@@ -2,6 +2,7 @@ const axios = require('axios');
 const ejs = require('ejs');
 const fse = require('fs-extra');
 const path = require('path');
+const inquirer = require('inquirer');
 const os = require('os');
 const { spawnSync } = require('child_process');
 const { glob } = require('glob');
@@ -15,7 +16,9 @@ const {
   getCmakeNextCmdArgs,
   kfcName,
   dealPath,
+  isProduction,
 } = require('../utils');
+const { getSdkDir } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 const { shell, prebuilt } = require('@kungfu-trader/kungfu-core');
 const versioning = require('@mapbox/node-pre-gyp/lib/util/versioning');
 const project = require('./project');
@@ -468,6 +471,101 @@ exports.generateAssets = () => {
       },
     });
   }
+};
+
+exports.init = () => {
+  let initTemplatePath = '';
+  if (isProduction()) {
+    initTemplatePath = path.join(__dirname, 'templates', 'init');
+  } else {
+    initTemplatePath = path.join(getSdkDir(), 'templates', 'init');
+  }
+
+  function promptFolderName() {
+    return inquirer.prompt([
+      {
+        type: 'input',
+        name: 'folderName',
+        message: 'Input your extension project name:',
+        validate: function (input) {
+          const folderPath = path.join(process.cwd(), input);
+          if (fse.existsSync(folderPath)) {
+            return 'Folder already exists, please input a different name.';
+          }
+          return true;
+        },
+      },
+    ]);
+  }
+
+  function promptExtensionType() {
+    return inquirer.prompt([
+      {
+        type: 'list',
+        name: 'type',
+        message: 'Select the extension type:',
+        choices: ['broker', 'strategy'],
+      },
+    ]);
+  }
+
+  function listDirectoriesAndPrompt(templatePath) {
+    return fse
+      .readdir(templatePath, { withFileTypes: true })
+      .then((entries) => {
+        const directories = entries
+          .filter((entry) => entry.isDirectory())
+          .map((dir) => dir.name);
+        return inquirer.prompt([
+          {
+            type: 'list',
+            name: 'selectedTemplate',
+            message: 'Select a template to init your extension project:',
+            choices: directories,
+          },
+        ]);
+      });
+  }
+
+  function copyTemplateAndModifyPackage(
+    selectedTemplate,
+    templatePath,
+    folderName,
+  ) {
+    const targetPath = path.join(process.cwd(), folderName);
+    const src = path.join(templatePath, selectedTemplate);
+
+    try {
+      fse.ensureDirSync(targetPath);
+      fse.copySync(src, targetPath);
+      console.log(`Template created successfully at ${targetPath}`);
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      return;
+    }
+
+    const packageJsonPath = path.join(targetPath, 'package.json');
+    const packageObj = fse.readJsonSync(packageJsonPath);
+    packageObj.name = folderName;
+    fse.writeJsonSync(packageJsonPath, packageObj, { spaces: 2 });
+  }
+
+  promptFolderName()
+    .then((folderAnswer) => {
+      return promptExtensionType().then((typeAnswer) => {
+        const templatePath = path.join(initTemplatePath, typeAnswer.type);
+        return listDirectoriesAndPrompt(templatePath).then((templateAnswer) => {
+          copyTemplateAndModifyPackage(
+            templateAnswer.selectedTemplate,
+            templatePath,
+            folderAnswer.folderName,
+          );
+        });
+      });
+    })
+    .catch((err) => {
+      console.error('Operation failed:', err);
+    });
 };
 
 function updatePackageJson(packageJson) {

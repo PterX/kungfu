@@ -10,32 +10,35 @@ import requests
 import sys
 import logging
 import pandas as pd
+from kungfu.serverless.utils import create_logger
 
 
 class FeatureStore:
     def __init__(self, stage="prod"):
         self.stage = stage
         self.sso = SSO(stage)
+        self.logger = create_logger("featureStore")
+    
 
         if self.sso.introspect_token() != True:
-            logging.error("Please Login First, Try kfc login")
+            self.logger.error("Please Login First, Try kfc login")
             return
 
         self.sso.get_new_access_token_by_refresh_token()
         phone, username, user_id = self.sso.get_profile()
-        logging.info(
+        self.logger.info(
             f"Feature Store init successfully, phone {phone} username {username}"
         )
         self.user_id = user_id
         self.feature_config_map = self.__get_public_features()
 
     def login(self, account):
-        logging.info(f"Welcome, your phone number is: {account}")
+        self.logger.info(f"Welcome, your phone number is: {account}")
         self.sso.send_sms_code(account)
         pass_code = click.prompt("Please enter a valid sms code", type=int)
-        logging.info(f"Your pass code is: {pass_code}")
+        self.logger.info(f"Your pass code is: {pass_code}")
         self.sso.sign_in_by_phone_passcode(account, pass_code)
-        logging.info("Login Success")
+        self.logger.info("Login Success")
         self.feature_config_map = self.__get_public_features()
 
     def list_public_features(self):
@@ -70,7 +73,7 @@ class FeatureStore:
         for item in origin_data:
             packages = item.get("packages", None)
             if packages is None:
-                logging.warn(f"{item.module_name} does not have packages")
+                self.logger.warn(f"{item.module_name} does not have packages")
                 continue
 
             for p in packages:
@@ -94,7 +97,7 @@ class FeatureStore:
     def get_public_feature_data(self, feature_key):
         config = self.__get_feature_config(feature_key)
         if config is None:
-            logging.error("No configuration for feature {feature_key}")
+            self.logger.error("No configuration for feature {feature_key}")
             return
 
         results = self.__get_public_feature_date_meta(feature_key)

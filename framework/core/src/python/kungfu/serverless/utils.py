@@ -5,6 +5,8 @@ import json
 import os
 import time
 from urllib.parse import urlparse
+import logging
+from kungfu.yijinjing.log import LOG_LEVELS
 
 
 def record_tokens(stage, access_token, refresh_token, id_token, expires_in):
@@ -88,3 +90,11 @@ def read_file_content(filename):
     with open(filename, "r") as file:
         content = file.read()
     return content
+
+def create_logger(name, level="debug"):
+    logger = logging.getLogger(name)
+    handler = logging.StreamHandler
+    logger.addHandler(handler())
+    logger.setLevel(LOG_LEVELS[level])
+    return logger
+    

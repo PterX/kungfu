@@ -4,7 +4,7 @@ from kungfu.serverless.backtest import Backtest
 import logging
 
 backtest_command_context = kfc.pass_context("backtest_client")
-logging.basicConfig(format="%(message)s", level=logging.INFO)
+# logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 @kfc.group(cls=PrioritizedCommandGroup, help_priority=2)

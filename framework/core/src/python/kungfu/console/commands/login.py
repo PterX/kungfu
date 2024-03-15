@@ -3,7 +3,7 @@ from kungfu.serverless.sso import SSO
 import click
 import logging
 
-logging.basicConfig(format="%(message)s", level=logging.INFO)
+# logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 @kfc.command(help_priority=1)

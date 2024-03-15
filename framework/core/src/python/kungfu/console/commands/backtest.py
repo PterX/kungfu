@@ -4,13 +4,13 @@ from kungfu.serverless.backtest import Backtest
 import logging
 from kungfu.serverless.utils import create_logger
 
-backtest_command_context = kfc.pass_context("backtest_client")
+backtest_command_context = kfc.pass_context("backtest_client", "logger")
 
 
 @kfc.group(cls=PrioritizedCommandGroup, help_priority=2)
 @kfc.pass_context()
 def backtest(ctx):
-    ctx.logger = create_logger("backtest", ctx.log_level)
+    ctx.logger = create_logger("backtest_command", ctx.log_level)
     ctx.backtest_client = Backtest(ctx.stage)
     pass
 

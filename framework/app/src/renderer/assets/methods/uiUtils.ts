@@ -767,7 +767,11 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        const isMatch = new RegExp(searchKeyword, 'ig').test(combinedValue);
+        const escapedKeyword = searchKeyword.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          '\\$&',
+        );
+        const isMatch = new RegExp(escapedKeyword, 'ig').test(combinedValue);
         if (isMatch) return true;
         const childMatch =
           item.children && item.children.length > 0
@@ -835,7 +839,11 @@ export const useTableSearchKeywordList = <T>(
             if (keyword === '') {
               return true;
             }
-            return new RegExp(keyword, 'ig').test(itemValue.toString());
+            const escapedKeyword = keyword.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              '\\$&',
+            );
+            return new RegExp(escapedKeyword, 'ig').test(itemValue.toString());
           }
         });
       })
@@ -873,7 +881,11 @@ export const useTableSearchKeyword = <T>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
+        const escapedKeyword = searchKeyword.value.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          '\\$&',
+        );
+        return new RegExp(escapedKeyword, 'ig').test(combinedValue);
       })
       .map((item) => toRaw(item));
   });
@@ -929,7 +941,11 @@ export const useWritableTableSearchKeyword = <T>(
                 return keyWord ? keyWord.toString() : '';
               })
               .join('_');
-            return new RegExp(keyword, 'ig').test(combinedValue);
+            const escapedKeyword = keyword.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              '\\$&',
+            );
+            return new RegExp(escapedKeyword, 'ig').test(combinedValue);
           }) || [];
     },
     {

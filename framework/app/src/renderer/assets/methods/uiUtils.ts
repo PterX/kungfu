@@ -62,6 +62,7 @@ import {
   loopToRunProcess,
   isKfColor,
   LinkedList,
+  escapeSpecialChar,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
@@ -767,10 +768,7 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        const escapedKeyword = searchKeyword.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          '\\$&',
-        );
+        const escapedKeyword = escapeSpecialChar(searchKeyword);
         const isMatch = new RegExp(escapedKeyword, 'ig').test(combinedValue);
         if (isMatch) return true;
         const childMatch =
@@ -839,10 +837,7 @@ export const useTableSearchKeywordList = <T>(
             if (keyword === '') {
               return true;
             }
-            const escapedKeyword = keyword.replace(
-              /[.*+?^${}()|[\]\\]/g,
-              '\\$&',
-            );
+            const escapedKeyword = escapeSpecialChar(keyword);
             return new RegExp(escapedKeyword, 'ig').test(itemValue.toString());
           }
         });
@@ -881,10 +876,7 @@ export const useTableSearchKeyword = <T>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        const escapedKeyword = searchKeyword.value.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          '\\$&',
-        );
+        const escapedKeyword = escapeSpecialChar(searchKeyword.value);
         return new RegExp(escapedKeyword, 'ig').test(combinedValue);
       })
       .map((item) => toRaw(item));
@@ -941,10 +933,7 @@ export const useWritableTableSearchKeyword = <T>(
                 return keyWord ? keyWord.toString() : '';
               })
               .join('_');
-            const escapedKeyword = keyword.replace(
-              /[.*+?^${}()|[\]\\]/g,
-              '\\$&',
-            );
+            const escapedKeyword = escapeSpecialChar(keyword);
             return new RegExp(escapedKeyword, 'ig').test(combinedValue);
           }) || [];
     },

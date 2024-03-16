@@ -369,7 +369,7 @@ private:
       future_i_a.contract_multiplier = instrument.contract_multiplier;
     }
 
-    auto hashed_instrument_factor_key = hash_instrument(account_id, exchange_id, instrument_id);
+    auto hashed_instrument_factor_key = hash_instrument(exchange_id, instrument_id);
     if (instrument_factors.find(hashed_instrument_factor_key) == instrument_factors.end()) {
       future_i_a.exchange_rate = DEFAULT_INSTRUMENT_EXCHANGE_RATE;
       future_i_a.margin_ratio =

@@ -118,16 +118,16 @@ export enum CashReplaceFlagEnum {
 
 export enum PriceLevelEnum {
   Latest, // 最新价
-  Sell5,
-  Sell4,
-  Sell3,
-  Sell2,
-  Sell1,
-  Buy1,
-  Buy2,
-  Buy3,
-  Buy4,
-  Buy5,
+  Opposing5,
+  Opposing4,
+  Opposing3,
+  Opposing2,
+  Opposing1,
+  Own1,
+  Own2,
+  Own3,
+  Own4,
+  Own5,
   UpperLimitPrice, // 涨停价
   LowerLimitPrice, // 跌停价
   Unknown,

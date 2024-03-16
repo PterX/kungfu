@@ -11,9 +11,11 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
+using namespace kungfu::wingchun::orderbook;
 namespace kungfu::wingchun::strategy {
 
 class Context : public std::enable_shared_from_this<Context> {
@@ -382,6 +384,12 @@ public:
    * @return longfist::enums::ResumePolicy
    */
   virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
+
+  /**
+   * attach the orderbooks to market data received.
+   * @param orderbooks
+   */
+  void attach_orderbooks(Orderbooks &orderbooks);
 
 protected:
   yijinjing::practice::apprentice &app_;

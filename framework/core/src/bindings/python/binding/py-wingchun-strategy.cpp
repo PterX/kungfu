@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "py-wingchun.h"
-
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
@@ -104,6 +102,16 @@ public:
   void on_trade(strategy::Context_ptr &context, const Trade &trade,
                 const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_trade, context, trade, location, dest);
+  }
+
+  void on_algo_order(strategy::Context_ptr &context, const AlgoOrder &algo_order,
+                     const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_algo_order, context, algo_order, location, dest);
+  }
+
+  void on_algo_order_action_error(strategy::Context_ptr &context, const AlgoOrderActionError &error,
+                                  const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_algo_order_action_error, context, error, location, dest);
   }
 
   void on_deregister(strategy::Context_ptr &context, const Deregister &deregister,
@@ -224,6 +232,7 @@ void bind_strategy(pybind11::module &m) {
       .def("bypass_accounting", &strategy::Context::bypass_accounting)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("set_resume_policy", &strategy::Context::set_resume_policy)
+      .def("attach_orderbooks", &strategy::Context::attach_orderbooks)
       .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");

@@ -676,7 +676,6 @@ defineExpose({
               height: '100%',
               'text-overflow': column.textOverflow || 'clip',
               'white-space': column.wrap ? 'normal' : 'nowrap',
-              overflow: column.wrap ? 'unset' : 'hidden',
               'text-align': column.align || 'left',
             }"
             :title="item[column.dataIndex]"
@@ -851,8 +850,8 @@ defineExpose({
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-    height: 36px;
-    line-height: 36px;
+    height: 30px;
+    line-height: 30px;
     background: @table-header-bg;
     white-space: nowrap;
     box-sizing: border-box;
@@ -907,8 +906,8 @@ defineExpose({
     width: 100%;
     transform: translateZ(0);
     position: absolute;
-    top: 36px;
-    height: calc(100% - 36px);
+    top: 30px;
+    height: calc(100% - 30px);
 
     .kf-table-scroller {
       height: 100%;

@@ -114,7 +114,7 @@ void BacktestContext::lease_expired_check() {
       for (const auto &expired_location : it->second) {
         SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",
                      expired_location->locator->get_root(), expired_location->uname);
-        app_.get_reader()->disjoin(expired_location, location::PUBLIC);
+        app_.disjoin_channel(expired_location, location::PUBLIC);
       }
       it = lease_locations_.erase(it);
     } else {
@@ -164,12 +164,12 @@ void BacktestContext::subscribe(const std::string &source, const std::vector<std
         for (const auto dest_id : md_location->locator->list_location_dest(md_location)) {
           SPDLOG_TRACE("subscribed md dest {}, locator={}, location={}", dest_id, md_location->locator->get_root(),
                        md_location->uname);
-          app_.get_reader()->join(md_location, dest_id, slice_begin_time);
+          app_.get_reader()->join(md_location, dest_id, slice_begin_time - 1);
         }
 
         broker_client_.subscribe(md_location, exchange_id, instrument_id);
         lease_locations_[slice_end_time].push_back(std::move(md_location));
-      } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+      } while ((slice_begin_time = slice_end_time) < app_.get_end_time());
     }
   });
 }
@@ -205,12 +205,12 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
     for (const auto dest_id : op_location->locator->list_location_dest(op_location)) {
       SPDLOG_TRACE("subscribed operator dest {}, locator={}, location={}", dest_id, op_location->locator->get_root(),
                    op_location->uname);
-      app_.get_reader()->join(op_location, dest_id, slice_begin_time);
+      app_.get_reader()->join(op_location, dest_id, slice_begin_time - 1);
     }
 
     broker_client_.enroll_operator(op_location);
     lease_locations_[slice_end_time].push_back(std::move(op_location));
-  } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+  } while ((slice_begin_time = slice_end_time) < app_.get_end_time());
 }
 
 void BacktestContext::publish_synthetic_data(const std::string &key, const std::string &value) {

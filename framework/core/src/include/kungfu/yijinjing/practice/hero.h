@@ -246,7 +246,7 @@ private:
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
   std::set<uint32_t> disjoin_uids_ = {};
   std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
-  std::unordered_map<yijinjing::data::location, std::vector<uint32_t>> disjoin_location_channels_;
+  std::map<yijinjing::data::location_ptr, uint32_t> disjoin_location_channels_;
 
   volatile bool continual_ = true;
   volatile bool live_ = false;

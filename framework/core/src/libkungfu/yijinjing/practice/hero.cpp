@@ -478,7 +478,7 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
 }
 
 void hero::disjoin_channel(const data::location_ptr &location, uint32_t dest_id) {
-  disjoin_location_channels_[*location].push_back(dest_id);
+  disjoin_location_channels_.emplace(location, dest_id);
 }
 
 void hero::cleanup_reader_disjoin() {
@@ -499,9 +499,8 @@ void hero::cleanup_reader_disjoin() {
       reader_->disjoin(get_location(pair.first), pair.second);
     }
   }
-  for (auto &pair : disjoin_location_channels_) {
-    for (auto dest_id : pair.second)
-      reader_->disjoin(std::make_shared<data::location>(pair.first), dest_id);
+  for (const auto &[location, dest_id]: disjoin_location_channels_) {
+    reader_->disjoin(location, dest_id);
   }
   disjoin_uids_.clear();
   disjoin_channels_.clear();

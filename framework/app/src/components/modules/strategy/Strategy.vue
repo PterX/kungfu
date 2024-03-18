@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, toRefs, Ref } from 'vue';
+import { ref, computed, toRefs, ComputedRef } from 'vue';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
@@ -64,8 +64,13 @@ const setStrategyConfigPayload = ref<KungfuApi.SetKfConfigPayload>({
 });
 
 const { strategy } = toRefs(useAllKfConfigData());
+const strategyResolved = computed(() => {
+  return strategy.value.filter((item) => item.group === 'default');
+});
 const strategyIdList = computed(() => {
-  return strategy.value.map((item: KungfuApi.KfLocation): string => item.name);
+  return strategyResolved.value.map(
+    (item: KungfuApi.KfLocation): string => item.name,
+  );
 });
 
 const { dealRowClassName, customRow } = useCurrentGlobalKfLocation(
@@ -74,7 +79,7 @@ const { dealRowClassName, customRow } = useCurrentGlobalKfLocation(
 
 const { processStatusData } = useProcessStatusDetailData();
 const { allProcessOnline, handleSwitchAllProcessStatus } = useSwitchAllConfig(
-  strategy,
+  strategyResolved,
   processStatusData,
 );
 
@@ -86,7 +91,7 @@ const {
   handleReplayModal,
 } = useReplay();
 const { searchKeyword, tableData } = useTableSearchKeyword<KungfuApi.KfConfig>(
-  strategy as Ref<KungfuApi.KfConfig[]>,
+  strategyResolved as ComputedRef<KungfuApi.KfConfig[]>,
   ['name'],
 );
 

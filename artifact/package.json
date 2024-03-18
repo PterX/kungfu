@@ -11,7 +11,12 @@
   "private": true,
   "main": "dist/app/main.js",
   "kungfuCraft": {
-    "productName": "Kungfu"
+    "productName": "Kungfu",
+    "zipTargetEnable": {
+      "mac": false,
+      "win": false,
+      "linux": false
+    }
   },
   "scripts": {
     "build": "yarn kfs craft build",

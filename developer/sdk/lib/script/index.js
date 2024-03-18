@@ -1,5 +1,6 @@
 const fse = require('fs-extra');
 const path = require('path');
+const ignore = require('ignore');
 const {
   customResolve,
   getSdkDefaultDistDir,
@@ -11,6 +12,7 @@ const templateInitPath = path.join(
   'templates',
   'init',
 );
+
 const exampleTemplates = {
   strategy: [
     '@kungfu-trader/examples-strategy-python',
@@ -22,18 +24,60 @@ const exampleTemplates = {
   ],
 };
 
-const copyTemplate = (templateType, templateName) => {
-  const templateDir = path.dirname(customResolve(templateName));
-  const targetDir = path.join(
-    templateInitPath,
-    templateType,
-    templateName.replace('@kungfu-trader/', ''),
-  );
+const rootDir = path.resolve(__dirname, '../../../../');
+const rootGitignorePath = path.join(rootDir, '.gitignore');
+let rootGitignoreContent = '';
 
+try {
+  rootGitignoreContent = fse.readFileSync(rootGitignorePath, 'utf8');
+} catch (error) {
+  console.error(`Error reading root .gitignore: ${error}`);
+}
+
+const removeEmptyDirectories = (directory, ig) => {
   try {
-    fse.copySync(templateDir, targetDir);
-    fse.removeSync(path.join(targetDir, 'node_modules'));
-    fse.removeSync(path.join(targetDir, 'dist'));
+    if (!fse.statSync(directory).isDirectory()) {
+      return;
+    }
+
+    let files = fse.readdirSync(directory);
+    files.forEach((file) => {
+      removeEmptyDirectories(path.join(directory, file), ig);
+    });
+
+    if (
+      fse.readdirSync(directory).length === 0 &&
+      ig.ignores(path.relative(rootDir, directory))
+    ) {
+      fse.rmdirSync(directory);
+    }
+  } catch (error) {
+    console.error(`Error removing empty directory: ${error}`);
+  }
+};
+
+const copyTemplate = (templateType, templateName) => {
+  try {
+    const templateDir = path.dirname(customResolve(templateName));
+    const targetDir = path.join(
+      templateInitPath,
+      templateType,
+      templateName.replace('@kungfu-trader/', ''),
+    );
+
+    const gitignorePath = path.join(templateDir, '.gitignore');
+    let gitignoreContent = '';
+
+    if (fse.existsSync(gitignorePath)) {
+      gitignoreContent = fse.readFileSync(gitignorePath, 'utf8');
+    }
+
+    const ig = ignore().add(rootGitignoreContent + '\n' + gitignoreContent);
+
+    fse.copySync(templateDir, targetDir, {
+      filter: (src) => !ig.ignores(path.relative(rootDir, src)),
+    });
+    removeEmptyDirectories(targetDir, ig);
   } catch (error) {
     console.error(`Error copying template ${templateName}: ${error}`);
   }
@@ -41,10 +85,12 @@ const copyTemplate = (templateType, templateName) => {
 
 const copyAllTemplates = () => {
   Object.entries(exampleTemplates).forEach(([type, templates]) => {
-    templates.forEach((templateName) => {
-      copyTemplate(type, templateName);
-    });
+    templates.forEach((templateName) => copyTemplate(type, templateName));
   });
 };
 
-copyAllTemplates();
+try {
+  copyAllTemplates();
+} catch (error) {
+  console.error(`Error during template copying: ${error}`);
+}

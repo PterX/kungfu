@@ -226,6 +226,7 @@ onMounted(() => {
       class="kf-process-status-controller-board__warp"
       :title="$t('baseConfig.control_center')"
       placement="right"
+      @close="processControllerBoardVisible = false"
     >
       <div
         class="process-controller-item"

@@ -214,7 +214,6 @@ void BacktestContext::subscribe_helper(int64_t begin_time, const std::string &so
     broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
   if (slice_end_time < app_.get_end_time()) {
-    // subscribe_helper(slice_end_time + 1, source, instrument_id, exchange_id, data_tag);
     add_timer_helper(nanotime, 0,
                      [this, slice_end_time, source, instrument_id, exchange_id, data_tag](event_ptr event) {
                        subscribe_helper(slice_end_time, source, instrument_id, exchange_id, data_tag);
@@ -339,17 +338,28 @@ void BacktestContext::subscribe_all(const std::string &source, uint8_t market_ty
 }
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
-  int64_t slice_begin_time = app_.now() + 1;
-  int64_t slice_end_time{INT64_MAX};
-  do {
-    auto op_location = from_indexer_->find_operator_slice_location(slice_begin_time, group, name);
-    slice_end_time = from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name);
-    if (not op_location)
-      continue;
-    subscribe_slice(op_location, slice_begin_time - 1, slice_end_time - slice_begin_time + 1);
+  int64_t slice_begin_time = app_.now();
+  subscribe_operator_helper(slice_begin_time, group, name);
+}
+
+void BacktestContext::subscribe_operator_helper(int64_t begin_time, const std::string &group, const std::string &name) {
+  auto op_location =
+      from_indexer_->find_operator_slice_location(begin_time, group, name);
+  auto slice_end_time =
+      from_indexer_->get_operator_slice_end_time(begin_time, group, name);
+  int64_t nanotime = begin_time - 1;
+  int64_t offset = slice_end_time - begin_time;
+  if (op_location) {
+    subscribe_slice(op_location, nanotime, offset);
     add_location(app_, op_location);
     broker_client_.enroll_operator(op_location);
-  } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+  }
+  if (slice_end_time < app_.get_end_time()) {
+    add_timer_helper(nanotime, 0,
+                     [this, slice_end_time, group, name](event_ptr event) {
+                       subscribe_operator_helper(slice_end_time, group, name);
+                     });
+  }
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,

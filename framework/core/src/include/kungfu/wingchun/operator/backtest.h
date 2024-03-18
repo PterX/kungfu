@@ -19,7 +19,7 @@ public:
    * checked_ is strated started.
    * @return current time in nano seconds
    */
-  virtual bool is_started() const override;
+  bool is_started() const override;
 
   /**
    * Get location_uid of current process
@@ -74,7 +74,7 @@ public:
    * @param instrument_ids instrument IDs
    * @param exchange_id exchange ID
    */
-  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+  void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                            const std::string &exchange_id) override;
 
   /**
@@ -126,11 +126,11 @@ public:
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
-  virtual void on_start() override;
+  void on_start() override;
 
-  virtual void prepare(const event_ptr &event) override{};
+  void prepare(const event_ptr &event) override{};
 
-  virtual void post_stop() override{};
+  void post_stop() override{};
 
   template <typename DataType>
   void parse_then_write_in_timer(const nlohmann::json &config_obj, const yijinjing::journal::writer_ptr &writer) {

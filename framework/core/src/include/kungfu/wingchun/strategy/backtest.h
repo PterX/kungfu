@@ -78,7 +78,7 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange IDs
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                  const std::string &exchange_id) override;
@@ -89,7 +89,7 @@ public:
    * @param instrument_ids instrument IDs
    * @param exchange_id exchange ID
    */
-  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+  void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                            const std::string &exchange_id) override;
 
   /**
@@ -317,11 +317,11 @@ public:
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
-  virtual void on_start() override;
+  void on_start() override;
 
-  virtual void prepare(const event_ptr &event) override;
+  void prepare(const event_ptr &event) override;
 
-  virtual void post_stop() override;
+  void post_stop() override;
 
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;

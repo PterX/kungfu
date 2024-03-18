@@ -84,7 +84,6 @@
     }
   },
   "dependencies": {
-    "@kungfu-trader/examples-strategy-python": "^3.0.0-alpha.4",
     "@kungfu-trader/kungfu-app": "^3.0.0-alpha.4",
     "@kungfu-trader/kungfu-cli": "^3.0.0-alpha.4",
     "@kungfu-trader/kungfu-core": "^3.0.0-alpha.4",

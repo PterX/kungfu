@@ -26,7 +26,7 @@
   },
   "scripts": {
     "kfs": "node src/kfs.js",
-    "build": "node lib/webpack/build.js",
+    "build": "node lib/webpack/build.js && node lib/script/index.js",
     "clean": "kfs extension clean",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",

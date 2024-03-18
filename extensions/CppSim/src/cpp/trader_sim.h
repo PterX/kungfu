@@ -1,5 +1,5 @@
-#ifndef KUNGFU_XTP_EXT_TRADER_H
-#define KUNGFU_XTP_EXT_TRADER_H
+#ifndef KUNGFU_CPPSIM_EXT_TRADER_H
+#define KUNGFU_CPPSIM_EXT_TRADER_H
 
 #include <kungfu/wingchun/broker/trader.h>
 
@@ -100,4 +100,4 @@ private:
   void cancel_order(uint64_t order_id);
 };
 } // namespace kungfu::wingchun::sim
-#endif // KUNGFU_XTP_EXT_TRADER_H
+#endif // KUNGFU_CPPSIM_EXT_TRADER_H

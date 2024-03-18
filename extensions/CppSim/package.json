@@ -115,7 +115,7 @@
           },
           {
             "key": "cancel_delay",
-            "name": "撤单延迟",
+            "name": "CppSim.cancel_delay",
             "type": "float",
             "required": true,
             "primary": false,
@@ -123,7 +123,7 @@
           },
           {
             "key": "trigger_delay",
-            "name": "预埋单触发延迟",
+            "name": "CppSim.trigger_delay",
             "type": "float",
             "required": true,
             "primary": false,
@@ -131,7 +131,7 @@
           },
           {
             "key": "position_list",
-            "name": "持仓列表",
+            "name": "CppSim.position_list",
             "type": "table",
             "columns": [
               {
@@ -143,7 +143,7 @@
               },
               {
                 "key": "direction",
-                "name": "CppSim.side",
+                "name": "CppSim.offset",
                 "type": "direction",
                 "required": true,
                 "primary": false
@@ -178,7 +178,7 @@
         "settings": [
           {
             "key": "quote",
-            "name": "快照生成间隔",
+            "name": "CppSim.quote_interval",
             "type": "float",
             "required": true,
             "primary": false,
@@ -186,7 +186,7 @@
           },
           {
             "key": "tick",
-            "name": "逐笔生成间隔",
+            "name": "CppSim.tick_interval",
             "type": "float",
             "required": true,
             "primary": false,
@@ -216,7 +216,12 @@
         "volume_yesterday": "昨仓",
         "volume_today": "今仓",
         "asset": "初始资金",
-        "side": "持仓方向"
+        "offset": "持仓方向",
+        "cancel_delay": "撤单延迟",
+        "trigger_delay": "预埋单触发延迟",
+        "position_list": "持仓列表",
+        "quote_interval": "快照生成间隔",
+        "tick_interval": "逐笔生成间隔"
       },
       "en-US": {
         "CppSim": "SIM",
@@ -238,7 +243,12 @@
         "volume_yesterday": "Volume Yesterday",
         "volume_today": "Volume Today",
         "asset": "Asset",
-        "offset": "offset"
+        "offset": "Offset",
+        "cancel_delay": "cancel delay",
+        "trigger_delay": "trigger delay",
+        "position_list": "position list",
+        "quote_interval": "quote interval",
+        "tick_interval": "tick interval"
       }
     }
   }

@@ -277,7 +277,7 @@ void TraderSim::trigger_start(uint64_t trigger_id) {
     order.insert_time = now();
     order.update_time = now();
     order.status = OrderStatus::Pending;
-    try_write_to(order, location::PUBLIC);
+    try_write_to(order, trigger_state.dest);
     SPDLOG_DEBUG("Order: {}", order.to_string());
 
     if (verify_order(order)) {
@@ -286,12 +286,12 @@ void TraderSim::trigger_start(uint64_t trigger_id) {
       submitted_order.status = OrderStatus::Submitted;
       submitted_order.volume_left = submitted_order.volume;
       SPDLOG_DEBUG("Submitted Order: {}", submitted_order.to_string());
-      try_write_to(submitted_order, location::PUBLIC);
-      generate_trade(order, location::PUBLIC);
+      try_write_to(submitted_order, trigger_state.dest);
+      generate_trade(order, trigger_state.dest);
     }
     order.update_time = time::now_in_nano();
     SPDLOG_DEBUG("Order: {}", order.to_string());
-    try_write_to(order, location::PUBLIC);
+    try_write_to(order, trigger_state.dest);
   }
 }
 
@@ -305,7 +305,9 @@ void TraderSim::cancel_order(uint64_t order_id) {
   SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
   try_write_to(order_state.data, order_state.dest);
   add_timer(time::now_in_nano() + int64_t(config_.cancel_delay * time_unit::NANOSECONDS_PER_SECOND), [&](const auto &) {
-    order_state.data.status = OrderStatus::Cancelled;
+    order_state.data.status = order_state.data.volume_left == order_state.data.volume
+                                  ? OrderStatus::Cancelled
+                                  : OrderStatus::PartialFilledNotActive;
     order_state.data.update_time = time::now_in_nano();
     try_write_to(order_state.data, order_state.dest);
   });

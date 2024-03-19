@@ -142,6 +142,7 @@ is_trading
 long_margin_ratio
 short_margin_ratio
 conversion_rate
+request_id
 order_id
 parent_id
 limit_price
@@ -191,10 +192,6 @@ args
 is_last
 is_withdraw
 close_today_volume
-location_uid
-type
-resume_time
-query_num
 data_time
 turnover
 pre_open_interest
@@ -228,6 +225,7 @@ market_type
 tag_a
 tag_b
 tag_c
+location_uid
 pid
 last_active_time
 frame_count
@@ -265,7 +263,6 @@ replace_flag
 cash_premium_ratio
 from_time
 dest_id
-stream_id
 base_time
 duration
 repeat
@@ -297,8 +294,6 @@ HistoryOrder
 HistoryTrade
 RequestHistoryOrderError
 RequestHistoryTradeError
-RequestRemoteData
-RemoteDataEnd
 Quote
 Entrust
 Transaction
@@ -319,11 +314,6 @@ Channel
 ChannelRequest
 Band
 RequestReadFromOthers
-RemoteRequestReadFrom
-RemoteRequestReadFromPublic
-RemoteRequestWriteTo
-RemoteRequestConnect
-RemoteConnectInfo
 TimeRequest
 TimeReset
 TradingDay

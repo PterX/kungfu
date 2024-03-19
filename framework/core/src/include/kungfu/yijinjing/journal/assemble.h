@@ -143,6 +143,8 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
+  void join_channel(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time);
+
   void reset_num();
 
   uint32_t get_num();

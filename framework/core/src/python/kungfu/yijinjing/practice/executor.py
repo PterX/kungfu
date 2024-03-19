@@ -303,7 +303,7 @@ class ExtensionExecutor(Executor):
     def __init__(self, ctx, loader):
         super().__init__(ctx)
         self.loader = loader
-        self.setup_env(self.loader, use_ctx_path=False)
+        self.setup_env(self.loader, use_ctx_path=True)
         self._executor = self.build_executor(self.loader)
 
     def setup_env(self, loader, use_ctx_path=True):
@@ -326,6 +326,7 @@ class BrokerVendor(ExtensionExecutor):
 
         # let TD and MD start without package.json
         sys.path.insert(0, ctx.extension_path)
+        self.ctx.logger.info(f"try to loading {ctx.group} from {loader.extension_dir}")
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         service_builder = getattr(module, ctx.category)

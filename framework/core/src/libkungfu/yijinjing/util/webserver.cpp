@@ -42,13 +42,12 @@ stream::~stream() {
 }
 uint64_t stream::get_stream_id() { return stream_id_; }
 
-uint64_t stream::get_opposite_stream_id(){
+uint64_t stream::get_opposite_stream_id() {
   nng_sockaddr local_address, remote_address;
   nng_stream_get_addr(s_, NNG_OPT_REMADDR, &remote_address);
   nng_stream_get_addr(s_, NNG_OPT_LOCADDR, &local_address);
   return (static_cast<uint64_t>(local_address.s_in.sa_addr) << 32) |
          (static_cast<uint64_t>(local_address.s_in.sa_port) << 16) | remote_address.s_in.sa_port;
-
 }
 
 void stream::start_recv() {
@@ -97,24 +96,24 @@ void stream::stream_send(const std::string &data) {
   }
 }
 
-int stream::stream_send(const char* data, const int len) {
-	nng_iov iov;
-	iov.iov_buf = (void*)data;
-	iov.iov_len = len;
-	int rv = nng_aio_set_iov(aio_send_, 1, &iov);
-	if (rv != 0) {
-		fatal("nng_aio_set_iov", rv);
-	}
-	nng_stream_send(s_, aio_send_);
-	nng_aio_wait(aio_send_);
-	rv = nng_aio_result(aio_send_);
-	if (rv != 0) {
-		fatal("nng_aio_result", rv);
-	}
-	return rv;
+int stream::stream_send(const char *data, const int len) {
+  nng_iov iov;
+  iov.iov_buf = (void *)data;
+  iov.iov_len = len;
+  int rv = nng_aio_set_iov(aio_send_, 1, &iov);
+  if (rv != 0) {
+    fatal("nng_aio_set_iov", rv);
+  }
+  nng_stream_send(s_, aio_send_);
+  nng_aio_wait(aio_send_);
+  rv = nng_aio_result(aio_send_);
+  if (rv != 0) {
+    fatal("nng_aio_result", rv);
+  }
+  return rv;
 }
 
-std::vector<std::string> stream::get_and_clear_data(){
+std::vector<std::string> stream::get_and_clear_data() {
   std::lock_guard<std::mutex> lock(mtx_);
   std::vector<std::string> result = data_received_; // 返回数据的副本
   data_received_.clear();
@@ -307,23 +306,21 @@ stream_manage::~stream_manage() {}
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
   if (!streams_.contains(stream_id)) {
-    SPDLOG_ERROR("publish failed:{}",msg);
+    SPDLOG_ERROR("publish failed:{}", msg);
     return -1;
   }
   streams_.at(stream_id)->stream_send(msg);
   return 0;
 }
-int stream_manage::publish(uint64_t stream_id, const char* data, const int len){
+int stream_manage::publish(uint64_t stream_id, const char *data, const int len) {
   if (!streams_.contains(stream_id)) {
     SPDLOG_DEBUG("publish failed");
     return -1;
   }
   streams_.at(stream_id)->stream_send(data, len);
-  //SPDLOG_DEBUG("publish success");
+  // SPDLOG_DEBUG("publish success");
   return 0;
-
 }
-
 
 std::vector<std::string> stream_manage::get_notice(uint64_t stream_id) {
   return streams_.find(stream_id)->second->get_and_clear_data();

@@ -247,19 +247,19 @@ const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() con
 void hero::on_notify() {}
 
 void hero::on_exit() {
-SPDLOG_INFO("default on_exit"); 
-// std::vector<uint64_t> loop_diff(max_num);
-// std::vector<uint64_t> data_diff(max_num);
-// for(int i = 0;i<loop_num-1;i++)
-//   loop_diff[i] = loop_time[i+1] - loop_time[i];
-// for(int i = 0;i<data_num-1;i++)
-//   data_diff[i] = data_time[i+1] - data_time[i];
-// SPDLOG_DEBUG("loop time"); 
-// for(int i = 0;i<loop_num-1;i++)
-//   SPDLOG_DEBUG("i:{}",loop_diff[i]); 
-// SPDLOG_DEBUG("data_time"); 
-// for(int i = 0;i<data_num-1;i++)
-//   SPDLOG_DEBUG("i:{}",data_diff[i]); 
+  SPDLOG_INFO("default on_exit");
+  // std::vector<uint64_t> loop_diff(max_num);
+  // std::vector<uint64_t> data_diff(max_num);
+  // for(int i = 0;i<loop_num-1;i++)
+  //   loop_diff[i] = loop_time[i+1] - loop_time[i];
+  // for(int i = 0;i<data_num-1;i++)
+  //   data_diff[i] = data_time[i+1] - data_time[i];
+  // SPDLOG_DEBUG("loop time");
+  // for(int i = 0;i<loop_num-1;i++)
+  //   SPDLOG_DEBUG("i:{}",loop_diff[i]);
+  // SPDLOG_DEBUG("data_time");
+  // for(int i = 0;i<data_num-1;i++)
+  //   SPDLOG_DEBUG("i:{}",data_diff[i]);
 }
 
 location_ptr hero::get_ledger_home_location() const { return ledger_home_location_; }
@@ -455,12 +455,12 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_notice(bypass, true, sb);
-  //loop_time[loop_num<max_num?loop_num++:max_num-1] = time::now_in_nano();
+  // loop_time[loop_num<max_num?loop_num++:max_num-1] = time::now_in_nano();
   for (std::size_t step_count = 0;                                                             //
        live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); //
        step_count++) {
-    //data_time[data_num<max_num?data_num++:max_num-1] = time::now_in_nano();
-    //SPDLOG_DEBUG("time:{}",time::now_in_nano());
+    // data_time[data_num<max_num?data_num++:max_num-1] = time::now_in_nano();
+    // SPDLOG_DEBUG("time:{}",time::now_in_nano());
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
     io_device_->get_bus()->set_trigger_frame(frame);

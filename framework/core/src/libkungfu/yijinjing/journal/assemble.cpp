@@ -238,8 +238,7 @@ void assemble::sort() {
   return v;
 }
 
-std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>>
-assemble::read_datas(int64_t end_time) {
+std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> assemble::read_datas(int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
   while (data_available() and current_frame()->gen_time() < end_time) {
     if (current_page()->get_version() == __JOURNAL_VERSION__) {
@@ -292,6 +291,12 @@ void assemble::disjoin(uint32_t location_uid) {
 void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   for (auto &reader : readers_) {
     reader->disjoin_channel(location_uid, dest_id);
+  }
+}
+
+void assemble::join_channel(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
+  for (auto &reader : readers_) {
+    reader->join(location, dest_id, from_time);
   }
 }
 

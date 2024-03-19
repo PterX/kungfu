@@ -111,7 +111,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watchEffect, getCurrentInstance, computed, watch } from 'vue';
+import { ref, getCurrentInstance, computed, watch } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { DownOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import dayjs, { Dayjs } from 'dayjs';
@@ -157,6 +157,8 @@ const walletStore = useWalletStore();
 const visible = ref(props.toggle);
 const walletDetail = ref();
 const dateRange = ref<dayjs.Dayjs[]>([]);
+
+let deregister: (() => void) | null = null;
 
 const getDefaultDateRange = () => {
   const byDay = walletStore.currentWallet?.transactions.byDay;
@@ -261,9 +263,12 @@ const chartOptions = computed<echarts.EChartsCoreOption>(() => {
   return options;
 });
 
-watchEffect(() => {
-  visible.value = props.toggle;
-});
+watch(
+  () => props.toggle,
+  (newVal) => {
+    visible.value = newVal;
+  },
+);
 
 const onClickOutside = (
   el: string | Element,
@@ -307,16 +312,20 @@ const onClickOutside = (
   return deregister;
 };
 
-watchEffect(() => {
-  emit('update:toggle', visible.value);
-
-  if (visible.value) {
-    const deregister = onClickOutside('.wallet-detail', () => {
-      visible.value = false;
+watch(
+  () => visible.value,
+  (newVal) => {
+    emit('update:toggle', newVal);
+    if (newVal) {
+      deregister = onClickOutside('.wallet-detail', () => {
+        visible.value = false;
+        deregister?.();
+      });
+    } else {
       deregister?.();
-    });
-  }
-});
+    }
+  },
+);
 
 const getContainer = () => {
   const el = document.querySelector(

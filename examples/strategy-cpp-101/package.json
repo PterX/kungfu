@@ -4,6 +4,7 @@
   "version": "3.0.0-alpha.5",
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
+  "main": "package.json",
   "kungfuConfig": {
     "key": "KungfuStrategy101Cpp"
   },

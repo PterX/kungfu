@@ -1500,12 +1500,10 @@ export const startStrategyOperator = async (
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    if (!isReplay) {
-      const { processStatus } = await listProcessStatus();
-      if (!getIfProcessDeleted(processStatus, processId)) {
-        kfLogger.info(`Clear existed ${category} ${processId}`);
-        await deleteProcess(processId);
-      }
+    const { processStatus } = await listProcessStatus();
+    if (!getIfProcessDeleted(processStatus, processId)) {
+      kfLogger.info(`Clear existed ${category} ${processId}`);
+      await deleteProcess(processId);
     }
   } catch (err) {
     kfLogger.warn(err);

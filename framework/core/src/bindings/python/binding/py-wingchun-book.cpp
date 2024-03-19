@@ -44,9 +44,9 @@ public:
     PYBIND11_OVERLOAD_PURE(void, AccountingMethod, update_position, book, position);
   }
 
-  void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+  bool update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
                     Asset &asset, const Position &position) override {
-    PYBIND11_OVERLOAD_PURE(void, AccountingMethod, update_asset, instruments, instrument_factors, asset, position);
+    PYBIND11_OVERLOAD_PURE(bool, AccountingMethod, update_asset, instruments, instrument_factors, asset, position);
   }
 };
 

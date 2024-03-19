@@ -127,7 +127,6 @@ Position &Book::get_position(uint32_t source_id, Direction direction, const char
 }
 
 void Book::update(int64_t update_time) {
-  asset.update_time = update_time;
 
   /* IMPORTANT:
    * remove assign and reassign of asset.margin
@@ -136,12 +135,9 @@ void Book::update(int64_t update_time) {
    * different exchange may have different margin discount
    */
 
-  // asset.margin = 0;
-  asset.market_value = 0;
-  asset.long_market_value = 0;
-  asset.short_market_value = 0;
-  asset.unrealized_pnl = 0;
-  asset.dynamic_equity = asset.avail;
+  Asset tmp_asset{};
+  tmp_asset.dynamic_equity = asset.avail;
+  bool asset_changed = false;
 
   auto update_position = [&](const Position &position) {
     if (accounting_methods.find(position.instrument_type) == accounting_methods.end()) {
@@ -150,11 +146,20 @@ void Book::update(int64_t update_time) {
     }
 
     AccountingMethod_ptr accounting_method = accounting_methods.at(position.instrument_type);
-    accounting_method->update_asset(instruments, instrument_factors, asset, position);
+    asset_changed |= accounting_method->update_asset(instruments, instrument_factors, tmp_asset, position);
   };
 
   apply_long_positions(update_position);
   apply_short_positions(update_position);
+
+  if (asset_changed) {
+    asset.market_value = tmp_asset.market_value;
+    asset.long_market_value = tmp_asset.long_market_value;
+    asset.short_market_value = tmp_asset.short_market_value;
+    asset.unrealized_pnl = tmp_asset.unrealized_pnl;
+    asset.dynamic_equity = tmp_asset.dynamic_equity;
+    asset.update_time = update_time;
+  }
 }
 
 void Book::replace(const OrderInput &input) { order_inputs.insert_or_assign(input.order_id, input); }

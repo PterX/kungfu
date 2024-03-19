@@ -63,6 +63,7 @@ import {
   loopToRunProcess,
   isKfColor,
   LinkedList,
+  escapeSpecialChar,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
@@ -781,7 +782,8 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        const isMatch = new RegExp(searchKeyword, 'ig').test(combinedValue);
+        const escapedKeyword = escapeSpecialChar(searchKeyword);
+        const isMatch = new RegExp(escapedKeyword, 'ig').test(combinedValue);
         if (isMatch) return true;
         const childMatch =
           item.children && item.children.length > 0
@@ -849,7 +851,8 @@ export const useTableSearchKeywordList = <T>(
             if (keyword === '') {
               return true;
             }
-            return new RegExp(keyword, 'ig').test(itemValue.toString());
+            const escapedKeyword = escapeSpecialChar(keyword);
+            return new RegExp(escapedKeyword, 'ig').test(itemValue.toString());
           }
         });
       })
@@ -887,7 +890,8 @@ export const useTableSearchKeyword = <T>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        return new RegExp(searchKeyword.value, 'ig').test(combinedValue);
+        const escapedKeyword = escapeSpecialChar(searchKeyword.value);
+        return new RegExp(escapedKeyword, 'ig').test(combinedValue);
       })
       .map((item) => toRaw(item));
   });
@@ -980,7 +984,8 @@ export const useWritableTableSearchKeyword = <T>(
                 return keyWord ? keyWord.toString() : '';
               })
               .join('_');
-            return new RegExp(keyword, 'ig').test(combinedValue);
+            const escapedKeyword = escapeSpecialChar(keyword);
+            return new RegExp(escapedKeyword, 'ig').test(combinedValue);
           }) || [];
     },
     {
@@ -1092,8 +1097,19 @@ export const openNewBrowserWindow = (
     if (isMacOS) {
       //禁用全屏按钮,避免子窗口退出全屏时导致主窗口上部出现空白
       win.setFullScreen(false);
+
       //禁用最小化按钮
       win.setMinimizable(false);
+
+      // 当窗口获得焦点时,将其置顶
+      win.on('focus', () => {
+        win.setAlwaysOnTop(true);
+      });
+
+      // 当窗口失去焦点时,取消置顶
+      win.on('blur', () => {
+        win.setAlwaysOnTop(false);
+      });
     }
 
     win.webContents.loadURL(modalPath);

@@ -1,5 +1,5 @@
-#ifndef KUNGFU_XTP_EXT_TRADER_H
-#define KUNGFU_XTP_EXT_TRADER_H
+#ifndef KUNGFU_CPPSIM_EXT_TRADER_H
+#define KUNGFU_CPPSIM_EXT_TRADER_H
 
 #include <kungfu/wingchun/broker/trader.h>
 
@@ -41,9 +41,12 @@ struct TDConfiguration {
   MatchMode match_mode;
   bool recover_order_trade;
   double asset;
+  double cancel_delay;
+  double trigger_delay;
   std::vector<Pos> position_list;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(TDConfiguration, account_id, match_mode, recover_order_trade, asset, position_list)
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(TDConfiguration, account_id, match_mode, recover_order_trade, asset, cancel_delay,
+                                 trigger_delay, position_list)
 };
 
 class TraderSim : public broker::Trader {
@@ -78,14 +81,23 @@ public:
 
   void on_recover() override;
 
+  bool insert_order_trigger(const event_ptr &event) override;
+
+  bool cancel_order_trigger(const event_ptr &event) override;
+
 private:
   TDConfiguration config_{};
   std::string trading_day_{};
   longfist::enums::OrderStatus default_status_{};
+  std::map<uint64_t, int32_t> map_trigger_id_to_timer_id_{};
 
   void generate_trade(const longfist::types::Order &order, uint32_t dest_id);
 
   bool verify_order(longfist::types::Order &order);
+
+  void trigger_start(uint64_t trigger_id);
+
+  void cancel_order(uint64_t order_id);
 };
 } // namespace kungfu::wingchun::sim
-#endif // KUNGFU_XTP_EXT_TRADER_H
+#endif // KUNGFU_CPPSIM_EXT_TRADER_H

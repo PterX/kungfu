@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.2-alpha.2",
+  "version": "2.7.3-alpha.1",
   "description": "Kungfu Extension - SIM",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -29,10 +29,10 @@
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.7.2-alpha.2"
+    "@kungfu-trader/kungfu-core": "^2.7.3-alpha.1"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.2-alpha.2"
+    "@kungfu-trader/kungfu-sdk": "^2.7.3-alpha.1"
   },
   "kungfuBuild": {
     "cpp": {
@@ -110,12 +110,28 @@
             "name": "CppSim.asset",
             "type": "float",
             "required": true,
-            "default": 10000,
+            "default": 100000,
             "primary": false
           },
           {
+            "key": "cancel_delay",
+            "name": "CppSim.cancel_delay",
+            "type": "float",
+            "required": true,
+            "primary": false,
+            "default": 1
+          },
+          {
+            "key": "trigger_delay",
+            "name": "CppSim.trigger_delay",
+            "type": "float",
+            "required": true,
+            "primary": false,
+            "default": 2
+          },
+          {
             "key": "position_list",
-            "name": "持仓列表",
+            "name": "CppSim.position_list",
             "type": "table",
             "columns": [
               {
@@ -127,7 +143,7 @@
               },
               {
                 "key": "direction",
-                "name": "CppSim.side",
+                "name": "CppSim.offset",
                 "type": "direction",
                 "required": true,
                 "primary": false
@@ -162,7 +178,7 @@
         "settings": [
           {
             "key": "quote",
-            "name": "快照生成间隔",
+            "name": "CppSim.quote_interval",
             "type": "float",
             "required": true,
             "primary": false,
@@ -170,7 +186,7 @@
           },
           {
             "key": "tick",
-            "name": "逐笔生成间隔",
+            "name": "CppSim.tick_interval",
             "type": "float",
             "required": true,
             "primary": false,
@@ -200,7 +216,12 @@
         "volume_yesterday": "昨仓",
         "volume_today": "今仓",
         "asset": "初始资金",
-        "side": "持仓方向"
+        "offset": "持仓方向",
+        "cancel_delay": "撤单延迟",
+        "trigger_delay": "预埋单触发延迟",
+        "position_list": "持仓列表",
+        "quote_interval": "快照生成间隔",
+        "tick_interval": "逐笔生成间隔"
       },
       "en-US": {
         "CppSim": "SIM",
@@ -222,7 +243,12 @@
         "volume_yesterday": "Volume Yesterday",
         "volume_today": "Volume Today",
         "asset": "Asset",
-        "offset": "offset"
+        "offset": "Offset",
+        "cancel_delay": "cancel delay",
+        "trigger_delay": "trigger delay",
+        "position_list": "position list",
+        "quote_interval": "quote interval",
+        "tick_interval": "tick interval"
       }
     }
   }

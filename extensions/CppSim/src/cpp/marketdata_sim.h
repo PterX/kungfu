@@ -1,5 +1,5 @@
-#ifndef KUNGFU_XTP_EXT_MARKET_DATA_H
-#define KUNGFU_XTP_EXT_MARKET_DATA_H
+#ifndef KUNGFU_CPPSIM_EXT_MARKET_DATA_H
+#define KUNGFU_CPPSIM_EXT_MARKET_DATA_H
 
 #include <kungfu/wingchun/broker/marketdata.h>
 #include <kungfu/yijinjing/common.h>
@@ -80,4 +80,4 @@ private:
 };
 } // namespace kungfu::wingchun::sim
 
-#endif // KUNGFU_XTP_EXT_MARKET_DATA_H
+#endif // KUNGFU_CPPSIM_EXT_MARKET_DATA_H

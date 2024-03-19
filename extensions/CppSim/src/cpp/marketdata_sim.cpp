@@ -183,7 +183,7 @@ void MarketDataSim::generate_tick() {
       entrust.side = dist_delta(rng) >= 25 ? Side::Buy : Side::Sell;
       entrust.price_type = PriceType::Limit;
       entrust.data_time = time::now_in_nano();
-      entrust.orig_order_no = (entrust_band_writer_->current_frame_uid() ^ (entrust.data_time & 0xFFFFFFFF)) & 0x7FFFFFFF;
+      entrust.orig_order_no = (entrust_band_writer_->current_frame_uid() ^ (entrust.data_time & 0xFFFFFFFF)) & 0x7FFFFFFFFFFFFFFF;
       SPDLOG_DEBUG("Entrust: {}", entrust.to_string());
       entrust_band_writer_->write(now(), entrust);
       all_entrust_[entrust.orig_order_no] = entrust;

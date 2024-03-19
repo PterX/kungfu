@@ -83,9 +83,7 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const { instrumentKeyAccountsMap, globalSetting, instrumentsMap } = storeToRefs(
-  useGlobalStore(),
-);
+const { globalSetting, instrumentsMap } = storeToRefs(useGlobalStore());
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
@@ -307,14 +305,16 @@ watch(
 );
 
 watch(
-  () => formState.value.instrument,
-  (newVal) => {
-    if (!newVal || !currentGlobalKfLocation.value) return;
+  [() => formState.value.account_id, () => formState.value.instrument],
+  ([newAccountId, newInstrument]) => {
+    if (!newInstrument || !currentGlobalKfLocation.value) return;
     const instrumentResolved =
-      transformSearchInstrumentResultToInstrument(newVal);
+      transformSearchInstrumentResultToInstrument(newInstrument);
     if (instrumentResolved) {
       const { instrumentType, exchangeId } = instrumentResolved;
-      const tdName = currentGlobalKfLocation.value?.group;
+
+      const tdName = newAccountId ? newAccountId.split('_')[0] : '';
+
       const extConfig = extConfigs.value.td[tdName];
       if (instrumentType === InstrumentTypeEnum.stockoption) {
         sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
@@ -348,14 +348,6 @@ watch(
         !sideList.value.includes(formState.value.side + '')
       ) {
         formState.value.side = +sideList.value[0];
-      }
-      if (
-        !formState.value.account_id &&
-        currentGlobalKfLocation.value?.category !== 'td' &&
-        instrumentKeyAccountsMap.value[newVal] &&
-        instrumentKeyAccountsMap.value[newVal].length
-      ) {
-        formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
       }
 
       if (formState.value.contract_id && !autoFillInstrument.value) {

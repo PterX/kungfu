@@ -155,7 +155,7 @@ void TraderSim::generate_trade(const Order &order, uint32_t dest_id) {
       writer->close_data();
     } else {
       Trade trade{};
-      trade.trade_id = get_public_writer()->current_frame_uid() xor (time::now_in_nano() & 0x0000FFFF);
+      trade.trade_id = get_public_writer()->current_frame_uid() xor (time::now_in_nano() & 0xFFFFFFFF);
       trade_from_order(order, trade);
       trade.trade_time = time::now_in_nano();
       trade.volume = trade_volume;

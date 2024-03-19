@@ -6,6 +6,18 @@
 
 namespace kungfu::wingchun::sim {
 
+struct Level final {
+  double price;
+  double volume;
+  int64_t data_time;
+  std::vector<int64_t> order_no_vector;
+
+  Level() = default;
+
+  Level(double p, double v, int64_t ut, const std::vector<int64_t>& vec = {}) 
+      : price(p), volume(v), data_time(ut), order_no_vector(vec) {}
+};
+
 struct MDConfiguration {
   double quote;
   double tick;
@@ -40,14 +52,19 @@ private:
   inline static thread_local yijinjing::journal::writer_ptr transaction_band_writer_{};
 
   std::map<std::string, longfist::types::Entrust> map_entrust_{};
+  std::map<int64_t, longfist::types::Entrust> all_entrust_{};// 存放所有的逐笔委托 <委托号, Entrust>
   std::map<std::string, longfist::types::Transaction> map_transaction_{};
   std::map<std::string, longfist::types::Quote> map_quote_{};
 
+  std::map<std::string, std::map<double, Level>> bid_orderbooks_{};// 存放所有标的的买单数据
+  std::map<std::string, std::map<double, Level>> ask_orderbooks_{};// 存放所有标的的买单数据
   static inline std::string make_exchange_instrument(const std::string &exchang_id, const std::string &instrument_id);
 
   void generate_quote();
 
   void generate_tick();
+
+  void write_transaction_trade(const longfist::types::Entrust &entrust, double volume, int64_t order_no);// 写成交类型的Transaction
 
   template <class T> void add_subscribe(const longfist::types::InstrumentKey &key, std::map<std::string, T> &map_) {
     auto pair = map_.try_emplace(make_exchange_instrument(key.exchange_id, key.instrument_id));
@@ -57,6 +74,8 @@ private:
       data.instrument_id = key.instrument_id;
       data.instrument_type = get_instrument_type(key.exchange_id, key.instrument_id);
     }
+    bid_orderbooks_.try_emplace(make_exchange_instrument(key.exchange_id, key.instrument_id));
+    ask_orderbooks_.try_emplace(make_exchange_instrument(key.exchange_id, key.instrument_id));
   }
 };
 } // namespace kungfu::wingchun::sim

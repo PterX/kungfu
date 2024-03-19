@@ -132,3 +132,10 @@ export function destoryAllWindows() {
     window.destroy();
   });
 }
+
+export function openDevTool() {
+  const focusedWin = BrowserWindow.getFocusedWindow();
+  if (focusedWin) {
+    focusedWin.webContents.openDevTools();
+  }
+}

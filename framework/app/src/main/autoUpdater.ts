@@ -198,50 +198,35 @@ async function setUpdaterOption(
 
   const artifactPath = `${projectName}/v${version.major}/v${targetVersion}`;
   let baseUrl = '';
-  let baseChannel = '';
-  let ymlUrl = '';
   if (updaterOption.provider === 'generic') {
     baseUrl = updaterOption.url;
-    baseChannel = getChannel(targetVersion.includes('-alpha'));
-    ymlUrl = `${baseUrl}/${artifactPath}/${baseChannel}.yml`;
   } else if (updaterOption.provider === 's3') {
     updaterOption.path = artifactPath;
-    //TODO: s3 ymlUrl
-    // const s3BaseUrl = updaterOption.region
-    //   ? `https://s3.${updaterOption.region}.amazonaws.com/${updaterOption.bucket}`
-    //   : `https://s3.amazonaws.com/${updaterOption.bucket}`;
-    ymlUrl = '';
   }
 
   const urlPrefix = `${baseUrl}/${projectName}/v${version.major}/v`;
 
-  const isUrlAvailable = await checkUrl(ymlUrl);
-  kfLogger.info('Kungfu autoUpdater check url: ', ymlUrl, isUrlAvailable);
-  if (isUrlAvailable) {
-    const result = await getLatestVersion(
-      targetVersion,
-      targetVersion.includes('-alpha'),
-      UpdateVersionTypeEnums.UpdateToNextAlpha,
-      updaterOption,
-      urlPrefix,
-    );
+  const result = await getLatestVersion(
+    targetVersion,
+    targetVersion.includes('-alpha'),
+    UpdateVersionTypeEnums.UpdateToNextAlpha,
+    updaterOption,
+    urlPrefix,
+  );
 
-    if (result && result.latestVersion) {
-      const availableVersion = result.latestVersion;
-      const artifactPath = `${urlPrefix}${availableVersion}`;
-      updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
-      if (updaterOption.provider === 'generic') {
-        updaterOption.url = `${artifactPath}`;
-      } else if (updaterOption.provider === 's3') {
-        updaterOption.path = artifactPath;
-      }
-      autoUpdater.setFeedURL(updaterOption);
-      return {
-        updaterOption,
-      };
-    } else {
-      return false;
+  if (result && result.latestVersion) {
+    const availableVersion = result.latestVersion;
+    const artifactPath = `${urlPrefix}${availableVersion}`;
+    updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
+    if (updaterOption.provider === 'generic') {
+      updaterOption.url = `${artifactPath}`;
+    } else if (updaterOption.provider === 's3') {
+      updaterOption.path = artifactPath;
     }
+    autoUpdater.setFeedURL(updaterOption);
+    return {
+      updaterOption,
+    };
   } else {
     return false;
   }

@@ -1,23 +1,12 @@
 <template>
   <div class="kf-index__warp">
     <KfRowColIter
-      v-if="curBoardsMap?.[0]?.children?.length"
       :board-id="0"
       :closable="true"
       :init-boards-map="curBoardsMap"
       :current-boards-store-id="'main'"
       :default-boards-map="curDefaultBoardsMap"
     ></KfRowColIter>
-    <a-empty v-else class="kf-index__empty" :image="simpleImage">
-      <template #description>
-        <span>
-          {{ $t('board_empty') }}
-        </span>
-      </template>
-      <a-button type="primary" @click="handleAddBoardFromEmpty">
-        {{ $t('add_board_now') }}
-      </a-button>
-    </a-empty>
     <KfAddBoardModalVue
       v-if="addBoardModalVisible"
       v-model:visible="addBoardModalVisible"
@@ -34,7 +23,6 @@ import KfRowColIter from '@kungfu-trader/kungfu-app/src/renderer/components/layo
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { defaultBoardsMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs';
 import KfAddBoardModalVue from '../../../components/public/KfAddBoardModal.vue';
-import { Empty } from 'ant-design-vue';
 import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { Subscription } from 'rxjs';
 import { useBoards } from '../store/board';
@@ -50,7 +38,6 @@ export default defineComponent({
   },
 
   setup() {
-    const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
     const { setCurrentGlobalKfLocation, setDefaultCurrentGlobalKfLocation } =
       useGlobalStore();
     const { registerKeyDown } = useShortcutFocusContainer();
@@ -63,12 +50,6 @@ export default defineComponent({
     const addBoardTargetBoardId = ref<number>(-1);
 
     let subscription: Subscription;
-
-    const handleAddBoardFromEmpty = () => {
-      addBoardModalVisible.value = true;
-      addBoardTargetBoardId.value = 0;
-    };
-
     const { getLocalBoardsMap } = useBoards();
     const curDefaultBoardsMap = dealDefaultBoardsHook.trigger(
       defaultBoardsMap,
@@ -101,10 +82,8 @@ export default defineComponent({
     return {
       curBoardsMap,
       curDefaultBoardsMap,
-      simpleImage,
       addBoardModalVisible,
       addBoardTargetBoardId,
-      handleAddBoardFromEmpty,
     };
   },
 });
@@ -114,10 +93,6 @@ export default defineComponent({
 .kf-index__warp {
   height: 100%;
   width: 100%;
-
-  .kf-index__empty {
-    margin: 25% auto;
-  }
 
   & > .kf-drag-row__warp {
     height: 100%;

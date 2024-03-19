@@ -771,6 +771,35 @@ KF_DEFINE_PACK_TYPE(                                        //
 
 );
 
+KF_DEFINE_PACK_TYPE(                                                  //
+    Depth, 405, PK(instrument_id, exchange_id), TIMESTAMP(data_time), //
+
+    (int64_t, data_time), // 数据生成时间
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
+
+    (enums::InstrumentType, instrument_type), // 合约类型
+    (double, price),                          // 委托价格
+    (double, volume),                         // 委托量
+    (enums::Side, side)                       // 买卖方向
+);
+
+KF_DEFINE_PACK_TYPE(                                                 //
+    Tick, 406, PK(instrument_id, exchange_id), TIMESTAMP(data_time), //
+
+    (int64_t, data_time), // 数据生成时间
+
+    (kungfu::array<char, INSTRUMENT_ID_LEN>, instrument_id), // 合约ID
+    (kungfu::array<char, EXCHANGE_ID_LEN>, exchange_id),     // 交易所代码
+
+    (enums::InstrumentType, instrument_type), // 合约类型
+    (double, bid_price),                      // 申买价
+    (double, bid_volume),                     // 申卖价
+    (double, ask_price),                      // 申买量
+    (double, ask_volume)                      // 申卖量
+);
+
 KF_DEFINE_PACK_TYPE(                                         //
     InstrumentKey, 501, PK(key), PERPETUAL(),                //
     (uint32_t, key),                                         //

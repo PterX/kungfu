@@ -63,7 +63,6 @@ class JsonTree {
 
     this.buildTree(this.json, 0, this.tipsMap);
     this.goNewLine();
-
     return this.contentList.join('\n');
   }
 
@@ -82,7 +81,7 @@ class JsonTree {
   buildTree(json, level = 0, tipsMap = {}) {
     const keys = Object.keys(json);
 
-    keys.forEach((key) => {
+    keys.forEach((key, index) => {
       const value = json[key];
       const hasChildren = isObject(value);
       const currentPad = this.pad * level;
@@ -119,6 +118,11 @@ class JsonTree {
         if (parsedTip.length > 1) {
           this.addLines(parsedTip.slice(1));
         }
+      }
+
+      //添加空行,增加可读性
+      if (index < keys.length - 1) {
+        this.goNewLine();
       }
     });
   }

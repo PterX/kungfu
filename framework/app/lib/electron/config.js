@@ -19,6 +19,7 @@ console.log(`-- Package root ${root}`);
 const logoDir = path.join(root, 'logo');
 const logoPath = path.join(logoDir, 'logo-replace.png');
 const dialogLogoPath = path.join(logoDir, 'dialog-logo-replace.png');
+const logoNoBgPath = path.join(logoDir, 'logo-no-bg-replace.png');
 const icoLogoPath = path.join(logoDir, 'icon-replace.ico');
 const icnsLogoPath = path.join(logoDir, 'icon-replace.icns');
 const icoLogoPathResolved = fse.existsSync(icoLogoPath)
@@ -82,6 +83,10 @@ if (fse.existsSync(logoPath)) {
 
 if (fse.existsSync(dialogLogoPath)) {
   console.log(`-- Found dialog logo file ${dialogLogoPath}`);
+}
+
+if (fse.existsSync(logoNoBgPath)) {
+  console.log(`-- Found logo no bg file ${logoNoBgPath}`);
 }
 
 if (fse.existsSync(icnsLogoPath)) {

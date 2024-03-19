@@ -125,11 +125,26 @@
       </a-tabs>
     </template>
   </KfDragCol>
+  <a-empty
+    v-if="boardId === 0 && boardsMap[0].children.length === 0"
+    class="kf-index__empty"
+    :image="simpleImage"
+  >
+    <template #description>
+      <span>
+        {{ $t('board_empty') }}
+      </span>
+    </template>
+    <a-button type="primary" @click="handleAddBoardFromEmpty">
+      {{ $t('add_board_now') }}
+    </a-button>
+  </a-empty>
 </template>
 
 <script lang="ts">
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
+import { Empty } from 'ant-design-vue';
 import {
   KfLayoutDirection,
   KfLayoutTargetDirectionClassName,
@@ -191,10 +206,10 @@ export default defineComponent({
   },
 
   setup(props) {
+    const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
     const { isLanguageKeyAvailable } = useLanguage();
 
     const { getBoardsStoreById, createBoardsStore } = useBoards();
-
     let useBoardsStore;
     if (props.boardId === 0) {
       useBoardsStore = createBoardsStore(
@@ -243,6 +258,7 @@ export default defineComponent({
       markIsBoardDragging,
 
       getBoardNameByLanguage,
+      simpleImage,
     };
   },
 
@@ -352,10 +368,31 @@ export default defineComponent({
     hasComponent(cname: string) {
       return !!this._.appContext.components[cname];
     },
+
+    handleAddBoardFromEmpty() {
+      this.$globalBus.next({
+        tag: 'addBoard',
+        boardId: 0,
+      });
+    },
+  },
+
+  unmounted() {
+    this.$globalBus.next({
+      tag: 'resize',
+    } as KfEvent.ResizeEvent);
   },
 });
 </script>
 <style lang="less">
+.kf-index__empty {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 25% auto;
+}
 .ant-tabs.ant-tabs-card.ant-tabs-small {
   > .ant-tabs-nav .ant-tabs-tab {
     padding: 0;

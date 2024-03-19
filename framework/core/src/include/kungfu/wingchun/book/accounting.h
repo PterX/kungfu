@@ -43,7 +43,7 @@ public:
 
   virtual void update_position(Book_ptr &book, longfist::types::Position &position) = 0;
 
-  virtual void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+  virtual bool update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
                             longfist::types::Asset &asset, const longfist::types::Position &position) = 0;
 
   static void setup_defaults(Bookkeeper &bookkeeper,

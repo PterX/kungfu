@@ -185,7 +185,7 @@ public:
     position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
   }
 
-  void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+  bool update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
                     Asset &asset, const Position &position) override {
     auto future_i_a = get_future_instrument_attribute(instruments, instrument_factors, position.source_id,
                                                       position.direction, position.exchange_id, position.instrument_id);
@@ -205,6 +205,7 @@ public:
     asset.unrealized_pnl += position.unrealized_pnl * exchange_rate;
     asset.market_value += position_market_value;
     asset.dynamic_equity += position.margin + position.position_pnl * exchange_rate;
+    return true;
   }
 
 private:

@@ -56,8 +56,10 @@ public:
 
   virtual void update_position(Book_ptr &book, Position &position) override {}
 
-  void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
-                    Asset &asset, const Position &position) override {}
+  bool update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
+                    Asset &asset, const Position &position) override {
+    return false;
+  }
 
 protected:
   std::unordered_map<uint64_t, double> commission_map_ = {};

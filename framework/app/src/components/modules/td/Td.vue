@@ -19,13 +19,7 @@ import Icon, {
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
-import {
-  categoryRegisterConfig,
-  getColumns,
-  getFundTransKey,
-  getAssetDetailShowList,
-  assetMarginDetailShowList,
-} from './config';
+import { categoryRegisterConfig, getColumns, getFundTransKey } from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
@@ -248,30 +242,24 @@ const customRowResolved = (
     return customRow(record);
   }
 
-  const allAssetDetailList = [
-    ...getAssetDetailShowList(),
-    ...assetMarginDetailShowList,
-  ];
-  const assetGetter = () =>
-    allAssetDetailList.reduce((assetDetails, assetInfo) => {
-      assetDetails[assetInfo.key] = dealAssetPrice(
-        getAssetsByKfConfig(record)[assetInfo.key],
-      );
-      return assetDetails;
-    }, {} as Record<string, string>);
   return {
     ...customRow(record),
     onMousedown: (event: MouseEvent) => {
       if (event.button === 2) {
-        showTradingDataDetail(assetGetter, t('tdConfig.asset_details'), [], {
-          collateral_ratio: (str) => {
-            if (str === '--') {
-              return str;
-            } else {
-              return ((Number(str) || 0) * 100).kfToFixed(1) + '%';
-            }
+        showTradingDataDetail(
+          getAssetsByKfConfig(record),
+          t('tdConfig.asset_details'),
+          [],
+          {
+            collateral_ratio: (str) => {
+              if (str === '--') {
+                return str;
+              } else {
+                return ((Number(str) || 0) * 100).kfToFixed(1) + '%';
+              }
+            },
           },
-        });
+        );
       }
     },
   };

@@ -102,12 +102,12 @@ void MarketDataSim::write_transaction_trade(const Entrust &entrust, double volum
   transaction.instrument_type = get_instrument_type(entrust.exchange_id, entrust.instrument_id);
   transaction.volume = volume;
   if (entrust.side == Side::Buy) {
-    transaction.price = map_ask_entrust_[order_no].price;
+    transaction.price = map_ask_entrust_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)][order_no].price;
     transaction.side = Side::Sell;
     transaction.ask_no = order_no;
     transaction.bid_no = 0;
   } else {
-    transaction.price = map_bid_entrust_[order_no].price;
+    transaction.price = map_bid_entrust_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)][order_no].price;
     transaction.side = Side::Buy;
     transaction.bid_no = order_no;
     transaction.ask_no = 0;
@@ -130,11 +130,14 @@ void MarketDataSim::generate_tick() {
       auto &transaction = pair.second;
       auto &bids_map_ = bid_orderbooks_[make_exchange_instrument(transaction.exchange_id, transaction.instrument_id)];
       auto &asks_map_ = ask_orderbooks_[make_exchange_instrument(transaction.exchange_id, transaction.instrument_id)];
+      auto &bid_entrusts_ = map_bid_entrust_[make_exchange_instrument(transaction.exchange_id, transaction.instrument_id)];
+      auto &ask_entrusts_ = map_ask_entrust_[make_exchange_instrument(transaction.exchange_id, transaction.instrument_id)];
+      
       while (bids_map_.size() > 20 || asks_map_.size() > 20) {
         Side remove_side = bids_map_.size() > asks_map_.size() ? Side::Buy : Side::Sell;
-        int64_t size = bids_map_.size() > asks_map_.size() ? map_bid_entrust_.size() - 1 : map_ask_entrust_.size() - 1;
+        int64_t size = bids_map_.size() > asks_map_.size() ? bid_entrusts_.size() - 1 : ask_entrusts_.size() - 1;
         std::uniform_int_distribution<int> dist_entrust(0, size);
-        auto it = bids_map_.size() > asks_map_.size() ? map_bid_entrust_.begin() : map_ask_entrust_.begin();
+        auto it = bids_map_.size() > asks_map_.size() ? bid_entrusts_.begin() : ask_entrusts_.begin();
         std::advance(it, dist_entrust(rng));
         if (it->second.side != remove_side) {
           continue;
@@ -153,7 +156,7 @@ void MarketDataSim::generate_tick() {
           if (bids_map_[it->second.price].volume <= 0) {
             bids_map_.erase(it->second.price);
           }
-          map_bid_entrust_.erase(it);
+          bid_entrusts_.erase(it);
         } else {
           transaction.ask_no = it->first;
           transaction.bid_no = 0;
@@ -163,7 +166,7 @@ void MarketDataSim::generate_tick() {
           if (asks_map_[it->second.price].volume <= 0) {
             asks_map_.erase(it->second.price);
           }
-          map_ask_entrust_.erase(it);
+          ask_entrusts_.erase(it);
         }
         SPDLOG_DEBUG("Cancel Transaction: {}", transaction.to_string());
         transaction_band_writer_->write(now(), transaction);
@@ -179,19 +182,22 @@ void MarketDataSim::generate_tick() {
       entrust.side = dist_delta(rng) >= 25 ? Side::Buy : Side::Sell;
       entrust.price_type = PriceType::Limit;
       entrust.data_time = time::now_in_nano();
-      entrust.orig_order_no = (entrust_band_writer_->current_frame_uid() ^ (entrust.data_time & 0xFFFFFFFF)) & 0x7FFFFFFFFFFFFFFF;
+      entrust.orig_order_no =
+          (entrust_band_writer_->current_frame_uid() ^ (entrust.data_time & 0xFFFFFFFF)) & 0x7FFFFFFFFFFFFFFF;
       SPDLOG_DEBUG("Entrust: {}", entrust.to_string());
       entrust_band_writer_->write(now(), entrust);
       if (entrust.side == Side::Buy) {
-        map_bid_entrust_[entrust.orig_order_no] = entrust;
+        map_bid_entrust_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)][entrust.orig_order_no] = entrust;
       } else {
-        map_ask_entrust_[entrust.orig_order_no] = entrust;
+        map_ask_entrust_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)][entrust.orig_order_no] = entrust;
       }
     }
     for (auto &pair : map_entrust_) {
       auto &entrust = pair.second;
       auto &bids_map_ = bid_orderbooks_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)];
       auto &asks_map_ = ask_orderbooks_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)];
+      auto &bid_entrusts_ = map_bid_entrust_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)];
+      auto &ask_entrusts_ = map_ask_entrust_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)];
       double volume = entrust.volume;
       if (entrust.side == Side::Buy) {
         if (bids_map_.find(entrust.price) != bids_map_.end()) {
@@ -199,25 +205,28 @@ void MarketDataSim::generate_tick() {
           bids_map_[entrust.price].order_no_vector.emplace_back(entrust.orig_order_no);
           bids_map_[entrust.price].data_time = entrust.data_time;
         } else {
-          while (!asks_map_.empty() && asks_map_.begin()->first <= entrust.price && volume != 0) {
+          while (!asks_map_.empty() && asks_map_.begin()->first <= entrust.price && volume > 0) {
             auto &vec = asks_map_.begin()->second.order_no_vector;
             std::vector<int64_t> to_remove;
             for (int64_t order_no : vec) {
-              if (volume <= 0) {
+              if (asks_map_.empty() || asks_map_.begin()->first > entrust.price || volume <= 0) {
                 break;
               }
-              if (map_ask_entrust_[order_no].volume <= volume) {
-                quote_volume_ = map_ask_entrust_[order_no].volume;
-                quote_last_price_ = map_ask_entrust_[order_no].price;
-                write_transaction_trade(entrust, map_ask_entrust_[order_no].volume, order_no);
+              if (ask_entrusts_[order_no].volume <= volume) {
+                quote_volume_ = ask_entrusts_[order_no].volume;
+                quote_last_price_ = ask_entrusts_[order_no].price;
+                write_transaction_trade(entrust, ask_entrusts_[order_no].volume, order_no);
                 to_remove.emplace_back(order_no);
-                asks_map_.begin()->second.volume -= map_ask_entrust_[order_no].volume;
-                volume -= map_ask_entrust_[order_no].volume;
-                map_ask_entrust_.erase(order_no);
+                asks_map_.begin()->second.volume -= ask_entrusts_[order_no].volume;
+                volume -= ask_entrusts_[order_no].volume;
+                bid_entrusts_[entrust.orig_order_no].volume -= ask_entrusts_[order_no].volume;
+                ask_entrusts_.erase(order_no);
               } else {
+                quote_volume_ = volume;
+                quote_last_price_ = ask_entrusts_[order_no].price;
                 write_transaction_trade(entrust, volume, order_no);
-                map_ask_entrust_[order_no].volume -= volume;
-                map_bid_entrust_.erase(entrust.orig_order_no);
+                ask_entrusts_[order_no].volume -= volume;
+                bid_entrusts_.erase(entrust.orig_order_no);
                 asks_map_.begin()->second.volume -= volume;
                 volume = 0;
               }
@@ -240,25 +249,28 @@ void MarketDataSim::generate_tick() {
           asks_map_[entrust.price].order_no_vector.emplace_back(entrust.orig_order_no);
           asks_map_.at(entrust.price).data_time = entrust.data_time;
         } else {
-          while (!bids_map_.empty() && bids_map_.rbegin()->first >= entrust.price && volume != 0) {
+          while (!bids_map_.empty() && bids_map_.rbegin()->first >= entrust.price && volume > 0) {
             auto &vec = bids_map_.rbegin()->second.order_no_vector;
             std::vector<int64_t> to_remove;
             for (int64_t order_no : vec) {
-              if (volume <= 0) {
+              if (bids_map_.empty() || bids_map_.rbegin()->first < entrust.price || volume <= 0) {
                 break;
               }
-              if (map_bid_entrust_[order_no].volume <= volume) {
-                quote_volume_ = map_bid_entrust_[order_no].volume;
-                quote_last_price_ = map_bid_entrust_[order_no].price;
-                write_transaction_trade(entrust, map_bid_entrust_[order_no].volume, order_no);
+              if (bid_entrusts_[order_no].volume <= volume) {
+                quote_volume_ = bid_entrusts_[order_no].volume;
+                quote_last_price_ = bid_entrusts_[order_no].price;
+                write_transaction_trade(entrust, bid_entrusts_[order_no].volume, order_no);
                 to_remove.emplace_back(order_no);
-                bids_map_.rbegin()->second.volume -= map_bid_entrust_[order_no].volume;
-                volume -= map_bid_entrust_[order_no].volume;
-                map_bid_entrust_.erase(order_no);
+                bids_map_.rbegin()->second.volume -= bid_entrusts_[order_no].volume;
+                volume -= bid_entrusts_[order_no].volume;
+                ask_entrusts_[entrust.orig_order_no].volume -= bid_entrusts_[order_no].volume;
+                bid_entrusts_.erase(order_no);
               } else {
+                quote_volume_ = volume;
+                quote_last_price_ = bid_entrusts_[order_no].price;
                 write_transaction_trade(entrust, volume, order_no);
-                map_bid_entrust_[order_no].volume -= volume;
-                map_ask_entrust_.erase(entrust.orig_order_no);
+                bid_entrusts_[order_no].volume -= volume;
+                ask_entrusts_.erase(entrust.orig_order_no);
                 bids_map_.rbegin()->second.volume -= volume;
                 volume = 0;
               }

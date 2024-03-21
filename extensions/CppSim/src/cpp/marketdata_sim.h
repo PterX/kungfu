@@ -56,8 +56,8 @@ private:
   std::map<std::string, longfist::types::Entrust> map_entrust_{};
   std::map<std::string, longfist::types::Transaction> map_transaction_{};
   std::map<std::string, longfist::types::Quote> map_quote_{};
-  std::map<int64_t, longfist::types::Entrust> map_bid_entrust_{};// 存放所有的买单逐笔委托 <委托号, Entrust>
-  std::map<int64_t, longfist::types::Entrust> map_ask_entrust_{};// 存放所有的卖单逐笔委托 <委托号, Entrust>
+  std::map<std::string, std::map<int64_t, longfist::types::Entrust>> map_bid_entrust_{};// 存放所有的买单逐笔委托 <委托号, Entrust>
+  std::map<std::string, std::map<int64_t, longfist::types::Entrust>> map_ask_entrust_{};// 存放所有的卖单逐笔委托 <委托号, Entrust>
 
   std::map<std::string, std::map<double, Level>> bid_orderbooks_{};// 存放所有标的的买单数据
   std::map<std::string, std::map<double, Level>> ask_orderbooks_{};// 存放所有标的的买单数据

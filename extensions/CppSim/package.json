@@ -1,10 +1,10 @@
 {
-  "name": "@kungfu-trader/kfx-broker-CppSim",
+  "name": "@kungfu-trader/kfx-broker-cpp-sim",
   "author": {
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.3-alpha.1",
+  "version": "2.7.3-alpha.2",
   "description": "Kungfu Extension - SIM",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -15,7 +15,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "binary": {
-    "module_name": "kfx-broker-CppSim",
+    "module_name": "kfx-broker-cpp-sim",
     "module_path": "dist/CppSim",
     "remote_path": "{module_name}/v{major}/v{version}",
     "package_name": "{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz",
@@ -29,10 +29,10 @@
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.7.3-alpha.1"
+    "@kungfu-trader/kungfu-core": "^2.7.3-alpha.2"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.3-alpha.1"
+    "@kungfu-trader/kungfu-sdk": "^2.7.3-alpha.2"
   },
   "kungfuBuild": {
     "cpp": {

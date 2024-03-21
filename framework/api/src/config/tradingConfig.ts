@@ -1009,6 +1009,18 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.IPM'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
   },
+  'OKX-SPOT': {
+    name: t('tradingConfig.OKX_SPOT'),
+    color: InstrumentType[InstrumentTypeEnum.crypto].color,
+  },
+  'OKX-USD-FUTURE': {
+    name: t('tradingConfig.OKX_USD_FUTURE'),
+    color: InstrumentType[InstrumentTypeEnum.cryptoufuture].color,
+  },
+  'OKX-COIN-FUTURE': {
+    name: t('tradingConfig.OKX_COIN_FUTURE'),
+    color: InstrumentType[InstrumentTypeEnum.cryptofuture].color,
+  },
 };
 
 export const FutureArbitrageCodes: Record<

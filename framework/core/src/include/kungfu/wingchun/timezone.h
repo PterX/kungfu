@@ -140,7 +140,10 @@ translate_GMTime_to_localdate_by_exchange_id(time_t lTime, const std::string &ex
       {EXCHANGE_WIDX, LocationTimeType::AmericaEastern},         //
       {EXCHANGE_FREX, LocationTimeType::AmericaEastern},         //
       {EXCHANGE_METL, LocationTimeType::AmericaEastern},         //
-      {EXCHANGE_IPM, LocationTimeType::London}                   //
+      {EXCHANGE_IPM, LocationTimeType::London},                  //
+      {EXCHANGE_OKX_SPOT, LocationTimeType::Beijing},            //
+      {EXCHANGE_OKX_USD_FUTURE, LocationTimeType::Beijing},      //
+      {EXCHANGE_OKX_COIN_FUTURE, LocationTimeType::Beijing}      //
   };
   LocationTimeType type = LocationTimeType::Beijing;
   auto it = location_time_exchange_id_map.find(exchangeId);

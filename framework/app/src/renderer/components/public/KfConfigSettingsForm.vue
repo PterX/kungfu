@@ -552,23 +552,20 @@ function getKfTradeValueName(
   return data[key].name;
 }
 
-function dealEnableCustomTypeList(type:string){
-  if(type === 'side'){
+function dealEnableCustomTypeList(type: string) {
+  if (type === 'side') {
     return Object.keys(enableCustomRadioType[type]).slice(0, 2);
-  }else {
-    return Object.keys(enableCustomRadioType[type])
+  } else {
+    return Object.keys(enableCustomRadioType[type]);
   }
 }
 
-function getCustomTradeValueName(
-  type:string,
-  key: number | string,
-): string {
-  if(type === 'side' || type === 'marginSide'){
-    return Side[key]?.name || ''
-}else if(type === 'offset'){
-  return Offset[key]?.name || ''
-}
+function getCustomTradeValueName(type: string, key: number | string): string {
+  if (type === 'side' || type === 'marginSide') {
+    return Side[key]?.name || '';
+  } else if (type === 'offset') {
+    return Offset[key]?.name || '';
+  }
   return '';
 }
 
@@ -819,7 +816,19 @@ function handleSelectCsv<T>(
           transformer: buildCsvHeadersTransformer(headers),
         })
           .then(({ resRows, errRows }) => {
-            if (callback) return callback(resRows, errRows, targetKey);
+            const newRows = resRows.map((row) => {
+              const newRow: Partial<T> = {};
+              Object.keys(row).forEach((key) => {
+                if (typeof row[key] === 'string') {
+                  newRow[key] = `${row[key]}`.trim();
+                } else {
+                  newRow[key] = row[key];
+                }
+              });
+              return newRow;
+            });
+
+            if (callback) return callback(newRows as T[], errRows, targetKey);
 
             return Promise.resolve();
           })
@@ -1448,12 +1457,16 @@ defineExpose({
           "
         >
           <a-radio
-            v-for="key in item.customRadioList ? item.customRadioList : dealEnableCustomTypeList(item.type)"
+            v-for="key in item.customRadioList
+              ? item.customRadioList
+              : dealEnableCustomTypeList(item.type)"
             :key="key"
             :value="+key"
           >
             {{
-              item.customRadioList ? getCustomTradeValueName(item.type,key) : getKfTradeValueName(enableCustomRadioType[item.type], key)
+              item.customRadioList
+                ? getCustomTradeValueName(item.type, key)
+                : getKfTradeValueName(enableCustomRadioType[item.type], key)
             }}
           </a-radio>
         </a-radio-group>

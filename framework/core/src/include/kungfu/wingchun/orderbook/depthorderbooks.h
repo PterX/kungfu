@@ -4,9 +4,6 @@
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/yijinjing/time.h>
 
-using namespace kungfu::longfist::enums;
-using namespace kungfu::longfist::types;
-using namespace kungfu::yijinjing;
 namespace kungfu::wingchun::orderbook {
 
 class DepthOrderbook;
@@ -22,7 +19,8 @@ public:
     typedef ptrdiff_t difference_type;
     typedef std::forward_iterator_tag iterator_category;
 
-    explicit iterator(Container::const_iterator iter, Container::const_reverse_iterator reiter, Side side)
+    explicit iterator(Container::const_iterator iter, Container::const_reverse_iterator reiter,
+                      longfist::enums::Side side)
         : iter_(iter), reiter_(reiter), side_(side) {}
 
     reference operator*() const { return is_bid() ? reiter_->second : iter_->second; }
@@ -47,10 +45,10 @@ public:
     bool operator!=(const iterator &rhs) const { return !operator==(rhs); }
 
   private:
-    bool is_bid() const { return side_ == Side::Buy; }
+    bool is_bid() const { return side_ == longfist::enums::Side::Buy; }
     Container::const_iterator iter_;
     Container::const_reverse_iterator reiter_;
-    Side side_;
+    longfist::enums::Side side_;
   };
 
   iterator begin() const { return iterator(levels_.begin(), levels_.rbegin(), get_side()); }
@@ -68,11 +66,13 @@ class DepthOrderbook : public Orderbook<BidirectionMapOrderbookSide, Bidirection
 public:
   void on_entrust(const longfist::types::Entrust &entrust);
   void on_transaction(const longfist::types::Transaction &transaction);
-  int64_t getTradingDayStart(int64_t data_time);
-  bool is_new_day(int64_t data_time);
 
-protected:
-  int64_t tradingday_start;
+private:
+  int64_t get_next_trading_day_start(int64_t data_time);
+  bool is_new_trading_day(int64_t data_time);
+  void deal_trading_day(int64_t data_time);
+  void clear_book();
+  int64_t next_trading_day_start_;
 };
 
 using DepthOrderbooks = OrderbooksImpl<DepthOrderbook>;

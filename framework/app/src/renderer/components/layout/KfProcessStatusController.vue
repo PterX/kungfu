@@ -249,6 +249,7 @@ onMounted(() => {
       :title="$t('baseConfig.control_center')"
       :get-container="getContainer"
       placement="right"
+      @close="processControllerBoardVisible = false"
     >
       <div
         class="process-controller-item"

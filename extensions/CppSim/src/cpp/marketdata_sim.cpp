@@ -69,8 +69,8 @@ void MarketDataSim::generate_quote() {
     auto &asks_map_ = ask_orderbooks_[make_exchange_instrument(quote.exchange_id, quote.instrument_id)];
     auto bid_iter = bids_map_.rbegin();
     auto ask_iter = asks_map_.begin();
-    quote.last_price = quote_last_price_;
-    quote.volume = quote_volume_;
+    quote.last_price = map_last_price_[make_exchange_instrument(quote.exchange_id, quote.instrument_id)];
+    quote.volume = map_volume_[make_exchange_instrument(quote.exchange_id, quote.instrument_id)];
     for (int i = 0; i < 10; ++i) {
       if (bid_iter != bids_map_.rend()) {
         quote.bid_price[i] = bid_iter->second.price;
@@ -213,8 +213,8 @@ void MarketDataSim::generate_tick() {
                 break;
               }
               if (ask_entrusts_[order_no].volume <= volume) {
-                quote_volume_ = ask_entrusts_[order_no].volume;
-                quote_last_price_ = ask_entrusts_[order_no].price;
+                map_volume_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = ask_entrusts_[order_no].volume;
+                map_last_price_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = ask_entrusts_[order_no].price;
                 write_transaction_trade(entrust, ask_entrusts_[order_no].volume, order_no);
                 to_remove.emplace_back(order_no);
                 asks_map_.begin()->second.volume -= ask_entrusts_[order_no].volume;
@@ -222,8 +222,8 @@ void MarketDataSim::generate_tick() {
                 bid_entrusts_[entrust.orig_order_no].volume -= ask_entrusts_[order_no].volume;
                 ask_entrusts_.erase(order_no);
               } else {
-                quote_volume_ = volume;
-                quote_last_price_ = ask_entrusts_[order_no].price;
+                map_volume_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = volume;
+                map_last_price_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = ask_entrusts_[order_no].price;
                 write_transaction_trade(entrust, volume, order_no);
                 ask_entrusts_[order_no].volume -= volume;
                 bid_entrusts_.erase(entrust.orig_order_no);
@@ -257,8 +257,8 @@ void MarketDataSim::generate_tick() {
                 break;
               }
               if (bid_entrusts_[order_no].volume <= volume) {
-                quote_volume_ = bid_entrusts_[order_no].volume;
-                quote_last_price_ = bid_entrusts_[order_no].price;
+                map_volume_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = bid_entrusts_[order_no].volume;
+                map_last_price_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = bid_entrusts_[order_no].price;
                 write_transaction_trade(entrust, bid_entrusts_[order_no].volume, order_no);
                 to_remove.emplace_back(order_no);
                 bids_map_.rbegin()->second.volume -= bid_entrusts_[order_no].volume;
@@ -266,8 +266,8 @@ void MarketDataSim::generate_tick() {
                 ask_entrusts_[entrust.orig_order_no].volume -= bid_entrusts_[order_no].volume;
                 bid_entrusts_.erase(order_no);
               } else {
-                quote_volume_ = volume;
-                quote_last_price_ = bid_entrusts_[order_no].price;
+                map_volume_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = volume;
+                map_last_price_[make_exchange_instrument(entrust.exchange_id, entrust.instrument_id)] = bid_entrusts_[order_no].price;
                 write_transaction_trade(entrust, volume, order_no);
                 bid_entrusts_[order_no].volume -= volume;
                 ask_entrusts_.erase(entrust.orig_order_no);

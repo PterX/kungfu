@@ -51,8 +51,7 @@ void StaticData::replace(const Instrument &instrument) {
 }
 
 void StaticData::replace(const InstrumentFactor &instrument_factor) {
-  auto instrument_factor_hashed =
-      hash_instrument(instrument_factor.source_id, instrument_factor.exchange_id, instrument_factor.instrument_id);
+  auto instrument_factor_hashed = hash_instrument(instrument_factor.exchange_id, instrument_factor.instrument_id);
   instrument_factors_.insert_or_assign(instrument_factor_hashed, instrument_factor);
 }
 

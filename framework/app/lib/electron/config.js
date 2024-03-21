@@ -5,7 +5,6 @@ const kungfuCore = require('@kungfu-trader/kungfu-core/package.json');
 const {
   getAppDir,
   getKfcDir,
-  getCoreDir,
   getExtensionDirs,
   findPackageRoot,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
@@ -14,13 +13,13 @@ const isWindows = os.platform() === 'win32';
 const appDir = getAppDir();
 const vsDepsDir = path.join(appDir, 'public', 'vsDeps');
 const kfcDir = getKfcDir();
-const coreDir = getCoreDir();
 const extensionDirs = getExtensionDirs(true);
 const root = findPackageRoot();
 console.log(`-- Package root ${root}`);
 const logoDir = path.join(root, 'logo');
 const logoPath = path.join(logoDir, 'logo-replace.png');
 const dialogLogoPath = path.join(logoDir, 'dialog-logo-replace.png');
+const logoNoBgPath = path.join(logoDir, 'logo-no-bg-replace.png');
 const icoLogoPath = path.join(logoDir, 'icon-replace.ico');
 const icnsLogoPath = path.join(logoDir, 'icon-replace.icns');
 const icoLogoPathResolved = fse.existsSync(icoLogoPath)
@@ -86,6 +85,10 @@ if (fse.existsSync(dialogLogoPath)) {
   console.log(`-- Found dialog logo file ${dialogLogoPath}`);
 }
 
+if (fse.existsSync(logoNoBgPath)) {
+  console.log(`-- Found logo no bg file ${logoNoBgPath}`);
+}
+
 if (fse.existsSync(icnsLogoPath)) {
   console.log(`-- Found icns logo file ${icnsLogoPath}`);
 }
@@ -140,11 +143,6 @@ module.exports = {
           },
         ]
       : []),
-    {
-      from: `${coreDir}/dist/kfc/kungfu-wheel`,
-      to: 'app/dist/public/python',
-      filter: ['*.whl'],
-    },
     {
       from: appDir,
       to: 'app/dist',

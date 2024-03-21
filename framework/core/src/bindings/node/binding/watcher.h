@@ -23,7 +23,7 @@ namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
-constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 10000;
+constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -151,8 +151,8 @@ private:
   Napi::ObjectReference state_ref_;
   Napi::ObjectReference ledger_ref_;
   Napi::ObjectReference app_states_ref_;
-  Napi::ObjectReference config_ref_;
   Napi::ObjectReference strategy_states_ref_;
+  Napi::ObjectReference config_ref_;
   serialize::JsUpdateState update_state;
   serialize::JsUpdateState update_ledger;
   serialize::JsPublishState publish;
@@ -160,8 +160,8 @@ private:
   yijinjing::cache::bank data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
-  std::unordered_map<uint32_t, int> location_uid_states_map_ = {};
-  std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> location_uid_strategy_states_map_ = {};
+  std::unordered_map<uint32_t, int> broker_states_map_ = {};
+  std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> strategy_states_map_ = {};
 
   typedef kungfu::longfist::enums::mode mode;
   typedef kungfu::longfist::enums::category category;
@@ -208,7 +208,7 @@ private:
     auto source_location = get_location(state.location_uid);
     if (source_location->category == category::TD or source_location->category == category::MD or
         source_location->category == category::OPERATOR) {
-      location_uid_states_map_.insert_or_assign(source_location->uid, int(state.state));
+      broker_states_map_.insert_or_assign(source_location->uid, int(state.state));
     }
   };
 

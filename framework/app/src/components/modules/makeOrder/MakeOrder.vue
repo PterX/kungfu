@@ -20,11 +20,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
-import {
-  dealOrderPlaceVNode,
-  dealStockOffset,
-  transformOrderInputToExtConfigForm,
-} from './utils';
+import { dealOrderPlaceVNode, dealStockOffset } from './utils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import {
   makeOrderByOrderInput,
@@ -55,7 +51,6 @@ import {
   initFormStateByConfig,
   enableCustomRadioType,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { getExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
@@ -68,9 +63,8 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import OrderConfirmModal from './OrderConfirmModal.vue';
 import OrderTriggerConfirmModal from './OrderTriggerConfirmModal.vue';
-import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from '../pos/utils';
-import { useTradingTask } from '../tradingTask/utils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
 import {
@@ -89,13 +83,7 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 
 const { getPriceTickAndPrecision } = useActiveInstruments();
-const {
-  instrumentKeyAccountsMap,
-  uiExtConfigs,
-  globalSetting,
-  instrumentsMap,
-} = storeToRefs(useGlobalStore());
-const { isLanguageKeyAvailable } = useLanguage();
+const { globalSetting, instrumentsMap } = storeToRefs(useGlobalStore());
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
 
@@ -157,6 +145,18 @@ const {
 } = useMakeOrderInfo(formState, isMarginMakeOrder);
 useMakeOrderSubscribe(formState);
 
+const availablePosOrAmount = computed(() => {
+  return showAmountOrPosition.value === 'amount'
+    ? currentAvailMoney.value
+    : currentAvailPosVolume.value;
+});
+
+const leftPosOrAmount = computed(() => {
+  return showAmountOrPosition.value === 'amount'
+    ? currentResidueMoney.value
+    : currentResiduePosVolume.value;
+});
+
 const { getValidatorByOrderInputKey } = useTradeLimit();
 
 const makeOrderInstrumentType = ref<InstrumentTypeEnum>(
@@ -188,41 +188,6 @@ const configSettings = computed(() => {
   }
 
   const { side } = formState.value;
-  if (isMarginMakeOrder.value) {
-    if (!MarginSideStatus.includes(formState.value.side)) {
-      formState.value.side = SideEnum.GuaranteeStockBuy;
-    }
-  }
-  if (instrumentResolved.value) {
-    const { instrumentType, exchangeId } = instrumentResolved.value;
-    const tdName = currentGlobalKfLocation.value?.group;
-    const extConfig = extConfigs.value.td[tdName];
-    if (instrumentType === InstrumentTypeEnum.stockoption) {
-      sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
-    } else if (
-      instrumentType === InstrumentTypeEnum.fund &&
-      extConfig &&
-      extConfig.supportEtf
-    ) {
-      sideList.value = [
-        ...Object.keys(Side).slice(0, 2),
-        SideEnum.Purchase + '',
-        SideEnum.Redemption + '',
-      ];
-    } else {
-      sideList.value = Object.keys(Side).slice(0, 2);
-    }
-
-    if (instrumentType === InstrumentTypeEnum.future) {
-      if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
-        offsetList.value = offsetList.value.filter(
-          (item) =>
-            item !== OffsetEnum.CloseToday + '' ||
-            item !== OffsetEnum.CloseYest + '',
-        );
-      }
-    }
-  }
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
@@ -297,15 +262,6 @@ const makeOrderData = computed(() => {
   return makeOrderInput;
 });
 
-const availTradingTaskExtensionList = computed(() => {
-  return (
-    getExtConfigList(
-      extConfigs.value,
-      'strategy',
-    ) as KungfuApi.KfStrategyExtConfig[]
-  ).filter((item) => uiExtConfigs.value[item.key]?.position === 'make_order');
-});
-
 const getResolvedOffset = (
   offset: OffsetEnum,
   side: SideEnum,
@@ -349,43 +305,67 @@ watch(
 );
 
 watch(
-  () => formState.value.instrument,
-  (newVal) => {
-    if (
-      !isMarginMakeOrder.value &&
-      'side' in formState.value &&
-      !sideList.value.includes(formState.value.side + '')
-    ) {
-      formState.value.side = +sideList.value[0];
-    }
-    if (
-      !formState.value.account_id &&
-      currentGlobalKfLocation.value?.category !== 'td' &&
-      instrumentKeyAccountsMap.value[newVal] &&
-      instrumentKeyAccountsMap.value[newVal].length
-    ) {
-      formState.value.account_id = instrumentKeyAccountsMap.value[newVal][0];
-    }
+  [() => formState.value.account_id, () => formState.value.instrument],
+  ([newAccountId, newInstrument]) => {
+    if (!newInstrument || !currentGlobalKfLocation.value) return;
+    const instrumentResolved =
+      transformSearchInstrumentResultToInstrument(newInstrument);
+    if (instrumentResolved) {
+      const { instrumentType, exchangeId } = instrumentResolved;
 
-    if (formState.value.contract_id && !autoFillInstrument.value) {
-      formState.value.contract_id = '';
-    } else {
-      autoFillInstrument.value = false;
+      const tdName = newAccountId ? newAccountId.split('_')[0] : '';
+
+      const extConfig = extConfigs.value.td[tdName];
+      if (instrumentType === InstrumentTypeEnum.stockoption) {
+        sideList.value = [...Object.keys(Side).slice(0, 2), SideEnum.Exec + ''];
+      } else if (
+        instrumentType === InstrumentTypeEnum.fund &&
+        extConfig &&
+        extConfig.supportEtf
+      ) {
+        sideList.value = [
+          ...Object.keys(Side).slice(0, 2),
+          SideEnum.Purchase + '',
+          SideEnum.Redemption + '',
+        ];
+      } else {
+        sideList.value = Object.keys(Side).slice(0, 2);
+      }
+
+      if (instrumentType === InstrumentTypeEnum.future) {
+        if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
+          offsetList.value = offsetList.value.filter(
+            (item) =>
+              item !== OffsetEnum.CloseToday + '' ||
+              item !== OffsetEnum.CloseYest + '',
+          );
+        }
+      }
+
+      if (
+        !isMarginMakeOrder.value &&
+        'side' in formState.value &&
+        !sideList.value.includes(formState.value.side + '')
+      ) {
+        formState.value.side = +sideList.value[0];
+      }
+
+      if (formState.value.contract_id && !autoFillInstrument.value) {
+        formState.value.contract_id = '';
+      } else {
+        autoFillInstrument.value = false;
+      }
+
+      subscribeAllInstrumentByAppStates(
+        processStatusData.value,
+        appStates.value,
+        mdExtTypeMap.value,
+        [instrumentResolved],
+      );
+      triggerOrderBook(instrumentResolved);
+
+      makeOrderInstrumentType.value = instrumentResolved.instrumentType;
     }
-
-    if (!instrumentResolved.value) {
-      return;
-    }
-
-    subscribeAllInstrumentByAppStates(
-      processStatusData.value,
-      appStates.value,
-      mdExtTypeMap.value,
-      [instrumentResolved.value],
-    );
-    triggerOrderBook(instrumentResolved.value);
-
-    makeOrderInstrumentType.value = instrumentResolved.value.instrumentType;
   },
 );
 
@@ -1027,24 +1007,6 @@ function closeModalConditions(
   }
 }
 
-const { handleOpenSetTradingTaskModal } = useTradingTask();
-async function handleOpenTradingTaskConfigModal(
-  kfExtConfig: KungfuApi.KfStrategyExtConfig,
-) {
-  try {
-    const taskInitValue = transformOrderInputToExtConfigForm(
-      formState.value,
-      configSettings.value,
-      kfExtConfig.settings,
-    );
-    handleOpenSetTradingTaskModal('add', kfExtConfig.key, taskInitValue);
-  } catch (e) {
-    if ((<Error>e).message) {
-      error((<Error>e).message);
-    }
-  }
-}
-
 const dealStringToNumber = (tar: string) =>
   Number.isNaN(Number(tar)) ? 0 : Number(tar);
 
@@ -1136,6 +1098,7 @@ watch(
               :rules="rules"
             ></KfConfigSettingsForm>
             <div class="percent-group__wrap">
+              <a-col :span="LABEL_COL - 2"></a-col>
               <a-col :span="LABEL_COL + WRAPPER_COL">
                 <a-button
                   v-for="percent in percentList"
@@ -1157,78 +1120,54 @@ watch(
             </div>
             <template v-if="isAccountOrInstrumentConfirmed">
               <div class="make-order-position" tabindex="-1">
-                <a-col :span="LABEL_COL" class="position-label">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? $t('可用资金')
-                      : $t('可用仓位')
-                  }}
-                </a-col>
-                <a-col :span="WRAPPER_COL" class="position-value">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? currentAvailMoney
-                      : currentAvailPosVolume
-                  }}
-                </a-col>
-              </div>
-              <div class="make-order-position" tabindex="-1">
-                <a-col :span="LABEL_COL" class="position-label">
-                  {{
-                    isMarginMakeOrder
-                      ? $t('交易金额')
-                      : isShotable(instrumentResolved?.instrumentType)
-                      ? formState.offset === OffsetEnum.Open
-                        ? t('保证金占用')
-                        : t('保证金返还')
-                      : $t('交易金额')
-                  }}
-                </a-col>
-                <a-col :span="WRAPPER_COL" class="position-value">
-                  {{ currentTradeAmount }}
+                <a-col :span="LABEL_COL - 2"></a-col>
+                <a-col :span="WRAPPER_COL">
+                  <span class="position-label">
+                    {{
+                      showAmountOrPosition === 'amount'
+                        ? $t('可用资金')
+                        : $t('可用仓位')
+                    }}
+                  </span>
+                  <span class="position-value">
+                    {{ availablePosOrAmount }}
+                  </span>
                 </a-col>
               </div>
               <div class="make-order-position" tabindex="-1">
-                <a-col :span="LABEL_COL" class="position-label">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? $t('剩余资金')
-                      : $t('剩余仓位')
-                  }}
-                </a-col>
-                <a-col :span="WRAPPER_COL" class="position-value">
-                  {{
-                    showAmountOrPosition === 'amount'
-                      ? currentResidueMoney
-                      : currentResiduePosVolume
-                  }}
+                <a-col :span="LABEL_COL - 2"></a-col>
+                <a-col :span="WRAPPER_COL">
+                  <span class="position-label">
+                    {{
+                      isMarginMakeOrder
+                        ? $t('交易金额')
+                        : isShotable(instrumentResolved?.instrumentType)
+                        ? formState.offset === OffsetEnum.Open
+                          ? t('保证金占用')
+                          : t('保证金返还')
+                        : $t('交易金额')
+                    }}
+                  </span>
+                  <span class="position-value">
+                    {{ currentTradeAmount }}
+                  </span>
                 </a-col>
               </div>
-              <a-card
-                v-if="availTradingTaskExtensionList.length"
-                tabindex="-1"
-                class="make-order-algorithm__wrap"
-                :title="$t('tradingConfig.algorithm')"
-                size="small"
-                :bodyStyle="{
-                  padding: '0 8px 8px 0',
-                  height: 'fit-content',
-                }"
-              >
-                <a-button
-                  tabindex="-1"
-                  class="make-order-algorithm-btns"
-                  v-for="item in availTradingTaskExtensionList"
-                  @click="handleOpenTradingTaskConfigModal(item)"
-                  :key="item.key"
-                >
-                  {{
-                    isLanguageKeyAvailable(item.name)
-                      ? $t(item.name)
-                      : item.name
-                  }}
-                </a-button>
-              </a-card>
+              <div class="make-order-position" tabindex="-1">
+                <a-col :span="LABEL_COL - 2"></a-col>
+                <a-col :span="WRAPPER_COL">
+                  <span class="position-label">
+                    {{
+                      showAmountOrPosition === 'amount'
+                        ? $t('剩余资金')
+                        : $t('剩余仓位')
+                    }}
+                  </span>
+                  <span class="position-value">
+                    {{ leftPosOrAmount }}
+                  </span>
+                </a-col>
+              </div>
             </template>
           </div>
         </div>
@@ -1318,6 +1257,8 @@ watch(
         padding-right: 16px;
         padding-left: 8px;
         box-sizing: border-box;
+        display: flex;
+        margin-bottom: 12px;
 
         .ant-col {
           margin: auto;
@@ -1340,30 +1281,24 @@ watch(
       display: flex;
       line-height: 1;
       font-size: 12px;
-      color: @text-color-secondary;
-      font-weight: bold;
-      margin: 8px 0px;
+      color: @text-color;
+      margin: 10px 0px;
 
       .position-label {
         padding-right: 8px;
-        text-align: right;
+        text-align: left;
       }
 
       .position-value {
         font-weight: bold;
+
+        &.dash {
+          color: @text-color-secondary;
+        }
       }
 
       &:first-child {
         margin-top: 8px;
-      }
-    }
-
-    .make-order-algorithm__wrap {
-      width: 90%;
-      margin: 40px auto 8px;
-
-      .make-order-algorithm-btns {
-        margin: 8px 0 0 8px;
       }
     }
 

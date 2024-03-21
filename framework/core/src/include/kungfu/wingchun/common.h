@@ -27,6 +27,12 @@
 #define EXCHANGE_INE "INE"     // 上海能源中心
 #define EXCHANGE_BINANCE "BINANCE"
 #define EXCHANGE_HB "HB"
+#define EXCHANGE_OKX_SPOT "OKX-SPOT"
+#define EXCHANGE_OKX_USD_FUTURE "OKX-USD-FUTURE"
+#define EXCHANGE_OKX_COIN_FUTURE "OKX-COIN-FUTURE"
+#define EXCHANGE_BINANCE_SPOT "BINANCE-SPOT"
+#define EXCHANGE_BINANCE_USD_FUTURE "BINANCE-USD-FUT"
+#define EXCHANGE_BINANCE_COIN_FUTURE "BINANCE-COIN-FUT"
 
 // 全市场exchange id定义
 #define EXCHANGE_HK "HK" // 港股: 4（香港交易所）
@@ -84,9 +90,6 @@
 #define EXCHANGE_IPM "IPM"   // 国际贵金属: 5000
 
 #define EPSILON (1e-6)
-#define EXCHANGE_CRYPTO "CRYPTO"
-#define EXCHANGE_CRYPTO_FUTURE "CRYPTO-FUTURE"
-#define EXCHANGE_CRYPTO_UFUTURE "CRYPTO-UFUTURE"
 #define DOUBLEMAX (1e16) // 一亿亿, 2018年A股总市值不到50万亿
 
 namespace kungfu::wingchun {
@@ -394,11 +397,13 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
              string_equals(exchange_id, EXCHANGE_TAX) || string_equals(exchange_id, EXCHANGE_JP) ||
              string_equals(exchange_id, EXCHANGE_TSE) || string_equals(exchange_id, EXCHANGE_EUR)) {
     return longfist::enums::InstrumentType::Stock;
-  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO)) {
+  } else if (string_equals(exchange_id, EXCHANGE_OKX_SPOT) || string_equals(exchange_id, EXCHANGE_BINANCE_SPOT)) {
     return longfist::enums::InstrumentType::Crypto;
-  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_FUTURE)) {
+  } else if (string_equals(exchange_id, EXCHANGE_OKX_COIN_FUTURE) ||
+             string_equals(exchange_id, EXCHANGE_BINANCE_COIN_FUTURE)) {
     return longfist::enums::InstrumentType::CryptoFuture;
-  } else if (string_equals(exchange_id, EXCHANGE_CRYPTO_UFUTURE)) {
+  } else if (string_equals(exchange_id, EXCHANGE_OKX_USD_FUTURE) ||
+             string_equals(exchange_id, EXCHANGE_BINANCE_USD_FUTURE)) {
     return longfist::enums::InstrumentType::CryptoUFuture;
   }
 

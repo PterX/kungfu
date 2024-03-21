@@ -1,10 +1,10 @@
 {
-  "name": "@kungfu-trader/kfx-broker-CppSim",
+  "name": "@kungfu-trader/kfx-broker-cpp-sim",
   "author": {
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.3-alpha.1",
+  "version": "2.7.3-alpha.2",
   "description": "Kungfu Extension - SIM",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -15,7 +15,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "binary": {
-    "module_name": "kfx-broker-CppSim",
+    "module_name": "kfx-broker-cpp-sim",
     "module_path": "dist/CppSim",
     "remote_path": "{module_name}/v{major}/v{version}",
     "package_name": "{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz",
@@ -29,10 +29,10 @@
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.7.3-alpha.1"
+    "@kungfu-trader/kungfu-core": "^2.7.3-alpha.2"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.3-alpha.1"
+    "@kungfu-trader/kungfu-sdk": "^2.7.3-alpha.2"
   },
   "kungfuBuild": {
     "cpp": {
@@ -217,11 +217,11 @@
         "volume_today": "今仓",
         "asset": "初始资金",
         "offset": "持仓方向",
-        "cancel_delay": "撤单延迟",
-        "trigger_delay": "预埋单触发延迟",
+        "cancel_delay": "撤单延迟(s)",
+        "trigger_delay": "预埋单触发延迟(s)",
         "position_list": "持仓列表",
-        "quote_interval": "快照生成间隔",
-        "tick_interval": "逐笔生成间隔"
+        "quote_interval": "快照生成间隔(s)",
+        "tick_interval": "逐笔生成间隔(s)"
       },
       "en-US": {
         "CppSim": "SIM",
@@ -244,11 +244,11 @@
         "volume_today": "Volume Today",
         "asset": "Asset",
         "offset": "Offset",
-        "cancel_delay": "cancel delay",
-        "trigger_delay": "trigger delay",
+        "cancel_delay": "cancel delay(s)",
+        "trigger_delay": "trigger delay(s)",
         "position_list": "position list",
-        "quote_interval": "quote interval",
-        "tick_interval": "tick interval"
+        "quote_interval": "quote interval(s)",
+        "tick_interval": "tick interval(s)"
       }
     }
   }

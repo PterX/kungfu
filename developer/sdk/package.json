@@ -39,6 +39,7 @@
     "@kungfu-trader/kungfu-core": "^3.0.0-alpha.6",
     "@kungfu-trader/kungfu-js-api": "^3.0.0-alpha.6",
     "@kungfu-trader/kungfu-toolchain": "^3.0.0-alpha.6",
-    "ignore": "^5.3.1"
+    "ignore": "^5.3.1",
+    "inquirer": "^9.2.16"
   }
 }

@@ -6,7 +6,9 @@
 
 namespace kungfu::yijinjing::journal {
 reader::~reader() {
-  release_page();
+  for (auto &iter : journals_) {
+    iter.second->release_page();
+  }
   journals_.clear();
 }
 
@@ -67,11 +69,11 @@ void reader::next() {
 void reader::sort_without_buffer() {
   buffer_built_ = false;
   // those could be refacted to std::ranges after cxx==20
-  std::vector<journal *> has_data_journals;
+  std::vector<journal_ptr> has_data_journals;
   for (auto &pair : journals_) {
     auto &journal = pair.second;
     if (journal->current_frame()->has_data()) {
-      has_data_journals.push_back(journal.get());
+      has_data_journals.push_back(journal);
     }
   }
   auto min_journal_it = std::max_element(has_data_journals.cbegin(), has_data_journals.cend(), later{});
@@ -109,7 +111,7 @@ void reader::build_buffer() {
   no_data_journals_buffer_.clear();
   has_data_journals_heap_ = {};
   std::transform(journals_.begin(), journals_.end(), std::back_inserter(no_data_journals_buffer_),
-                 [](auto &pair) { return pair.second.get(); });
+                 [](auto &pair) { return pair.second; });
   buffer_built_ = true;
 }
 
@@ -129,7 +131,7 @@ reader::reader(const reader &other) : lazy_(other.lazy_), low_latency_(other.low
   for (auto &j : other.journals_) {
     journals_.emplace(j.first, j.second);
     if (other.current_->get_source() == j.second->get_source() and other.current_->get_dest() == j.second->get_dest()) {
-      current_ = journals_.find(j.first)->second.get();
+      current_ = journals_.find(j.first)->second;
     }
   }
 }
@@ -164,10 +166,9 @@ uint64_t reader::find_page_size(const data::location_ptr &location, uint32_t des
   return page_size;
 }
 
-bool reader::later::operator()(const journal *const lhs, const journal *const rhs) const {
+bool reader::later::operator()(const journal_ptr &lhs, const journal_ptr &rhs) const {
   if (lhs->priority_ == rhs->priority_) {
-    return const_cast<journal *>(lhs)->current_frame()->gen_time() >
-           const_cast<journal *>(rhs)->current_frame()->gen_time();
+    return lhs->current_frame()->gen_time() > rhs->current_frame()->gen_time();
   }
   return lhs->priority_ < rhs->priority_;
 }

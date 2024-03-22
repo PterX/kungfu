@@ -157,7 +157,9 @@ public:
 
   [[nodiscard]] const JournalMap &get_journals() const { return journals_; }
 
-  journal_ptr get_journal(const data::location_ptr &location, uint32_t dest_id);
+  [[nodiscard]] journal_ptr get_current_journal() const { return current_; }
+
+  [[nodiscard]] journal_ptr get_journal(const data::location_ptr &location, uint32_t dest_id);
 
   virtual bool data_available();
 
@@ -181,17 +183,17 @@ protected:
   void build_buffer();
 
   struct later {
-    bool operator()(const journal *const lhs, const journal *const rhs) const;
+    bool operator()(const journal_ptr &lhs, const journal_ptr &rhs) const;
   };
 
   const bool lazy_;
   const bool low_latency_;
   bus_ptr bus_;
-  journal *current_;
+  journal_ptr current_;
   JournalMap journals_;
   bool buffer_built_{false};
-  std::vector<journal *> no_data_journals_buffer_{};
-  std::priority_queue<journal *, std::vector<journal *>, later> has_data_journals_heap_{};
+  std::vector<journal_ptr> no_data_journals_buffer_{};
+  std::priority_queue<journal_ptr, std::vector<journal_ptr>, later> has_data_journals_heap_{};
   std::recursive_mutex mtx_{};
 };
 
@@ -209,11 +211,13 @@ public:
   explicit writer(const data::location_ptr &location, uint32_t dest_id, bool lazy, publisher_ptr publisher,
                   bool low_latency, const bus_ptr &bus, const journal_ptr &journal, int64_t begin_time);
 
+  virtual ~writer() = default;
+
   [[nodiscard]] const data::location_ptr &get_location() const { return journal_->location_; }
 
   [[nodiscard]] uint32_t get_dest() const { return journal_->dest_id_; }
 
-  [[nodiscard]] const journal_ptr get_journal() const { return journal_; }
+  [[nodiscard]] journal_ptr get_journal() const { return journal_; }
 
   [[nodiscard]] page_ptr get_current_page() const { return journal_->page_; }
 

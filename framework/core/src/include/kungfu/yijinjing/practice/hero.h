@@ -286,7 +286,7 @@ protected:
 
   void produce(const rx::subscriber<event_ptr> &sb);
 
-  bool drain(const rx::subscriber<event_ptr> &sb);
+  virtual bool drain(const rx::subscriber<event_ptr> &sb);
 
   void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 

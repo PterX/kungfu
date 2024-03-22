@@ -159,7 +159,7 @@ public:
     request["initial_source"] = get_live_home_uid();
     request["source"] = source;
     request["dest"] = dest;
-    request["data"] = nlohmann::json::parse(data.to_string());
+    request["data"] = data.to_string();
     return request.dump();
   }
 

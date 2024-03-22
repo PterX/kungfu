@@ -41,7 +41,11 @@ journal::~journal() {
     page_.reset();
   }
   keep_page_ = false;
-  release_page();
+
+  for (auto &page : passed_page_collector_) {
+    page.reset();
+  }
+  passed_page_collector_.clear();
 }
 
 void journal::next() {

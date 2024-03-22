@@ -16,7 +16,7 @@
 namespace kungfu::wingchun::strategy {
 class Runner : public yijinjing::practice::apprentice {
 public:
-  Runner(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
+  Runner(const yijinjing::data::locator_ptr &locator, const std::string &group, const std::string &name,
          longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
   ~Runner() override = default;
@@ -76,26 +76,23 @@ private:
   void inspect_channel(const event_ptr &event);
 
   template <typename OnMethod = void (Strategy::*)(Context_ptr &)> void invoke(OnMethod method) {
-    auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context);
+      (*strategy.*method)(context_);
     }
   }
 
   template <typename TradingData, typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &)>
   void invoke(OnMethod method, const TradingData &data) {
-    auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, data);
+      (*strategy.*method)(context_, data);
     }
   }
 
   template <typename TradingData, typename OnMethod = void (Strategy::*)(Context_ptr &, const TradingData &,
                                                                          const kungfu::yijinjing::data::location_ptr &)>
   void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location) {
-    auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, data, location);
+      (*strategy.*method)(context_, data, location);
     }
   }
 
@@ -104,9 +101,8 @@ private:
                                                    const kungfu::yijinjing::data::location_ptr &, uint32_t)>
   void invoke(OnMethod method, const TradingData &data, const kungfu::yijinjing::data::location_ptr &location,
               uint32_t dest) {
-    auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, data, location, dest);
+      (*strategy.*method)(context_, data, location, dest);
     }
   }
 
@@ -114,9 +110,8 @@ private:
                                                    const kungfu::yijinjing::data::location_ptr &, uint32_t)>
   void invoke(OnMethod method, uint32_t msg_type, const std::vector<uint8_t> &data, uint32_t length,
               const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) {
-    auto context = std::dynamic_pointer_cast<Context>(context_);
     for (const auto &strategy : strategies_) {
-      (*strategy.*method)(context, msg_type, data, length, location, dest);
+      (*strategy.*method)(context_, msg_type, data, length, location, dest);
     }
   }
 

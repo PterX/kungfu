@@ -70,7 +70,7 @@ namespace py = pybind11;
 namespace hana = boost::hana;
 
 template <typename DataType> void bind_data_type(pybind11::module &m_types, const char *type_name) {
-  auto py_class = py::class_<DataType>(m_types, type_name);
+  auto py_class = py::class_<DataType, std::shared_ptr<DataType>>(m_types, type_name);
   py_class.def(py::init<>());
   py_class.def(py::init<const std::string &>());
 

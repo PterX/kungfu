@@ -701,6 +701,11 @@ function buildCsvHeadersValidator(
   });
 
   return (row) => {
+    row = Object.keys(row).reduce((acc, key) => {
+      acc[key.trim()] = row[key];
+      return acc;
+    }, {});
+
     for (let header of headers) {
       if (requiredHeaders.indexOf(header.title) !== -1) {
         if (
@@ -754,6 +759,11 @@ function buildCsvHeadersTransformer(
   });
 
   return (row) => {
+    row = Object.keys(row).reduce((acc, key) => {
+      acc[key.trim()] = row[key];
+      return acc;
+    }, {});
+
     for (let header of headers) {
       if (header.title in headerWithDefault) {
         if (
@@ -770,7 +780,7 @@ function buildCsvHeadersTransformer(
 
       switch (type) {
         case 'str':
-          row[header.title] = value;
+          row[header.title] = value.trim();
           break;
         case 'num':
           row[header.title] = Number(value);
@@ -816,19 +826,7 @@ function handleSelectCsv<T>(
           transformer: buildCsvHeadersTransformer(headers),
         })
           .then(({ resRows, errRows }) => {
-            const newRows = resRows.map((row) => {
-              const newRow: Partial<T> = {};
-              Object.keys(row).forEach((key) => {
-                if (typeof row[key] === 'string') {
-                  newRow[key] = `${row[key]}`.trim();
-                } else {
-                  newRow[key] = row[key];
-                }
-              });
-              return newRow;
-            });
-
-            if (callback) return callback(newRows as T[], errRows, targetKey);
+            if (callback) return callback(resRows, errRows, targetKey);
 
             return Promise.resolve();
           })

@@ -73,6 +73,14 @@ page_ptr page::load(const data::location_ptr &location, uint32_t dest_id, uint64
     }
   }
 
+  int64_t nano = time::now_in_nano();
+  while (header->version != __JOURNAL_VERSION__ or header->page_header_length != sizeof(page_header) or
+         header->page_size != page_size) {
+    if (time::now_in_nano() - nano > 10 * time_unit::NANOSECONDS_PER_SECOND) {
+      break;
+    }
+  }
+
   if (header->version != __JOURNAL_VERSION__) {
     uint32_t v = header->version;
     throw journal_error(fmt::format("{} version mismatch, required {}, found {}", path, __JOURNAL_VERSION__, v));

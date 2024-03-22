@@ -38,6 +38,7 @@
     "xtp": "v2.2.37.4"
   },
   "kungfuBuild": {
+    "build_type": "Release",
     "cpp": {
       "target": "bind/python",
       "links": {

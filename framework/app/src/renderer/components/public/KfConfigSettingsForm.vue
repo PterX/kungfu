@@ -701,11 +701,6 @@ function buildCsvHeadersValidator(
   });
 
   return (row) => {
-    row = Object.keys(row).reduce((acc, key) => {
-      acc[key.trim()] = row[key];
-      return acc;
-    }, {});
-
     for (let header of headers) {
       if (requiredHeaders.indexOf(header.title) !== -1) {
         if (
@@ -759,11 +754,6 @@ function buildCsvHeadersTransformer(
   });
 
   return (row) => {
-    row = Object.keys(row).reduce((acc, key) => {
-      acc[key.trim()] = row[key];
-      return acc;
-    }, {});
-
     for (let header of headers) {
       if (header.title in headerWithDefault) {
         if (
@@ -780,7 +770,7 @@ function buildCsvHeadersTransformer(
 
       switch (type) {
         case 'str':
-          row[header.title] = value.trim();
+          row[header.title] = value;
           break;
         case 'num':
           row[header.title] = Number(value);

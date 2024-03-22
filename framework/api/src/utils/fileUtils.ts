@@ -60,6 +60,7 @@ export const readCSV = <T>(
     let parsing = csv.parseFile(filepath, {
       headers: headers,
       skipLines: headers === true ? 0 : 1,
+      trim: true,
     });
 
     if (options?.validator) {

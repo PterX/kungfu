@@ -203,7 +203,7 @@ void apprentice::on_deregister(const event_ptr &event) {
   if (location_uid == get_live_home_uid()) {
     if (get_home()->mode == mode::REPLAY) {
       SPDLOG_WARN("deregister app in replay mode");
-    request_deregister();
+      request_deregister();
     }
     return;
   }

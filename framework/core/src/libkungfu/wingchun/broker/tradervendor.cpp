@@ -34,7 +34,7 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   }
   case Trade::tag: {
     const Trade &trade = frame->data<Trade>();
-  get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
+    get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     break;
   }

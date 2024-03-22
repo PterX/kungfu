@@ -28,9 +28,7 @@ stream::stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size)
   if ((rv = nng_aio_alloc(&aio_send_, nullptr, nullptr)) != 0) {
     fatal("nng_aio_alloc write", rv);
   }
-  SPDLOG_DEBUG("before start_recv");
   start_recv();
-  SPDLOG_DEBUG("after start_recv");
 }
 stream::~stream() {
   SPDLOG_DEBUG("~stream");
@@ -305,6 +303,7 @@ stream_manage::stream_manage() {}
 stream_manage::~stream_manage() {}
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
   if (!streams_.contains(stream_id)) {
     SPDLOG_ERROR("publish failed:{}", msg);
     return -1;
@@ -313,6 +312,7 @@ int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
   return 0;
 }
 int stream_manage::publish(uint64_t stream_id, const char *data, const int len) {
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
   if (!streams_.contains(stream_id)) {
     SPDLOG_DEBUG("publish failed");
     return -1;
@@ -323,19 +323,28 @@ int stream_manage::publish(uint64_t stream_id, const char *data, const int len) 
 }
 
 std::vector<std::string> stream_manage::get_notice(uint64_t stream_id) {
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
   return streams_.find(stream_id)->second->get_and_clear_data();
 }
 void stream_manage::clear_notice(uint64_t stream_id) { streams_.find(stream_id)->second->data_received_.clear(); }
 
-stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) { return streams_.find(stream_id)->second; }
-std::unordered_map<uint64_t, stream_ptr> &stream_manage::get_all_streams() { return streams_; }
+stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
+  return streams_.find(stream_id)->second;
+}
+std::unordered_map<uint64_t, stream_ptr> &stream_manage::get_all_streams() {
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
+  return streams_;
+}
 
 void stream_manage::add_stream(nng_stream *s) {
   SPDLOG_DEBUG("add_stream");
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
 }
 void stream_manage::add_stream(stream_ptr s) {
+  // std::lock_guard<std::mutex> lock(streams_mtx_);
   SPDLOG_DEBUG("add_stream");
   streams_.emplace(s->get_stream_id(), s);
 }

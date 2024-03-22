@@ -69,6 +69,9 @@ class Exchange:
 
     BINANCE = "BINANCE"
     HB = "HB"
+    OKX_SPOT = "OKX-SPOT"
+    OKX_USD_FUTURE = "OKX-USD-FUTURE"
+    OKX_COIN_FUTURE = "OKX-COIN-FUTURE"
 
 
 class Region:

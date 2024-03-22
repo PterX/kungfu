@@ -226,7 +226,7 @@ enum class InstrumentType : int8_t {
   Index,         // 指数
   Repo,          // 回购
   Crypto,        // 数字货币
-  CryptoFuture,  // 数字货币期货
+  CryptoFuture,  // 数字货币期货币本位
   CryptoUFuture, // 数字货币期货U本位
 };
 

@@ -86,28 +86,53 @@ function generateCMakeFiles(projectName, kungfuBuild) {
     exe: 'add_executable',
     'bind/python': 'pybind11_add_module',
     'bind/node': 'add_library',
+    lib: 'add_library',
   };
 
   const targetLinkTypes = {
     exe: '',
     'bind/python': 'SHARED',
     'bind/node': 'SHARED',
+    lib:'SHARED,'
+  };
+
+  const exportAllSymbols = {
+    exe: false,
+    'bind/python': false,
+    'bind/node': false,
+    lib: true,
   };
 
   kungfuBuild = kungfuBuild || { cpp: { target: 'bind/python' } };
 
   const cppSources = [kungfuBuild.cpp.src || ['src/cpp']].flat();
   const cppExternalSourcesOpt = kungfuBuild.cpp.external || [];
+  const cppExternalInclude = kungfuBuild.cpp.external_include || [];
+  const cppInternalInclude = kungfuBuild.cpp.include || [];
   const corePath = customResolve('@kungfu-trader/kungfu-core');
   const nodeModulesPath = path.join(
     corePath.split('node_modules')[0],
     'node_modules',
   );
+  const cppInternalIncludes = Array.isArray(cppInternalInclude)
+    ? cppInternalInclude.map(function (element) {
+        return element;
+      })
+    : [cppInternalInclude];
+  const cppExternalIncludes = Array.isArray(cppExternalInclude)
+    ? cppExternalInclude.map(function (element) {
+        return dealPath(path.join(nodeModulesPath, element));
+      })
+    : [
+        dealPath(
+          path.join(nodeModulesPath, cppExternalInclude),
+        ),
+      ];
   const cppExternalSources = Array.isArray(cppExternalSourcesOpt)
     ? cppExternalSourcesOpt.map(function (element) {
-        return dealPath(path.join(nodeModulesPath, element, 'src/cpp'));
+        return dealPath(path.join(nodeModulesPath, element));
       })
-    : [dealPath(path.join(nodeModulesPath, cppExternalSourcesOpt, 'src/cpp'))];
+    : [dealPath(path.join(nodeModulesPath, cppExternalSourcesOpt))];
 
   const cppLinksOpt = kungfuBuild.cpp.links || [];
   const cppLinks = Array.isArray(cppLinksOpt)
@@ -128,10 +153,12 @@ function generateCMakeFiles(projectName, kungfuBuild) {
       links: glob.sync(`${kungfuLibDirPattern}/lib`),
       sources: cppSources,
       externalSources: cppExternalSources,
+      internalExternalIncludes: cppInternalIncludes.concat(cppExternalIncludes),
       extraSource: extraSources[kungfuBuild.cpp.target],
       makeTarget: targetMakers[kungfuBuild.cpp.target],
       gtestEnabled: kungfuBuild.cpp.gtestEnabled || false,
       makeTargetLinkType: targetLinkTypes[kungfuBuild.cpp.target],
+      makeExportAllSymbols: exportAllSymbols[kungfuBuild.cpp.target] || false,
       targetLinks: (cppLinks || ['']).join(' '),
     },
     (err, str) => {

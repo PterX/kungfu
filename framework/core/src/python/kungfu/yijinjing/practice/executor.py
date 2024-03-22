@@ -410,10 +410,6 @@ class StrategyRunner(ExtensionExecutor):
             ctx.strategy_runner.set_end_time(end_time_stamp)
 
         ctx.strategy_runner.add_strategy(ctx.strategy)
-        if "build_api_version" in dir(ctx):
-            ctx.strategy_runner.set_build_api_version(ctx.build_api_version)
-        if "build_platform_version" in dir(ctx):
-            ctx.strategy_runner.set_build_platform_version(ctx.build_platform_version)
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE and "is_cpp_module" not in dir(
             ctx
@@ -493,10 +489,6 @@ class OperatorRunner(ExtensionExecutor):
             ctx.op_runner.set_end_time(end_time_stamp)
 
         ctx.op_runner.add_operator(ctx.operator)
-        if "build_api_version" in dir(ctx):
-            ctx.op_runner.set_build_api_version(ctx.build_api_version)
-        if "build_platform_version" in dir(ctx):
-            ctx.op_runner.set_build_platform_version(ctx.build_platform_version)
         return ctx.op_runner
 
     def post_run(self):
@@ -538,13 +530,7 @@ def try_load_cpp_module(ctx, path, key, cls, cls_name):
         module = importlib.import_module(key)
         ctx.logger.debug(f"import as cpp {cls_name} success")
         factory_func = getattr(module, cls_name.lower())
-        build_api_version_func = getattr(module, "build_api_version", None)
-        build_platform_version_func = getattr(module, "build_platform_version", None)
         ctx.is_cpp_module = True
-        if build_api_version_func:
-            ctx.build_api_version = build_api_version_func()
-        if build_platform_version_func:
-            ctx.build_platform_version = build_platform_version_func()
         return factory_func()
     except AttributeError as e:
         sys.modules.pop(key)
@@ -626,9 +612,6 @@ def load_service_vendor_builder(ctx):
 
 def parse_begin_end(ctx):
     ctx.logger.debug(f"ctx.mode: {ctx.mode}")
-    config_dict = json.loads(parse_backtest_config(ctx))
-    ctx.begin = config_dict.get("begin_time", None) if ctx.begin is None else ctx.begin
-    ctx.end = config_dict.get("end_time", None) if ctx.end is None else ctx.end
 
     if kfj.MODES[ctx.mode] == lf.enums.mode.BACKTEST and (not ctx.begin or not ctx.end):
         raise ValueError("backtest mode must specify begin and end")

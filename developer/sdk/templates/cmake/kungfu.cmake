@@ -18,6 +18,9 @@ macro(kungfu_setup MODULE_NAME)
   <%_ includes.forEach(dir => { _%>
   include_directories("<%= dir %>")
   <%_ }); _%>
+  <%_ internalExternalIncludes.forEach(dir => { _%>
+  include_directories("<%= dir %>")
+  <%_ }); _%>
 
   link_directories("<%- kfcDir -%>")
   link_directories("<%- kfcDir -%>/libs")
@@ -51,6 +54,9 @@ macro(kungfu_setup MODULE_NAME)
   set_target_properties(${MODULE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
+  if (MSVC AND <%- makeExportAllSymbols %>)
+    set_target_properties(${MODULE_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  endif ()
 
   if (<%- gtestEnabled %>)
     target_link_libraries(${MODULE_NAME} PRIVATE gtest gmock)

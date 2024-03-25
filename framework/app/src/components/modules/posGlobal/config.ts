@@ -22,7 +22,7 @@ export const getColumns = (
     type: 'string',
     name: t('posGlobalConfig.instrument_id'),
     dataIndex: 'instrument_id',
-    width: 260,
+    width: 240,
     sorter: buildStrSorter('instrument_id'),
   },
   {

@@ -26,7 +26,7 @@ export const getColumns = (
         name: t('posGlobalConfig.instrument_id'),
         dataIndex: 'instrument_id_resolved',
         sorter: buildStrSorter('instrument_id_resolved'),
-        width: 260,
+        width: 240,
       },
       ...(isTd(kfLocation.category)
         ? []

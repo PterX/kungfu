@@ -334,6 +334,10 @@ export default {
     METL: 'METL',
     IPM: 'IPM',
 
+    OKX_SPOT: 'OKX',
+    OKX_USD_FUTURE: 'OKX',
+    OKX_COIN_FUTURE: 'OKX',
+
     SP: 'SP',
     SPC: 'SPC',
     SPD: 'SPD',

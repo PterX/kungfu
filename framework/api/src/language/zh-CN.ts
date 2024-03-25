@@ -333,6 +333,10 @@ export default {
     METL: 'METL',
     IPM: '国际贵金属',
 
+    OKX_SPOT: '欧易',
+    OKX_USD_FUTURE: '欧易',
+    OKX_COIN_FUTURE: '欧易',
+
     SP: '大商所 跨期 SP',
     SPC: '大商所 跨品种 SPC',
     SPD: '郑商所 跨期 SPD',

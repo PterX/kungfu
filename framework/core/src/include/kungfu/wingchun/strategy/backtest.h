@@ -365,6 +365,13 @@ private:
         : timer_id(id), nanotime(nanotime), call_back(std::move(cb)){};
     bool operator<(const TimerTask &other) const { return other.nanotime < this->nanotime; }
   };
+
+  enum class SliceState { Idle, Acquiring, Acquired, Releasing, Released };
+  struct SliceReferenceState {
+    SliceState state;
+    int reference_count;
+  };
+
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
@@ -375,24 +382,16 @@ private:
   const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
   int32_t protected_timer_id_;
-  // std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
-  // std::multimap<int64_t, TimerTask> timer_callbacks_{};
-  std::vector<TimerTask> timer_tasks_{};
 
+  std::vector<TimerTask> timer_tasks_{};
   void on_timer_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   int32_t add_timer_helper(int64_t nanotime, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
 
-  enum class SliceState { Idle, Acquiring, Acquired, Releasing, Released };
-  struct SliceReferenceState {
-    SliceState state;
-    int reference_count;
-  };
   std::unordered_map<yijinjing::data::location, SliceReferenceState> slice_reference_states_;
   void subscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
   void unsubscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
-
   void subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id,
                         const std::string &exchange_id, int32_t data_tag);
   void subscribe_operator_helper(int64_t nanotime, const std::string &group, const std::string &name);

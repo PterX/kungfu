@@ -4,13 +4,7 @@
 // Created by Keren Dong on 2020/7/20.
 //
 
-#include <fmt/format.h>
 #include <kungfu/wingchun/strategy/backtest.h>
-#include <kungfu/yijinjing/log.h>
-#include <kungfu/yijinjing/nanomsg/socket.h>
-#include <kungfu/yijinjing/time.h>
-
-#include <utility>
 
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
@@ -61,9 +55,7 @@ void BacktestContext::post_stop() {
 }
 
 void BacktestContext::on_start() {
-  if (not is_bypass_accounting()) {
-    bookkeeper_.on_start(events_);
-  }
+  bookkeeper_.on_start(events_);
   events_ | is(Quote::tag) | $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
   events_ | is(Entrust::tag) |
       $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>()););
@@ -163,10 +155,6 @@ void BacktestContext::on_timer_check() {
   }
 }
 
-void BacktestContext::add_account(const std::string &source, const std::string &account) {
-  auto td_location = find_td_location(source, account, false);
-  add_location(app_, td_location);
-}
 
 void BacktestContext::init_time_events() {
   auto writer = app_.get_writer(app_.get_home_uid());
@@ -211,6 +199,7 @@ void BacktestContext::subscribe_helper(int64_t begin_time, const std::string &so
   if (md_location) {
     subscribe_slice(md_location, nanotime, offset);
     add_location(app_, md_location);
+    // TODO
     broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
   if (slice_end_time < app_.get_end_time()) {
@@ -360,6 +349,11 @@ void BacktestContext::subscribe_operator_helper(int64_t begin_time, const std::s
                        subscribe_operator_helper(slice_end_time, group, name);
                      });
   }
+}
+
+void BacktestContext::add_account(const std::string &source, const std::string &account) {
+  auto td_location = find_td_location(source, account, false);
+  add_location(app_, td_location);
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,

@@ -1100,32 +1100,20 @@ export const dealPosition = (
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
     price_precision: pricePrecision,
-    last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
-    avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
+    last_price_resolved: dealKfDecimalPrecision(pos.last_price),
+    avg_open_price_resolved: dealKfDecimalPrecision(pos.avg_open_price),
     unrealized_pnl_resolved: pos.avg_open_price
-      ? dealKfPrice(pos.unrealized_pnl, pricePrecision)
+      ? dealKfDecimalPrecision(pos.unrealized_pnl)
       : '--',
-    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price, pricePrecision),
-    close_pnl: dealKfDecimalPrecision(pos.close_pnl, pricePrecision),
-    position_cost_price: dealKfDecimalPrecision(
-      pos.position_cost_price,
-      pricePrecision,
-    ),
-    position_pnl: dealKfDecimalPrecision(pos.position_pnl, pricePrecision),
-    pre_close_price: dealKfDecimalPrecision(
-      pos.pre_close_price,
-      pricePrecision,
-    ),
-    pre_settlement_price: dealKfDecimalPrecision(
-      pos.pre_settlement_price,
-      pricePrecision,
-    ),
-    realized_pnl: dealKfDecimalPrecision(pos.realized_pnl, pricePrecision),
-    settlement_price: dealKfDecimalPrecision(
-      pos.settlement_price,
-      pricePrecision,
-    ),
-    unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl, pricePrecision),
+    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price),
+    close_pnl: dealKfDecimalPrecision(pos.close_pnl),
+    position_cost_price: dealKfDecimalPrecision(pos.position_cost_price),
+    position_pnl: dealKfDecimalPrecision(pos.position_pnl),
+    pre_close_price: dealKfDecimalPrecision(pos.pre_close_price),
+    pre_settlement_price: dealKfDecimalPrecision(pos.pre_settlement_price),
+    realized_pnl: dealKfDecimalPrecision(pos.realized_pnl),
+    settlement_price: dealKfDecimalPrecision(pos.settlement_price),
+    unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl),
     volume: dealKfDecimalPrecision(pos.volume), // 数量
     yesterday_volume: dealKfDecimalPrecision(pos.yesterday_volume), // 昨仓数量
     frozen_total: dealKfDecimalPrecision(pos.frozen_total), // 冻结数量

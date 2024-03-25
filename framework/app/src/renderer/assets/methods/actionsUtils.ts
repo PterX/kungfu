@@ -1512,9 +1512,11 @@ export const useQuote = (): {
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
-      return quote.last_price || Number(pos[lastPriceKey]) || 0;
+      return dealKfDecimalPrecision(
+        quote.last_price || Number(pos[lastPriceKey]) || 0,
+      );
     }
-    return Number(pos[lastPriceKey]) || 0;
+    return dealKfDecimalPrecision(Number(pos[lastPriceKey]) || 0);
   };
 
   const getLastPricePercent = (

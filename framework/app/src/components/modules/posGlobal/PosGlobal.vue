@@ -363,12 +363,7 @@ function handleShowTradingDataDetail({
           </template>
           <template v-else-if="column.dataIndex === 'last_price_resolved'">
             <KfBlinkNum
-              :num="
-                dealKfPrice(
-                  getPositionLastPrice(item, 'last_price_resolved'),
-                  item.price_precision,
-                )
-              "
+              :num="getPositionLastPrice(item, 'last_price_resolved')"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">

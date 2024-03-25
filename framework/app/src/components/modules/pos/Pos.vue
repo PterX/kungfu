@@ -136,20 +136,14 @@ onActivated(() => {
 
         pos.value = toRaw(
           positions.reverse().map((item) => {
-            const { price_precision } = getPriceTickAndPrecision(
-              item.instrument_id,
-              item.exchange_id,
-            );
             const currency = getInstrumentCurrency(
               item.instrument_id,
               item.exchange_id,
             );
 
-            return dealDataWithCache(
-              item,
-              () => dealPosition(watcher, item, price_precision),
-              { currency },
-            );
+            return dealDataWithCache(item, () => dealPosition(watcher, item), {
+              currency,
+            });
           }),
         );
       },
@@ -323,12 +317,7 @@ function handleShowTradingDataDetail({
           </template>
           <template v-else-if="column.dataIndex === 'last_price_resolved'">
             <KfBlinkNum
-              :num="
-                dealKfPrice(
-                  getPositionLastPrice(item, 'last_price_resolved'),
-                  item.price_precision,
-                )
-              "
+              :num="getPositionLastPrice(item, 'last_price_resolved')"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'unrealized_pnl_resolved'">

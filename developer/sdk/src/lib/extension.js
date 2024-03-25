@@ -93,7 +93,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
     exe: '',
     'bind/python': 'SHARED',
     'bind/node': 'SHARED',
-    lib:'SHARED,'
+    lib:'SHARED'
   };
 
   const exportAllSymbols = {

@@ -924,7 +924,8 @@ export const useDeepWatchTableSearchKeyword = <T>(
                 ((item[key] as string | number) || '').toString() || '',
             )
             .join('_');
-          return new RegExp(keyword, 'ig').test(combinedValue);
+          const escapedKeyword = escapeSpecialChar(keyword);
+          return new RegExp(escapedKeyword, 'ig').test(combinedValue);
         }) || [];
     },
     {

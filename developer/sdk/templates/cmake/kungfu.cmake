@@ -27,6 +27,10 @@ macro(kungfu_setup MODULE_NAME)
   <%_ links.forEach((dir, i) => { _%>
   link_directories("<%= dir %>")
   <%_ }); _%>
+  <%_ externalLinkDirs.forEach((dir, i) => { _%>
+  link_directories("<%= dir %>")
+  <%_ }); _%>
+
 
   <%_ sources.forEach((dir, i) => { _%>
   aux_source_directory("<%- dir %>" SOURCE_<%- i %>)

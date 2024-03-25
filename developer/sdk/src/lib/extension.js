@@ -93,7 +93,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
     exe: '',
     'bind/python': 'SHARED',
     'bind/node': 'SHARED',
-    lib:'SHARED'
+    lib: 'SHARED',
   };
 
   const exportAllSymbols = {
@@ -106,34 +106,27 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   kungfuBuild = kungfuBuild || { cpp: { target: 'bind/python' } };
 
   const cppSources = [kungfuBuild.cpp.src || ['src/cpp']].flat();
-  const cppExternalSourcesOpt = kungfuBuild.cpp.external || [];
-  const cppExternalInclude = kungfuBuild.cpp.external_include || [];
-  const cppInternalInclude = kungfuBuild.cpp.include || [];
+  const cppExternalSourcesOpt = [kungfuBuild.cpp.external || []].flat();
+  const cppExternalInclude = [kungfuBuild.cpp.externalInclude || []].flat();
+  const cppInternalInclude = [kungfuBuild.cpp.include || []].flat();
+  const cppLinkDirs = [kungfuBuild.cpp.linkDirs || []].flat();
   const corePath = customResolve('@kungfu-trader/kungfu-core');
   const nodeModulesPath = path.join(
     corePath.split('node_modules')[0],
     'node_modules',
   );
-  const cppInternalIncludes = Array.isArray(cppInternalInclude)
-    ? cppInternalInclude.map(function (element) {
-        return element;
-      })
-    : [cppInternalInclude];
-  const cppExternalIncludes = Array.isArray(cppExternalInclude)
-    ? cppExternalInclude.map(function (element) {
-        return dealPath(path.join(nodeModulesPath, element));
-      })
-    : [
-        dealPath(
-          path.join(nodeModulesPath, cppExternalInclude),
-        ),
-      ];
-  const cppExternalSources = Array.isArray(cppExternalSourcesOpt)
-    ? cppExternalSourcesOpt.map(function (element) {
-        return dealPath(path.join(nodeModulesPath, element));
-      })
-    : [dealPath(path.join(nodeModulesPath, cppExternalSourcesOpt))];
-
+  const cppInternalIncludes = cppInternalInclude.map(function (element) {
+    return element;
+  });
+  const cppExternalIncludes = cppExternalInclude.map(function (element) {
+    return dealPath(path.join(nodeModulesPath, element));
+  });
+  const cppExternalSources = cppExternalSourcesOpt.map(function (element) {
+    return dealPath(path.join(nodeModulesPath, element));
+  });
+  const cppExternalLinkDirs = cppLinkDirs.map(function (element) {
+    return dealPath(path.join(nodeModulesPath, element));
+  });
   const cppLinksOpt = kungfuBuild.cpp.links || [];
   const cppLinks = Array.isArray(cppLinksOpt)
     ? cppLinksOpt
@@ -154,6 +147,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
       sources: cppSources,
       externalSources: cppExternalSources,
       internalExternalIncludes: cppInternalIncludes.concat(cppExternalIncludes),
+      externalLinkDirs: cppExternalLinkDirs,
       extraSource: extraSources[kungfuBuild.cpp.target],
       makeTarget: targetMakers[kungfuBuild.cpp.target],
       gtestEnabled: kungfuBuild.cpp.gtestEnabled || false,
@@ -387,9 +381,15 @@ exports.compile = () => {
   const packageJson = shell.getPackageJson();
   const extensionName = packageJson.kungfuConfig.key;
   const buildType = packageJson.kungfuBuild?.build_type || 'Release';
+  const buildTypeDir = path.join('build', buildType);
   const outputDir = path.join('dist', extensionName);
   const buildTargetDir = path.join('build/target');
   const buildTargetDirPattern = buildTargetDir.replace(/\\/g, '/');
+  const corePath = customResolve('@kungfu-trader/kungfu-core');
+  const nodeModulesPath = path.join(
+    corePath.split('node_modules')[0],
+    'node_modules',
+  );
 
   fse.ensureDirSync(outputDir);
 
@@ -447,6 +447,28 @@ exports.compile = () => {
   if (fse.existsSync(buildTargetDir)) {
     copyOutput([buildTargetDirPattern, '*'].join('/'));
   }
+
+  const extensions = ['lib', 'dll', 'so', 'dylib'];
+  const lib_patterns = extensions.map((ext) => ['*.' + ext]);
+
+  if (
+    packageJson.kungfuBuild?.cpp?.target === 'lib' &&
+    fse.existsSync(buildTypeDir)
+  ) {
+    const pattern = path.join(buildTypeDir, `{${lib_patterns.join(',')}}`);
+    copyOutput(pattern);
+  }
+
+  const cppLinkDirs = [packageJson.kungfuBuild?.cpp?.linkDirs || []].flat();
+  const cppExternalLinkDirs = cppLinkDirs.map(function (element) {
+    return dealPath(path.join(nodeModulesPath, element));
+  });
+  cppExternalLinkDirs.map(function (element) {
+    if (fse.existsSync(element)) {
+      const pattern = path.join(element, `{${lib_patterns.join(',')}}`);
+      copyOutput(pattern);
+    }
+  });
 
   if (fse.existsSync(kungfulibs)) {
     copyOutput([kungfuLibDirPattern, 'lib', '*'].join('/'));

@@ -61,7 +61,7 @@ bool TraderSim::insert_order(const event_ptr &event) {
   order.insert_time = event->gen_time();
   order.update_time = order.insert_time;
   order.status = OrderStatus::Pending;
-  try_write_to(order, event->source());
+  //try_write_to(order, event->source());
   SPDLOG_DEBUG("Order: {}", order.to_string());
 
   if (verify_order(order)) {
@@ -70,7 +70,7 @@ bool TraderSim::insert_order(const event_ptr &event) {
     submitted_order.status = OrderStatus::Submitted;
     submitted_order.volume_left = submitted_order.volume;
     SPDLOG_DEBUG("Submitted Order: {}", submitted_order.to_string());
-    try_write_to(submitted_order, event->source());
+    //try_write_to(submitted_order, event->source());
     generate_trade(order, event->source());
   }
   order.update_time = time::now_in_nano();
@@ -303,14 +303,19 @@ void TraderSim::cancel_order(uint64_t order_id) {
   order_state.data.status = OrderStatus::Cancelling;
   order_state.data.update_time = time::now_in_nano();
   SPDLOG_DEBUG("Order: {}", order_state.data.to_string());
-  try_write_to(order_state.data, order_state.dest);
-  add_timer(time::now_in_nano() + int64_t(config_.cancel_delay * time_unit::NANOSECONDS_PER_SECOND), [&](const auto &) {
-    order_state.data.status = order_state.data.volume_left == order_state.data.volume
+  //try_write_to(order_state.data, order_state.dest);
+  order_state.data.status = order_state.data.volume_left == order_state.data.volume
                                   ? OrderStatus::Cancelled
                                   : OrderStatus::PartialFilledNotActive;
-    order_state.data.update_time = time::now_in_nano();
-    try_write_to(order_state.data, order_state.dest);
-  });
+  order_state.data.update_time = time::now_in_nano();
+  try_write_to(order_state.data, order_state.dest);
+  // add_timer(time::now_in_nano() + int64_t(config_.cancel_delay * time_unit::NANOSECONDS_PER_SECOND), [&](const auto &) {
+  //   order_state.data.status = order_state.data.volume_left == order_state.data.volume
+  //                                 ? OrderStatus::Cancelled
+  //                                 : OrderStatus::PartialFilledNotActive;
+  //   order_state.data.update_time = time::now_in_nano();
+  //   try_write_to(order_state.data, order_state.dest);
+  // });
 }
 
 bool TraderSim::insert_order_trigger(const event_ptr &event) {

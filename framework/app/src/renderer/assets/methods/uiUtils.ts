@@ -814,7 +814,7 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
 };
 
 export const isKeywordInString = (keyword: string, str: string) => {
-  return new RegExp((keyword), 'ig').test(str);
+  return new RegExp(keyword, 'ig').test(str);
 };
 
 export const searchByKeyword = <T>(

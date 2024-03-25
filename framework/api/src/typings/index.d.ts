@@ -15,6 +15,11 @@ declare module 'tasklist' {
   export = tasklist;
 }
 
+declare module '*.svg' {
+  const content: string;
+  export default content;
+}
+
 declare namespace KungfuApi {
   import {
     BrokerStateStatusEnum,
@@ -1157,6 +1162,7 @@ declare namespace KungfuApi {
     avg_open_price_resolved: number | string;
     unrealized_pnl_resolved: number | string;
     close_volume: number;
+    today_volume: number;
   }
 
   export interface Quote {
@@ -1225,6 +1231,7 @@ declare namespace KungfuApi {
     dest_uname: string;
     trade_time_resolved: string;
     kf_time_resovlved: string;
+    kf_time: bigint;
     latency_trade: string;
     price_precision?: number;
     price_resolved: number | string;
@@ -1475,6 +1482,59 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
+  export interface KfDynamicTradingDataIndexedMap<
+    K extends string | number,
+    V,
+  > {
+    insertKeyWithValue(
+      key: K,
+      value: V,
+      type: string,
+      isFinished?: boolean,
+    ): void;
+    updateKeyWithValue(
+      key: K,
+      value: V,
+      type: string,
+      isFinished?: boolean,
+    ): void;
+    sortCommonList(compareFn: (a: V, b: V) => number): void;
+    sortUnfinishedList(compareFn: (a: V, b: V) => number): void;
+    hasKey(key: K): boolean;
+    getValueForKey(key: K): V | undefined;
+    getCommonList(): V[];
+    getUnfinishedList(): V[];
+    getAllUnfinishedList(): V[];
+  }
+
+  export interface tradingData {
+    order: {
+      td: {
+        [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
+      };
+      strategy: {
+        [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
+      };
+    };
+    trade: {
+      td: {
+        [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
+      };
+      strategy: {
+        [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
+      };
+    };
+    tradingDataForEach: (
+      callback: (
+        tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      ) => boolean,
+      tradingDataType: 'order' | 'trade',
+      tradingDataGroup: 'td' | 'strategy',
+      listGetterType: 'common' | 'unfinished',
+      groupFilterKeys?: number[],
+    ) => Promise<void>;
+  }
+
   export interface Session {
     index: number;
     location_uid: number;
@@ -1642,7 +1702,7 @@ declare namespace KungfuApi {
   }
 
   export interface KfLocationGroup extends KfLocation {
-    children?: KfLocation[];
+    children?: KfConfigOrigin[];
   }
 
   export interface KfLocation extends KfLocationBase {
@@ -1723,6 +1783,7 @@ declare namespace Code {
   import { session } from 'electron';
   import path from 'path';
   import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
+  import { kf } from '../kungfu/index';
 
   export interface CodeInfo {
     code_id: string;

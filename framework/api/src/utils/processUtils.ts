@@ -7,7 +7,7 @@ import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
 import find from 'find-process';
 import { ensureFileSync } from 'fs-extra';
-
+import { useWatcher } from '../kungfu/tradingData';
 import {
   getIfProcessRunning,
   getIfProcessDeleted,
@@ -1750,7 +1750,18 @@ function promiseWithTimeout<T>(
     }),
   ]);
 }
-
+//释放资源
+function releaseResources(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const { releaseQueue } = useWatcher();
+      releaseQueue();
+      resolve();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 export function quitClean(): Promise<void> {
   //不需要加kill daemon
   return new Promise((resolve) => {
@@ -1765,7 +1776,11 @@ export function quitClean(): Promise<void> {
               deleteNNFiles()
                 .catch((err) => kfLogger.error(err))
                 .finally(() => {
-                  resolve();
+                  releaseResources()
+                    .catch((err) => kfLogger.error(err))
+                    .finally(() => {
+                      resolve();
+                    });
                 });
             });
           });

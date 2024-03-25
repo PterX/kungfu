@@ -5,7 +5,11 @@ declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
     $antLocalesMap: Record<string, Locale>;
     $globalBus: Subject<KfBusEvent>;
-    $tradingDataSubject: Subject<Watcher>;
+    $tradingDataSubject: Subject<{
+      watcher: KungfuApi.Watcher;
+      tradingData: KungfuApi.tradingData;
+      update: boolean;
+    }>;
     $availKfBoards: string[];
     _: any; //vue3 shit
   }

@@ -247,6 +247,75 @@ export const setTimerPromiseTask = (fn: AnyPromiseFunction, interval = 500) => {
   };
 };
 
+export const dataOperationBySliceInEventLoop = <T>(
+  data: T[],
+  doSomethingCallback: (
+    dataItem: T,
+    index: number,
+    sliceIndex: number,
+  ) => Promise<void>,
+  sliceLength = 1000,
+) => {
+  return new Promise<void>((resolve, reject) => {
+    let i = 0,
+      sliceIndex = 0;
+    const len = data.length;
+    const bestEventLoopTask =
+      typeof window !== 'undefined'
+        ? window.requestAnimationFrame
+        : setImmediate;
+    const runner = () => {
+      bestEventLoopTask(async () => {
+        for (let j = 0; j < sliceLength && i < len; i++, j++) {
+          try {
+            await doSomethingCallback(data[i], i, sliceIndex);
+          } catch (error) {
+            reject(error);
+          }
+        }
+
+        if (i === len) {
+          resolve();
+        } else {
+          sliceIndex++;
+          runner();
+        }
+      });
+    };
+
+    runner();
+  });
+};
+
+export const doSomethingWithDataSliced = <T>(
+  data: T[],
+  doSomethingCallback: (dataSliced: T[], sliceIndex: number) => Promise<void>,
+  sliceLength = 1000,
+) => {
+  if (data.length === 0) return Promise.resolve();
+  const dataSliced: T[] = [];
+  return new Promise<void>((resolve, reject) => {
+    dataOperationBySliceInEventLoop(
+      data,
+      async (dataItem, index, sliceIndex) => {
+        dataSliced.push(dataItem);
+
+        if (dataSliced.length === sliceLength || index === data.length - 1) {
+          try {
+            await doSomethingCallback(dataSliced, sliceIndex);
+            dataSliced.length = 0;
+          } catch (error) {
+            reject(error);
+          }
+        }
+
+        if (index === data.length - 1) resolve();
+      },
+      sliceLength,
+    );
+  });
+};
+
 export const getResultUntilValuable = <T>(
   getter: (...args) => T | false,
   timeout = 5000,
@@ -1075,6 +1144,32 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
       result[key] = obj[key];
       return result;
     }, {});
+};
+export const sorter = (
+  a: string | number,
+  b: string | number,
+  sorterOrder: 'asc' | 'desc' | 'normal',
+): 0 | 1 | -1 => {
+  a = a === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : a;
+  b = b === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : b;
+
+  const numA = isNaN(Number(a)) ? null : Number(a);
+  const numB = isNaN(Number(b)) ? null : Number(b);
+
+  if (sorterOrder === 'asc') {
+    if (numA !== null && numB !== null) {
+      return Math.sign(numA - numB) as 0 | 1 | -1;
+    } else if (typeof a === 'string' && typeof b === 'string') {
+      return Math.sign(a.localeCompare(b)) as 0 | 1 | -1;
+    }
+  } else if (sorterOrder === 'desc') {
+    if (numA !== null && numB !== null) {
+      return Math.sign(numB - numA) as 0 | 1 | -1;
+    } else if (typeof a === 'string' && typeof b === 'string') {
+      return Math.sign(b.localeCompare(a)) as 0 | 1 | -1;
+    }
+  }
+  return 0;
 };
 
 export const escapeSpecialChar = (str: string) => {

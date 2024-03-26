@@ -1,5 +1,6 @@
 import semver from 'semver';
-import { app, ipcMain, BrowserWindow } from 'electron';
+import path from 'path';
+import { app, ipcMain, BrowserWindow, dialog, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import {
@@ -21,12 +22,14 @@ import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { killAllBeforeQuit } from './utils';
 import { removeTargetFilesInFolder } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import axios from 'axios';
-
 import {
   RootConfigJSON,
   Writeable,
   AllPublishOptions,
 } from '@kungfu-trader/kungfu-js-api/typings/global';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
 const globalStorage = getGlobalStorage();
 const rootPackageJson = readRootPackageJsonSync();
 
@@ -406,8 +409,29 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
                 ).then((results) => {
                   globalStorage.setItem('needClearJournal', true);
                   results.errors.forEach((error) => kfLogger.error(error));
-                  delayMilliSeconds(1000).then(() => {
-                    autoUpdater.quitAndInstall(false, true);
+                  delayMilliSeconds(1000).then(async () => {
+                    const isMacOS = process.platform === 'darwin';
+                    const downloadedFilePath = info.downloadedFile;
+                    const isZip = downloadedFilePath.endsWith('.zip');
+                    if (isMacOS && isZip) {
+                      const zipName = downloadedFilePath.substring(
+                        downloadedFilePath.lastIndexOf('/') + 1,
+                      );
+
+                      const response = dialog.showMessageBoxSync({
+                        type: 'info',
+                        buttons: [t('open_folder'), t('close')],
+                        title: t('install_app'),
+                        message: t('unzip_tip', { zipName }),
+                        detail: t('open_folder_detail'),
+                      });
+
+                      if (response === 0) {
+                        shell.showItemInFolder(path.join(downloadedFilePath));
+                      }
+                    } else {
+                      autoUpdater.quitAndInstall(false, true);
+                    }
                     app.exit();
                   });
                 });

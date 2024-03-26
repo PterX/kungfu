@@ -7,6 +7,7 @@
 #ifndef KUNGFU_EXTENSION_H
 #define KUNGFU_EXTENSION_H
 
+#include <kungfu/common.h>
 #include <pybind11/pybind11.h>
 
 #define GET_MODULE_NAME_STR(N) #N
@@ -154,5 +155,30 @@
           [&]() { return std::static_pointer_cast<kungfu::wingchun::tool::Report>(std::make_shared<ReportType>()); }); \
   };                                                                                                                   \
   class ReportType : public kungfu::wingchun::tool::Report
+
+namespace kungfu {
+template <typename DataType> void bind_data_type(pybind11::module &m_types, const char *type_name) {
+  auto py_class = pybind11::class_<DataType, std::shared_ptr<DataType>>(m_types, type_name);
+  py_class.def(pybind11::init<>());
+  py_class.def(pybind11::init<const std::string &>());
+
+  boost::hana::for_each(boost::hana::accessors<DataType>(), [&](auto it) {
+    auto name = boost::hana::first(it);
+    auto accessor = boost::hana::second(it);
+    py_class.def_readwrite(name.c_str(), member_pointer_trait<decltype(accessor)>().pointer());
+  });
+
+  py_class.def_readonly_static("__tag__", &DataType::tag);
+  py_class.def_readonly_static("__has_data__", &DataType::has_data);
+
+  py_class.def_property_readonly("__uid__", &DataType::uid);
+
+  py_class.def("__repr__", &DataType::to_string);
+  py_class.def("__hash__", &DataType::uid);
+  py_class.def("__eq__", [&](DataType &a, DataType &b) { return a.uid() == b.uid(); });
+  py_class.def("__sizeof__", [&](const DataType &target) { return sizeof(target); });
+  py_class.def("__parse__", [&](DataType &target, std::string &s) { target.parse(s.c_str(), s.length()); });
+}
+} // namespace kungfu
 
 #endif // KUNGFU_EXTENSION_H

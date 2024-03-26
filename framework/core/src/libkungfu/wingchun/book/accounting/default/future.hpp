@@ -92,7 +92,11 @@ public:
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        position.frozen_yesterday += input.volume;
+        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
+          position.frozen_yesterday += input.volume;
+        } else {
+          position.frozen_yesterday = position.yesterday_volume;
+        }
       }
 
       update_position(book, position);

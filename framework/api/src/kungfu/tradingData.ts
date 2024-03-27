@@ -147,6 +147,10 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   getAllUnfinishedList(): V[] {
     return this.unfinishedTree.valuesArray();
   }
+
+  getAllList(): V[] {
+    return Object.values(this.keyValuesMap);
+  }
 }
 
 const { startWatcherSyncTask } = useWatcher();
@@ -174,7 +178,7 @@ type ProcessingData = {
   category: string;
   key: number | string;
   orderUKey: string;
-  orderResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved;
+  dataResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved;
 };
 
 type OrderStatsMap = {
@@ -203,10 +207,40 @@ export function useWatcher() {
     order: {
       td: {},
       strategy: {},
+      list: function (): KungfuApi.OrderResolved[] {
+        return Object.values(this.td).reduce((acc, cur) => {
+          return acc.concat(cur.getAllList());
+        }, [] as KungfuApi.OrderResolved[]);
+      },
+      filter: function (
+        keyOrCallback,
+        value = null,
+      ): KungfuApi.OrderResolved[] {
+        return typeof keyOrCallback === 'function'
+          ? this.list().filter(keyOrCallback)
+          : this.list().filter((order) => {
+              return order[keyOrCallback] === value;
+            });
+      },
     },
     trade: {
       td: {},
       strategy: {},
+      list: function (): KungfuApi.TradeResolved[] {
+        return Object.values(this.td).reduce((acc, cur) => {
+          return acc.concat(cur.getAllList());
+        }, [] as KungfuApi.TradeResolved[]);
+      },
+      filter: function (
+        keyOrCallback,
+        value = null,
+      ): KungfuApi.TradeResolved[] {
+        return typeof keyOrCallback === 'function'
+          ? this.list().filter(keyOrCallback)
+          : this.list().filter((trade) => {
+              return trade[keyOrCallback] === value;
+            });
+      },
     },
     tradingDataForEach: async function (
       callback: (
@@ -273,32 +307,29 @@ export function useWatcher() {
   const unMatchedOrderStatMap: Record<string, KungfuApi.OrderStat> = {};
 
   //添加或更新数据
-  function tradingDataProcessing(
-    data: ProcessingData,
-    dataType: 'order' | 'trade',
-  ) {
-    const { category, key, orderUKey, orderResolved } = data;
+  function tradingDataProcessing(data: ProcessingData) {
+    const { type, category, key, orderUKey, dataResolved } = data;
 
-    if (!tradingData[dataType][category][key]) {
-      tradingData[dataType][category][key] = new DynamicTradingDataIndexedMap<
+    if (!tradingData[type][category][key]) {
+      tradingData[type][category][key] = new DynamicTradingDataIndexedMap<
         string,
         KungfuApi.OrderResolved
-      >(dataType, DEFAULT_TRADING_DATA_LENGTH);
+      >(type, DEFAULT_TRADING_DATA_LENGTH);
     }
 
-    const target = tradingData[dataType][category][key];
-    sortDataMap.set(`${dataType}_${category}_${key}`, target);
+    const target = tradingData[type][category][key];
+    sortDataMap.set(`${type}_${category}_${key}`, target);
     const isFinished =
-      dataType !== 'trade'
+      type !== 'trade'
         ? !UnfinishedOrderStatus.includes(
-            (orderResolved as KungfuApi.OrderResolved).status,
+            (dataResolved as KungfuApi.OrderResolved).status,
           )
         : true;
 
     if (target.hasKey(orderUKey)) {
-      target.updateKeyWithValue(orderUKey, orderResolved, dataType, isFinished);
+      target.updateKeyWithValue(orderUKey, dataResolved, type, isFinished);
     } else {
-      target.insertKeyWithValue(orderUKey, orderResolved, dataType, isFinished);
+      target.insertKeyWithValue(orderUKey, dataResolved, type, isFinished);
     }
   }
 
@@ -427,24 +458,24 @@ export function useWatcher() {
 
           tasks.push(
             Promise.resolve(
-              processData({
+              tradingDataProcessing({
                 type: 'order',
                 category: 'td',
                 key: source,
                 orderUKey,
-                orderResolved,
+                dataResolved: orderResolved,
               }),
             ),
           );
 
           tasks.push(
             Promise.resolve(
-              processData({
+              tradingDataProcessing({
                 type: 'order',
                 category: 'strategy',
                 key: dest,
                 orderUKey,
-                orderResolved,
+                dataResolved: orderResolved,
               }),
             ),
           );
@@ -488,24 +519,24 @@ export function useWatcher() {
 
           tasks.push(
             Promise.resolve(
-              processData({
+              tradingDataProcessing({
                 type: 'trade',
                 category: 'td',
                 key: source,
                 orderUKey,
-                orderResolved: tradeResolved,
+                dataResolved: tradeResolved,
               }),
             ),
           );
 
           tasks.push(
             Promise.resolve(
-              processData({
+              tradingDataProcessing({
                 type: 'trade',
                 category: 'strategy',
                 key: dest,
                 orderUKey,
-                orderResolved: tradeResolved,
+                dataResolved: tradeResolved,
               }),
             ),
           );
@@ -654,12 +685,6 @@ export function useWatcher() {
 
     await updateRemainingOrderStats(orderStatsMap);
     await updateRemainingTradeStats(orderStatsMap);
-  }
-
-  function processData(data: ProcessingData) {
-    const { type } = data;
-
-    tradingDataProcessing(data, type);
   }
 
   return {

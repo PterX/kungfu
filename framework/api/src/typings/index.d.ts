@@ -1506,6 +1506,7 @@ declare namespace KungfuApi {
     getCommonList(): V[];
     getUnfinishedList(): V[];
     getAllUnfinishedList(): V[];
+    getAllList(): V[];
   }
 
   export interface tradingData {
@@ -1516,6 +1517,11 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
+      list: () => KungfuApi.OrderResolved[];
+      filter: (
+        key: string | function,
+        value: unknown,
+      ) => KungfuApi.OrderResolved[];
     };
     trade: {
       td: {
@@ -1524,6 +1530,11 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
+      list: () => KungfuApi.TradeResolved[];
+      filter: (
+        key: string | function,
+        value: unknown,
+      ) => KungfuApi.TradeResolved[];
     };
     tradingDataForEach: (
       callback: (

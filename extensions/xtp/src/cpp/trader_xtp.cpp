@@ -229,7 +229,7 @@ bool TraderXTP::generate_external_order(const XTPOrderInfo &order_info) {
     return false;
   }
 
-  auto writer = get_writer(location::PUBLIC);
+  auto writer = get_public_writer();
   auto nano = yijinjing::time::now_in_nano();
   Order &order = writer->open_data<Order>(now());
   order.order_id = writer->current_frame_uid();
@@ -295,7 +295,7 @@ bool TraderXTP::custom_OnTradeEvent(const XTPTradeReport &trade_info, uint64_t s
   } else {
     Trade trade{};
     from_xtp(trade_info, trade);
-    trade.trade_id = get_writer(location::PUBLIC)->current_frame_uid() xor (time::now_in_nano() & 0x0000FFFF);
+    trade.trade_id = get_public_writer()->current_frame_uid() xor (time::now_in_nano() & 0xFFFFFFFF);
     trade.order_id = kf_order_id;
     add_traded_volume(trade_info.order_xtp_id, trade.volume);
     SPDLOG_DEBUG("Trade: {}", trade.to_string());

@@ -334,6 +334,10 @@ export default {
     METL: 'METL',
     IPM: 'IPM',
 
+    OKX_SPOT: 'OKX',
+    OKX_USD_FUTURE: 'OKX',
+    OKX_COIN_FUTURE: 'OKX',
+
     SP: 'SP',
     SPC: 'SPC',
     SPD: 'SPD',
@@ -1023,6 +1027,12 @@ export default {
     enable_matcher_tip:
       'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
+
+  open_folder: 'Open Folder',
+  install_app: 'Install App',
+  unzip_tip: 'Please unzip {zipName} to install',
+  open_folder_detail:
+    'Click "Open Folder" to show the location of the zip file',
 
   master_interrupt: 'master interrupted',
   master_desc:

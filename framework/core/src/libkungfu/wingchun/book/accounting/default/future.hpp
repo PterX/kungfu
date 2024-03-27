@@ -88,15 +88,11 @@ public:
         book->asset.frozen_cash += frozen_margin;
         book->asset.frozen_margin += frozen_margin;
       } else {
-        position.frozen_total += input.volume;
+        position.frozen_total += input.volume; // 平仓数量超过持仓数量时, 委托被柜台拒绝后会再扣回来
       }
 
       if (offset == Offset::Close or offset == Offset::CloseYesterday) {
-        if (position.yesterday_volume - position.frozen_yesterday >= input.volume) {
-          position.frozen_yesterday += input.volume;
-        } else {
-          position.frozen_yesterday = position.yesterday_volume;
-        }
+        position.frozen_yesterday += input.volume; // 平仓数量超过持仓数量时, 委托被柜台拒绝后会再扣回来
       }
 
       update_position(book, position);

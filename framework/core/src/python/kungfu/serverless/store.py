@@ -12,7 +12,7 @@ import logging
 import pandas as pd
 from kungfu.serverless.utils import create_logger
 
-BlackList = ["pnl", "statistics"]
+BlackList = ["pnl", "statistics", "group", "name"]
 
 
 class FeatureStore:
@@ -142,7 +142,7 @@ class FeatureStore:
                 elif isinstance(data, dict):
                     df = pd.DataFrame(data, index=[0])
                 else:
-                    continue
+                    df = pd.DataFrame({key: data}, index=[0])
                 df["timestamp"] = timestamp
                 if key in factors_map:
                     pre = factors_map[key]

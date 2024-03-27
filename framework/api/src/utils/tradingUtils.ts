@@ -47,6 +47,7 @@ import {
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
   dealKfDecimalPrecision,
+  countDecimalPlaces,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -144,6 +145,13 @@ export const resolveAccountId = (
     color: 'text',
     name: accountId,
   };
+};
+
+export const getAccountIdStyle = (name: string): string => {
+  if (name.includes(`${t('手动')}`)) {
+    return 'orange';
+  }
+  return '#ffffffd9';
 };
 
 export const resolveClientId = (
@@ -953,6 +961,147 @@ export const getOrderLatencyDataByOrderStat = (
   };
 };
 
+export const getOrderStatResolve = (
+  orderStat: KungfuApi.OrderStat | null,
+):
+  | {
+      latency_system: string | number;
+      latency_network: string | number;
+      latency_trade: string | number;
+      trade_time: bigint;
+      avg_price: number;
+    }
+  | object => {
+  if (!orderStat) {
+    const obj: Record<string, unknown> = {};
+    return obj;
+  }
+
+  const { insert_time, ack_time, md_time, trade_time } = orderStat;
+  const latency_trade =
+    trade_time && ack_time
+      ? Number(Number(trade_time - ack_time) / 1000).kfToFixed(0)
+      : '--';
+  const latency_network =
+    ack_time && insert_time
+      ? Number(Number(ack_time - insert_time) / 1000).kfToFixed(0)
+      : '--';
+  const latency_system =
+    insert_time && md_time
+      ? Number(Number(insert_time - md_time) / 1000).kfToFixed(0)
+      : '--';
+
+  return {
+    latency_system,
+    latency_network,
+    latency_trade,
+    trade_time: orderStat.trade_time,
+    avg_price: dealKfDecimalPrecision(orderStat.avg_price),
+  };
+};
+
+const getInstrumentByIdsWithWatcher = (
+  instrumentId: string,
+  exchangeId: string,
+) => {
+  const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+  const watcher = window.watcher as KungfuApi.Watcher;
+  const instrument = watcher.ledger.Instrument[ukey];
+  if (instrument) return instrument;
+
+  return null;
+};
+
+const getPriceTickAndPrecision = (
+  instrumentId: string,
+  exchangeId: string,
+  defaultTick = 0.0001,
+  defaultPrecision = 0.0001,
+) => {
+  const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+  const price_tick = instrument?.price_tick || defaultTick;
+  const price_precision = countDecimalPlaces(
+    instrument?.price_tick || defaultPrecision,
+  );
+  return { price_tick, price_precision };
+};
+
+export const getOrderResolved = (
+  watcher: KungfuApi.Watcher,
+  orderResolved: KungfuApi.OrderResolved | null,
+  order: KungfuApi.Order,
+  orderStats: KungfuApi.OrderStat | null,
+): KungfuApi.OrderResolved => {
+  const { price_precision } = getPriceTickAndPrecision(
+    order.instrument_id,
+    order.exchange_id,
+  );
+  const latencyData = getOrderStatResolve(orderStats);
+  const destResolvedData = resolveClientId(watcher, order.dest);
+  const sourceResolvedData = resolveAccountId(
+    watcher,
+    order.source,
+    order.dest,
+  );
+  const statusData = dealOrderStatus(order.status, order.error_msg);
+
+  return {
+    ...(orderResolved || {}),
+    ...order,
+    ...latencyData,
+    volume: dealKfDecimalPrecision(order.volume),
+    volume_left: dealKfDecimalPrecision(order.volume_left),
+    source: order.source,
+    dest: order.dest,
+    uid_key: order.uid_key,
+    source_uname: sourceResolvedData.name,
+    dest_uname: destResolvedData.name,
+    limit_price_resolved: dealKfPrice(order.limit_price, price_precision),
+    limit_price: dealKfDecimalPrecision(order.limit_price, price_precision),
+    frozen_price: dealKfDecimalPrecision(order.frozen_price, price_precision),
+    avg_price_resolved:
+      'avg_price' in latencyData
+        ? dealKfPrice(latencyData.avg_price, price_precision)
+        : orderResolved?.avg_price_resolved || '--',
+    status_uname: statusData.name,
+  } as unknown as KungfuApi.OrderResolved;
+};
+
+export const getTradeResolved = (
+  watcher: KungfuApi.Watcher,
+  tradeResolved: KungfuApi.TradeResolved | null,
+  trade: KungfuApi.Trade,
+  orderStats: KungfuApi.OrderStat | null,
+): KungfuApi.TradeResolved => {
+  const { price_precision } = getPriceTickAndPrecision(
+    trade.instrument_id,
+    trade.exchange_id,
+  );
+  const latencyData = getOrderStatResolve(orderStats);
+  const destResolvedData = resolveClientId(watcher, trade.dest);
+  const sourceResolvedData = resolveAccountId(
+    watcher,
+    trade.source,
+    trade.dest,
+  );
+  return {
+    ...(tradeResolved || {}),
+    ...trade,
+    volume: dealKfDecimalPrecision(trade.volume),
+    source: trade.source,
+    dest: trade.dest,
+    uid_key: trade.uid_key,
+    source_resolved_data: sourceResolvedData,
+    dest_resolved_data: destResolvedData,
+    source_uname: sourceResolvedData.name,
+    dest_uname: destResolvedData.name,
+    kf_time: 'trade_time' in latencyData ? latencyData.trade_time : BigInt(0),
+    latency_trade:
+      'latency_trade' in latencyData ? `${latencyData.latency_trade}` : '--',
+    price_resolved: dealKfPrice(trade.price, price_precision),
+  } as unknown as KungfuApi.TradeResolved;
+};
+
 export const dealOrder = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,
@@ -1055,6 +1204,7 @@ export const dealTrade = (
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
     trade_time_resolved: dealKfTime(trade.trade_time, isHistory),
+    kf_time: latencyData.trade_time,
     kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
     latency_trade: latencyData.latencyTrade,
     price_precision: pricePrecision,
@@ -1128,6 +1278,9 @@ export const dealPosition = (
     unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl, pricePrecision),
     volume: dealKfDecimalPrecision(pos.volume), // 数量
     yesterday_volume: dealKfDecimalPrecision(pos.yesterday_volume), // 昨仓数量
+    today_volume:
+      dealKfDecimalPrecision(pos.volume) -
+      dealKfDecimalPrecision(pos.yesterday_volume), // 今仓数量
     frozen_total: dealKfDecimalPrecision(pos.frozen_total), // 冻结数量
     frozen_yesterday: dealKfDecimalPrecision(pos.frozen_yesterday), // 冻结昨仓
     static_yesterday: dealKfDecimalPrecision(pos.static_yesterday), // 固定昨仓数量

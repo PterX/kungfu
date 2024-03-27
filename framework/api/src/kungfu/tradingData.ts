@@ -212,10 +212,7 @@ export function useWatcher() {
           return acc.concat(cur.getAllList());
         }, [] as KungfuApi.OrderResolved[]);
       },
-      filter: function (
-        keyOrCallback,
-        value = null,
-      ): KungfuApi.OrderResolved[] {
+      filter: function (keyOrCallback, value): KungfuApi.OrderResolved[] {
         return typeof keyOrCallback === 'function'
           ? this.list().filter(keyOrCallback)
           : this.list().filter((order) => {
@@ -231,10 +228,7 @@ export function useWatcher() {
           return acc.concat(cur.getAllList());
         }, [] as KungfuApi.TradeResolved[]);
       },
-      filter: function (
-        keyOrCallback,
-        value = null,
-      ): KungfuApi.TradeResolved[] {
+      filter: function (keyOrCallback, value): KungfuApi.TradeResolved[] {
         return typeof keyOrCallback === 'function'
           ? this.list().filter(keyOrCallback)
           : this.list().filter((trade) => {

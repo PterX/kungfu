@@ -1520,7 +1520,7 @@ declare namespace KungfuApi {
       list: () => KungfuApi.OrderResolved[];
       filter: (
         key: string | function,
-        value: unknown,
+        value?: unknown,
       ) => KungfuApi.OrderResolved[];
     };
     trade: {
@@ -1533,7 +1533,7 @@ declare namespace KungfuApi {
       list: () => KungfuApi.TradeResolved[];
       filter: (
         key: string | function,
-        value: unknown,
+        value?: unknown,
       ) => KungfuApi.TradeResolved[];
     };
     tradingDataForEach: (

@@ -662,10 +662,6 @@ function onEntryVisualization(visible: boolean) {
       display: flex;
       flex-direction: column;
 
-      .ant-table-body {
-        max-height: 100% !important;
-      }
-
       .gutter {
         cursor: row-resize;
         width: 100%;

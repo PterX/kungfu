@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "py-wingchun.h"
-
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
@@ -54,6 +52,16 @@ public:
   void on_tree(strategy::Context_ptr &context, const Tree &tree, const kungfu::yijinjing::data::location_ptr &location,
                uint32_t dest) override {
     PYBIND11_OVERLOAD(void, strategy::Strategy, on_tree, context, tree, location, dest);
+  }
+
+  void on_depth(strategy::Context_ptr &context, const Depth &depth,
+                const kungfu::yijinjing::data::location_ptr &location, uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_depth, context, depth, location, dest);
+  }
+
+  void on_tick(strategy::Context_ptr &context, const Tick &tick, const kungfu::yijinjing::data::location_ptr &location,
+               uint32_t dest) override {
+    PYBIND11_OVERLOAD(void, strategy::Strategy, on_tick, context, tick, location, dest);
   }
 
   void on_entrust(strategy::Context_ptr &context, const Entrust &entrust,
@@ -224,6 +232,7 @@ void bind_strategy(pybind11::module &m) {
       .def("bypass_accounting", &strategy::Context::bypass_accounting)
       .def("update_strategy_state", &strategy::Context::update_strategy_state)
       .def("set_resume_policy", &strategy::Context::set_resume_policy)
+      .def("attach_orderbooks", &strategy::Context::attach_orderbooks)
       .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");
@@ -238,6 +247,8 @@ void bind_strategy(pybind11::module &m) {
       .def("on_tree", &strategy::Strategy::on_tree)
       .def("on_entrust", &strategy::Strategy::on_entrust)
       .def("on_transaction", &strategy::Strategy::on_transaction)
+      .def("on_depth", &strategy::Strategy::on_depth)
+      .def("on_tick", &strategy::Strategy::on_tick)
       .def("on_synthetic_data", &strategy::Strategy::on_synthetic_data)
       .def("on_order", &strategy::Strategy::on_order)
       .def("on_order_trigger", &strategy::Strategy::on_order_trigger)

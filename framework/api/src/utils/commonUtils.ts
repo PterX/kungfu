@@ -1172,3 +1172,7 @@ export const sorter = (
   }
   return 0;
 };
+
+export const escapeSpecialChar = (str: string) => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};

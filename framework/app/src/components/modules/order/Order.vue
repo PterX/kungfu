@@ -606,6 +606,8 @@ function handleClickAdjustOrderMask(): void {
   }
 
   adjustOrderMaskVisible.value = false;
+  const { source } = order;
+  const sourceLocation = window.watcher.getLocation(source);
   kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
       const makeOrderInput: KungfuApi.MakeOrderInput = {
@@ -626,7 +628,7 @@ function handleClickAdjustOrderMask(): void {
       return makeOrderByOrderInput(
         window.watcher,
         makeOrderInput,
-        kfLocation,
+        sourceLocation,
         getIdByKfLocation(window.watcher.getLocation(order.source)),
       );
     })

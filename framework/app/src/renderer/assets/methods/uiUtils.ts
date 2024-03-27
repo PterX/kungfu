@@ -63,6 +63,7 @@ import {
   loopToRunProcess,
   isKfColor,
   LinkedList,
+  escapeSpecialChar,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
@@ -786,7 +787,8 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
             return keyWord ? keyWord.toString() : '';
           })
           .join('_');
-        const isMatch = new RegExp(searchKeyword, 'ig').test(combinedValue);
+        const escapedKeyword = escapeSpecialChar(searchKeyword);
+        const isMatch = new RegExp(escapedKeyword, 'ig').test(combinedValue);
         if (isMatch) return true;
         const childMatch =
           item.children && item.children.length > 0
@@ -812,7 +814,8 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
 };
 
 export const isKeywordInString = (keyword: string, str: string) => {
-  return new RegExp(keyword, 'ig').test(str);
+  const escapedKeyword = escapeSpecialChar(keyword);
+  return new RegExp(escapedKeyword, 'ig').test(str);
 };
 
 export const searchByKeyword = <T>(
@@ -886,7 +889,8 @@ export const useTableSearchKeywordList = <T>(
             if (keyword === '') {
               return true;
             }
-            return isKeywordInString(keyword, itemValue.toString());
+            const escapedKeyword = escapeSpecialChar(keyword);
+            return new RegExp(escapedKeyword, 'ig').test(itemValue.toString());
           }
         });
       })
@@ -1053,7 +1057,6 @@ export const openNewBrowserWindow = (
   windowConfig?: Electron.BrowserWindowConstructorOptions,
 ): Promise<Electron.BrowserWindow> => {
   const currentWindow = getCurrentWindow();
-  const isParentFullScreen = currentWindow.isFullScreen();
   const modalPath =
     process.env.APP_TYPE === 'renderer' && process.env.NODE_ENV !== 'production'
       ? `http://localhost:9090/${name}.html${params}`
@@ -1081,16 +1084,12 @@ export const openNewBrowserWindow = (
     const isMacOS = process.platform === 'darwin';
 
     win.on('ready-to-show', function () {
-      if (isMacOS && isParentFullScreen) {
-        win.setFullScreen(false);
-        win.setSize(1080, 766);
-        win.show();
+      const pos = win.getPosition();
+      win.show();
+      if (pos && (pos[0] < 0 || pos[1] < 0)) {
         win.center();
-        win.focus();
-      } else {
-        win.show();
-        win.focus();
       }
+      win.focus();
     });
 
     win.on('closed', () => {
@@ -1101,46 +1100,21 @@ export const openNewBrowserWindow = (
     });
 
     if (isMacOS) {
-      win.on('minimize', (event) => {
-        event.preventDefault();
+      //禁用全屏按钮,避免子窗口退出全屏时导致主窗口上部出现空白
+      win.setFullScreen(false);
 
-        const [parentX, parentY, parentWidth, parentHeight] = [
-          currentWindow.getPosition()[0],
-          currentWindow.getPosition()[1],
-          currentWindow.getSize()[0],
-          currentWindow.getSize()[1],
-        ];
+      //禁用最小化按钮
+      win.setMinimizable(false);
 
-        const newX = parentX + parentWidth - 300;
-        const newY = parentY + parentHeight - 30;
-        win.setSize(300, 30);
-        win.setPosition(newX, newY);
-        currentWindow.setSize(parentWidth, parentHeight);
-        currentWindow.setPosition(parentX, parentY);
+      // 当窗口获得焦点时,将其置顶
+      win.on('focus', () => {
+        win.setAlwaysOnTop(true);
       });
 
-      if (win && !win.isDestroyed()) {
-        currentWindow.on('resize', () => {
-          if (
-            win &&
-            !win.isDestroyed() &&
-            win.getSize()[0] === 300 &&
-            win.getSize()[1] === 30
-          ) {
-            const [parentX, parentY, parentWidth, parentHeight] = [
-              currentWindow.getPosition()[0],
-              currentWindow.getPosition()[1],
-              currentWindow.getSize()[0],
-              currentWindow.getSize()[1],
-            ];
-
-            const newX = parentX + parentWidth - 300;
-            const newY = parentY + parentHeight - 30;
-
-            win.setPosition(newX, newY);
-          }
-        });
-      }
+      // 当窗口失去焦点时,取消置顶
+      win.on('blur', () => {
+        win.setAlwaysOnTop(false);
+      });
     }
 
     win.webContents.loadURL(modalPath);

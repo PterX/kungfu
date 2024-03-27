@@ -1,5 +1,6 @@
 import semver from 'semver';
-import { app, ipcMain, BrowserWindow } from 'electron';
+import path from 'path';
+import { app, ipcMain, BrowserWindow, dialog, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
 import {
@@ -21,12 +22,14 @@ import { KF_HOME } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { killAllBeforeQuit } from './utils';
 import { removeTargetFilesInFolder } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import axios from 'axios';
-
 import {
   RootConfigJSON,
   Writeable,
   AllPublishOptions,
 } from '@kungfu-trader/kungfu-js-api/typings/global';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const { t } = VueI18n.global;
 const globalStorage = getGlobalStorage();
 const rootPackageJson = readRootPackageJsonSync();
 
@@ -198,50 +201,35 @@ async function setUpdaterOption(
 
   const artifactPath = `${projectName}/v${version.major}/v${targetVersion}`;
   let baseUrl = '';
-  let baseChannel = '';
-  let ymlUrl = '';
   if (updaterOption.provider === 'generic') {
     baseUrl = updaterOption.url;
-    baseChannel = getChannel(targetVersion.includes('-alpha'));
-    ymlUrl = `${baseUrl}/${artifactPath}/${baseChannel}.yml`;
   } else if (updaterOption.provider === 's3') {
     updaterOption.path = artifactPath;
-    //TODO: s3 ymlUrl
-    // const s3BaseUrl = updaterOption.region
-    //   ? `https://s3.${updaterOption.region}.amazonaws.com/${updaterOption.bucket}`
-    //   : `https://s3.amazonaws.com/${updaterOption.bucket}`;
-    ymlUrl = '';
   }
 
   const urlPrefix = `${baseUrl}/${projectName}/v${version.major}/v`;
 
-  const isUrlAvailable = await checkUrl(ymlUrl);
-  kfLogger.info('Kungfu autoUpdater check url: ', ymlUrl, isUrlAvailable);
-  if (isUrlAvailable) {
-    const result = await getLatestVersion(
-      targetVersion,
-      targetVersion.includes('-alpha'),
-      UpdateVersionTypeEnums.UpdateToNextAlpha,
-      updaterOption,
-      urlPrefix,
-    );
+  const result = await getLatestVersion(
+    targetVersion,
+    targetVersion.includes('-alpha'),
+    UpdateVersionTypeEnums.UpdateToNextAlpha,
+    updaterOption,
+    urlPrefix,
+  );
 
-    if (result && result.latestVersion) {
-      const availableVersion = result.latestVersion;
-      const artifactPath = `${urlPrefix}${availableVersion}`;
-      updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
-      if (updaterOption.provider === 'generic') {
-        updaterOption.url = `${artifactPath}`;
-      } else if (updaterOption.provider === 's3') {
-        updaterOption.path = artifactPath;
-      }
-      autoUpdater.setFeedURL(updaterOption);
-      return {
-        updaterOption,
-      };
-    } else {
-      return false;
+  if (result && result.latestVersion) {
+    const availableVersion = result.latestVersion;
+    const artifactPath = `${urlPrefix}${availableVersion}`;
+    updaterOption.channel = getChannel(availableVersion.includes('-alpha'));
+    if (updaterOption.provider === 'generic') {
+      updaterOption.url = `${artifactPath}`;
+    } else if (updaterOption.provider === 's3') {
+      updaterOption.path = artifactPath;
     }
+    autoUpdater.setFeedURL(updaterOption);
+    return {
+      updaterOption,
+    };
   } else {
     return false;
   }
@@ -421,8 +409,29 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
                 ).then((results) => {
                   globalStorage.setItem('needClearJournal', true);
                   results.errors.forEach((error) => kfLogger.error(error));
-                  delayMilliSeconds(1000).then(() => {
-                    autoUpdater.quitAndInstall(false, true);
+                  delayMilliSeconds(1000).then(async () => {
+                    const isMacOS = process.platform === 'darwin';
+                    const downloadedFilePath = info.downloadedFile;
+                    const isZip = downloadedFilePath.endsWith('.zip');
+                    if (isMacOS && isZip) {
+                      const zipName = downloadedFilePath.substring(
+                        downloadedFilePath.lastIndexOf('/') + 1,
+                      );
+
+                      const response = dialog.showMessageBoxSync({
+                        type: 'info',
+                        buttons: [t('open_folder'), t('close')],
+                        title: t('install_app'),
+                        message: t('unzip_tip', { zipName }),
+                        detail: t('open_folder_detail'),
+                      });
+
+                      if (response === 0) {
+                        shell.showItemInFolder(path.join(downloadedFilePath));
+                      }
+                    } else {
+                      autoUpdater.quitAndInstall(false, true);
+                    }
                     app.exit();
                   });
                 });

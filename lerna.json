@@ -1,5 +1,5 @@
 {
-  "version": "2.7.2-alpha.0",
+  "version": "2.7.4-alpha.2",
   "packages": [
     "framework/*",
     "developer/*",
@@ -9,7 +9,11 @@
   ],
   "command": {
     "version": {
-      "allowBranch": ["main", "release/**", "alpha/**"]
+      "allowBranch": [
+        "main",
+        "release/**",
+        "alpha/**"
+      ]
     }
   }
 }

@@ -137,7 +137,7 @@ async function getOrderList(
       }
       return true;
     };
-    await tradingDataKeeper.tradingDataKeeperForEach(
+    await tradingDataKeeper.sortedForEach(
       addOrderResolved,
       'order',
       'td',
@@ -190,7 +190,7 @@ async function getOrderList(
         return true;
       }
     };
-    await tradingDataKeeper.tradingDataKeeperForEach(
+    await tradingDataKeeper.sortedForEach(
       addOrderResolved,
       'order',
       'td',

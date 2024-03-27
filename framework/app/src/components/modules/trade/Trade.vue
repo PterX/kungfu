@@ -113,7 +113,7 @@ async function getTradeList(
       }
       return true;
     };
-    await tradingDataKeeper.tradingDataKeeperForEach(
+    await tradingDataKeeper.sortedForEach(
       addTradeResolved,
       'trade',
       'td',
@@ -156,7 +156,7 @@ async function getTradeList(
         return true;
       }
     };
-    await tradingDataKeeper.tradingDataKeeperForEach(
+    await tradingDataKeeper.sortedForEach(
       addTradeResolved,
       'trade',
       'td',

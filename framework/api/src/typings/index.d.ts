@@ -1536,7 +1536,7 @@ declare namespace KungfuApi {
       ) => KungfuApi.TradeResolved[];
     };
     update: boolean;
-    tradingDataKeeperForEach: (
+    sortedForEach: (
       callback: (
         tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
       ) => boolean,

@@ -167,7 +167,7 @@ export const triggerStartStep = (stepInterval = 2000) => {
   });
 };
 
-type TradingDataList = {
+type TradingActivityData = {
   orderList: KungfuApi.Order[];
   orderStatList: KungfuApi.OrderStat[];
   tradeList: KungfuApi.Trade[];
@@ -201,7 +201,7 @@ const bestEventLoopTask =
     : setImmediate;
 export function useWatcher() {
   let update = true;
-  let dataQueue: TradingDataList[] = [];
+  let dataQueue: TradingActivityData[] = [];
   let isProcessing = false; // 标记是否正在处理队列中的数据
   const tradingDataKeeper: KungfuApi.TradingDataKeeper = {
     order: {
@@ -237,7 +237,7 @@ export function useWatcher() {
       },
     },
     update: false,
-    tradingDataKeeperForEach: async function (
+    sortedForEach: async function (
       callback: (
         tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
       ) => boolean,

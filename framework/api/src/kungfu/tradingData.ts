@@ -236,6 +236,7 @@ export function useWatcher() {
             });
       },
     },
+    update: false,
     tradingDataKeeperForEach: async function (
       callback: (
         tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,

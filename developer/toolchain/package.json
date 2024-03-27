@@ -92,5 +92,8 @@
     "webpack-merge": "^5.8.0",
     "worker-loader": "^3.0.8",
     "yarn": "^1.22.0"
+  },
+  "resolutions": {
+    "@vue/babel-plugin-jsx:": "^1.1.0"
   }
 }

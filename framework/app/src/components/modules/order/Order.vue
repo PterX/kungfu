@@ -3,6 +3,7 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   delayMilliSeconds,
+  debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -84,7 +85,7 @@ const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 const searchKeyword = ref<string>('');
-const currentTradingData = ref<KungfuApi.tradingData>();
+const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
 
 const {
   currentGlobalKfLocation,
@@ -113,13 +114,10 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
-const firstRender = ref<boolean>(true);
-const isRendering = ref<boolean>(false);
-const subscribeNext = ref<boolean>(false);
-const stopSubscribe = ref<boolean>(false);
+const subscribeNext = ref<boolean>(true);
 
 async function getOrderList(
-  tradingData: KungfuApi.tradingData,
+  tradingDataKeeper: KungfuApi.TradingDataKeeper,
   isGetAllUnfinishedOrder = false,
 ) {
   let orderList: KungfuApi.OrderResolved[] = [];
@@ -139,7 +137,7 @@ async function getOrderList(
       }
       return true;
     };
-    await tradingData.tradingDataForEach(
+    await tradingDataKeeper.tradingDataKeeperForEach(
       addOrderResolved,
       'order',
       'td',
@@ -153,7 +151,9 @@ async function getOrderList(
       currentGlobalKfLocation.value,
     );
     const indexMap =
-      tradingData.order[currentGlobalKfLocation.value.category][locationId];
+      tradingDataKeeper.order[currentGlobalKfLocation.value.category][
+        locationId
+      ];
     if (indexMap) {
       if (isGetAllUnfinishedOrder) {
         orderList = indexMap.getAllUnfinishedList();
@@ -190,7 +190,7 @@ async function getOrderList(
         return true;
       }
     };
-    await tradingData.tradingDataForEach(
+    await tradingDataKeeper.tradingDataKeeperForEach(
       addOrderResolved,
       'order',
       'td',
@@ -208,12 +208,12 @@ const hasData = computed(() => {
   return allOrders.value.length > 0;
 });
 
-async function processTradingData(tradingData: KungfuApi.tradingData) {
-  if (isRendering.value) return;
-  isRendering.value = true;
-  currentTradingData.value = tradingData;
+const processTradingData = debounce(async (tradingDataKeeper) => {
+  currentTradingData.value = tradingDataKeeper as KungfuApi.TradingDataKeeper;
 
-  const orderList = await getOrderList(tradingData);
+  const orderList = await getOrderList(
+    tradingDataKeeper as KungfuApi.TradingDataKeeper,
+  );
 
   nextTick(() => {
     if (orderList.length > 0) {
@@ -243,13 +243,13 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
       canvasRef.value.getListTable()?.setRecords([]);
     }
   });
-  isRendering.value = false;
-}
+}, 1000);
 
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
-      const { tradingData, update } = data;
+      const { tradingDataKeeper } = data;
+      const { update } = tradingDataKeeper;
       if (historyDate.value) {
         return;
       }
@@ -262,13 +262,9 @@ onActivated(() => {
         return;
       }
 
-      if (
-        (update || subscribeNext.value || firstRender.value) &&
-        !stopSubscribe.value
-      ) {
-        firstRender.value = false;
+      if (update || subscribeNext.value) {
         subscribeNext.value = false;
-        await processTradingData(tradingData);
+        await processTradingData(tradingDataKeeper);
       }
     },
   );
@@ -279,7 +275,7 @@ onActivated(() => {
 
   onDeactivated(() => {
     subscription?.unsubscribe();
-    firstRender.value = true;
+    subscribeNext.value = true;
   });
 });
 
@@ -290,9 +286,7 @@ watch(currentGlobalKfLocation, async () => {
   if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
     return;
   }
-  stopSubscribe.value = true;
   await processTradingData(currentTradingData.value);
-  stopSubscribe.value = false;
 });
 
 watch(unfinishedOrder, () => {

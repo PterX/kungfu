@@ -156,14 +156,14 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
 const { startWatcherSyncTask } = useWatcher();
 export const tradingDataSubject = new Subject<{
   watcher: KungfuApi.Watcher;
-  tradingData: KungfuApi.tradingData;
-  update: boolean;
+  tradingDataKeeper: KungfuApi.TradingDataKeeper;
 }>();
 
 export const triggerStartStep = (stepInterval = 2000) => {
   startWatcher();
-  startWatcherSyncTask(stepInterval, (watcher, tradingData, update) => {
-    tradingDataSubject.next({ watcher, tradingData, update });
+  startWatcherSyncTask(stepInterval, (watcher, tradingDataKeeper, update) => {
+    tradingDataKeeper.update = update;
+    tradingDataSubject.next({ watcher, tradingDataKeeper });
   });
 };
 
@@ -188,7 +188,7 @@ type OrderStatsMap = {
 
 type AfterSync = (
   watcher: KungfuApi.Watcher,
-  tradingData: KungfuApi.tradingData,
+  tradingDataKeeper: KungfuApi.TradingDataKeeper,
   update: boolean,
 ) => void;
 
@@ -203,7 +203,7 @@ export function useWatcher() {
   let update = true;
   let dataQueue: TradingDataList[] = [];
   let isProcessing = false; // 标记是否正在处理队列中的数据
-  const tradingData: KungfuApi.tradingData = {
+  const tradingDataKeeper: KungfuApi.TradingDataKeeper = {
     order: {
       td: {},
       strategy: {},
@@ -236,7 +236,7 @@ export function useWatcher() {
             });
       },
     },
-    tradingDataForEach: async function (
+    tradingDataKeeperForEach: async function (
       callback: (
         tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
       ) => boolean,
@@ -289,7 +289,7 @@ export function useWatcher() {
     },
   };
 
-  globalThis.tradingData = tradingData;
+  globalThis.TradingDataKeeper = tradingDataKeeper;
 
   const sortDataMap = new Map<
     string,
@@ -304,14 +304,14 @@ export function useWatcher() {
   function tradingDataProcessing(data: ProcessingData) {
     const { type, category, key, orderUKey, dataResolved } = data;
 
-    if (!tradingData[type][category][key]) {
-      tradingData[type][category][key] = new DynamicTradingDataIndexedMap<
+    if (!tradingDataKeeper[type][category][key]) {
+      tradingDataKeeper[type][category][key] = new DynamicTradingDataIndexedMap<
         string,
         KungfuApi.OrderResolved
       >(type, DEFAULT_TRADING_DATA_LENGTH);
     }
 
-    const target = tradingData[type][category][key];
+    const target = tradingDataKeeper[type][category][key];
     sortDataMap.set(`${type}_${category}_${key}`, target);
     const isFinished =
       type !== 'trade'
@@ -347,7 +347,8 @@ export function useWatcher() {
 
     setTimerPromiseTask(async () => {
       await drainStatesBySync();
-      callBack && callBack(watcher as KungfuApi.Watcher, tradingData, update);
+      callBack &&
+        callBack(watcher as KungfuApi.Watcher, tradingDataKeeper, update);
       callBack && processQueue();
     }, interval);
   };
@@ -433,7 +434,7 @@ export function useWatcher() {
           if (!order || !watcher) continue;
 
           const { source, dest, uid_key: orderUKey } = order;
-          const orderIndexMap = tradingData.order.td[source];
+          const orderIndexMap = tradingDataKeeper.order.td[source];
 
           const OldOrderResolved = orderIndexMap
             ? orderIndexMap.getValueForKey(orderUKey) || null
@@ -495,7 +496,7 @@ export function useWatcher() {
           const { source, dest } = trade;
           const orderUKey = hashSingleUKey(trade.order_id);
 
-          const indexMap = tradingData.trade.td[source];
+          const indexMap = tradingDataKeeper.trade.td[source];
           const oldTradeResolved = indexMap
             ? indexMap.getValueForKey(orderUKey) || null
             : null;
@@ -545,8 +546,8 @@ export function useWatcher() {
   //匹配order更新orderStat
   function updateRemainingOrderStats(orderStatsMap: OrderStatsMap) {
     const orderStatOfOrderKeys = Object.keys(orderStatsMap.order);
-    const tdKeys = Object.keys(tradingData.order.td);
-    const strategyKeys = Object.keys(tradingData.order.strategy);
+    const tdKeys = Object.keys(tradingDataKeeper.order.td);
+    const strategyKeys = Object.keys(tradingDataKeeper.order.strategy);
 
     for (let i = 0; i < orderStatOfOrderKeys.length; i++) {
       const key = orderStatOfOrderKeys[i];
@@ -556,7 +557,7 @@ export function useWatcher() {
 
       for (let j = 0; j < tdKeys.length; j++) {
         const source = tdKeys[j];
-        const indexMap = tradingData.order.td[source];
+        const indexMap = tradingDataKeeper.order.td[source];
         if (!indexMap) continue;
         const order = indexMap.getValueForKey(key);
 
@@ -583,7 +584,7 @@ export function useWatcher() {
         const dest = strategyKeys[k];
         const orderStat = orderStatsMap.order[key];
         if (!orderStat || !orderStat.insert_time) continue;
-        const indexMap = tradingData.order.strategy[dest];
+        const indexMap = tradingDataKeeper.order.strategy[dest];
         if (!indexMap) continue;
 
         const order = indexMap.getValueForKey(key);
@@ -618,10 +619,10 @@ export function useWatcher() {
         const key = orderStatOfTradeKeys[i];
         const orderStat = orderStatsMap.trade[key];
         if (!orderStat || !orderStat.trade_time) continue;
-        const tdKeys = Object.keys(tradingData.trade.td);
+        const tdKeys = Object.keys(tradingDataKeeper.trade.td);
         for (let j = 0; j < tdKeys.length; j++) {
           const source = tdKeys[j];
-          const indexMap = tradingData.trade.td[source];
+          const indexMap = tradingDataKeeper.trade.td[source];
           if (!indexMap) continue;
           const trade = indexMap.getValueForKey(key);
           if (!trade) {
@@ -639,12 +640,12 @@ export function useWatcher() {
           indexMap.updateKeyWithValue(key, tradeResolved, 'trade');
         }
 
-        const strategyKeys = Object.keys(tradingData.trade.strategy);
+        const strategyKeys = Object.keys(tradingDataKeeper.trade.strategy);
         for (let k = 0; k < strategyKeys.length; k++) {
           const dest = strategyKeys[k];
           const orderStat = orderStatsMap.trade[key];
           if (!orderStat || !orderStat.trade_time) continue;
-          const indexMap = tradingData.trade.strategy[dest];
+          const indexMap = tradingDataKeeper.trade.strategy[dest];
           if (!indexMap) continue;
 
           const trade = indexMap.getValueForKey(key);

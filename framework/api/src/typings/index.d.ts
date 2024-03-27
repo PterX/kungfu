@@ -1508,7 +1508,7 @@ declare namespace KungfuApi {
     getAllList(): V[];
   }
 
-  export interface tradingData {
+  export interface TradingDataKeeper {
     order: {
       td: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
@@ -1535,7 +1535,8 @@ declare namespace KungfuApi {
         value?: unknown,
       ) => KungfuApi.TradeResolved[];
     };
-    tradingDataForEach: (
+    update?: boolean;
+    tradingDataKeeperForEach: (
       callback: (
         tradingData: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
       ) => boolean,

@@ -2,6 +2,7 @@
 import {
   delayMilliSeconds,
   getIdByKfLocation,
+  debounce,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealOffset,
@@ -59,7 +60,7 @@ const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
-const currentTradingData = ref<KungfuApi.tradingData>();
+const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
 
 const canvasRef = ref();
 const historyDate = ref<Dayjs>();
@@ -91,15 +92,12 @@ const columns = computed(() => {
 });
 
 const tdChildrenLocationIdList = ref<number[]>([]);
-const firstRender = ref<boolean>(true);
-const isRendering = ref<boolean>(false);
-const subscribeNext = ref<boolean>(false);
-const stopSubscribe = ref<boolean>(false);
+const subscribeNext = ref<boolean>(true);
 
 const searchKeyword = ref<string>('');
 
 async function getTradeList(
-  tradingData: KungfuApi.tradingData,
+  tradingDataKeeper: KungfuApi.TradingDataKeeper,
 ): Promise<KungfuApi.TradeResolved[]> {
   let tradeList: KungfuApi.TradeResolved[] = [];
   if (!currentGlobalKfLocation.value) tradeList = [];
@@ -115,7 +113,7 @@ async function getTradeList(
       }
       return true;
     };
-    await tradingData.tradingDataForEach(
+    await tradingDataKeeper.tradingDataKeeperForEach(
       addTradeResolved,
       'trade',
       'td',
@@ -129,7 +127,9 @@ async function getTradeList(
       currentGlobalKfLocation.value,
     );
     const indexMap =
-      tradingData.trade[currentGlobalKfLocation.value.category][locationId];
+      tradingDataKeeper.trade[currentGlobalKfLocation.value.category][
+        locationId
+      ];
     if (indexMap) {
       tradeList = indexMap.getCommonList();
     } else {
@@ -156,7 +156,7 @@ async function getTradeList(
         return true;
       }
     };
-    await tradingData.tradingDataForEach(
+    await tradingDataKeeper.tradingDataKeeperForEach(
       addTradeResolved,
       'trade',
       'td',
@@ -169,12 +169,12 @@ async function getTradeList(
   return tradeList;
 }
 
-async function processTradingData(tradingData: KungfuApi.tradingData) {
-  if (isRendering.value) return;
-  isRendering.value = true;
-  currentTradingData.value = tradingData;
+const processTradingData = debounce(async (tradingDataKeeper) => {
+  currentTradingData.value = tradingDataKeeper as KungfuApi.TradingDataKeeper;
 
-  const tradeList = await getTradeList(tradingData);
+  const tradeList = await getTradeList(
+    tradingDataKeeper as KungfuApi.TradingDataKeeper,
+  );
 
   nextTick(() => {
     if (tradeList.length > 0) {
@@ -207,8 +207,7 @@ async function processTradingData(tradingData: KungfuApi.tradingData) {
       canvasRef.value.getListTable()?.setRecords([]);
     }
   });
-  isRendering.value = false;
-}
+}, 1000);
 
 const hasData = computed(() => {
   return allTrades.value.length > 0;
@@ -217,7 +216,8 @@ const hasData = computed(() => {
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
-      const { tradingData, update } = data;
+      const { tradingDataKeeper } = data;
+      const { update } = tradingDataKeeper;
       if (historyDate.value) {
         return;
       }
@@ -226,13 +226,9 @@ onActivated(() => {
         return;
       }
 
-      if (
-        (update || subscribeNext.value || firstRender.value) &&
-        !stopSubscribe.value
-      ) {
-        firstRender.value = false;
+      if (update || subscribeNext.value) {
         subscribeNext.value = false;
-        await processTradingData(tradingData);
+        await processTradingData(tradingDataKeeper);
       }
     },
   );
@@ -242,7 +238,7 @@ onActivated(() => {
   });
 
   onDeactivated(() => {
-    firstRender.value = true;
+    subscribeNext.value = true;
     subscription?.unsubscribe();
   });
 });
@@ -255,10 +251,8 @@ watch(
     if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
       return;
     }
-    stopSubscribe.value = true;
 
     await processTradingData(currentTradingData.value);
-    stopSubscribe.value = false;
   },
   { immediate: true },
 );

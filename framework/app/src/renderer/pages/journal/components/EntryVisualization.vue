@@ -1432,15 +1432,17 @@ const handleInputChange = debounce(() => {
   display: flex;
   height: 100%;
 
-  .ant-table {
-    background-color: #1d1d1d;
-    .ant-table-cell-fix-left,
-    .ant-table-cell-fix-right {
-      background-color: #1d1d1d;
-    }
-  }
   .kf-strategy_wrap {
     flex: 0 0 400px;
+
+    .ant-table {
+      width: 400px !important;
+      background-color: #1d1d1d;
+      .ant-table-cell-fix-left,
+      .ant-table-cell-fix-right {
+        background-color: #1d1d1d;
+      }
+    }
   }
   .kf-visualization_data_content {
     display: flex;

@@ -849,10 +849,10 @@ export default {
     bypass_archive_dev_desc:
       "Non-developers don't turn this option on\nIf open, archive will not do anything, all journal and log file will be retained, help developers troubleshoot issues faster with inspect tool, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.",
 
-    verify_location: "Verify location_uid",
-    verify_location_desc: "For trading mainline senario, never open if the user is aware of the risks, effective after restart",
-  
-    
+    verify_location: 'Verify location_uid',
+    verify_location_desc:
+      'For trading mainline senario, never open if the user is aware of the risks, effective after restart',
+
     bypass_cacheD: 'Pure Yijinjing Memory Mode',
     bypass_cacheD_desc:
       'In this mode, trading data no longer store in sqlite, all data will be stored in yijinjing memory db, for special case, never open if the user is aware of the risks, effective after restart',

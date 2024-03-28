@@ -850,9 +850,10 @@ export default {
     bypass_archive_dev: '跳过归档 (开发者模式)',
     bypass_archive_dev_desc:
       '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用诊断工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
-    
-    verify_location: "是否开启 location_uid 校验",
-    verify_location_desc: "为交易总线特殊场景准备, 除非明确知道风险, 请勿打开, 重启后生效",
+
+    verify_location: '是否开启 location_uid 校验',
+    verify_location_desc:
+      '为交易总线特殊场景准备, 除非明确知道风险, 请勿打开, 重启后生效',
 
     bypass_cacheD: '纯易筋经内存数据库模式',
     bypass_cacheD_desc:

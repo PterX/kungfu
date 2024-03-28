@@ -13,7 +13,8 @@
     "logFrame": false,
     "language": "zh-CN",
     "bypassArchive": false,
-    "bypassArchiveDev": false
+    "bypassArchiveDev": false,
+    "bypassCached": false
   },
   "code": { "tabSpaceType": "SPACES", "tabSpaceSize": "TWOINDENT" },
   "trade": {

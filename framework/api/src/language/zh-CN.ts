@@ -834,7 +834,7 @@ export default {
     log_frame_desc:
       '对系统内所有日志生效, 开启后会在 log 上附加当前 frame 的信息, 修改后重启功夫生效',
 
-    not_auto_restart_td: '关闭交易进程自动重启',
+    not_auto_restart_td: '交易进程断开不再自动重启',
     not_auto_restart_td_desc:
       '交易进程断开时是否自动重启, 如果关闭, 则当交易进程出错后, 不会尝试重连三次, 如果打开, 则会重启三次；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change 这两个方法来判断柜台状态是否断开/重启就绪',
 

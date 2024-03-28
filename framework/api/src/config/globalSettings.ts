@@ -285,7 +285,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.not_auto_restart_td'),
         tip: t('globalSettingConfig.not_auto_restart_td_desc'),
         type: 'bool',
-        default: true,
+        default: false,
       },
     ],
   },

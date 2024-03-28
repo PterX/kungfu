@@ -44,48 +44,47 @@ const { searchKeyword, tableData } =
   ]);
 
 onActivated(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (!currentGlobalKfLocation.value) return;
-        const source = watcher.getLocationUID(currentGlobalKfLocation.value);
-        tableList.value = (
-          watcher.ledger[
-            'TimeKeyValue'
-          ] as KungfuApi.DataTable<KungfuApi.TimeKeyValue>
-        )
-          .filter('tag_a', 'FundTrans')
-          .filter('source', source)
-          .list();
-        tableListResolved.value = tableList.value.map(
-          (item: KungfuApi.TimeKeyValue) => {
-            const value = JSON.parse(item.value);
-            let message: string, status: FundTransEnum;
-            if (!value.ret) {
-              message = t('fundTrans.pending');
-              status = FundTransEnum.Pending;
-            } else if (value.ret && value.ret < 0) {
-              message = value.message || t('fundTrans.error');
-              status = FundTransEnum.Error;
-            } else {
-              message = t('fundTrans.success');
-              status = FundTransEnum.Success;
-            }
-            const result: KungfuApi.TransferRecordResolved = {
-              update_time: BigInt(value.update_time || 0n),
-              source: value.source || '--',
-              target: value.target || '--',
-              amount: value.amount || 0,
-              trans_type: value.key,
-              status,
-              message,
-              trans_type_resolved: getTransTypeResolved(value.key),
-            };
-            return result;
-          },
-        );
-      },
-    );
+  if (app?.proxy && 0) {
+    const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+      const { watcher } = data;
+      if (!currentGlobalKfLocation.value) return;
+      const source = watcher.getLocationUID(currentGlobalKfLocation.value);
+      tableList.value = (
+        watcher.ledger[
+          'TimeKeyValue'
+        ] as KungfuApi.DataTable<KungfuApi.TimeKeyValue>
+      )
+        .filter('tag_a', 'FundTrans')
+        .filter('source', source)
+        .list();
+      tableListResolved.value = tableList.value.map(
+        (item: KungfuApi.TimeKeyValue) => {
+          const value = JSON.parse(item.value);
+          let message: string, status: FundTransEnum;
+          if (!value.ret) {
+            message = t('fundTrans.pending');
+            status = FundTransEnum.Pending;
+          } else if (value.ret && value.ret < 0) {
+            message = value.message || t('fundTrans.error');
+            status = FundTransEnum.Error;
+          } else {
+            message = t('fundTrans.success');
+            status = FundTransEnum.Success;
+          }
+          const result: KungfuApi.TransferRecordResolved = {
+            update_time: BigInt(value.update_time || 0n),
+            source: value.source || '--',
+            target: value.target || '--',
+            amount: value.amount || 0,
+            trans_type: value.key,
+            status,
+            message,
+            trans_type_resolved: getTransTypeResolved(value.key),
+          };
+          return result;
+        },
+      );
+    });
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();

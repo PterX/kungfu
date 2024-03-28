@@ -437,8 +437,8 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
-  before_start_events | is_trading_data() | $$(cached::feed_state_data(event, data_bank_));
-  before_start_events | is_static_data() | $$(cached::feed_state_data(event, data_bank_));
+  before_start_events | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
+  before_start_events | not_refresh_required() | $$(cached::feed_state_data(event, data_bank_));
 }
 
 bool Watcher::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
@@ -458,21 +458,17 @@ void Watcher::on_start() {
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
-    // for receive runtime data
-    events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(cached::feed_state_data(event, data_bank_));
+    events_ | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | skip_while(while_is(Quote::tag, Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
-
-    if (refresh_trading_data_before_sync_) {
-      // keep trading data with status like orders, for keeping unfinished state
-      events_ | is_trading_data_with_status() | $$(cached::feed_state_data(event, unfinished_trading_data_bank_));
-    }
+    events_ | not_refresh_required() | skip_while(while_is(Position::tag)) |
+        $$(cached::feed_state_data(event, data_bank_));
 
     if (not bypass_quote_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
+    events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Asset::tag) | $$(UpdateAsset(event, event->data<Asset>().holder_uid));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));
@@ -545,9 +541,7 @@ void Watcher::Sync(const Napi::CallbackInfo &info) {
 
 void Watcher::SyncLedger() {
   boost::hana::for_each(StateDataTypes, [&](auto it) {
-    if (boost::hana::contains(longfist::TradingDataTypes, boost::hana::first(it))) {
-      return;
-    }
+    // cause trading data saved in trading_data_bank, no need to filter at this point
     UpdateLedger(+boost::hana::second(it));
   });
 }
@@ -557,30 +551,12 @@ void Watcher::TryRefreshTradingData() {
     return;
   }
 
-  // remove final status state
-  hana::for_each(longfist::TradingDataWithStatusTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    auto hana_type = boost::hana::type_c<DataType>;
-    auto &target_map =
-        const_cast<std::unordered_map<uint64_t, state<DataType>> &>(unfinished_trading_data_bank_[hana_type]);
-
-    auto iter = target_map.begin();
-    while (iter != target_map.end()) {
-      auto &trading_data_state = iter->second;
-      if (is_final_status(trading_data_state.data.status)) {
-        iter = target_map.erase(iter);
-      } else {
-        iter++;
-      }
-    }
-  });
-
-  serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger", data_bank_);
-  unfinished_trading_data_bank_ >> data_bank_;
+  serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger");
 }
 
 void Watcher::SyncTradingData() {
-  boost::hana::for_each(TradingDataTypes, [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
+  boost::hana::for_each(longfist::RefreshRequiredDataTypes,
+                        [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
 }
 
 void Watcher::SyncAppStates() {
@@ -787,7 +763,7 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   serialize::InitObjectReference(info, app_states_ref_);
   serialize::InitObjectReference(info, strategy_states_ref_);
   serialize::InitStateMap(info, state_ref_, "state");
-  serialize::InitTradingDataInStateMap(ledger_ref_, "ledger");
+  serialize::InitStateMap(info, ledger_ref_, "ledger");
 }
 
 void Watcher::UpdateStrategyState(uint32_t strategy_uid, const StrategyStateUpdate &state) {
@@ -827,7 +803,7 @@ bool Watcher::is_reactable(const event_ptr &event) {
   }
 
   if (bypass_trading_data_ and
-      kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end()) {
+      longfist::RefreshRequiredDataTags.find(event->msg_type()) != longfist::RefreshRequiredDataTags.end()) {
     return false;
   }
 

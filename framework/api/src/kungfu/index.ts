@@ -76,6 +76,14 @@ export const hashUkey = (...args: Array<string | number>) => {
   return ukeyCacheMap.get(cacheKey) || '';
 };
 
+export const hashSingleUKey = (arg: string | number | bigint) => {
+  const uKey = `${arg}`;
+  if (!ukeyCacheMap.has(uKey))
+    ukeyCacheMap.set(uKey, arg.toString(16).padStart(16, '0'));
+
+  return ukeyCacheMap.get(uKey) || '';
+};
+
 export const hashInstrumentUKey = (
   instrumentId: string,
   exchangeId: string,

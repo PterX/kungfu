@@ -142,6 +142,8 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
       for (auto dest : location->locator->list_location_dest_by_db(td_location)) {
         try {
           ensure_cached_storage(td_location, dest);
+          restore_continuing_data<Order>(writer, td_location, dest);
+          restore_continuing_data<AlgoOrder>(writer, td_location, dest);
           app_states_shift_.at(td_location->uid).restore_to(writer, dest, RESTORE_LIMIT);
         } catch (const std::exception &ex) {
           SPDLOG_ERROR("failed to write cache {} {} {} for target {}", td_location->uname, dest, ex.what(),

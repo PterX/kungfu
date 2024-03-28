@@ -158,14 +158,14 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::bank unfinished_trading_data_bank_;
+  yijinjing::cache::deque_bank refresh_required_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> broker_states_map_ = {};
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> strategy_states_map_ = {};
 
-  typedef kungfu::longfist::enums::mode mode;
-  typedef kungfu::longfist::enums::category category;
+  typedef longfist::enums::mode mode;
+  typedef longfist::enums::category category;
 
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
     return rx::filter([&](const event_ptr &event) {
@@ -180,22 +180,21 @@ private:
     });
   };
 
-  static constexpr auto is_trading_data = []() {
+  static constexpr auto is_refresh_required = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end();
+      return longfist::RefreshRequiredDataTags.find(event->msg_type()) != longfist::RefreshRequiredDataTags.end();
     });
   };
 
-  static constexpr auto is_trading_data_with_status = []() {
+  static constexpr auto not_refresh_required = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::TradingDataWithStatusTags.find(event->msg_type()) !=
-             kungfu::longfist::TradingDataWithStatusTags.end();
+      return longfist::RefreshRequiredDataTags.find(event->msg_type()) == longfist::RefreshRequiredDataTags.end();
     });
   };
 
   static constexpr auto is_static_data = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::StaticDataTags.find(event->msg_type()) != kungfu::longfist::StaticDataTags.end();
+      return longfist::StaticDataTags.find(event->msg_type()) != longfist::StaticDataTags.end();
     });
   };
 
@@ -269,14 +268,14 @@ private:
       auto book = bookkeeper_.get_book(source);
 
       auto apply = [&](auto &position) {
-        state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
+        state<longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
         feed_state_data_bank(cache_state_position, data_bank_);
       };
 
       book->apply_position_for(data, apply);
       book->apply_opposite_position_for(data, apply);
 
-      state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
+      state<longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
     };
     update(event->source(), event->dest());
@@ -286,7 +285,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<kungfu::longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
+    state<longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
     data_bank_ << cache_state_order_trigger_input;
   }
 
@@ -294,14 +293,14 @@ private:
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
     bookkeeper_.on_order_input(now(), source, dest, data);
-    state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
-    data_bank_ << cache_state_order_input;
+    state<longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
+    refresh_required_data_bank_ << cache_state_order_input;
   }
 
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<kungfu::longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
+    state<longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
     data_bank_ << cache_state_algo_order_input;
   }
 
@@ -346,15 +345,13 @@ private:
   }
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
-    auto iter = target_map.begin();
+    using DataTypeDeque = std::deque<state<DataType>>;
+    auto &target_deque = const_cast<DataTypeDeque &>(refresh_required_data_bank_[type]);
     auto count = 0;
-    while (iter != target_map.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
-      const auto &state = iter->second;
+    while (not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
+      const auto &state = target_deque.front();
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter = target_map.erase(iter);
-      count++;
+      target_deque.pop_front();
     }
   }
 

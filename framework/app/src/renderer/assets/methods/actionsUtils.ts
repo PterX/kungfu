@@ -12,6 +12,7 @@ import {
   getKungfuHistoryData,
   getNanoDateString,
   isShowPosition,
+  isStock,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
@@ -1763,12 +1764,27 @@ export const useActiveInstruments = () => {
     return currency;
   };
 
+  const getInstrumentName = (
+    instrumentId: string,
+    exchangeId: string,
+    instrumentType: InstrumentTypeEnum,
+  ) => {
+    if (!isStock(instrumentType)) {
+      return '';
+    }
+
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const instrumentResolved = instrumentsMap.value[ukey];
+    return instrumentResolved ? instrumentResolved.instrumentName : '';
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
     getInstrumentCurrency,
+    getInstrumentName,
   };
 };
 

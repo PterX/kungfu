@@ -149,16 +149,10 @@ inline bool startswith(const std::string &str, const std::string &prefix) {
 }
 
 inline bool is_final_status(const longfist::enums::OrderStatus &status) {
-  switch (status) {
-  case longfist::enums::OrderStatus::Submitted:
-  case longfist::enums::OrderStatus::Pending:
-  case longfist::enums::OrderStatus::PartialFilledActive:
-  case longfist::enums::OrderStatus::Unknown:
-  case longfist::enums::OrderStatus::Cancelling:
-  case longfist::enums::OrderStatus::Pause:
-  case longfist::enums::OrderStatus::PendingSettlement:
+  if (std::find(longfist::enums::CONTINUING_STATUS.begin(), longfist::enums::CONTINUING_STATUS.end(), (int8_t)status) !=
+      longfist::enums::CONTINUING_STATUS.end()) {
     return false;
-  default:
+  } else {
     return true;
   }
 }

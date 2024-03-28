@@ -55,8 +55,8 @@ public:
   [[maybe_unused]] static int64_t next_minute(int64_t nanotime);
 
   /**
-   * Given a timestamp, returns the next end of trading time, i.e. 15:30 of today if the argument is before that,
-   * otherwise 15:30 of tomorrow.
+   * Given a timestamp, returns the next end of trading time, i.e. 16:00 of today if the argument is before that,
+   * otherwise 16:00 of tomorrow.
    * @param nanotime timestamp in nano seconds
    * @return the next trading session end time point in nano seconds
    */

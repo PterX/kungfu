@@ -425,6 +425,7 @@ export default {
 
   orderConfig: {
     update_time: 'update_time',
+    order_time: 'order_time',
     instrument_id: 'Instrument',
     limit_price: 'limit_price',
     order_status: 'order_status',
@@ -1023,6 +1024,12 @@ export default {
     enable_matcher_tip:
       'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
+
+  open_folder: 'Open Folder',
+  install_app: 'Install App',
+  unzip_tip: 'Please unzip {zipName} to install',
+  open_folder_detail:
+    'Click "Open Folder" to show the location of the zip file',
 
   master_interrupt: 'master interrupted',
   master_desc:

@@ -421,6 +421,7 @@ export default {
 
   orderConfig: {
     update_time: '更新时间',
+    order_time: '委托时间',
     instrument_id: '标的',
     limit_price: '委托价',
     order_status: '订单状态',
@@ -1010,6 +1011,11 @@ export default {
     process_not_found: '进程不存在',
     enable_matcher_tip: '使用撮合器以回测模式运行,  策略逻辑可修改',
   },
+
+  open_folder: '打开文件夹',
+  install_app: '安装应用',
+  unzip_tip: '请解压 {zipName} 文件完成安装',
+  open_folder_detail: '点击 "打开文件夹" 将展示压缩包所在位置',
 
   master_interrupt: '主控进程 master 中断',
   master_desc: '主控进程负责策略进程间通信与资源配置, 请重启功夫交易系统',

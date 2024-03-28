@@ -147,33 +147,6 @@ public:
 
   void disjoin_channel(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 
-  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
 protected:
   int64_t begin_time_;
   int64_t end_time_;

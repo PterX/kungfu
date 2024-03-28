@@ -735,11 +735,12 @@ export const showVolumeSideTypes = [
 ];
 
 export const T0InstrumentTypes = [
-  InstrumentTypeEnum.cryptofuture,
-  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.bond,
   InstrumentTypeEnum.stockoption,
+  InstrumentTypeEnum.crypto,
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
 ];
 
 export const T0ExchangeIds = ['US', 'HK', 'SHHK', 'SZHK'];
@@ -774,11 +775,23 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
 
   repo: [InstrumentTypeEnum.repo],
 
-  crypto: [InstrumentTypeEnum.crypto],
+  crypto: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
-  cryptofuture: [InstrumentTypeEnum.cryptofuture],
+  cryptofuture: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
-  cryptoufuture: [InstrumentTypeEnum.cryptoufuture],
+  cryptoufuture: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
   multi: [
     InstrumentTypeEnum.stock,

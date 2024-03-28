@@ -108,6 +108,31 @@ export const isT0 = (
   );
 };
 
+export const isStock = (instrumentType: InstrumentTypeEnum) => {
+  switch (instrumentType) {
+    case InstrumentTypeEnum.stock:
+    case InstrumentTypeEnum.stockoption:
+    case InstrumentTypeEnum.techstock:
+    case InstrumentTypeEnum.bond:
+    case InstrumentTypeEnum.fund:
+    case InstrumentTypeEnum.index:
+    case InstrumentTypeEnum.repo:
+      return true;
+    default:
+      return false;
+  }
+};
+
+export const isShotable = (instrumentType: InstrumentTypeEnum): boolean => {
+  return instrumentType
+    ? ShotableInstrumentTypes.includes(instrumentType)
+    : false;
+};
+
+export const isShowPosition = (side: SideEnum): boolean => {
+  return showVolumeSideTypes.includes(side);
+};
+
 export const getNanoDateString = (
   nano: bigint,
   i = 6,
@@ -1231,6 +1256,7 @@ export const dealPosition = (
   watcher: KungfuApi.Watcher,
   pos: KungfuApi.Position,
   pricePrecision = 4,
+  instrumentName = '',
 ): KungfuApi.PositionResolved => {
   const account_id_resolved = getIdByKfLocation(
     watcher.getLocation(pos.source_id),
@@ -1246,7 +1272,7 @@ export const dealPosition = (
     closable_volume,
     uid_key: pos.uid_key, // 隐式属性，...pos 并不能结构
     account_id_resolved,
-    instrument_id_resolved: `${pos.instrument_id} ${
+    instrument_id_resolved: `${pos.instrument_id} ${instrumentName} ${
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
     price_precision: pricePrecision,
@@ -1396,16 +1422,6 @@ export const dealVolumeCondition = (
   volumeCondition: VolumeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
   return VolumeCondition[+volumeCondition as VolumeConditionEnum];
-};
-
-export const isShotable = (instrumentType: InstrumentTypeEnum): boolean => {
-  return instrumentType
-    ? ShotableInstrumentTypes.includes(instrumentType)
-    : false;
-};
-
-export const isShowPosition = (side: SideEnum): boolean => {
-  return showVolumeSideTypes.includes(side);
 };
 
 export const dealOrderTriggerStatus = (

@@ -34,115 +34,123 @@ export interface InputEditorConfig {
   min?: number;
 }
 
-class CustomInputEditor implements VTable_editors.IEditor {
-  style: Record<string, string> = {};
-  editorType = 'Input';
-  editorConfig;
-  container;
-  declare element: HTMLInputElement;
-  referencePosition: {
-    rect: VTable_editors.RectProps;
-    placement?: VTable_editors.Placement;
-  } | null = null;
-  activeCell: HTMLElement | null = null; // Track the currently active cell
+// class CustomInputEditor implements VTable_editors.IEditor {
+//   style: Record<string, string> = {};
+//   editorType = 'Input';
+//   editorConfig;
+//   container;
+//   declare element: HTMLInputElement;
+//   referencePosition: {
+//     rect: VTable_editors.RectProps;
+//     placement?: VTable_editors.Placement;
+//   } | null = null;
+//   activeCell: HTMLElement | null = null; // Track the currently active cell
 
-  constructor(
-    editStyle: Record<string, string> = {},
-    editorConfig?: InputEditorConfig,
-  ) {
-    if (editorConfig) this.editorConfig = editorConfig;
-    this.style = editStyle;
-  }
+//   constructor(
+//     editStyle: Record<string, string> = {},
+//     editorConfig?: InputEditorConfig,
+//   ) {
+//     if (editorConfig) this.editorConfig = editorConfig;
+//     this.style = editStyle;
+//   }
 
-  createElement() {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'text');
-    input.style.position = 'absolute';
-    input.style.padding = '4px';
-    input.style.width = '100%';
-    input.style.color = 'black';
-    input.style.boxSizing = 'border-box';
-    Object.keys(this.style).forEach((key) => {
-      input.style[key] = this.style[key];
-    });
+//   createElement() {
+//     const input = document.createElement('input');
+//     input.setAttribute('type', 'text');
+//     input.style.position = 'absolute';
+//     input.style.padding = '4px';
+//     input.style.width = '100%';
+//     input.style.color = 'black';
+//     input.style.boxSizing = 'border-box';
+//     Object.keys(this.style).forEach((key) => {
+//       input.style[key] = this.style[key];
+//     });
 
-    this.element = input;
+//     this.element = input;
 
-    this.container.appendChild(input);
-  }
+//     this.container.appendChild(input);
+//   }
 
-  setValue(value: string) {
-    this.element.value = typeof value !== 'undefined' ? value : '';
-  }
+//   setValue(value: string) {
+//     this.element.value = typeof value !== 'undefined' ? value : '';
+//   }
 
-  getValue() {
-    return this.element.value;
-  }
+//   getValue() {
+//     return this.element.value;
+//   }
 
-  beginEditing(
-    container: HTMLElement,
-    referencePosition: {
-      rect: VTable_editors.RectProps;
-      placement?: VTable_editors.Placement;
-    },
-    value?: string,
-  ) {
-    window.addEventListener('resize', this.handleResize);
-    this.container = container;
-    this.referencePosition = referencePosition;
+//   beginEditing(
+//     container: HTMLElement,
+//     referencePosition: {
+//       rect: VTable_editors.RectProps;
+//       placement?: VTable_editors.Placement;
+//     },
+//     value?: string,
+//   ) {
+//     window.addEventListener('resize', this.handleResize);
+//     this.container = container;
+//     this.referencePosition = referencePosition;
 
-    this.createElement();
-    if (value) {
-      this.setValue(value);
-    }
-    if (referencePosition?.rect) {
-      this.adjustPosition(referencePosition.rect);
-    }
-    this.element.focus();
-    // do nothing
-  }
+//     this.createElement();
+//     if (value) {
+//       this.setValue(value);
+//     }
+//     if (referencePosition?.rect) {
+//       this.adjustPosition(referencePosition.rect);
+//     }
+//     this.element.focus();
+//     // do nothing
+//   }
 
-  handleResize = () => {
-    if (this.container) {
-      // if (this.referencePosition?.rect) {
-      //   this.adjustPosition(this.referencePosition.rect);
-      // }
-      this.exit();
-      // const rect = this.activeCell.getBoundingClientRect();
-      // this.adjustPosition(rect);
-    }
-  };
+//   handleResize = () => {
+//     if (this.container) {
+//       // if (this.referencePosition?.rect) {
+//       //   this.adjustPosition(this.referencePosition.rect);
+//       // }
+//       this.exit();
+//       // const rect = this.activeCell.getBoundingClientRect();
+//       // this.adjustPosition(rect);
+//     }
+//   };
 
-  adjustPosition(rect: VTable_editors.RectProps) {
-    this.element.style.top = rect.top + 'px';
-    this.element.style.left = rect.left + 'px';
-    this.element.style.width = rect.width + 'px';
-    this.element.style.height = rect.height + 'px';
-  }
+//   adjustPosition(rect: VTable_editors.RectProps) {
+//     this.element.style.top = rect.top + 'px';
+//     this.element.style.left = rect.left + 'px';
+//     this.element.style.width = rect.width + 'px';
+//     this.element.style.height = rect.height + 'px';
+//   }
 
-  endEditing() {
-    // do nothing
-  }
+//   endEditing() {
+//     // do nothing
+//   }
 
-  exit() {
-    // do nothing
-    if (this.container) {
-      window.removeEventListener('resize', this.handleResize);
-      // Check if this.element is a child of this.container
-      if (this.container.contains(this.element)) {
-        // Remove the active cell and its associated editor
-        this.container.removeChild(this.element);
-      }
-    }
-  }
+//   onStart() {
+//     // do nothing
+//   }
 
-  targetIsOnEditor(target: HTMLElement) {
-    if (target === this.element) {
-      return true;
-    }
-    return false;
-  }
-}
+//   onEnd() {
+//     // do nothing
+//   }
+
+//   exit() {
+//     // do nothing
+//     if (this.container) {
+//       window.removeEventListener('resize', this.handleResize);
+//       // Check if this.element is a child of this.container
+//       if (this.container.contains(this.element)) {
+//         // Remove the active cell and its associated editor
+//         this.container.removeChild(this.element);
+//       }
+//     }
+//   }
+
+//   targetIsOnEditor(target: HTMLElement) {
+//     if (target === this.element) {
+//       return true;
+//     }
+//     return false;
+//   }
+// }
 
 const registerVTableIconsAndEditors = () => {
   VTable.register.icon('sort_upward', {
@@ -198,11 +206,11 @@ const registerVTableIconsAndEditors = () => {
     cursor: 'pointer',
   });
 
-  const input_editor = new CustomInputEditor({
-    color: '#ffffffd9',
-    background: '#141414',
-  });
-  VTable.register.editor('input-editor', input_editor);
+  // const input_editor = new CustomInputEditor({
+  //   color: '#ffffffd9',
+  //   background: '#141414',
+  // });
+  // VTable.register.editor('input-editor', input_editor);
 };
 
 registerVTableIconsAndEditors();

@@ -38,7 +38,7 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('orderConfig.instrument_id'),
-        width: 100,
+        width: 140,
       },
       {
         field: 'side',
@@ -56,7 +56,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 60,
+        width: 50,
         style: {
           color: (args) => {
             return defaultColorMap[

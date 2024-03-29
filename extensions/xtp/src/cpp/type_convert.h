@@ -354,7 +354,11 @@ inline void from_xtp(const XTPTickByTickStruct &ori, Entrust &des) {
     des.price_type = PriceType::ForwardBest;
   }
 
-  des.orig_order_no = ori.entrust.order_no;
+  if (des.exchange_id == "SSE") {
+    des.orig_order_no = ori.entrust.order_no;
+  } else {
+    des.orig_order_no = ori.entrust.seq;
+  }
 
   switch (ori.entrust.side) {
   case 'B': {

@@ -22,7 +22,7 @@
 namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
-constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
+constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 5000;
 constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {

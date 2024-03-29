@@ -332,14 +332,11 @@ export function useWatcher() {
   const drainStatesBySync = async () => {
     if (watcher === null) return;
     watcher.sync();
-    const orderStatList = Object.values(watcher.ledger.OrderStat);
-    const orderList = Object.values(watcher.ledger.Order);
-    const tradeList = Object.values(watcher.ledger.Trade);
 
     dataQueue.push({
-      orderList: orderList,
-      tradeList: tradeList,
-      orderStatList: orderStatList,
+      orderList: watcher.ledger.Order.list(),
+      tradeList: watcher.ledger.Trade.list(),
+      orderStatList: watcher.ledger.OrderStat.list(),
     });
   };
 

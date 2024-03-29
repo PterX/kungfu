@@ -24,7 +24,7 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
 
-constexpr uint32_t STEP_INTERVAL = 100;
+constexpr uint32_t STEP_INTERVAL = 10;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 

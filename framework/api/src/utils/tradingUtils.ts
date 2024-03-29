@@ -428,28 +428,30 @@ export const kfCancelOrder = (
     return Promise.reject(new Error(`Watcher is not live`));
   }
 
-  const { order_id, dest, source } = order;
-  const sourceLocation = watcher.getLocation(source);
-  const destLocation = watcher.getLocation(dest);
+  return new Promise((resolve, reject) => {
+    const { order_id, dest, source } = order;
+    const sourceLocation = watcher.getLocation(source);
+    const destLocation = watcher.getLocation(dest);
 
-  if (!watcher.isReadyToInteract(sourceLocation)) {
-    const accountId = getIdByKfLocation(sourceLocation);
-    return Promise.reject(new Error(`Td ${accountId} not ready`));
-  }
+    if (!watcher.isReadyToInteract(sourceLocation)) {
+      const accountId = getIdByKfLocation(sourceLocation);
+      reject(new Error(`Td ${accountId} not ready`));
+      return;
+    }
 
-  const orderAction: KungfuApi.OrderAction = {
-    ...longfist.types.OrderAction(),
-    action_flag: orderActionFlag,
-    order_id,
-  };
+    const orderAction: KungfuApi.OrderAction = {
+      ...longfist.types.OrderAction(),
+      action_flag: orderActionFlag,
+      order_id,
+    };
 
-  if (!destLocation) {
-    return Promise.resolve(watcher.cancelOrder(orderAction, sourceLocation));
-  }
+    if (!destLocation) {
+      resolve(watcher.cancelOrder(orderAction, sourceLocation));
+      return;
+    }
 
-  return Promise.resolve(
-    watcher.cancelOrder(orderAction, sourceLocation, destLocation),
-  );
+    resolve(watcher.cancelOrder(orderAction, sourceLocation, destLocation));
+  });
 };
 
 export const kfCancelOrderTrigger = (
@@ -1025,6 +1027,8 @@ export const getOrderStatResolve = (
   };
 };
 
+export const DEFAULT_LIST_LENGTH = 10000;
+
 export const getOrderOrTradeListFromTradingDataKeeper = async ({
   watcher,
   tradingDataKeeper,
@@ -1044,7 +1048,6 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
   isGetAllUnfinishedOrder?: boolean;
   type?: 'order' | 'trade';
 }) => {
-  const DEFAULT_LIST_LENGTH = 50000;
   let list: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[] = [];
   let locationId = '';
   let tdChildrenLocationIdList: number[] = [];

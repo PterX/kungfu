@@ -11,7 +11,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import BTree from 'sorted-btree';
-export class DynamicTradingDataIndexedMap<K extends string | number, V> {
+export class DynamicTradingDataIndexedMap<V> {
   private tradingDataType: 'order' | 'trade';
   private commonList: V[];
   private unfinishedList: V[];
@@ -20,12 +20,16 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   private unfinishedTree: BTree<unknown, V>;
   private sortStr1 = '';
   private sortStr2 = '';
+  private commonMinKey: unknown;
+  private unfinishedMinKey: unknown;
 
   constructor(type: 'order' | 'trade', maxListLength = DEFAULT_LIST_LENGTH) {
     this.tradingDataType = type;
     this.commonList = [];
     this.unfinishedList = [];
     this.maxListLength = maxListLength;
+    this.commonMinKey = {};
+    this.unfinishedMinKey = {};
 
     if (this.tradingDataType === 'order') {
       this.sortStr1 = 'insert_time';
@@ -55,17 +59,13 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   }
 
   insertKeyWithValue(value: V, type: string, isFinished = true): void {
-    this.commonTree.set(
-      {
-        [this.sortStr1]: value[this.sortStr1],
-        [this.sortStr2]: value[this.sortStr2],
-      },
-      value,
-      true,
-    );
-
-    if (type === 'order' && !isFinished) {
-      this.unfinishedTree.set(
+    if (
+      !this.commonMinKey ||
+      !(this.commonMinKey as Record<string, BigInt>)[this.sortStr1] ||
+      (this.commonMinKey as Record<string, BigInt>)[this.sortStr1] <=
+        value[this.sortStr1]
+    ) {
+      this.commonTree.set(
         {
           [this.sortStr1]: value[this.sortStr1],
           [this.sortStr2]: value[this.sortStr2],
@@ -74,7 +74,26 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
         true,
       );
     }
+
+    if (type === 'order' && !isFinished) {
+      if (
+        !this.unfinishedMinKey ||
+        !(this.unfinishedMinKey as Record<string, BigInt>)[this.sortStr1] ||
+        (this.unfinishedMinKey as Record<string, BigInt>)[this.sortStr1] <=
+          value[this.sortStr1]
+      ) {
+        this.unfinishedTree.set(
+          {
+            [this.sortStr1]: value[this.sortStr1],
+            [this.sortStr2]: value[this.sortStr2],
+          },
+          value,
+          true,
+        );
+      }
+    }
   }
+
   updateKeyWithValue(value: V, type: string, isFinished = true): void {
     this.commonTree.changeIfPresent(
       {
@@ -132,6 +151,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
       this.commonTree.deleteRange(lo, high, true);
     }
     this.commonList = this.commonTree.valuesArray();
+    this.commonMinKey = this.commonTree.minKey();
   }
 
   sortUnfinishedList(): void {
@@ -144,6 +164,7 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
       this.unfinishedTree.deleteRange(lo, high, true);
     }
     this.unfinishedList = this.unfinishedTree.valuesArray();
+    this.unfinishedMinKey = this.unfinishedTree.minKey();
   }
 
   getAllUnfinishedList(): V[] {
@@ -296,7 +317,6 @@ export function useWatcher() {
   const sortDataMap = new Map<
     string,
     KungfuApi.KfDynamicTradingDataIndexedMap<
-      string,
       KungfuApi.OrderResolved | KungfuApi.TradeResolved
     >
   >();
@@ -307,10 +327,11 @@ export function useWatcher() {
     const { type, category, key, dataResolved } = data;
 
     if (!tradingDataKeeper[type][category][key]) {
-      tradingDataKeeper[type][category][key] = new DynamicTradingDataIndexedMap<
-        string,
-        KungfuApi.OrderResolved
-      >(type, DEFAULT_TRADING_DATA_LENGTH);
+      tradingDataKeeper[type][category][key] =
+        new DynamicTradingDataIndexedMap<KungfuApi.OrderResolved>(
+          type,
+          DEFAULT_TRADING_DATA_LENGTH,
+        );
     }
 
     const target = tradingDataKeeper[type][category][key];

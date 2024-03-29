@@ -1482,16 +1482,11 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
-  export interface KfDynamicTradingDataIndexedMap<
-    K extends string | number,
-    V,
-  > {
+  export interface KfDynamicTradingDataIndexedMap<V> {
     insertKeyWithValue(value: V, type: string, isFinished?: boolean): void;
     updateKeyWithValue(value: V, type: string, isFinished?: boolean): void;
     sortCommonList(compareFn: (a: V, b: V) => number): void;
     sortUnfinishedList(compareFn: (a: V, b: V) => number): void;
-    hasKey(key: K): boolean;
-    getValueForKey(key: K): V | undefined;
     getValue(key1: unknown, key2: unknown): V | undefined;
     getCommonList(): V[];
     getUnfinishedList(): V[];

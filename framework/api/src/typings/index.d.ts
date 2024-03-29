@@ -1486,22 +1486,13 @@ declare namespace KungfuApi {
     K extends string | number,
     V,
   > {
-    insertKeyWithValue(
-      key: K,
-      value: V,
-      type: string,
-      isFinished?: boolean,
-    ): void;
-    updateKeyWithValue(
-      key: K,
-      value: V,
-      type: string,
-      isFinished?: boolean,
-    ): void;
+    insertKeyWithValue(value: V, type: string, isFinished?: boolean): void;
+    updateKeyWithValue(value: V, type: string, isFinished?: boolean): void;
     sortCommonList(compareFn: (a: V, b: V) => number): void;
     sortUnfinishedList(compareFn: (a: V, b: V) => number): void;
     hasKey(key: K): boolean;
     getValueForKey(key: K): V | undefined;
+    getValue(key1: unknown, key2: unknown): V | undefined;
     getCommonList(): V[];
     getUnfinishedList(): V[];
     getAllUnfinishedList(): V[];

@@ -24,7 +24,7 @@ using namespace kungfu::yijinjing::data;
 
 namespace kungfu::node {
 
-constexpr uint32_t STEP_INTERVAL = 1;
+constexpr uint32_t STEP_INTERVAL = 100;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 
@@ -125,7 +125,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       bypass_refresh_book_(GetBool(info, 6)),                                                     //
       milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
-      bookkeeper_(*this, broker_client_, bypass_quote_),                                          //
+      bookkeeper_(*this, broker_client_, bypass_quote_, true),                                    //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //

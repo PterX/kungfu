@@ -1025,6 +1025,108 @@ export const getOrderStatResolve = (
   };
 };
 
+export const getOrderOrTradeListFromTradingDataKeeper = async ({
+  watcher,
+  tradingDataKeeper,
+  currentGlobalKfLocation,
+  isGetUnfinishedOrder = false,
+  isGetAllUnfinishedOrder = false,
+  type = 'order',
+}: {
+  watcher: KungfuApi.Watcher | null;
+  tradingDataKeeper: KungfuApi.TradingDataKeeper;
+  currentGlobalKfLocation:
+    | KungfuApi.KfLocation
+    | KungfuApi.KfLocationGroup
+    | KungfuApi.KfConfig
+    | null;
+  isGetUnfinishedOrder?: boolean;
+  isGetAllUnfinishedOrder?: boolean;
+  type?: 'order' | 'trade';
+}) => {
+  const DEFAULT_LIST_LENGTH = 50000;
+  let list: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[] = [];
+  let locationId = '';
+  let tdChildrenLocationIdList: number[] = [];
+  let listGetterType: 'common' | 'unfinished' = isGetUnfinishedOrder
+    ? 'unfinished'
+    : 'common';
+  let addResolved: (
+    resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+  ) => boolean;
+
+  if (!currentGlobalKfLocation) return [];
+
+  switch (currentGlobalKfLocation?.category) {
+    case 'globalPos':
+      locationId = getIdByKfLocation(currentGlobalKfLocation);
+      addResolved = (
+        resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      ) => {
+        const instrumentId = `${resolved.exchange_id}_${resolved.instrument_id}`;
+        if (instrumentId === locationId) {
+          list.push(resolved);
+        }
+        return true;
+      };
+      await tradingDataKeeper.sortedForEach(
+        addResolved,
+        type,
+        'td',
+        listGetterType,
+      );
+      break;
+    case 'td':
+    case 'strategy':
+      locationId = window.watcher.getLocationUID(currentGlobalKfLocation);
+      const indexMap =
+        tradingDataKeeper[type][currentGlobalKfLocation.category][locationId];
+      if (indexMap) {
+        if (isGetAllUnfinishedOrder && type === 'order') {
+          list = indexMap.getAllUnfinishedList();
+        } else if (isGetUnfinishedOrder && type === 'order') {
+          list = indexMap.getUnfinishedList();
+        } else {
+          list = indexMap.getCommonList();
+        }
+      }
+      break;
+    case 'tdGroup':
+      tdChildrenLocationIdList = [];
+      const locationList = (
+        currentGlobalKfLocation as KungfuApi.KfLocationGroup
+      ).children;
+      if (locationList) {
+        locationList.forEach((location) => {
+          const locationId =
+            location.location_uid ||
+            (watcher ? watcher.getLocationUID(location) : '');
+          console.log('locationId', locationId);
+          if (locationId) {
+            tdChildrenLocationIdList.push(locationId);
+          }
+        });
+      }
+      addResolved = (
+        resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+      ) => {
+        if (list.length >= DEFAULT_LIST_LENGTH) return false;
+        list.push(resolved);
+        return true;
+      };
+      await tradingDataKeeper.sortedForEach(
+        addResolved,
+        type,
+        'td',
+        listGetterType,
+        tdChildrenLocationIdList,
+      );
+      break;
+  }
+
+  return list;
+};
+
 const getInstrumentByIdsWithWatcher = (
   instrumentId: string,
   exchangeId: string,
@@ -1094,15 +1196,12 @@ export const getOrderResolved = (
 
 export const getTradeResolved = (
   watcher: KungfuApi.Watcher,
-  tradeResolved: KungfuApi.TradeResolved | null,
   trade: KungfuApi.Trade,
-  orderStats: KungfuApi.OrderStat | null,
 ): KungfuApi.TradeResolved => {
   const { price_precision } = getPriceTickAndPrecision(
     trade.instrument_id,
     trade.exchange_id,
   );
-  const latencyData = getOrderStatResolve(orderStats);
   const destResolvedData = resolveClientId(watcher, trade.dest);
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -1110,7 +1209,6 @@ export const getTradeResolved = (
     trade.dest,
   );
   return {
-    ...(tradeResolved || {}),
     ...trade,
     volume: dealKfDecimalPrecision(trade.volume),
     source: trade.source,
@@ -1120,9 +1218,6 @@ export const getTradeResolved = (
     dest_resolved_data: destResolvedData,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
-    kf_time: 'trade_time' in latencyData ? latencyData.trade_time : BigInt(0),
-    latency_trade:
-      'latency_trade' in latencyData ? `${latencyData.latency_trade}` : '--',
     price_resolved: dealKfPrice(trade.price, price_precision),
   } as unknown as KungfuApi.TradeResolved;
 };

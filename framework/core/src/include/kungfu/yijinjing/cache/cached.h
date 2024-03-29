@@ -74,6 +74,24 @@ public:
 
   void switch_feed_storage(bool pause_storage);
 
+  template <typename DataType>
+  void restore_continuing_data(const yijinjing::journal::writer_ptr &writer,
+                               const yijinjing::data::location_ptr &location, uint32_t dest) {
+    auto from = yijinjing::time::today_start();
+    ensure_cached_storage(location, dest);
+    auto &state_shift = app_states_shift_.at(location->uid);
+    auto storage = state_shift.get_storage(dest);
+    auto states = storage->get_all<DataType>(sqlite_orm::where(
+        sqlite_orm::and_(sqlite_orm::and_(sqlite_orm::greater_or_equal(&DataType::insert_time, from),
+                                          sqlite_orm::lesser_or_equal(&DataType::insert_time, INT64_MAX)),
+                         sqlite_orm::in(&DataType::status, longfist::enums::CONTINUING_STATUS))
+
+            ));
+    for (auto &data : states) {
+      writer->write_as(0, data, location->uid, dest);
+    }
+  }
+
   static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
       using DataType = typename decltype(+boost::hana::second(it))::type;

@@ -1101,7 +1101,6 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
           const locationId =
             location.location_uid ||
             (watcher ? watcher.getLocationUID(location) : '');
-          console.log('locationId', locationId);
           if (locationId) {
             tdChildrenLocationIdList.push(locationId);
           }

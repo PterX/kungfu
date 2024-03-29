@@ -445,7 +445,6 @@ export const kfCancelOrder = (
       order_id,
     };
 
-    console.log("cancel order", order_id)
     if (!destLocation) {
       resolve(watcher.cancelOrder(orderAction, sourceLocation));
       return;
@@ -1028,6 +1027,8 @@ export const getOrderStatResolve = (
   };
 };
 
+export const DEFAULT_LIST_LENGTH = 10000;
+
 export const getOrderOrTradeListFromTradingDataKeeper = async ({
   watcher,
   tradingDataKeeper,
@@ -1047,7 +1048,6 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
   isGetAllUnfinishedOrder?: boolean;
   type?: 'order' | 'trade';
 }) => {
-  const DEFAULT_LIST_LENGTH = 50000;
   let list: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[] = [];
   let locationId = '';
   let tdChildrenLocationIdList: number[] = [];

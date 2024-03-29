@@ -7,6 +7,7 @@ import {
 import {
   getOrderResolved,
   getTradeResolved,
+  DEFAULT_LIST_LENGTH,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import BTree from 'sorted-btree';
@@ -14,13 +15,13 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   private tradingDataType: 'order' | 'trade';
   private commonList: V[];
   private unfinishedList: V[];
-  private maxListLength = 50000;
+  private maxListLength = DEFAULT_LIST_LENGTH;
   private commonTree: BTree<unknown, V>;
   private unfinishedTree: BTree<unknown, V>;
   private sortStr1 = '';
   private sortStr2 = '';
 
-  constructor(type: 'order' | 'trade', maxListLength = 50000) {
+  constructor(type: 'order' | 'trade', maxListLength = DEFAULT_LIST_LENGTH) {
     this.tradingDataType = type;
     this.commonList = [];
     this.unfinishedList = [];
@@ -193,7 +194,7 @@ type AfterSync = (
 ) => void;
 
 const DEFAULT_SPLIT_LENGTH = 100;
-const DEFAULT_TRADING_DATA_LENGTH = 50000;
+const DEFAULT_TRADING_DATA_LENGTH = DEFAULT_LIST_LENGTH;
 
 const bestEventLoopTask =
   typeof window !== 'undefined'

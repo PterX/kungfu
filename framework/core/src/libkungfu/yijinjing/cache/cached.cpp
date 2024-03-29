@@ -379,18 +379,10 @@ void cached::store_profile_feeds() {
 }
 
 void cached::open_session(const location_ptr &location, int64_t open_time) {
-  if (bypass_cached_) {
-    return;
-  }
-
   session_builder_.open_session(location, open_time);
 }
 
 void cached::close_session(const location_ptr &location, int64_t close_time) {
-  if (bypass_cached_) {
-    return;
-  }
-
   session_builder_.close_session(location, close_time);
 }
 

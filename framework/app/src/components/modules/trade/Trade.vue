@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-  delayMilliSeconds,
-  debounce,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -87,10 +84,12 @@ const columns = computed(() => {
 });
 
 const needProcessTradingData = ref<boolean>(true);
+const isRendering = ref<boolean>(false);
 
 const searchKeyword = ref<string>('');
 
-const processTradingData = debounce(async (tradingDataKeeper) => {
+const processTradingData = async (tradingDataKeeper) => {
+  if (isRendering.value) return;
   currentTradingData.value = tradingDataKeeper as KungfuApi.TradingDataKeeper;
 
   const tradeList = (await getOrderOrTradeListFromTradingDataKeeper({
@@ -129,7 +128,7 @@ const processTradingData = debounce(async (tradingDataKeeper) => {
     allTrades.value = [];
     canvasRef.value.getListTable()?.setRecords([]);
   }
-}, 1000);
+};
 
 const hasData = computed(() => {
   return allTrades.value.length > 0;
@@ -173,8 +172,9 @@ watch(
     if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
       return;
     }
-
+    isRendering.value = true;
     await processTradingData(currentTradingData.value);
+    isRendering.value = false;
   },
   { immediate: true },
 );

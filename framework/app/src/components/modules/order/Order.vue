@@ -116,9 +116,12 @@ const hasData = computed(() => {
   return allOrders.value.length > 0;
 });
 
-const processTradingData = async (tradingDataKeeper) => {
-  if (isRendering.value) return;
-  currentTradingData.value = tradingDataKeeper as KungfuApi.TradingDataKeeper;
+const processTradingData = async (
+  tradingDataKeeper: KungfuApi.TradingDataKeeper,
+  keepProcessing = false,
+) => {
+  if (isRendering.value && !keepProcessing) return;
+  currentTradingData.value = tradingDataKeeper;
 
   const orderList = (await getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
@@ -149,10 +152,10 @@ const processTradingData = async (tradingDataKeeper) => {
     );
     allOrders.value = toRaw(tableData);
 
-    canvasRef.value.getListTable()?.setRecords(tableData);
+    canvasRef.value?.setRecords(tableData);
   } else {
     allOrders.value = [];
-    canvasRef.value.getListTable()?.setRecords([]);
+    canvasRef.value?.setRecords([]);
   }
 };
 
@@ -198,7 +201,7 @@ watch(currentGlobalKfLocation, async () => {
     return;
   }
   isRendering.value = true;
-  await processTradingData(currentTradingData.value);
+  await processTradingData(currentTradingData.value, true);
   isRendering.value = false;
 });
 

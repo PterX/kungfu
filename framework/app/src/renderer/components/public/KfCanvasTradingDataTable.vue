@@ -362,7 +362,17 @@ const getListTable = () => {
   return listTable;
 };
 
+const setRecords = (records: tableDataItem[]) => {
+  nextTick(() => {
+    console.log('setRecords', props.dataSource);
+    if (listTable) {
+      listTable.setRecords(records);
+    }
+  });
+};
+
 defineExpose({
+  setRecords,
   getListTable,
   initCustomLayoutOptions,
 });

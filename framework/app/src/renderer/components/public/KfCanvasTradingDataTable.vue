@@ -364,7 +364,6 @@ const getListTable = () => {
 
 const setRecords = (records: tableDataItem[]) => {
   nextTick(() => {
-    console.log('setRecords', props.dataSource);
     if (listTable) {
       listTable.setRecords(records);
     }

@@ -135,7 +135,7 @@ void Runner::on_start() {
     );
 
     events_ | 
-    $ (
+    $$(
       switch(event->msg_type()) {
         case BrokerStateUpdate::tag: {
           invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source()));

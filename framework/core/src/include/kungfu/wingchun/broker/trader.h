@@ -85,7 +85,7 @@ public:
 
   void lost_orders(uint32_t source, const longfist::types::OrderInput &order_input, bool bypass_recover = false);
 
-  void clean_finished_orders(uint64_t now);
+  void clean_finished_orders(uint64_t now = INT64_MAX);
 
   void clean_trades();
 
@@ -396,6 +396,8 @@ private:
   void deal_write_frame();
 
   void deal_read_frame();
+
+  void clean_orders();
 
   void clean_finished_orders();
 

@@ -97,7 +97,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.bypass_archive_dev_desc'),
         type: 'bool',
         default: false,
-      }
+      },
     ],
   },
   {
@@ -139,7 +139,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.low_memory_desc'),
         default: false,
         type: 'bool',
-      }
+      },
     ],
   },
   {

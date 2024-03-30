@@ -119,7 +119,7 @@ void OrderService::clean_finished_orders(uint64_t now) {
   auto after_clean_order_size = orders_.size();
   auto end = time::now_in_nano();
   SPDLOG_DEBUG("clean_finished_orders clean size {}, takes {}ns", before_clean_order_size - after_clean_order_size,
-              end - start);
+               end - start);
 }
 
 void OrderService::clean_trades() { trades_.clear(); }

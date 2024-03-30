@@ -570,12 +570,12 @@ export const startProcess = async (
     false;
   const bypassSyncPosition = globalSetting?.trade?.bypassSyncPosition ?? false;
   const bypassCached = globalSetting?.system?.bypassCached ?? false;
-  const lowMemory = globalSetting?.performance?.lowMemory ?? false; 
+  const lowMemory = globalSetting?.performance?.lowMemory ?? false;
   const extraEnvArgs = buildKfcEnv({
     bypassRefreshBook,
     bypassSyncPosition,
     bypassCached,
-    lowMemory
+    lowMemory,
   });
 
   const optionsResolved: Pm2StartOptions = {

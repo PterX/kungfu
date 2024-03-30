@@ -4,7 +4,7 @@
     "bypassAccounting": false,
     "bypassTradingData": false,
     "bypassRefreshBook": false,
-    "bypassCached": false
+    "lowMemory": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },

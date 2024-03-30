@@ -12,7 +12,7 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::broker {
 
-constexpr int ORDER_CLAEN_THROTTLE_BY_MINUTE = 5 * time_unit::NANOSECONDS_PER_MINUTE;
+constexpr uint64_t ORDER_CLAEN_THROTTLE = 5 * time_unit::NANOSECONDS_PER_MINUTE;
 
 void OrderService::on_order_input(const event_ptr &event) {
   auto &order_input = event->data<OrderInput>();
@@ -110,7 +110,7 @@ void OrderService::clean_finished_orders(uint64_t now) {
   auto iter = orders_.begin();
   while (iter != orders_.end()) {
     auto &state = iter->second;
-    if (is_final_status(state.data.status) && (now - state.update_time) >= ORDER_CLAEN_THROTTLE_BY_MINUTE) {
+    if (is_final_status(state.data.status) && (now - state.update_time) >= ORDER_CLAEN_THROTTLE) {
       iter = orders_.erase(iter);
     } else {
       iter++;

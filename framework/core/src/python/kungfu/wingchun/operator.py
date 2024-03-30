@@ -48,15 +48,19 @@ class Operator(wc.Operator):
 
     def __bind_on_func(self, func_name):
         if not hasattr(self._module, func_name):
-            return 
+            return
         func = getattr(self._module, func_name)
 
         if inspect.iscoroutinefunction(func):
+
             def proxy_on_func(wc_context, lf_data, location, dest_id):
                 self.__call_proxy(func, self.ctx, lf_data, location, dest_id)
+
         else:
+
             def proxy_on_func(wc_context, lf_data, location, dest_id):
                 func(self.ctx, lf_data, location, dest_id)
+
         setattr(self, func_name, proxy_on_func)
 
     def __init_operator(self, path):
@@ -84,7 +88,15 @@ class Operator(wc.Operator):
             lambda ctx, operator_state_update, location: None,
         )
 
-        for func_name in ["on_quote", "on_entrust", "on_transaction", "on_tree", "on_depth", "on_tick", "on_synthetic_data"]:
+        for func_name in [
+            "on_quote",
+            "on_entrust",
+            "on_transaction",
+            "on_tree",
+            "on_depth",
+            "on_tick",
+            "on_synthetic_data",
+        ]:
             self.__bind_on_func(func_name)
 
     def __call_proxy(self, func, *args):
@@ -136,7 +148,6 @@ class Operator(wc.Operator):
     def post_stop(self, wc_context):
         self.__call_proxy(self._post_stop, self.ctx)
 
-    
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)
 

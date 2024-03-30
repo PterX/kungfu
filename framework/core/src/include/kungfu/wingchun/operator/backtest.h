@@ -75,7 +75,7 @@ public:
    * @param exchange_id exchange ID
    */
   void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                           const std::string &exchange_id) override;
+                   const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -197,8 +197,6 @@ private:
   void subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id,
                         const std::string &exchange_id, int32_t data_tag);
   void subscribe_operator_helper(int64_t nanotime, const std::string &group, const std::string &name);
-
-
 };
 
 DECLARE_PTR(BacktestContext)

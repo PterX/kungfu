@@ -101,7 +101,6 @@ void apprentice::preload_next_page() {
 
 void apprentice::react() {
 
-
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
   manager_.on_react();

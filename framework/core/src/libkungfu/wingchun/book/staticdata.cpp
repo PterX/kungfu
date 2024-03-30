@@ -22,32 +22,30 @@ void StaticData::on_start(const rx::connectable_observable<event_ptr> &events) {
   // events | is(Instrument::tag) | $$(replace(event->data<Instrument>()));
   // events | is(InstrumentFactor::tag) | $$(replace(event->data<InstrumentFactor>()));
 
-  events | $$(
-    switch (event->msg_type()) {
-      case Basket::tag: {
-        replace(event->data<Basket>());
-        break;
-      }
-      case BasketInstrument::tag: {
-        replace(event->data<BasketInstrument>());
-        break;
-      }
-      case Commission::tag: {
-        replace(event->data<Commission>());
-        break;
-      }
-      case Instrument::tag: {
-        replace(event->data<Instrument>());
-        break;
-      }
-      case InstrumentFactor::tag: {
-        replace(event->data<InstrumentFactor>());
-        break;
-      } 
-      default:
-        break;
-    };
-  );
+  events | $$(switch (event->msg_type()) {
+    case Basket::tag: {
+      replace(event->data<Basket>());
+      break;
+    }
+    case BasketInstrument::tag: {
+      replace(event->data<BasketInstrument>());
+      break;
+    }
+    case Commission::tag: {
+      replace(event->data<Commission>());
+      break;
+    }
+    case Instrument::tag: {
+      replace(event->data<Instrument>());
+      break;
+    }
+    case InstrumentFactor::tag: {
+      replace(event->data<InstrumentFactor>());
+      break;
+    }
+    default:
+      break;
+  };);
 }
 
 void StaticData::restore(const cache::bank &state_bank) {

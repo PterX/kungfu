@@ -499,7 +499,7 @@ void hero::cleanup_reader_disjoin() {
       reader_->disjoin(get_location(pair.first), pair.second);
     }
   }
-  for (const auto &[location, dest_id]: disjoin_location_channels_) {
+  for (const auto &[location, dest_id] : disjoin_location_channels_) {
     reader_->disjoin(location, dest_id);
   }
   disjoin_uids_.clear();

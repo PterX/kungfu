@@ -87,7 +87,8 @@ void Runner::on_start() {
   // start_events | is(Entrust::tag) |
   //     $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
   // start_events | is(Transaction::tag) |
-  //     $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
+  //     $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()),
+  //     event->dest()));
   // start_events | is(SyntheticData::tag) |
   //     $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
   //               event->dest()));
@@ -98,61 +99,55 @@ void Runner::on_start() {
   //               get_location(event->source())));
   // events_ | is(Deregister::tag) |
   //     $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
-  start_events |
-    $$ (
-      switch(event->msg_type()) {
-        case Quote::tag: {
-          invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest());
-          break;
-        }
-        case Tree::tag: {
-          invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest());
-          break;
-        }
-        case Depth::tag: {
-          invoke(&Operator::on_depth, event->data<Depth>(), get_location(event->source()), event->dest());
-          break;
-        }
-        case Tick::tag: {
-          invoke(&Operator::on_tick, event->data<Tick>(), get_location(event->source()), event->dest());
-          break;
-        }
-        case Entrust::tag: {
-          invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest());
-          break;
-        }
-        case Transaction::tag: {
-          invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest());
-          break;
-        }
-        case SyntheticData::tag: {
-          invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()), event->dest());
-          break;
-        }
-        default:
-          break;
-      };
-    );
+  start_events | $$(switch (event->msg_type()) {
+    case Quote::tag: {
+      invoke(&Operator::on_quote, event->data<Quote>(), get_location(event->source()), event->dest());
+      break;
+    }
+    case Tree::tag: {
+      invoke(&Operator::on_tree, event->data<Tree>(), get_location(event->source()), event->dest());
+      break;
+    }
+    case Depth::tag: {
+      invoke(&Operator::on_depth, event->data<Depth>(), get_location(event->source()), event->dest());
+      break;
+    }
+    case Tick::tag: {
+      invoke(&Operator::on_tick, event->data<Tick>(), get_location(event->source()), event->dest());
+      break;
+    }
+    case Entrust::tag: {
+      invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest());
+      break;
+    }
+    case Transaction::tag: {
+      invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest());
+      break;
+    }
+    case SyntheticData::tag: {
+      invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()), event->dest());
+      break;
+    }
+    default:
+      break;
+  };);
 
-    events_ | 
-    $$(
-      switch(event->msg_type()) {
-        case BrokerStateUpdate::tag: {
-          invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source()));
-          break;
-        }
-        case OperatorStateUpdate::tag: {
-          invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source()));
-          break;
-        }
-        case Deregister::tag: {
-          invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source()));
-          break;
-        }
-        default:
-          break;
-      };
-    );
+  events_ | $$(switch (event->msg_type()) {
+    case BrokerStateUpdate::tag: {
+      invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source()));
+      break;
+    }
+    case OperatorStateUpdate::tag: {
+      invoke(&Operator::on_operator_state_change, event->data<OperatorStateUpdate>(), get_location(event->source()));
+      break;
+    }
+    case Deregister::tag: {
+      invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source()));
+      break;
+    }
+    default:
+      break;
+  };);
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));

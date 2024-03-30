@@ -366,8 +366,7 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
     return longfist::enums::InstrumentType::CryptoFuture;
   } else if (endswith(exchange_id, "-UFUT")) {
     return longfist::enums::InstrumentType::CryptoUFuture;
-  }
-  else if (string_equals(exchange_id, EXCHANGE_BSE)) {
+  } else if (string_equals(exchange_id, EXCHANGE_BSE)) {
     return longfist::enums::InstrumentType::Stock;
   } else if (string_equals(exchange_id, EXCHANGE_DCE) || string_equals(exchange_id, EXCHANGE_SHFE) ||
              string_equals(exchange_id, EXCHANGE_CFFEX) || string_equals(exchange_id, EXCHANGE_CZCE) ||
@@ -397,7 +396,7 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
              string_equals(exchange_id, EXCHANGE_TAX) || string_equals(exchange_id, EXCHANGE_JP) ||
              string_equals(exchange_id, EXCHANGE_TSE) || string_equals(exchange_id, EXCHANGE_EUR)) {
     return longfist::enums::InstrumentType::Stock;
-  } 
+  }
 
   SPDLOG_ERROR("invalid instrument type for exchange {} and instrument {}", exchange_id, instrument_id);
   return longfist::enums::InstrumentType::Unknown;

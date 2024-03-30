@@ -45,18 +45,22 @@ class Strategy(wc.Strategy):
         self.ctx = ctx
         self.ctx.books = {}
         self.__init_strategy(ctx.path)
-    
+
     def __bind_on_func(self, func_name):
         if not hasattr(self._module, func_name):
-            return 
+            return
         func = getattr(self._module, func_name)
 
         if inspect.iscoroutinefunction(func):
+
             def proxy_on_func(wc_context, lf_data, location, dest_id):
                 self.__call_proxy(func, self.ctx, lf_data, location, dest_id)
+
         else:
+
             def proxy_on_func(wc_context, lf_data, location, dest_id):
                 func(self.ctx, lf_data, location, dest_id)
+
         setattr(self, func_name, proxy_on_func)
 
     def __init_strategy(self, path):

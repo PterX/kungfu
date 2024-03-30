@@ -64,67 +64,64 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   // events | is(Register::tag) | $$(on_register(event->data<Register>()));
   // events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 
-  events |
-    $$(
-      switch (event->msg_type()) {
-      //   case Quote::tag: {
-      //     if (is_own_event<Quote>(broker_client_, event)) {
-      //       try_update_book(event, event->data<Quote>());
-      //     }
-      //     break;
-      //   }
-        case InstrumentKey::tag: {
-          update_book(event, event->data<InstrumentKey>());
-          break;
-        }
-        case OrderInput::tag: {
-          on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>());
-          break;
-        }
-        case Order::tag: {
-          update_book<Order>(event, &AccountingMethod::apply_order);
-          break;
-        }
-        case Trade::tag: {
-          update_book<Trade>(event, &AccountingMethod::apply_trade);
-          break;
-        }
-        case AlgoOrderInput::tag: {
-          on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>());
-          break;
-        }
-        case AlgoOrder::tag: {
-          update_book<AlgoOrder>(event);
-          break;
-        }
-        case Asset::tag: {
-          update_book(event, event->data<Asset>());
-          break;
-        }
-        case ResetBookRequest::tag: {
-          drop_book(event->source());
-          break;
-        }
-        case OutputKey::tag: {
-          on_output_key(event);
-          break;
-        }
-        case BrokerStateUpdate::tag: {
-          on_broker_state(event->data<BrokerStateUpdate>());
-          break;
-        }
-        case Register::tag: {
-          on_register(event->data<Register>());
-          break;
-        }
-        case Deregister::tag: {
-          on_deregister(event->data<Deregister>());
-          break;
-        }
-        default:
-          break;
-      };
-    );
+  events | $$(switch (event->msg_type()) {
+    //   case Quote::tag: {
+    //     if (is_own_event<Quote>(broker_client_, event)) {
+    //       try_update_book(event, event->data<Quote>());
+    //     }
+    //     break;
+    //   }
+  case InstrumentKey::tag: {
+    update_book(event, event->data<InstrumentKey>());
+    break;
+  }
+  case OrderInput::tag: {
+    on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>());
+    break;
+  }
+  case Order::tag: {
+    update_book<Order>(event, &AccountingMethod::apply_order);
+    break;
+  }
+  case Trade::tag: {
+    update_book<Trade>(event, &AccountingMethod::apply_trade);
+    break;
+  }
+  case AlgoOrderInput::tag: {
+    on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>());
+    break;
+  }
+  case AlgoOrder::tag: {
+    update_book<AlgoOrder>(event);
+    break;
+  }
+  case Asset::tag: {
+    update_book(event, event->data<Asset>());
+    break;
+  }
+  case ResetBookRequest::tag: {
+    drop_book(event->source());
+    break;
+  }
+  case OutputKey::tag: {
+    on_output_key(event);
+    break;
+  }
+  case BrokerStateUpdate::tag: {
+    on_broker_state(event->data<BrokerStateUpdate>());
+    break;
+  }
+  case Register::tag: {
+    on_register(event->data<Register>());
+    break;
+  }
+  case Deregister::tag: {
+    on_deregister(event->data<Deregister>());
+    break;
+  }
+  default:
+    break;
+  };);
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,

@@ -36,9 +36,9 @@ void BacktestContext::post_stop() {
       auto slice_location = std::make_shared<location>(slice_location_obj);
       unreleased_locations.push_back(slice_location);
       if (reference_state.reference_count > 0)
-      SPDLOG_DEBUG("sliced location locator={}, location={} reference count={} is not released, now releasing",
-                   slice_location->locator->get_root(), slice_location->uname, reference_state.reference_count);
-        from_indexer_->submit_release_location(slice_location);
+        SPDLOG_DEBUG("sliced location locator={}, location={} reference count={} is not released, now releasing",
+                     slice_location->locator->get_root(), slice_location->uname, reference_state.reference_count);
+      from_indexer_->submit_release_location(slice_location);
     }
   }
   std::for_each(unreleased_locations.begin(), unreleased_locations.end(), [this](const auto &slice_location) {
@@ -59,42 +59,40 @@ void BacktestContext::on_start() {
   // events_ | is(Tick::tag) | $$(report_->on_tick(event->data<Tick>()););
   // events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   // events_ | $$(on_timer_check(););
-  events_ | $$(
-    switch (event->msg_type()) {
-      case Quote::tag: {
-        report_->on_quote(event->data<Quote>());
-        break;
-      }
-      case Entrust::tag: {
-        report_->on_entrust(event->data<Entrust>());
-        break;
-      }
-      case Transaction::tag: {
-        report_->on_transaction(event->data<Transaction>());
-        break;
-      }
-      case Tree::tag: {
-        report_->on_tree(event->data<Tree>());
-        break;
-      }
-      case Depth::tag: {
-        report_->on_depth(event->data<Depth>());
-        break;
-      }
-      case Tick::tag: {
-        report_->on_tick(event->data<Tick>());
-        break;
-      }
-      case SyntheticData::tag: {
-        report_->on_read_synthetic_data(event->data<SyntheticData>());
-        break;
-      }
-      default:
-        break;
-    };
+  events_ | $$(switch (event->msg_type()) {
+    case Quote::tag: {
+      report_->on_quote(event->data<Quote>());
+      break;
+    }
+    case Entrust::tag: {
+      report_->on_entrust(event->data<Entrust>());
+      break;
+    }
+    case Transaction::tag: {
+      report_->on_transaction(event->data<Transaction>());
+      break;
+    }
+    case Tree::tag: {
+      report_->on_tree(event->data<Tree>());
+      break;
+    }
+    case Depth::tag: {
+      report_->on_depth(event->data<Depth>());
+      break;
+    }
+    case Tick::tag: {
+      report_->on_tick(event->data<Tick>());
+      break;
+    }
+    case SyntheticData::tag: {
+      report_->on_read_synthetic_data(event->data<SyntheticData>());
+      break;
+    }
+    default:
+      break;
+  };
 
-    on_timer_check();
-  );
+               on_timer_check(););
   init_time_events();
   report_->init();
 }
@@ -214,7 +212,7 @@ void BacktestContext::subscribe_helper(int64_t begin_time, const std::string &so
   if (md_location) {
     subscribe_slice(md_location, nanotime, offset);
     add_location(app_, md_location);
-    // TODO 
+    // TODO
     broker_client_.subscribe(md_location, exchange_id, instrument_id);
   }
   if (slice_end_time < app_.get_end_time()) {
@@ -237,8 +235,8 @@ void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_
       if (slice_location->locator->list_page_id(slice_location, location::PUBLIC).empty()) {
         SPDLOG_WARN("failed to subscribe data between {} and {}, md public journal in locator={}, location={} "
                     "not exists",
-                    time::strftime(nanotime + 1), time::strftime(nanotime + offset), slice_location->locator->get_root(),
-                    slice_location->uname);
+                    time::strftime(nanotime + 1), time::strftime(nanotime + offset),
+                    slice_location->locator->get_root(), slice_location->uname);
       }
       for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
         SPDLOG_TRACE("subscribed dest {}, locator={}, location={}", dest_id, slice_location->locator->get_root(),
@@ -347,10 +345,8 @@ void BacktestContext::subscribe_operator(const std::string &group, const std::st
 }
 
 void BacktestContext::subscribe_operator_helper(int64_t begin_time, const std::string &group, const std::string &name) {
-  auto op_location =
-      from_indexer_->find_operator_slice_location(begin_time, group, name);
-  auto slice_end_time =
-      from_indexer_->get_operator_slice_end_time(begin_time, group, name);
+  auto op_location = from_indexer_->find_operator_slice_location(begin_time, group, name);
+  auto slice_end_time = from_indexer_->get_operator_slice_end_time(begin_time, group, name);
   int64_t nanotime = begin_time - 1;
   int64_t offset = slice_end_time - begin_time;
   if (op_location) {
@@ -359,13 +355,11 @@ void BacktestContext::subscribe_operator_helper(int64_t begin_time, const std::s
     broker_client_.enroll_operator(op_location);
   }
   if (slice_end_time < app_.get_end_time()) {
-    add_timer_helper(nanotime, 0,
-                     [this, slice_end_time, group, name](event_ptr event) {
-                       subscribe_operator_helper(slice_end_time, group, name);
-                     });
+    add_timer_helper(nanotime, 0, [this, slice_end_time, group, name](event_ptr event) {
+      subscribe_operator_helper(slice_end_time, group, name);
+    });
   }
 }
-
 
 void BacktestContext::publish_synthetic_data(const std::string &key, const std::string &value) {
   auto current_time = now();

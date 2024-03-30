@@ -32,14 +32,15 @@ class Report(wc.Report):
         ctx.utils = utils
         self.ctx = ctx
         self.__init_report(ctx.report)
-    
+
     def __bind_on_func(self, func_name):
         if not hasattr(self._module, func_name):
-            return 
+            return
         func = getattr(self._module, func_name)
 
         def proxy_on_func(lf_data):
             func(self.ctx, lf_data)
+
         setattr(self, func_name, proxy_on_func)
 
     def __init_report(self, path):
@@ -72,7 +73,8 @@ class Report(wc.Report):
 
     def sumerize(self):
         self._sumerize(self.ctx)
-    
+
+
 class PeriodResult(ABC):
     def __init__(self, begin_time: int) -> None:
         self._last_now = begin_time

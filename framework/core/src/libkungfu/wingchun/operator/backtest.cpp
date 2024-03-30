@@ -59,6 +59,7 @@ void BacktestContext::on_start() {
   events_ | is(Tick::tag) | $$(report_->on_tick(event->data<Tick>()););
   events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
   events_ | $$(on_timer_check(););
+
   init_time_events();
   report_->init();
 }
@@ -338,6 +339,7 @@ void BacktestContext::publish_synthetic_data(const std::string &key, const std::
   synthetic_data.key = key;
   synthetic_data.value = value;
   slice_tool_->write_at(current_time, current_time, location::PUBLIC, synthetic_data);
+  slice_tool_->next();
   report_->on_write_synthetic_data(synthetic_data);
 }
 

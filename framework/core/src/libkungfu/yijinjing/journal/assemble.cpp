@@ -238,27 +238,6 @@ void assemble::sort() {
   return v;
 }
 
-std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> assemble::read_datas(int64_t end_time) {
-  std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
-  while (data_available() and current_frame()->gen_time() < end_time) {
-    if (current_page()->get_version() == __JOURNAL_VERSION__) {
-      const frame_header &head = *reinterpret_cast<frame_header *>(current_frame()->address());
-      std::vector<uint8_t> bytes{current_frame()->data_as_bytes(),
-                                 current_frame()->data_as_bytes() + current_frame()->data_length()};
-      v.emplace_back(head, bytes);
-    }
-
-    if (current_page()->get_version() != __JOURNAL_VERSION__) {
-      SPDLOG_WARN("journal version mismatch, expect {}, got {}, page_id {}, location uid {} location name {}",
-                  __JOURNAL_VERSION__, current_page()->get_version(), current_page()->get_page_id(),
-                  current_page()->get_location()->uid, current_page()->get_location()->uname);
-    }
-
-    next();
-  }
-  return v;
-}
-
 std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> assemble::read_bytes(int32_t msg_type,
                                                                                                  int64_t end_time) {
   std::vector<std::pair<longfist::types::frame_header, std::vector<uint8_t>>> v{};
@@ -294,20 +273,10 @@ void assemble::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   }
 }
 
-void assemble::join_channel(const data::location_ptr &location, uint32_t dest_id, const int64_t from_time) {
-  for (auto &reader : readers_) {
-    reader->join(location, dest_id, from_time);
-  }
-}
-
 void assemble::move_to_time(int64_t nano_time) {
   while (data_available() and current_frame()->trigger_time() < nano_time) {
     next();
   }
 }
-
-void assemble::reset_num() { data_read_num = 0; }
-
-uint32_t assemble::get_num() { return data_read_num; }
 
 } // namespace kungfu::yijinjing::journal

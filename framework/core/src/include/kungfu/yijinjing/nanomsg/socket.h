@@ -164,10 +164,6 @@ struct nanomsg_json : event {
 
   [[nodiscard]] uint32_t dest() const override { return header_.dest; }
 
-  [[nodiscard]] uint32_t source_ip() const override { return header_.source_ip; }
-
-  [[nodiscard]] uint32_t dest_ip() const override { return header_.dest_ip; }
-
   [[nodiscard]] uint32_t data_length() const override { return data_.length(); }
 
   [[nodiscard]] const void *data_address() const override { return data_.c_str(); }

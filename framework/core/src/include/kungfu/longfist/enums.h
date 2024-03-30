@@ -35,25 +35,13 @@
   }
 
 namespace kungfu::longfist::enums {
-
-enum class server : int8_t { NONE, WEBSERVER, WEBCLIENT };
-
-KF_JSON_SERIALIZE_ENUM(server, {
-                                   {server::NONE, "NONE"},
-                                   {server::WEBSERVER, "WEBSERVER"},
-                                   {server::WEBCLIENT, "WEBCLIENT"},
-                               })
-
-inline std::ostream &operator<<(std::ostream &os, server t) { return os << int32_t(t); }
-
-enum class mode : int8_t { LIVE, DATA, REPLAY, BACKTEST, REMOTE };
+enum class mode : int8_t { LIVE, DATA, REPLAY, BACKTEST };
 
 KF_JSON_SERIALIZE_ENUM(mode, {
                                  {mode::LIVE, "LIVE"},
                                  {mode::DATA, "DATA"},
                                  {mode::REPLAY, "REPLAY"},
                                  {mode::BACKTEST, "BACKTEST"},
-                                 {mode::REMOTE, "REMOTE"},
                              })
 
 inline std::ostream &operator<<(std::ostream &os, mode t) { return os << int32_t(t); }
@@ -68,8 +56,6 @@ inline std::string get_mode_name(mode m) {
     return "replay";
   case mode::BACKTEST:
     return "backtest";
-  case mode::REMOTE:
-    return "remote";
   default:
     return "live";
   }
@@ -84,8 +70,6 @@ inline mode get_mode_by_name(const std::string &name) {
     return mode::REPLAY;
   else if (name == "backtest")
     return mode::BACKTEST;
-  else if (name == "remote")
-    return mode::REMOTE;
 
   return mode::LIVE;
 }
@@ -897,8 +881,5 @@ KF_JSON_SERIALIZE_ENUM(ResumePolicy, {
                                      })
 
 inline std::ostream &operator<<(std::ostream &os, ResumePolicy t) { return os << int8_t(t); }
-
-enum class RemoteDataType : int8_t { Order, Trade };
-
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

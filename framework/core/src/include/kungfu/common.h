@@ -413,10 +413,6 @@ struct event {
 
   [[nodiscard]] virtual uint32_t dest() const = 0;
 
-  [[nodiscard]] virtual uint32_t source_ip() const = 0;
-
-  [[nodiscard]] virtual uint32_t dest_ip() const = 0;
-
   [[nodiscard]] virtual uint32_t data_length() const = 0;
 
   [[nodiscard]] virtual const void *data_address() const = 0;

@@ -68,8 +68,6 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t data
   frame->set_source(journal_.location_->uid);
   frame->set_initial_source(journal_.location_->uid);
   frame->set_dest(journal_.dest_id_);
-  frame->set_source_ip(journal_.location_->locator->source_ip());
-  frame->set_dest_ip(journal_.location_->locator->dest_ip());
   size_to_write_ = data_length;
   return frame;
 }

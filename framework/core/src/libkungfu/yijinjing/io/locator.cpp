@@ -33,12 +33,6 @@ fs::path get_default_root() {
   return root / "kungfu" / "home";
 }
 
-std::string ip_to_string(uint32_t ip) {
-  std::ostringstream oss;
-  oss << ((ip >> 24) & 0xFF) << '.' << ((ip >> 16) & 0xFF) << '.' << ((ip >> 8) & 0xFF) << '.' << (ip & 0xFF);
-  return oss.str();
-}
-
 std::string get_runtime_dir() {
   auto runtime_dir = std::getenv("KF_RUNTIME_DIR");
   if (runtime_dir != nullptr) {
@@ -214,8 +208,4 @@ std::vector<uint32_t> locator::list_location_dest_by_db(const location_ptr &loca
 bool locator::operator==(const locator &another) const {
   return dir_mode_ == another.dir_mode_ and root_.string() == another.root_.string();
 }
-
-remote_locator::remote_locator(uint32_t source_ip, uint32_t dest_ip)
-    : locator((get_default_root() / "runtime" / ip_to_string(source_ip) / ip_to_string(dest_ip)).string()),
-      source_ip_(source_ip), dest_ip_(dest_ip) {}
 } // namespace kungfu::yijinjing::data

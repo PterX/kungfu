@@ -127,16 +127,6 @@ public:
   bool is_usable() { return true; };
   bool setup() { return true; };
   kungfu::yijinjing::webserver::stream_manage_ptr get_stream_manager() { return stream_manager_; };
-  /*
-  journal::writer_ptr open_writer_at(const data::location_ptr &location, uint32_t dest_id, uint64_t page_size) {
-  if (home_->mode != mode::REPLAY) {
-    return std::make_shared<writer>(location, dest_id, lazy_, publisher_, low_latency_, bus_, page_size);
-  } else {
-    return std::make_shared<replay_writer>(location, dest_id, std::make_shared<noop_publisher>(),
-                                           std::make_shared<bus>(false), page_size, begin_time_);
-  }
-}
-*/
 
 protected:
   kungfu::yijinjing::webserver::stream_manage_ptr stream_manager_;
@@ -155,7 +145,6 @@ public:
 
 private:
   kungfu::yijinjing::webserver::http_server_ptr http_server_;
-  // std::vector<kungfu::yijinjing::webserver::webserver_ptr> webservers;
 };
 DECLARE_PTR(io_device_network_server)
 

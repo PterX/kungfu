@@ -35,10 +35,6 @@ struct frame : event {
 
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
-  [[nodiscard]] uint32_t source_ip() const override { return header_->source_ip; }
-
-  [[nodiscard]] uint32_t dest_ip() const override { return header_->dest_ip; }
-
   [[nodiscard]] const void *data_address() const override {
     return reinterpret_cast<void *>(address() + header_length());
   }
@@ -99,10 +95,6 @@ private:
   void set_initial_source(uint32_t initial_source) { header_->initial_source = initial_source; }
 
   void set_dest(uint32_t dest) { header_->dest = dest; }
-
-  void set_source_ip(uint32_t source_ip) { header_->source_ip = source_ip; }
-
-  void set_dest_ip(uint32_t dest_ip) { header_->dest_ip = dest_ip; }
 
   void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
 

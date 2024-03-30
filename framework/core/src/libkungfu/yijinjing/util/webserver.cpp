@@ -183,7 +183,7 @@ void webserver::accept_cb() {
   }
 
   nng_stream *s = (nng_stream *)nng_aio_get_output(aio_accept, 0);
-  //disable Nagle, send-msg low-latency
+  // disable Nagle, send-msg low-latency
   nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
 
   try {
@@ -293,7 +293,7 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
     fatal("dial", rv);
   }
   nng_stream *s = (nng_stream *)nng_aio_get_output(aio_dialer, 0);
-  //disable Nagle, send-msg low-latency
+  // disable Nagle, send-msg low-latency
   nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
 
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));

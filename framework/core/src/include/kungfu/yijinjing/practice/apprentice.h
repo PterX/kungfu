@@ -162,25 +162,6 @@ public:
     return request.dump();
   }
 
-  template <class DataType>
-  std::string make_remote_nano_msg(uint32_t source, uint32_t dest, uint32_t source_ip, uint32_t dest_ip,
-                                   const DataType &data) const {
-    auto now = this->now();
-    nlohmann::json request;
-    request["data_type"] = int8_t(longfist::enums::FrameDataType::Json);
-    request["msg_type"] = DataType::tag;
-    request["gen_time"] = now;
-    request["trigger_time"] = now;
-    request["initial_source"] = get_live_home_uid();
-    request["source"] = source;
-    request["dest"] = dest;
-    request["source_ip"] = source_ip;
-    request["dest_ip"] = dest_ip;
-    request["data"] = data.to_string();
-    SPDLOG_DEBUG("make_remote_nano_msg:{}", request.dump());
-    return request.dump();
-  }
-
   const std::string &get_arguments() const { return arguments_; }
 
   std::thread &get_resource_management_worker();

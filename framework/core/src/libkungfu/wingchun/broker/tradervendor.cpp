@@ -12,6 +12,14 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
 
+static const bool get_low_memory_mode() {
+  bool is_low_memory_mode = std::getenv("KF_LOW_MEMORY") != nullptr;
+  return is_low_memory_mode;
+}
+
+constexpr uint32_t SYNC_ASSET_INTERVAL = 7;
+constexpr uint32_t ORDER_CLEAN_INTERVAL = 10;
+
 // ====================== BaseService start ======================
 
 Trader &BaseService::get_service() { return dynamic_cast<Trader &>(*vendor_.get_service()); }
@@ -34,7 +42,6 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   }
   case Trade::tag: {
     const Trade &trade = frame->data<Trade>();
-    get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     break;
   }
@@ -132,10 +139,20 @@ void TraderVendor::on_start() {
   service_->on_risk_setting(service_->get_risk_setting());
   service_->recover();
   on_recover();
+  service_->clean_orders(); // clean orders by recover;
+  service_->clean_trades(); // clean trades by recover;
   service_->on_start();
 
   // after recover done, which take some time, then start to try req account
-  add_time_interval(7 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
+  add_time_interval(SYNC_ASSET_INTERVAL * time_unit::NANOSECONDS_PER_SECOND,
+                    [&](auto e) { service_->try_req_account(); });
+
+  if (get_low_memory_mode()) {
+    SPDLOG_WARN("Low memory mode, clear finished order every {}s",
+                ORDER_CLEAN_INTERVAL * time_unit::NANOSECONDS_PER_SECOND);
+    add_time_interval(ORDER_CLEAN_INTERVAL * time_unit::NANOSECONDS_PER_SECOND,
+                      [&](auto e) { service_->clean_finished_orders(); });
+  }
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {

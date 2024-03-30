@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  delayMilliSeconds,
-  getIdByKfLocation,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import {
-  dealOffset,
-  dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -36,11 +29,13 @@ import {
   ref,
   toRaw,
   watch,
-  nextTick,
 } from 'vue';
 import {
+  dealOffset,
+  dealSide,
   dealTrade,
   getKungfuHistoryData,
+  getOrderOrTradeListFromTradingDataKeeper,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { getColumns } from './config';
 import type { Dayjs } from 'dayjs';
@@ -52,14 +47,12 @@ import TradeStatisticModal from './TradeStatisticModal.vue';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
-const DEFAULT_TRADE_LIST_LENGTH = 50000;
-
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
-const currentTradingData = ref<KungfuApi.tradingData>();
+const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
 
 const canvasRef = ref();
 const historyDate = ref<Dayjs>();
@@ -90,125 +83,52 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-const tdChildrenLocationIdList = ref<number[]>([]);
-const firstRender = ref<boolean>(true);
+const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
-const subscribeNext = ref<boolean>(false);
-const stopSubscribe = ref<boolean>(false);
 
 const searchKeyword = ref<string>('');
 
-async function getTradeList(
-  tradingData: KungfuApi.tradingData,
-): Promise<KungfuApi.TradeResolved[]> {
-  let tradeList: KungfuApi.TradeResolved[] = [];
-  if (!currentGlobalKfLocation.value) tradeList = [];
-  if (currentGlobalKfLocation.value?.category === 'globalPos') {
-    const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
-    const addTradeResolved = (
-      tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-    ) => {
-      const instrumentId = `${tradeResolved.exchange_id}_${tradeResolved.instrument_id}`;
+const processTradingData = async (
+  tradingDataKeeper: KungfuApi.TradingDataKeeper,
+  keepProcessing = false,
+) => {
+  if (isRendering.value && !keepProcessing) return;
+  currentTradingData.value = tradingDataKeeper;
 
-      if (instrumentId === locationId) {
-        tradeList.push(tradeResolved as KungfuApi.TradeResolved);
-      }
-      return true;
-    };
-    await tradingData.tradingDataForEach(
-      addTradeResolved,
-      'trade',
-      'td',
-      'common',
+  const tradeList = (await getOrderOrTradeListFromTradingDataKeeper({
+    watcher: window.watcher,
+    tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
+    currentGlobalKfLocation: currentGlobalKfLocation.value,
+    type: 'trade',
+  })) as KungfuApi.TradeResolved[];
+
+  if (tradeList.length > 0) {
+    const tableData = searchByKeyword(
+      searchKeyword.value,
+      tradeList,
+      [
+        'order_id',
+        'trade_id',
+        'instrument_id',
+        'side',
+        'offset',
+        'exchange_id',
+        'source_uname',
+        'dest_uname',
+      ],
+      {
+        side: (item) => dealSide(Number(item)).name,
+        offset: (item) => dealOffset(Number(item)).name,
+      },
     );
-  } else if (
-    currentGlobalKfLocation.value?.category === 'td' ||
-    currentGlobalKfLocation.value?.category === 'strategy'
-  ) {
-    const locationId = window.watcher.getLocationUID(
-      currentGlobalKfLocation.value,
-    );
-    const indexMap =
-      tradingData.trade[currentGlobalKfLocation.value.category][locationId];
-    if (indexMap) {
-      tradeList = indexMap.getCommonList();
-    } else {
-      tradeList = [];
-    }
-  } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
-    tdChildrenLocationIdList.value = [];
-    const locationList = (
-      currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
-    ).children;
-    if (locationList) {
-      locationList.forEach((location) => {
-        const locationId = location.location_uid;
-        tdChildrenLocationIdList.value.push(locationId);
-      });
-    }
-    const addTradeResolved = (
-      tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-    ) => {
-      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
-        return false;
-      } else {
-        tradeList.push(tradeResolved as KungfuApi.TradeResolved);
-        return true;
-      }
-    };
-    await tradingData.tradingDataForEach(
-      addTradeResolved,
-      'trade',
-      'td',
-      'common',
-      tdChildrenLocationIdList.value,
-    );
+
+    allTrades.value = toRaw(tableData);
+    canvasRef.value?.setRecords(tableData);
   } else {
-    tradeList = [];
+    allTrades.value = [];
+    canvasRef.value?.setRecords([]);
   }
-  return tradeList;
-}
-
-async function processTradingData(tradingData: KungfuApi.tradingData) {
-  if (isRendering.value) return;
-  isRendering.value = true;
-  currentTradingData.value = tradingData;
-
-  const tradeList = await getTradeList(tradingData);
-
-  nextTick(() => {
-    if (tradeList.length > 0) {
-      const tableData = searchByKeyword(
-        searchKeyword.value,
-        tradeList,
-        [
-          'order_id',
-          'trade_id',
-          'instrument_id',
-          'side',
-          'offset',
-          'exchange_id',
-          'source_uname',
-          'dest_uname',
-        ],
-        {
-          side: (item) => dealSide(Number(item)).name,
-          offset: (item) => dealOffset(Number(item)).name,
-        },
-      );
-      if (tradeList.length) {
-        allTrades.value = toRaw(tableData);
-        canvasRef.value.getListTable()?.setRecords(tableData);
-      } else {
-        canvasRef.value.getListTable()?.setRecords([]);
-      }
-    } else {
-      allTrades.value = [];
-      canvasRef.value.getListTable()?.setRecords([]);
-    }
-  });
-  isRendering.value = false;
-}
+};
 
 const hasData = computed(() => {
   return allTrades.value.length > 0;
@@ -217,7 +137,8 @@ const hasData = computed(() => {
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
-      const { tradingData, update } = data;
+      const { tradingDataKeeper } = data;
+      const { update } = tradingDataKeeper;
       if (historyDate.value) {
         return;
       }
@@ -226,13 +147,9 @@ onActivated(() => {
         return;
       }
 
-      if (
-        (update || subscribeNext.value || firstRender.value) &&
-        !stopSubscribe.value
-      ) {
-        firstRender.value = false;
-        subscribeNext.value = false;
-        await processTradingData(tradingData);
+      if (update || needProcessTradingData.value) {
+        needProcessTradingData.value = false;
+        await processTradingData(tradingDataKeeper);
       }
     },
   );
@@ -242,7 +159,7 @@ onActivated(() => {
   });
 
   onDeactivated(() => {
-    firstRender.value = true;
+    needProcessTradingData.value = true;
     subscription?.unsubscribe();
   });
 });
@@ -255,16 +172,15 @@ watch(
     if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
       return;
     }
-    stopSubscribe.value = true;
-
-    await processTradingData(currentTradingData.value);
-    stopSubscribe.value = false;
+    isRendering.value = true;
+    await processTradingData(currentTradingData.value, true);
+    isRendering.value = false;
   },
   { immediate: true },
 );
 
 watch(historyDate, async (newDate) => {
-  subscribeNext.value = true;
+  needProcessTradingData.value = true;
   if (!newDate) {
     return;
   }
@@ -331,7 +247,7 @@ watch(historyDate, async (newDate) => {
 });
 
 watch(searchKeyword, () => {
-  subscribeNext.value = true;
+  needProcessTradingData.value = true;
 });
 
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {

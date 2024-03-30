@@ -66,8 +66,7 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
 
-const { getPriceTickAndPrecision, getInstrumentCurrency } =
-  useActiveInstruments();
+const { getInstrumentCurrency } = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -170,23 +169,16 @@ onActivated(() => {
 
       pos.value = toRaw(
         positions.reverse().map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
           const currency = getInstrumentCurrency(
             item.instrument_id,
             item.exchange_id,
           );
 
-          return dealDataWithCache(
-            item,
-            () => dealPosition(watcher, item, price_precision),
-            { currency },
-          );
+          return dealDataWithCache(item, () => dealPosition(watcher, item), {
+            currency,
+          });
         }),
       );
-      setTableData();
     });
 
     onBeforeUnmount(() => {

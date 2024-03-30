@@ -7,7 +7,6 @@ import pm2 from './pm2Custom';
 import { getUserLocale } from 'get-user-locale';
 import find from 'find-process';
 import { ensureFileSync } from 'fs-extra';
-import { useWatcher } from '../kungfu/tradingData';
 import {
   getIfProcessRunning,
   getIfProcessDeleted,
@@ -540,6 +539,7 @@ export interface KfcEnvs {
   bypassRefreshBook?: KfcEnvOptType<boolean>;
   bypassSyncAsset?: KfcEnvOptType<boolean>;
   bypassSyncPosition?: KfcEnvOptType<boolean>;
+  lowMemory?: KfcEnvOptType<boolean>;
   keepPage?: KfcEnvOptType<boolean>;
   preload?: KfcEnvOptType<boolean>;
   maxPreCreateSize?: KfcEnvOptType<number>;
@@ -563,9 +563,24 @@ export const startProcess = async (
 
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
+  const globalSetting = getKfGlobalSettingsValue();
+  const bypassRefreshBook =
+    booleanProcessEnv(process.env.BY_PASS_REFRESHBOOK) ??
+    globalSetting?.performance?.bypassRefreshBook ??
+    false;
+  const bypassSyncPosition = globalSetting?.trade?.bypassSyncPosition ?? false;
+  const bypassCached = globalSetting?.system?.bypassCached ?? false;
+  const lowMemory = globalSetting?.performance?.lowMemory ?? false;
+  const extraEnvArgs = buildKfcEnv({
+    bypassRefreshBook,
+    bypassSyncPosition,
+    bypassCached,
+    lowMemory,
+  });
+
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
-    args: options.args, //有问题吗？
+    args: `${options.args} ${extraEnvArgs}`,
     cwd: options.cwd || path.join(KFC_DIR),
     script: options.script || kfcName,
     interpreter: options.interpreter || 'none',
@@ -1083,28 +1098,16 @@ export const startLedger = async (
   const ProcessId = getProcessIdByKfLocation(location);
   try {
     !isReplay ? await preStartProcess(ProcessId, force) : '';
-    const globalSetting = getKfGlobalSettingsValue();
-    const bypassRefreshBook =
-      booleanProcessEnv(process.env.BY_PASS_REFRESHBOOK) ??
-      globalSetting?.performance?.bypassRefreshBook ??
-      false;
-    const skipSyncPosition = globalSetting?.trade?.skipSyncPosition ?? false;
 
     if (isReplay && replayConfig) {
       args = buildKfcArgs({
         logLevel: replayConfig.log_level,
         location,
         suffix: `-b '${replayConfig.begin_time}' -e '${replayConfig.end_time}'`,
-        env: {
-          bypassRefreshBook,
-        },
       });
     } else {
       args = buildKfcArgs({
         location,
-        env: {
-          bypassRefreshBook,
-        },
       });
     }
 
@@ -1112,11 +1115,6 @@ export const startLedger = async (
       name: ProcessId,
       args,
       force,
-      env: skipSyncPosition
-        ? {
-            KF_SKIP_SYNC_POSITION: 'true',
-          }
-        : {},
     });
   } catch (err: unknown) {
     kfLogger.error((<Error>err).message);
@@ -1199,7 +1197,8 @@ export const startTd = async (
 ): Promise<Proc | void> => {
   const mode = kfConfig.mode || 'live';
   const globalSetting = getKfGlobalSettingsValue();
-  let autorestart = globalSetting?.system?.autoRestartTd ?? true;
+  const notAutorestart =
+    mode != 'live' ? true : globalSetting?.trade?.notAutoRestartTd ?? false;
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   const { source, id } = (accountId || '').parseSourceAccountId();
   let args = '';
@@ -1211,7 +1210,6 @@ export const startTd = async (
   await fse.ensureDir(cwd);
 
   if (mode === 'replay' && replayConfig) {
-    autorestart = false;
     const location = {
       category: replayConfig.category,
       group: replayConfig.group,
@@ -1249,12 +1247,12 @@ export const startTd = async (
         cwd,
         script: `${dealSpaceInPath(path.join(KFC_DIR, kfcName))}`,
         args,
-        ...(autorestart
-          ? {
+        ...(notAutorestart
+          ? {}
+          : {
               max_restarts: 4, // pm2 在进程退出时对重启次数进行 +1，所有第一次退出也被计算在内，重启 3 次的话这里就应该填 4
               autorestart: true,
-            }
-          : {}),
+            }),
         force: true,
       },
     );
@@ -1500,12 +1498,10 @@ export const startStrategyOperator = async (
 
   //因为pm2环境残留，在反复切换本地python跟内置python时，会出现本地python启动失败，所以需要先pm2 kill
   try {
-    if (!isReplay) {
-      const { processStatus } = await listProcessStatus();
-      if (!getIfProcessDeleted(processStatus, processId)) {
-        kfLogger.info(`Clear existed ${category} ${processId}`);
-        await deleteProcess(processId);
-      }
+    const { processStatus } = await listProcessStatus();
+    if (!getIfProcessDeleted(processStatus, processId)) {
+      kfLogger.info(`Clear existed ${category} ${processId}`);
+      await deleteProcess(processId);
     }
   } catch (err) {
     kfLogger.warn(err);
@@ -1750,18 +1746,7 @@ function promiseWithTimeout<T>(
     }),
   ]);
 }
-//释放资源
-function releaseResources(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      const { releaseQueue } = useWatcher();
-      releaseQueue();
-      resolve();
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
+
 export function quitClean(): Promise<void> {
   //不需要加kill daemon
   return new Promise((resolve) => {
@@ -1776,11 +1761,7 @@ export function quitClean(): Promise<void> {
               deleteNNFiles()
                 .catch((err) => kfLogger.error(err))
                 .finally(() => {
-                  releaseResources()
-                    .catch((err) => kfLogger.error(err))
-                    .finally(() => {
-                      resolve();
-                    });
+                  resolve();
                 });
             });
           });

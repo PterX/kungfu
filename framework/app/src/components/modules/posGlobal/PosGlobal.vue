@@ -79,6 +79,7 @@ const {
   getInstrumentCurrencyByIds,
   getPriceTickAndPrecision,
   getInstrumentCurrency,
+  getInstrumentName,
 } = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
@@ -161,10 +162,16 @@ onActivated(() => {
             position.instrument_id,
             position.exchange_id,
           );
+          const instrumentName = getInstrumentName(
+            position.instrument_id,
+            position.exchange_id,
+            position.instrument_type,
+          );
 
           return dealDataWithCache(
             position,
-            () => dealPosition(watcher, position, price_precision),
+            () =>
+              dealPosition(watcher, position, price_precision, instrumentName),
             { currency },
           );
         }),

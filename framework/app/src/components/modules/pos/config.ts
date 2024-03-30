@@ -23,7 +23,7 @@ export const getColumns = (
       {
         field: 'instrument_id_resolved',
         title: t('posGlobalConfig.instrument_id'),
-        width: 140,
+        width: 190,
         sort: sorter,
       },
       ...(isTd(kfLocation.category)

@@ -539,6 +539,7 @@ export interface KfcEnvs {
   bypassRefreshBook?: KfcEnvOptType<boolean>;
   bypassSyncAsset?: KfcEnvOptType<boolean>;
   bypassSyncPosition?: KfcEnvOptType<boolean>;
+  lowMemory?: KfcEnvOptType<boolean>;
   keepPage?: KfcEnvOptType<boolean>;
   preload?: KfcEnvOptType<boolean>;
   maxPreCreateSize?: KfcEnvOptType<number>;
@@ -569,10 +570,12 @@ export const startProcess = async (
     false;
   const bypassSyncPosition = globalSetting?.trade?.bypassSyncPosition ?? false;
   const bypassCached = globalSetting?.system?.bypassCached ?? false;
+  const lowMemory = globalSetting?.performance?.lowMemory ?? false;
   const extraEnvArgs = buildKfcEnv({
     bypassRefreshBook,
     bypassSyncPosition,
     bypassCached,
+    lowMemory,
   });
 
   const optionsResolved: Pm2StartOptions = {

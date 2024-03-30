@@ -152,7 +152,7 @@ void Runner::on_start() {
         default:
           break;
       };
-    )
+    );
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));

@@ -78,6 +78,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: langDefault,
       },
       {
+        key: 'bypassCached',
+        name: t('globalSettingConfig.bypass_cacheD'),
+        tip: t('globalSettingConfig.bypass_cacheD_desc'),
+        type: 'bool',
+        default: false,
+      },
+      {
         key: 'bypassArchive',
         name: t('globalSettingConfig.bypass_archive'),
         tip: t('globalSettingConfig.bypass_archive_desc'),
@@ -90,14 +97,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         tip: t('globalSettingConfig.bypass_archive_dev_desc'),
         type: 'bool',
         default: false,
-      },
-      {
-        key: 'bypassCached',
-        name: t('globalSettingConfig.bypass_cacheD'),
-        tip: t('globalSettingConfig.bypass_cacheD_desc'),
-        type: 'bool',
-        default: false,
-      },
+      }
     ],
   },
   {
@@ -133,6 +133,13 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: !ifCpusNumSafe,
         type: 'bool',
       },
+      {
+        key: 'lowMemory',
+        name: t('globalSettingConfig.low_memory'),
+        tip: t('globalSettingConfig.low_memory_desc'),
+        default: false,
+        type: 'bool',
+      }
     ],
   },
   {

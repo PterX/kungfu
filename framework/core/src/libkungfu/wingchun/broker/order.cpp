@@ -110,7 +110,7 @@ void OrderService::clean_finished_orders(uint64_t now) {
   auto iter = orders_.begin();
   while (iter != orders_.end()) {
     auto &state = iter->second;
-    if (is_final_status(state.data.status) && (now - state.update_time) >= ORDER_CLAEN_THROTTLE) {
+    if (is_final_status(state.data.status) && (now - state.data.update_time) >= ORDER_CLAEN_THROTTLE) {
       iter = orders_.erase(iter);
     } else {
       iter++;

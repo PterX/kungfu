@@ -220,7 +220,7 @@ void bind(pybind11::module &&m) {
            py::arg("name") = "*", py::arg("mode") = "*")
       .def("list_location_dest", &locator::list_location_dest);
 
-  py::class_<socket, socket_ptr>(m, "socket")
+  py::class_<nanomsg::socket, socket_ptr>(m, "socket")
       .def(py::init<protocol>(), py::arg("protocol"))
       .def("setsockopt", &socket::setsockopt_str, py::arg("option"), py::arg("value"))
       .def("setsockopt", &socket::setsockopt_int, py::arg("option"), py::arg("value"))

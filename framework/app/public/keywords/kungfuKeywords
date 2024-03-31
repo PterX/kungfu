@@ -65,6 +65,8 @@ yijinjing
 wingchun
 length
 header_length
+source_ip
+dest_ip
 data_type
 initial_source
 frame_uid
@@ -143,6 +145,7 @@ is_trading
 long_margin_ratio
 short_margin_ratio
 conversion_rate
+request_id
 order_id
 parent_id
 limit_price
@@ -566,6 +569,12 @@ deregister_app
 set_begin_time
 set_end_time
 return ej_pair.first
+server
+LIVE
+DATA
+REPLAY
+BACKTEST
+REMOTE
 MD
 TD
 STRATEGY
@@ -805,3 +814,5 @@ Intraday
 Stateless
 Continuous
 ResumePolicy
+Order
+RemoteDataType

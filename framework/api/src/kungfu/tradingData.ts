@@ -61,8 +61,8 @@ export class DynamicTradingDataIndexedMap<V> {
   insertKeyWithValue(value: V, type: string, isFinished = true): void {
     if (
       !this.commonMinKey ||
-      !(this.commonMinKey as Record<string, BigInt>)[this.sortStr1] ||
-      (this.commonMinKey as Record<string, BigInt>)[this.sortStr1] <=
+      !(this.commonMinKey as Record<string, bigint>)[this.sortStr1] ||
+      (this.commonMinKey as Record<string, bigint>)[this.sortStr1] <=
         value[this.sortStr1]
     ) {
       this.commonTree.set(
@@ -78,8 +78,8 @@ export class DynamicTradingDataIndexedMap<V> {
     if (type === 'order' && !isFinished) {
       if (
         !this.unfinishedMinKey ||
-        !(this.unfinishedMinKey as Record<string, BigInt>)[this.sortStr1] ||
-        (this.unfinishedMinKey as Record<string, BigInt>)[this.sortStr1] <=
+        !(this.unfinishedMinKey as Record<string, bigint>)[this.sortStr1] ||
+        (this.unfinishedMinKey as Record<string, bigint>)[this.sortStr1] <=
           value[this.sortStr1]
       ) {
         this.unfinishedTree.set(

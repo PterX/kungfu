@@ -12,6 +12,7 @@
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <kungfu/yijinjing/util/util.h>
+using namespace kungfu::yijinjing::webserver;
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;
@@ -22,6 +23,12 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::yijinjing::nanomsg;
+
+// const int max_num = 1e9;
+// static int loop_num = 0;
+// static int data_num = 0;
+// static std::vector<uint64_t> loop_time(max_num);
+// static std::vector<uint64_t> data_time(max_num);
 
 namespace kungfu::yijinjing::practice {
 
@@ -239,7 +246,21 @@ const std::unordered_map<uint64_t, longfist::types::Band> &hero::get_bands() con
 
 void hero::on_notify() {}
 
-void hero::on_exit() { SPDLOG_INFO("default on_exit"); }
+void hero::on_exit() {
+  SPDLOG_INFO("default on_exit");
+  // std::vector<uint64_t> loop_diff(max_num);
+  // std::vector<uint64_t> data_diff(max_num);
+  // for(int i = 0;i<loop_num-1;i++)
+  //   loop_diff[i] = loop_time[i+1] - loop_time[i];
+  // for(int i = 0;i<data_num-1;i++)
+  //   data_diff[i] = data_time[i+1] - data_time[i];
+  // SPDLOG_DEBUG("loop time");
+  // for(int i = 0;i<loop_num-1;i++)
+  //   SPDLOG_DEBUG("i:{}",loop_diff[i]);
+  // SPDLOG_DEBUG("data_time");
+  // for(int i = 0;i<data_num-1;i++)
+  //   SPDLOG_DEBUG("i:{}",data_diff[i]);
+}
 
 location_ptr hero::get_ledger_home_location() const { return ledger_home_location_; }
 
@@ -406,22 +427,27 @@ void hero::produce(const rx::subscriber<event_ptr> &sb) {
 }
 
 void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb) {
+  // SPDLOG_DEBUG("bypass:{} notify:{}", bypass, notify);
   if (bypass or io_device_->get_home()->mode != mode::LIVE) {
     return;
   }
 
   auto rc = notify ? io_device_->get_observer()->wait() : io_device_->get_observer()->nonblock_wait();
+  // SPDLOG_DEBUG("rc:{}", rc);
   if (not rc)
     return;
 
   const std::string &notice = io_device_->get_observer()->get_notice();
   now_ = time::now_in_nano();
+  // SPDLOG_DEBUG("notice:{}", notice);
   if (notice.length() > 2) {
+    // SPDLOG_DEBUG("on_next");
     const auto frame = std::make_shared<nanomsg_json>(notice);
     io_device_->get_bus()->set_trigger_frame(frame);
     sb.on_next(frame);
     cleanup_reader_disjoin(); // socket frame may call disjoin
   } else if (notify) {
+    // SPDLOG_DEBUG("on_notify");
     on_notify();
   }
 }
@@ -429,9 +455,12 @@ void hero::deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr>
 bool hero::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_notice(bypass, true, sb);
+  // loop_time[loop_num<max_num?loop_num++:max_num-1] = time::now_in_nano();
   for (std::size_t step_count = 0;                                                             //
        live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); //
        step_count++) {
+    // data_time[data_num<max_num?data_num++:max_num-1] = time::now_in_nano();
+    // SPDLOG_DEBUG("time:{}",time::now_in_nano());
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
     io_device_->get_bus()->set_trigger_frame(frame);
@@ -471,6 +500,23 @@ void hero::delegate_produce(hero *instance, const rx::subscriber<event_ptr> &sub
 
 bool hero::is_reactable(const event_ptr &event) { return true; }
 
+/*
+void hero::create_server(const std::string url, const std::string &path, bool is_text_mode,
+                         const size_t max_num_connections) {
+  SPDLOG_DEBUG("start create_server");
+  server_ = std::make_shared<server>(url);
+  SPDLOG_DEBUG("before start");
+  server_->start();
+  SPDLOG_DEBUG("before addWebsocket");
+  server_->add_websocket(path, is_text_mode, max_num_connections);
+  SPDLOG_DEBUG("end create_server");
+}
+
+// operator bool
+bool hero::is_server_exist() { return static_cast<bool>(server_); }
+
+kungfu::yijinjing::webserver::server_ptr &hero::get_server() { return server_; }
+*/
 void hero::disjoin(uint32_t location_uid) { disjoin_uids_.insert(location_uid); }
 
 void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {

@@ -268,6 +268,7 @@ public:
     close_frame(size);
   }
 
+  // this function can not be used for remote journal
   template <typename T>
   std::enable_if_t<size_fixed_v<T>> write_as(int64_t trigger_time, const T &data, uint32_t source, uint32_t dest) {
     auto frame = open_frame(trigger_time, T::tag, sizeof(T));

@@ -1051,7 +1051,7 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
   let list: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[] = [];
   let locationId = '';
   let tdChildrenLocationIdList: number[] = [];
-  let listGetterType: 'common' | 'unfinished' = isGetUnfinishedOrder
+  const listGetterType: 'common' | 'unfinished' = isGetUnfinishedOrder
     ? 'unfinished'
     : 'common';
   let addResolved: (

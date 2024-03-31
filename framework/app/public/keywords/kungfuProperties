@@ -65,8 +65,6 @@ yijinjing
 wingchun
 length
 header_length
-source_ip
-dest_ip
 data_type
 initial_source
 frame_uid
@@ -335,12 +333,6 @@ RequestWriteToBand
 TimeValue
 TimeKeyValue
 return ej_pair.first
-server
-LIVE
-DATA
-REPLAY
-BACKTEST
-REMOTE
 MD
 TD
 STRATEGY
@@ -580,5 +572,3 @@ Intraday
 Stateless
 Continuous
 ResumePolicy
-Order
-RemoteDataType

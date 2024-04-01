@@ -135,8 +135,6 @@ const columns = computed(() => {
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
-  if (isRendering.value) return;
-  isRendering.value = true;
   const tableData = searchByKeyword<KungfuApi.PositionResolved>(
     searchKeyword.value,
     pos.value,
@@ -147,10 +145,7 @@ const setTableData = () => {
       'account_id_resolved',
     ],
   );
-  nextTick(() => {
-    canvasRef.value.getListTable()?.setRecords(tableData);
-    isRendering.value = false;
-  });
+  canvasRef.value?.setRecords(tableData);
 };
 
 onActivated(() => {
@@ -179,6 +174,8 @@ onActivated(() => {
           });
         }),
       );
+
+      setTableData();
     });
 
     onBeforeUnmount(() => {

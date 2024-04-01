@@ -161,6 +161,7 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         name: t('globalSettingConfig.python_path'),
         tip: t('globalSettingConfig.python_path_desc'),
         default: '',
+        fileExtensions: ['py', 'pyd', 'so'],
         type: 'file',
       },
     ],

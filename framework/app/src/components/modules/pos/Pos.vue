@@ -27,7 +27,6 @@ import {
   ref,
   toRaw,
   watch,
-  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getColumns, getPositionLastPrice } from './config';
@@ -74,7 +73,6 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
-const isRendering = ref(false);
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {

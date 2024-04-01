@@ -278,10 +278,18 @@ void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_
       return;
     }
   };
-  add_timer_helper(nanotime - offset, 0, submit_callback);
+  int lead_ratio = from_indexer_->acquire_lead_ratio();
+  if (lead_ratio < 0) {
+    throw wingchun_error(fmt::format("lead_ratio={} is invalid", lead_ratio));
+  }
+  add_timer_helper(nanotime - lead_ratio * offset, 0, submit_callback);
 }
 
 void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int64_t nanotime, int64_t offset) {
+  int delay_ratio = from_indexer_->release_delay_ratio();
+  if (delay_ratio < 0) {
+    throw wingchun_error(fmt::format("delay_ratio={} is invalid", delay_ratio));
+  }
   auto confirm_callback = [=, this](event_ptr event) {
     auto &reference_count = slice_reference_states_[*slice_location];
     switch (reference_count.state) {
@@ -316,7 +324,7 @@ void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int6
       }
       assert(reference_count.reference_count >= 0);
     case SliceState::Releasing:
-      add_timer_helper(nanotime + offset, 0, confirm_callback);
+      add_timer_helper(nanotime + (1 + delay_ratio) * offset, 0, confirm_callback);
       break;
     default:
       SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit releasing stage.",
@@ -324,7 +332,7 @@ void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int6
       return;
     }
   };
-  add_timer_helper(nanotime, 0, submit_callback);
+  add_timer_helper(nanotime + delay_ratio * offset, 0, submit_callback);
 }
 
 void BacktestContext::unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,

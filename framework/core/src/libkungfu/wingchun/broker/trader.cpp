@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -16,6 +17,7 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
+using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::broker {
 
@@ -148,7 +150,7 @@ void Trader::recover_from_journal() {
     case Order::tag:
     case Trade::tag:
     case OrderTrigger::tag:
-      get_vendor().feed_state_data(frame, state_bank);
+      cached::feed_state_data(frame, state_bank);
       ++count;
       break;
     }

@@ -78,13 +78,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: langDefault,
       },
       {
-        key: 'autoRestartTd',
-        name: t('globalSettingConfig.auto_restart_td'),
-        tip: t('globalSettingConfig.auto_restart_td_desc'),
-        type: 'bool',
-        default: true,
-      },
-      {
         key: 'bypassArchive',
         name: t('globalSettingConfig.bypass_archive'),
         tip: t('globalSettingConfig.bypass_archive_desc'),
@@ -100,8 +93,15 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
       },
       {
         key: 'verifyLocation',
-        name: '是否开启 location_uid 校验',
+        name: t('globalSettingConfig.verify_location'),
         tip: '',
+        type: 'bool',
+        default: false,
+      },
+      {
+        key: 'bypassCached',
+        name: t('globalSettingConfig.bypass_cacheD'),
+        tip: t('globalSettingConfig.bypass_cacheD_desc'),
         type: 'bool',
         default: false,
       },
@@ -281,9 +281,16 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         for: 'ui',
       },
       {
-        key: 'skipSyncPosition',
+        key: 'bypassSyncPosition',
         name: t('globalSettingConfig.skip_sync_position'),
         tip: t('globalSettingConfig.set_skip_sync_position'),
+        type: 'bool',
+        default: false,
+      },
+      {
+        key: 'notAutoRestartTd',
+        name: t('globalSettingConfig.not_auto_restart_td'),
+        tip: t('globalSettingConfig.not_auto_restart_td_desc'),
         type: 'bool',
         default: false,
       },

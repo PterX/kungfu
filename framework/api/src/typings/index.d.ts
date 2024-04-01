@@ -803,6 +803,7 @@ declare namespace KungfuApi {
     status_uname: string;
     status_color: AntInKungfuColorTypes;
     update_time_resolved: string;
+    price_precision?: number;
     limit_price_resolved: string;
   }
 
@@ -899,6 +900,7 @@ declare namespace KungfuApi {
     source_resolved_data: KungfuApi.KfTradeValueCommonData;
     dest_resolved_data: KungfuApi.KfTradeValueCommonData;
     status_color: AntInKungfuColorTypes;
+    price_precision?: number;
     key: number;
     action_flag_uname: string;
     time_condition_resolved: string;
@@ -1157,6 +1159,7 @@ declare namespace KungfuApi {
     closable_volume: number;
     account_id_resolved: string;
     instrument_id_resolved: string;
+    price_precision?: number;
     last_price_resolved: number | string;
     avg_open_price_resolved: number | string;
     unrealized_pnl_resolved: number | string;
@@ -1232,6 +1235,7 @@ declare namespace KungfuApi {
     kf_time_resovlved: string;
     kf_time: bigint;
     latency_trade: string;
+    price_precision?: number;
     price_resolved: number | string;
   }
 

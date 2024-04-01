@@ -37,7 +37,7 @@ class SliceIndexer(wc.SliceIndexer):
         func = getattr(self._module, func_name)
 
         def proxy_on_func():
-            func(self.ctx)
+            return func(self.ctx)
 
         setattr(self, func_name, proxy_on_func)
 

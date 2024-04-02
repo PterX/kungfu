@@ -17,7 +17,7 @@ import {
 
 import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfNumber } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { ArrowRightOutlined } from '@ant-design/icons-vue';
 import { FundTransEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
@@ -175,7 +175,7 @@ function getTransTypeResolved(
             </div>
           </template>
           <template v-if="column.dataIndex === 'amount'">
-            <div>{{ dealKfPrice(record.amount) }}</div>
+            <div>{{ dealKfNumber(record.amount) }}</div>
           </template>
         </template>
       </a-table>

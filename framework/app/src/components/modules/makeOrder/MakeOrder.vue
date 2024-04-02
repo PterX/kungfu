@@ -185,6 +185,7 @@ const configSettings = computed(() => {
       exchangeId,
     );
     step = price_tick;
+    console.log('price_precision', price_precision);
     pricePrecision = price_precision;
   }
 
@@ -1027,7 +1028,7 @@ const handlePercentChange = (target: number) => {
 
   let targetVolume;
   if (curOffset === OffsetEnum.Open) {
-    const availMoney = dealStringToNumber(currentAvailMoney.value);
+    const availMoney = dealStringToNumber(currentAvailMoney.value + '');
     const allVolume = currentPrice.value ? availMoney / currentPrice.value : 0;
     targetVolume = allVolume * targetPercent;
   } else {

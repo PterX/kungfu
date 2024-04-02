@@ -29,6 +29,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
+  precision = 12,
 ): string | number => {
   if (
     preNumber === undefined ||
@@ -41,7 +42,7 @@ export const dealKfNumber = (
   }
 
   if (typeof preNumber === 'number') {
-    return dealKfDecimalPrecision(preNumber);
+    return dealKfDecimalPrecision(preNumber, precision);
   }
 
   return Number(preNumber) || 0;
@@ -55,19 +56,6 @@ export const dealKfDecimalPrecision = (
     return originNum;
   }
   return parseFloat(Number(originNum).toFixed(precision));
-};
-
-export const dealKfPrice = (
-  originNum: bigint | number | undefined | null | unknown,
-  pricePrecision?: number,
-): string => {
-  const resolvedNum = dealKfNumber(originNum);
-
-  if (resolvedNum === '--') {
-    return resolvedNum;
-  }
-
-  return Number(resolvedNum).kfToFixed(pricePrecision ?? 4);
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {

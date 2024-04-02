@@ -2583,9 +2583,9 @@
     "@resvg/resvg-js-win32-x64-msvc" "2.4.1"
 
 "@rushstack/eslint-patch@^1.1.0":
-  version "1.8.0"
-  resolved "https://registry.npmmirror.com/@rushstack/eslint-patch/-/eslint-patch-1.8.0.tgz#c5545e6a5d2bd5c26b4021c357177a28698c950e"
-  integrity sha512-0HejFckBN2W+ucM6cUOlwsByTKt9/+0tWhqUffNIcHqCXkthY/mZ7AuYPK/2IIaGWhdl0h+tICDO0ssLMd6XMQ==
+  version "1.10.0"
+  resolved "https://registry.npmmirror.com/@rushstack/eslint-patch/-/eslint-patch-1.10.0.tgz#b88671c367284bb50b1cb6a842d7e0d98e9f4e55"
+  integrity sha512-ih6xH1dOGBTP/RNc/QbnVLLa/s80SkXydI7tnyq+a2eIdd7gDsmSpD1Jz7T1oCa+GIsVTyQCR3cW0tlYB97iFg==
 
 "@sideway/address@^4.1.5":
   version "4.1.5"
@@ -3251,22 +3251,22 @@
   dependencies:
     "@visactor/vutils" "0.18.1"
 
-"@visactor/vtable-editors@0.22.1":
-  version "0.22.1"
-  resolved "https://registry.npmmirror.com/@visactor/vtable-editors/-/vtable-editors-0.22.1.tgz#7a1cc4bbbd928d5a46090bd69dbe6d105d33d4dd"
-  integrity sha512-ZoYNNGdZaOfMVH6IjjnM6IXCPUVEYNLc4FZE3PU7RVVghJ/rx7FvIy7ZJ/AedL8aTVMEEx6ROSJAuPk6b9d1gQ==
+"@visactor/vtable-editors@0.22.3":
+  version "0.22.3"
+  resolved "https://registry.npmmirror.com/@visactor/vtable-editors/-/vtable-editors-0.22.3.tgz#bc3a847f437b37649649ef783451cd2b7a41bb1a"
+  integrity sha512-LfScud6zMY9GjFsSmkBMNNiWDN7s7VKj6esGceCeaEEtZ2K3tkz3dkRfJI+1W+YcQTXFb+9A//hty6/13hiiwQ==
 
 "@visactor/vtable@~0.22.0":
-  version "0.22.1"
-  resolved "https://registry.npmmirror.com/@visactor/vtable/-/vtable-0.22.1.tgz#6bd5185220c75eaab783b1e2c3b9c2901a5dfa45"
-  integrity sha512-SDT3o3h2+565hfBUMtQ00qMnjol2XH9FAtCfNLT9ZTakA0MIzGjg8VtEmDXyKAphOm8ube9adHsPpo//6UGl3w==
+  version "0.22.3"
+  resolved "https://registry.npmmirror.com/@visactor/vtable/-/vtable-0.22.3.tgz#e99ccea565973dc810f4c031eb33173101082f64"
+  integrity sha512-/nuWdRQqHb9gGrur0hR7zDAcniDUniQqZeWuSy7OWnOXnuLYvmGVqW2CBgoYFMMhJcGowYlTJJergn9VGvvZ6w==
   dependencies:
     "@visactor/vdataset" "~0.18.1"
     "@visactor/vrender-components" "0.18.2-alpha.1"
     "@visactor/vrender-core" "0.18.2-alpha.1"
     "@visactor/vrender-kits" "0.18.2-alpha.1"
     "@visactor/vscale" "~0.18.1"
-    "@visactor/vtable-editors" "0.22.1"
+    "@visactor/vtable-editors" "0.22.3"
     "@visactor/vutils" "~0.18.1"
     "@visactor/vutils-extension" "~1.8.5"
     cssfontparser "^1.2.1"
@@ -6055,9 +6055,9 @@ electron-publish@23.6.0:
     mime "^2.5.2"
 
 electron-to-chromium@^1.4.668:
-  version "1.4.717"
-  resolved "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.4.717.tgz#99db370cae8cd090d5b01f8748e9ad369924d0f8"
-  integrity sha512-6Fmg8QkkumNOwuZ/5mIbMU9WI3H2fmn5ajcVya64I5Yr5CcNmO7vcLt0Y7c96DCiMO5/9G+4sI2r6eEvdg1F7A==
+  version "1.4.720"
+  resolved "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.4.720.tgz#7cbe32a4ceb0650d2fbc16886440949cf07610e8"
+  integrity sha512-5zwcKNkOj3GN0jBzpcpGonNPkn667VJpQwRYWdo/TiJEHTQswZyA/vALhZFiAXgL5NuK9UarX1tbdvXu3hG6Yw==
 
 electron-updater@^5.3.0:
   version "5.3.0"

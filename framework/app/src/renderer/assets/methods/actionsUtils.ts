@@ -61,7 +61,6 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   dealKfNumber,
-  dealKfPrice,
   getYearMonthDay,
   countDecimalPlaces,
   findTargetFromArray,
@@ -2776,25 +2775,25 @@ export const useMakeOrderInfo = (
           currentAccountLocation.value,
         ).gage_buy_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail);
       } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).credit_buy_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail);
       } else if (side === SideEnum.RepayStock) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).buyredeliver_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail);
       }
     }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
-    return dealKfPrice(avail);
+    return dealKfNumber(avail);
   });
 
   const currentAvailPosVolume = computed(() => {
@@ -2813,7 +2812,7 @@ export const useMakeOrderInfo = (
   });
 
   function dealTradeAmount(preNumber: number | null) {
-    return !Number(preNumber) ? '--' : dealKfPrice(preNumber);
+    return !Number(preNumber) ? '--' : dealKfNumber(preNumber);
   }
 
   const currentPrice = computed(() => {
@@ -2862,11 +2861,11 @@ export const useMakeOrderInfo = (
     if (currentAvailMoney.value !== '--') {
       if (currentTradeAmount.value !== '--') {
         if (offset === OffsetEnum.Open) {
-          return dealKfPrice(
+          return dealKfNumber(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
           );
         } else {
-          return dealKfPrice(
+          return dealKfNumber(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
           );
         }

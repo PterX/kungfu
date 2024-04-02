@@ -27,7 +27,6 @@ import {
   ref,
   toRaw,
   watch,
-  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getColumns, getPositionLastPrice } from './config';
@@ -74,7 +73,6 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
-const isRendering = ref(false);
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
@@ -135,8 +133,6 @@ const columns = computed(() => {
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
-  if (isRendering.value) return;
-  isRendering.value = true;
   const tableData = searchByKeyword<KungfuApi.PositionResolved>(
     searchKeyword.value,
     pos.value,
@@ -147,10 +143,7 @@ const setTableData = () => {
       'account_id_resolved',
     ],
   );
-  nextTick(() => {
-    canvasRef.value.getListTable()?.setRecords(tableData);
-    isRendering.value = false;
-  });
+  canvasRef.value?.setRecords(tableData);
 };
 
 onActivated(() => {
@@ -179,6 +172,8 @@ onActivated(() => {
           });
         }),
       );
+
+      setTableData();
     });
 
     onBeforeUnmount(() => {

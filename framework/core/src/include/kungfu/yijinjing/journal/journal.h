@@ -47,7 +47,7 @@ typedef std::map<journal_key, journal> JournalMap;
 class journal {
 public:
   journal(data::location_ptr location, uint32_t dest_id, bool is_writing, bool lazy, bool low_latency, bus_ptr bus,
-          uint64_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Low);
+          uint64_t page_size, longfist::enums::Priority priority = longfist::enums::Priority::Medium);
 
   journal(const journal &other);
 
@@ -136,7 +136,7 @@ public:
    * @param from_time subscribe events after this time, 0 means from start
    */
   void join(const data::location_ptr &location, uint32_t dest_id, int64_t from_time, uint64_t page_size = 0,
-            longfist::enums::Priority priority = longfist::enums::Priority::Low);
+            longfist::enums::Priority priority = longfist::enums::Priority::Medium);
 
   void disjoin(uint32_t location_uid);
 

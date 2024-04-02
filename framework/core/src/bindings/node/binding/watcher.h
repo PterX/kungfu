@@ -22,7 +22,6 @@
 namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
-constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
 constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
@@ -123,8 +122,14 @@ public:
 
   bool is_reactable(const event_ptr &event) override;
 
+  void drain_from_refresh_required_data_reader(uint32_t step_limit = 0);
+
+  void ResetRefreshRequiredDataCount() { refresh_required_data_count_by_step_ = 0; };
+
+  const yijinjing::journal::reader_ptr &get_refresh_required_data_reader() { return refresh_required_data_reader_; }
+
 protected:
-  const bool bypass_quote_;
+  const bool bypass_accounting_;
   const bool bypass_trading_data_;
   const bool refresh_trading_data_before_sync_;
   const bool bypass_refresh_book_;
@@ -163,6 +168,9 @@ private:
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> broker_states_map_ = {};
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> strategy_states_map_ = {};
+
+  yijinjing::journal::reader_ptr refresh_required_data_reader_; // order, trade, orderStat
+  uint32_t refresh_required_data_count_by_step_ = 0;
 
   typedef longfist::enums::mode mode;
   typedef longfist::enums::category category;
@@ -347,13 +355,13 @@ private:
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(refresh_required_data_bank_[type]);
-    auto count = 0;
     auto iter = target_map.begin();
-    while (iter != target_map.end() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
+    while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter = target_map.erase(iter);
+      iter++;
     }
+    target_map.clear();
   }
 
   template <typename Instruction>

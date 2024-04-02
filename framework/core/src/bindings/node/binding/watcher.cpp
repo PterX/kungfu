@@ -535,7 +535,7 @@ void Watcher::Sync(const Napi::CallbackInfo &info) {
   SyncAppStates();
   SyncStrategyStates();
   SyncLedger();
-  TryRefreshTradingData();
+  TryRefreshTradingData(info);
   SyncTradingData();
 }
 
@@ -546,12 +546,12 @@ void Watcher::SyncLedger() {
   });
 }
 
-void Watcher::TryRefreshTradingData() {
+void Watcher::TryRefreshTradingData(const Napi::CallbackInfo &info) {
   if (not refresh_trading_data_before_sync_) {
     return;
   }
 
-  serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger");
+  serialize::RefreshTradingDataInStateMap(info, ledger_ref_, "ledger");
 }
 
 void Watcher::SyncTradingData() {

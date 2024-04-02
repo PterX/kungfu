@@ -22,7 +22,7 @@
 namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
-constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 5000;
+constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 3000;
 constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
@@ -158,7 +158,7 @@ private:
   serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::deque_bank refresh_required_data_bank_;
+  yijinjing::cache::bank refresh_required_data_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> broker_states_map_ = {};
@@ -229,7 +229,7 @@ private:
 
   void SyncLedger();
 
-  void TryRefreshTradingData();
+  void TryRefreshTradingData(const Napi::CallbackInfo &info);
 
   void SyncTradingData();
 
@@ -331,8 +331,8 @@ private:
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto is_static_data_type = longfist::StaticDataTags.find(DataType::tag) != longfist::StaticDataTags.end();
-    auto iter = target_map.begin();
     auto count = 0;
+    auto iter = target_map.begin();
     while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
@@ -345,13 +345,14 @@ private:
   }
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    using DataTypeDeque = std::deque<state<DataType>>;
-    auto &target_deque = const_cast<DataTypeDeque &>(refresh_required_data_bank_[type]);
+    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
+    auto &target_map = const_cast<DataTypeMap &>(refresh_required_data_bank_[type]);
     auto count = 0;
-    while (not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
-      const auto &state = target_deque.front();
+    auto iter = target_map.begin();
+    while (iter != target_map.end() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
+      const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      target_deque.pop_front();
+      iter = target_map.erase(iter);
     }
   }
 

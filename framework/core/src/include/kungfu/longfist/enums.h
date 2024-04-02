@@ -884,5 +884,6 @@ KF_JSON_SERIALIZE_ENUM(ResumePolicy, {
                                      })
 
 inline std::ostream &operator<<(std::ostream &os, ResumePolicy t) { return os << int8_t(t); }
+
 } // namespace kungfu::longfist::enums
 #endif // KUNGFU_LONGFIST_ENUM_H

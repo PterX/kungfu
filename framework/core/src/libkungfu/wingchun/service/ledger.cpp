@@ -28,7 +28,7 @@ Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string 
                const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
-      broker_client_(*this), bookkeeper_(*this, broker_client_, true, false, true) {
+      broker_client_(*this), bookkeeper_(*this, broker_client_, true, true) {
   sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
   sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
@@ -147,10 +147,6 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   if (inserted and not acked) {
     stat.ack_time = event->gen_time();
     try_write_to(event->gen_time(), stat, event->source());
-  }
-
-  if (is_final_status(data.status) && order_stats_.find(data.order_id) != order_stats_.end()) {
-    order_stats_.erase(data.order_id);
   }
 }
 

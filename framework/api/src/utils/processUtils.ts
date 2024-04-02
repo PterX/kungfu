@@ -540,7 +540,6 @@ export interface KfcEnvs {
   bypassRefreshBook?: KfcEnvOptType<boolean>;
   bypassSyncAsset?: KfcEnvOptType<boolean>;
   bypassSyncPosition?: KfcEnvOptType<boolean>;
-  lowMemory?: KfcEnvOptType<boolean>;
   keepPage?: KfcEnvOptType<boolean>;
   preload?: KfcEnvOptType<boolean>;
   maxPreCreateSize?: KfcEnvOptType<number>;
@@ -548,7 +547,6 @@ export interface KfcEnvs {
 
 export const startProcess = async (
   options: Pm2StartOptions,
-  acceptEnvArgs = true,
 ): Promise<Proc | void> => {
   const extDirs = await flattenExtensionModuleDirs(EXTENSION_DIRS);
   options = await (globalThis.HookKeeper as KfHookKeeper)
@@ -565,32 +563,22 @@ export const startProcess = async (
 
   const filePath = buildProcessLogPath(options.name);
   ensureFileSync(filePath);
-
-  let args = options.args;
-
-  if (acceptEnvArgs) {
-    const globalSetting = getKfGlobalSettingsValue();
-    const bypassRefreshBook =
-      booleanProcessEnv(process.env.BY_PASS_REFRESHBOOK) ??
-      globalSetting?.performance?.bypassRefreshBook ??
-      false;
-    const bypassSyncPosition =
-      globalSetting?.trade?.bypassSyncPosition ?? false;
-    const bypassCached = globalSetting?.system?.bypassCached ?? false;
-    const lowMemory = globalSetting?.performance?.lowMemory ?? false;
-    const extraEnvArgs = buildKfcEnv({
-      bypassRefreshBook,
-      bypassSyncPosition,
-      bypassCached,
-      lowMemory,
-    });
-
-    args = `${options.args} ${extraEnvArgs}`;
-  }
+  const globalSetting = getKfGlobalSettingsValue();
+  const bypassRefreshBook =
+    booleanProcessEnv(process.env.BY_PASS_REFRESHBOOK) ??
+    globalSetting?.performance?.bypassRefreshBook ??
+    false;
+  const bypassSyncPosition = globalSetting?.trade?.bypassSyncPosition ?? false;
+  const bypassCached = globalSetting?.system?.bypassCached ?? false;
+  const extraEnvArgs = buildKfcEnv({
+    bypassRefreshBook,
+    bypassSyncPosition,
+    bypassCached,
+  });
 
   const optionsResolved: Pm2StartOptions = {
     name: options.name,
-    args: args,
+    args: `${options.args} ${extraEnvArgs}`,
     cwd: options.cwd || path.join(KFC_DIR),
     script: options.script || kfcName,
     interpreter: options.interpreter || 'none',
@@ -721,11 +709,10 @@ export const graceDeleteProcess = async (
 export function startProcessGetStatusUntilStop(
   options: Pm2StartOptions,
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
-  acceptEnvArgs = true,
 ) {
   let timer;
   return new Promise((resolve) => {
-    startProcess({ ...options }, acceptEnvArgs).then(() => {
+    startProcess({ ...options }).then(() => {
       timer = startGetProcessStatusByName(
         options.name,
         (res: ProcessDescription[]) => {
@@ -1076,7 +1063,6 @@ export function startArchiveMakeTask(
       }),
     },
     cb,
-    false,
   );
 }
 

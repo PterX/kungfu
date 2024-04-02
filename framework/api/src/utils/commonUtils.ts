@@ -1145,7 +1145,6 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
       return result;
     }, {});
 };
-
 export const sorter = (
   a: string | number,
   b: string | number,

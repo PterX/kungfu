@@ -89,6 +89,7 @@ class KungfuCoreConan(ConanFile):
     if tools.detected_os() != "Windows":
         default_options["rocksdb:fPIC"] = True
         default_options["gtest:fPIC"] = True
+        default_options["nng:fPIC"] = True
 
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"

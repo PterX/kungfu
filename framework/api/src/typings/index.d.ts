@@ -225,6 +225,8 @@ declare namespace KungfuApi {
     // ---- some ui releated ----;
     noDivider?: boolean;
     wrap?: string;
+
+    fileExtensions?: string[]; // 选择文件时支持的文件扩展名
   }
 
   export interface KfExhibitConfigItem {
@@ -1482,26 +1484,12 @@ declare namespace KungfuApi {
     now(): bigint;
   }
 
-  export interface KfDynamicTradingDataIndexedMap<
-    K extends string | number,
-    V,
-  > {
-    insertKeyWithValue(
-      key: K,
-      value: V,
-      type: string,
-      isFinished?: boolean,
-    ): void;
-    updateKeyWithValue(
-      key: K,
-      value: V,
-      type: string,
-      isFinished?: boolean,
-    ): void;
+  export interface KfDynamicTradingDataIndexedMap<V> {
+    insertKeyWithValue(value: V, type: string, isFinished?: boolean): void;
+    updateKeyWithValue(value: V, type: string, isFinished?: boolean): void;
     sortCommonList(compareFn: (a: V, b: V) => number): void;
     sortUnfinishedList(compareFn: (a: V, b: V) => number): void;
-    hasKey(key: K): boolean;
-    getValueForKey(key: K): V | undefined;
+    getValue(key1: unknown, key2: unknown): V | undefined;
     getCommonList(): V[];
     getUnfinishedList(): V[];
     getAllUnfinishedList(): V[];

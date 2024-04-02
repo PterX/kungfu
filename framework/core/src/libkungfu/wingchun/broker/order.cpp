@@ -12,6 +12,8 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::broker {
 
+constexpr uint64_t ORDER_CLAEN_THROTTLE = 5 * time_unit::NANOSECONDS_PER_MINUTE;
+
 void OrderService::on_order_input(const event_ptr &event) {
   auto &order_input = event->data<OrderInput>();
   auto risk_uid = get_service().get_risk_uid();
@@ -79,7 +81,7 @@ void OrderService::on_block_message(const longfist::types::BlockMessage &block_m
 
 void OrderService::clear_batch_order_inputs(uint32_t location_uid) { batch_order_inputs_.erase(location_uid); }
 
-void OrderService::clean_orders(bool bypass_recover) {
+void OrderService::lost_orders(bool bypass_recover) {
   std::for_each(orders_.begin(), orders_.end(), [&](auto &pair) {
     Order &order = pair.second.data;
     if (not is_final_status(order.status) and (bypass_recover or order.external_order_id.to_string().empty())) {
@@ -90,7 +92,7 @@ void OrderService::clean_orders(bool bypass_recover) {
   });
 }
 
-void OrderService::clean_orders(uint32_t source, const OrderInput &order_input, bool bypass_recover) {
+void OrderService::lost_orders(uint32_t source, const OrderInput &order_input, bool bypass_recover) {
   if (orders_.find(order_input.order_id) != orders_.end()) {
     return;
   }
@@ -101,6 +103,26 @@ void OrderService::clean_orders(uint32_t source, const OrderInput &order_input, 
   order.update_time = time::now_in_nano();
   vendor_.try_write_to(vendor_.now(), order, source);
 }
+
+void OrderService::clean_finished_orders(uint64_t now) {
+  auto before_clean_order_size = orders_.size();
+  auto start = time::now_in_nano();
+  auto iter = orders_.begin();
+  while (iter != orders_.end()) {
+    auto &state = iter->second;
+    if (is_final_status(state.data.status) && (now - state.data.update_time) >= ORDER_CLAEN_THROTTLE) {
+      iter = orders_.erase(iter);
+    } else {
+      iter++;
+    }
+  }
+  auto after_clean_order_size = orders_.size();
+  auto end = time::now_in_nano();
+  SPDLOG_DEBUG("clean_finished_orders clean size {}, takes {}ns", before_clean_order_size - after_clean_order_size,
+               end - start);
+}
+
+void OrderService::clean_trades() { trades_.clear(); }
 
 const OrderMap &OrderService::get_orders() const { return orders_; }
 

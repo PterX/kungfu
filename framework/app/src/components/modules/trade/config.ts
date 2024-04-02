@@ -30,15 +30,15 @@ export const getColumns = (
           return dealKfTime(args.trade_time, isHistory);
         },
       },
-      // {
-      //   field: 'kf_time',
-      //   title: t('tradeConfig.kf_time_resolved'),
-      //   width: isHistory ? 160 : 120,
-      //   sort: sorter,
-      //   fieldFormat: (args) => {
-      //     return args.kf_time ? dealKfTime(args.kf_time, isHistory) : '--';
-      //   },
-      // },
+      {
+        field: 'kf_time',
+        title: t('tradeConfig.kf_time_resolved'),
+        width: isHistory ? 160 : 120,
+        sort: sorter,
+        fieldFormat: (args) => {
+          return args.kf_time ? dealKfTime(args.kf_time, isHistory) : '--';
+        },
+      },
       {
         field: 'instrument_id',
         title: t('tradeConfig.instrument_id'),
@@ -96,18 +96,18 @@ export const getColumns = (
         },
         sort: sorter,
       },
-      // {
-      //   field: 'latency_trade',
-      //   title: t('tradeConfig.latency_trade'),
-      //   width: 160,
-      //   style: {
-      //     textAlign: 'right',
-      //   },
-      //   headerStyle: {
-      //     textAlign: 'right',
-      //   },
-      //   sort: sorter,
-      // },
+      {
+        field: 'latency_trade',
+        title: t('tradeConfig.latency_trade'),
+        width: 160,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+      },
       {
         field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',
         title:

@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  delayMilliSeconds,
+  getIdByKfLocation,
+  debounce,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealOffset,
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -29,13 +37,11 @@ import {
   ref,
   toRaw,
   watch,
+  nextTick,
 } from 'vue';
 import {
-  dealOffset,
-  dealSide,
   dealTrade,
   getKungfuHistoryData,
-  getOrderOrTradeListFromTradingDataKeeper,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { getColumns } from './config';
 import type { Dayjs } from 'dayjs';
@@ -46,6 +52,8 @@ import {
 import TradeStatisticModal from './TradeStatisticModal.vue';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+const DEFAULT_TRADE_LIST_LENGTH = 50000;
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
@@ -83,52 +91,123 @@ const columns = computed(() => {
   return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
 
-const needProcessTradingData = ref<boolean>(true);
-const isRendering = ref<boolean>(false);
+const tdChildrenLocationIdList = ref<number[]>([]);
+const subscribeNext = ref<boolean>(true);
 
 const searchKeyword = ref<string>('');
 
-const processTradingData = async (
+async function getTradeList(
   tradingDataKeeper: KungfuApi.TradingDataKeeper,
-  keepProcessing = false,
-) => {
-  if (isRendering.value && !keepProcessing) return;
-  currentTradingData.value = tradingDataKeeper;
+): Promise<KungfuApi.TradeResolved[]> {
+  let tradeList: KungfuApi.TradeResolved[] = [];
+  if (!currentGlobalKfLocation.value) tradeList = [];
+  if (currentGlobalKfLocation.value?.category === 'globalPos') {
+    const locationId = getIdByKfLocation(currentGlobalKfLocation.value);
+    const addTradeResolved = (
+      tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+    ) => {
+      const instrumentId = `${tradeResolved.exchange_id}_${tradeResolved.instrument_id}`;
 
-  const tradeList = (await getOrderOrTradeListFromTradingDataKeeper({
-    watcher: window.watcher,
-    tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
-    currentGlobalKfLocation: currentGlobalKfLocation.value,
-    type: 'trade',
-  })) as KungfuApi.TradeResolved[];
-
-  if (tradeList.length > 0) {
-    const tableData = searchByKeyword(
-      searchKeyword.value,
-      tradeList,
-      [
-        'order_id',
-        'trade_id',
-        'instrument_id',
-        'side',
-        'offset',
-        'exchange_id',
-        'source_uname',
-        'dest_uname',
-      ],
-      {
-        side: (item) => dealSide(Number(item)).name,
-        offset: (item) => dealOffset(Number(item)).name,
-      },
+      if (instrumentId === locationId) {
+        tradeList.push(tradeResolved as KungfuApi.TradeResolved);
+      }
+      return true;
+    };
+    await tradingDataKeeper.sortedForEach(
+      addTradeResolved,
+      'trade',
+      'td',
+      'common',
     );
-
-    allTrades.value = toRaw(tableData);
-    canvasRef.value?.setRecords(tableData);
+  } else if (
+    currentGlobalKfLocation.value?.category === 'td' ||
+    currentGlobalKfLocation.value?.category === 'strategy'
+  ) {
+    const locationId = window.watcher.getLocationUID(
+      currentGlobalKfLocation.value,
+    );
+    const indexMap =
+      tradingDataKeeper.trade[currentGlobalKfLocation.value.category][
+        locationId
+      ];
+    if (indexMap) {
+      tradeList = indexMap.getCommonList();
+    } else {
+      tradeList = [];
+    }
+  } else if (currentGlobalKfLocation.value?.category === 'tdGroup') {
+    tdChildrenLocationIdList.value = [];
+    const locationList = (
+      currentGlobalKfLocation.value as KungfuApi.KfLocationGroup
+    ).children;
+    if (locationList) {
+      locationList.forEach((location) => {
+        const locationId = location.location_uid;
+        tdChildrenLocationIdList.value.push(locationId);
+      });
+    }
+    const addTradeResolved = (
+      tradeResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
+    ) => {
+      if (tradeList.length >= DEFAULT_TRADE_LIST_LENGTH) {
+        return false;
+      } else {
+        tradeList.push(tradeResolved as KungfuApi.TradeResolved);
+        return true;
+      }
+    };
+    await tradingDataKeeper.sortedForEach(
+      addTradeResolved,
+      'trade',
+      'td',
+      'common',
+      tdChildrenLocationIdList.value,
+    );
   } else {
-    allTrades.value = [];
-    canvasRef.value?.setRecords([]);
+    tradeList = [];
   }
-};
+  return tradeList;
+}
+
+const processTradingData = debounce(async (tradingDataKeeper) => {
+  currentTradingData.value = tradingDataKeeper as KungfuApi.TradingDataKeeper;
+
+  const tradeList = await getTradeList(
+    tradingDataKeeper as KungfuApi.TradingDataKeeper,
+  );
+
+  nextTick(() => {
+    if (tradeList.length > 0) {
+      const tableData = searchByKeyword(
+        searchKeyword.value,
+        tradeList,
+        [
+          'order_id',
+          'trade_id',
+          'instrument_id',
+          'side',
+          'offset',
+          'exchange_id',
+          'source_uname',
+          'dest_uname',
+        ],
+        {
+          side: (item) => dealSide(Number(item)).name,
+          offset: (item) => dealOffset(Number(item)).name,
+        },
+      );
+      if (tradeList.length) {
+        allTrades.value = toRaw(tableData);
+        canvasRef.value.getListTable()?.setRecords(tableData);
+      } else {
+        canvasRef.value.getListTable()?.setRecords([]);
+      }
+    } else {
+      allTrades.value = [];
+      canvasRef.value.getListTable()?.setRecords([]);
+    }
+  });
+}, 1000);
 
 const hasData = computed(() => {
   return allTrades.value.length > 0;
@@ -147,8 +226,8 @@ onActivated(() => {
         return;
       }
 
-      if (update || needProcessTradingData.value) {
-        needProcessTradingData.value = false;
+      if (update || subscribeNext.value) {
+        subscribeNext.value = false;
         await processTradingData(tradingDataKeeper);
       }
     },
@@ -159,7 +238,7 @@ onActivated(() => {
   });
 
   onDeactivated(() => {
-    needProcessTradingData.value = true;
+    subscribeNext.value = true;
     subscription?.unsubscribe();
   });
 });
@@ -172,15 +251,14 @@ watch(
     if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
       return;
     }
-    isRendering.value = true;
-    await processTradingData(currentTradingData.value, true);
-    isRendering.value = false;
+
+    await processTradingData(currentTradingData.value);
   },
   { immediate: true },
 );
 
 watch(historyDate, async (newDate) => {
-  needProcessTradingData.value = true;
+  subscribeNext.value = true;
   if (!newDate) {
     return;
   }
@@ -247,7 +325,7 @@ watch(historyDate, async (newDate) => {
 });
 
 watch(searchKeyword, () => {
-  needProcessTradingData.value = true;
+  subscribeNext.value = true;
 });
 
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {

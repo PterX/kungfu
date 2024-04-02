@@ -428,30 +428,28 @@ export const kfCancelOrder = (
     return Promise.reject(new Error(`Watcher is not live`));
   }
 
-  return new Promise((resolve, reject) => {
-    const { order_id, dest, source } = order;
-    const sourceLocation = watcher.getLocation(source);
-    const destLocation = watcher.getLocation(dest);
+  const { order_id, dest, source } = order;
+  const sourceLocation = watcher.getLocation(source);
+  const destLocation = watcher.getLocation(dest);
 
-    if (!watcher.isReadyToInteract(sourceLocation)) {
-      const accountId = getIdByKfLocation(sourceLocation);
-      reject(new Error(`Td ${accountId} not ready`));
-      return;
-    }
+  if (!watcher.isReadyToInteract(sourceLocation)) {
+    const accountId = getIdByKfLocation(sourceLocation);
+    return Promise.reject(new Error(`Td ${accountId} not ready`));
+  }
 
-    const orderAction: KungfuApi.OrderAction = {
-      ...longfist.types.OrderAction(),
-      action_flag: orderActionFlag,
-      order_id,
-    };
+  const orderAction: KungfuApi.OrderAction = {
+    ...longfist.types.OrderAction(),
+    action_flag: orderActionFlag,
+    order_id,
+  };
 
-    if (!destLocation) {
-      resolve(watcher.cancelOrder(orderAction, sourceLocation));
-      return;
-    }
+  if (!destLocation) {
+    return Promise.resolve(watcher.cancelOrder(orderAction, sourceLocation));
+  }
 
-    resolve(watcher.cancelOrder(orderAction, sourceLocation, destLocation));
-  });
+  return Promise.resolve(
+    watcher.cancelOrder(orderAction, sourceLocation, destLocation),
+  );
 };
 
 export const kfCancelOrderTrigger = (
@@ -1027,108 +1025,6 @@ export const getOrderStatResolve = (
   };
 };
 
-export const DEFAULT_LIST_LENGTH = 10000;
-
-export const getOrderOrTradeListFromTradingDataKeeper = async ({
-  watcher,
-  tradingDataKeeper,
-  currentGlobalKfLocation,
-  isGetUnfinishedOrder = false,
-  isGetAllUnfinishedOrder = false,
-  type = 'order',
-}: {
-  watcher: KungfuApi.Watcher | null;
-  tradingDataKeeper: KungfuApi.TradingDataKeeper;
-  currentGlobalKfLocation:
-    | KungfuApi.KfLocation
-    | KungfuApi.KfLocationGroup
-    | KungfuApi.KfConfig
-    | null;
-  isGetUnfinishedOrder?: boolean;
-  isGetAllUnfinishedOrder?: boolean;
-  type?: 'order' | 'trade';
-}) => {
-  let list: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[] = [];
-  let locationId = '';
-  let tdChildrenLocationIdList: number[] = [];
-  const listGetterType: 'common' | 'unfinished' = isGetUnfinishedOrder
-    ? 'unfinished'
-    : 'common';
-  let addResolved: (
-    resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-  ) => boolean;
-
-  if (!currentGlobalKfLocation) return [];
-
-  switch (currentGlobalKfLocation?.category) {
-    case 'globalPos':
-      locationId = getIdByKfLocation(currentGlobalKfLocation);
-      addResolved = (
-        resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-      ) => {
-        const instrumentId = `${resolved.exchange_id}_${resolved.instrument_id}`;
-        if (instrumentId === locationId) {
-          list.push(resolved);
-        }
-        return true;
-      };
-      await tradingDataKeeper.sortedForEach(
-        addResolved,
-        type,
-        'td',
-        listGetterType,
-      );
-      break;
-    case 'td':
-    case 'strategy':
-      locationId = window.watcher.getLocationUID(currentGlobalKfLocation);
-      const indexMap =
-        tradingDataKeeper[type][currentGlobalKfLocation.category][locationId];
-      if (indexMap) {
-        if (isGetAllUnfinishedOrder && type === 'order') {
-          list = indexMap.getAllUnfinishedList();
-        } else if (isGetUnfinishedOrder && type === 'order') {
-          list = indexMap.getUnfinishedList();
-        } else {
-          list = indexMap.getCommonList();
-        }
-      }
-      break;
-    case 'tdGroup':
-      tdChildrenLocationIdList = [];
-      const locationList = (
-        currentGlobalKfLocation as KungfuApi.KfLocationGroup
-      ).children;
-      if (locationList) {
-        locationList.forEach((location) => {
-          const locationId =
-            location.location_uid ||
-            (watcher ? watcher.getLocationUID(location) : '');
-          if (locationId) {
-            tdChildrenLocationIdList.push(locationId);
-          }
-        });
-      }
-      addResolved = (
-        resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-      ) => {
-        if (list.length >= DEFAULT_LIST_LENGTH) return false;
-        list.push(resolved);
-        return true;
-      };
-      await tradingDataKeeper.sortedForEach(
-        addResolved,
-        type,
-        'td',
-        listGetterType,
-        tdChildrenLocationIdList,
-      );
-      break;
-  }
-
-  return list;
-};
-
 const getInstrumentByIdsWithWatcher = (
   instrumentId: string,
   exchangeId: string,
@@ -1198,12 +1094,15 @@ export const getOrderResolved = (
 
 export const getTradeResolved = (
   watcher: KungfuApi.Watcher,
+  tradeResolved: KungfuApi.TradeResolved | null,
   trade: KungfuApi.Trade,
+  orderStats: KungfuApi.OrderStat | null,
 ): KungfuApi.TradeResolved => {
   const { price_precision } = getPriceTickAndPrecision(
     trade.instrument_id,
     trade.exchange_id,
   );
+  const latencyData = getOrderStatResolve(orderStats);
   const destResolvedData = resolveClientId(watcher, trade.dest);
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -1211,6 +1110,7 @@ export const getTradeResolved = (
     trade.dest,
   );
   return {
+    ...(tradeResolved || {}),
     ...trade,
     volume: dealKfDecimalPrecision(trade.volume),
     source: trade.source,
@@ -1220,6 +1120,9 @@ export const getTradeResolved = (
     dest_resolved_data: destResolvedData,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
+    kf_time: 'trade_time' in latencyData ? latencyData.trade_time : BigInt(0),
+    latency_trade:
+      'latency_trade' in latencyData ? `${latencyData.latency_trade}` : '--',
     price_resolved: dealKfPrice(trade.price, price_precision),
   } as unknown as KungfuApi.TradeResolved;
 };
@@ -1373,20 +1276,32 @@ export const dealPosition = (
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
     price_precision: pricePrecision,
-    last_price_resolved: dealKfDecimalPrecision(pos.last_price),
-    avg_open_price_resolved: dealKfDecimalPrecision(pos.avg_open_price),
+    last_price_resolved: dealKfPrice(pos.last_price, pricePrecision),
+    avg_open_price_resolved: dealKfPrice(pos.avg_open_price, pricePrecision),
     unrealized_pnl_resolved: pos.avg_open_price
-      ? dealKfDecimalPrecision(pos.unrealized_pnl)
+      ? dealKfPrice(pos.unrealized_pnl, pricePrecision)
       : '--',
-    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price),
-    close_pnl: dealKfDecimalPrecision(pos.close_pnl),
-    position_cost_price: dealKfDecimalPrecision(pos.position_cost_price),
-    position_pnl: dealKfDecimalPrecision(pos.position_pnl),
-    pre_close_price: dealKfDecimalPrecision(pos.pre_close_price),
-    pre_settlement_price: dealKfDecimalPrecision(pos.pre_settlement_price),
-    realized_pnl: dealKfDecimalPrecision(pos.realized_pnl),
-    settlement_price: dealKfDecimalPrecision(pos.settlement_price),
-    unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl),
+    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price, pricePrecision),
+    close_pnl: dealKfDecimalPrecision(pos.close_pnl, pricePrecision),
+    position_cost_price: dealKfDecimalPrecision(
+      pos.position_cost_price,
+      pricePrecision,
+    ),
+    position_pnl: dealKfDecimalPrecision(pos.position_pnl, pricePrecision),
+    pre_close_price: dealKfDecimalPrecision(
+      pos.pre_close_price,
+      pricePrecision,
+    ),
+    pre_settlement_price: dealKfDecimalPrecision(
+      pos.pre_settlement_price,
+      pricePrecision,
+    ),
+    realized_pnl: dealKfDecimalPrecision(pos.realized_pnl, pricePrecision),
+    settlement_price: dealKfDecimalPrecision(
+      pos.settlement_price,
+      pricePrecision,
+    ),
+    unrealized_pnl: dealKfDecimalPrecision(pos.unrealized_pnl, pricePrecision),
     volume: dealKfDecimalPrecision(pos.volume), // 数量
     yesterday_volume: dealKfDecimalPrecision(pos.yesterday_volume), // 昨仓数量
     today_volume:

@@ -140,13 +140,6 @@ export const getKfGlobalSettings = (): KfSystemConfig[] => [
         default: !ifCpusNumSafe,
         type: 'bool',
       },
-      {
-        key: 'lowMemory',
-        name: t('globalSettingConfig.low_memory'),
-        tip: t('globalSettingConfig.low_memory_desc'),
-        default: false,
-        type: 'bool',
-      },
     ],
   },
   {

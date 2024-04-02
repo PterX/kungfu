@@ -53,7 +53,7 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
   deal_trading_day(data_time);
   SPDLOG_DEBUG("Entrust : {}", entrust.to_string());
   if (entrust_side == Side::Buy) {
-    bid_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
+    bid_seq_id_map[entrust.seq] = Level(price, volume, data_time);
     if (bid_map.find(price) != bid_map.end()) {
       bid_map.at(price).volume += volume;
       bid_map.at(price).data_time = data_time;
@@ -72,7 +72,7 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
       }
     }
   } else {
-    ask_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
+    ask_seq_id_map[entrust.seq] = Level(price, volume, data_time);
     if (ask_map.find(price) != ask_map.end()) {
       ask_map.at(price).volume += volume;
       ask_map.at(price).data_time = data_time;

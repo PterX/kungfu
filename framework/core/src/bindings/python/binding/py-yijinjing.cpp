@@ -222,7 +222,7 @@ void bind(pybind11::module &&m) {
            py::arg("name") = "*", py::arg("mode") = "*")
       .def("list_location_dest", &locator::list_location_dest);
 
-  py::class_<socket, socket_ptr>(m, "socket")
+  py::class_<nanomsg::socket, socket_ptr>(m, "socket")
       .def(py::init<protocol>(), py::arg("protocol"))
       .def("setsockopt", &socket::setsockopt_str, py::arg("option"), py::arg("value"))
       .def("setsockopt", &socket::setsockopt_int, py::arg("option"), py::arg("value"))
@@ -253,7 +253,7 @@ void bind(pybind11::module &&m) {
       .def("data_available", &reader::data_available)
       .def("next", &reader::next)
       .def("join", &reader::join, py::arg("location"), py::arg("dest_id"), py::arg("from_time"),
-           py::arg("page_size") = 0, py::arg("priority") = Priority::Low)
+           py::arg("page_size") = 0, py::arg("priority") = Priority::Medium)
       .def("disjoin", py::overload_cast<const data::location_ptr &, uint32_t>(&reader::disjoin))
       .def("disjoin", py::overload_cast<const uint32_t>(&reader::disjoin))
       .def("disjoin_channel", &reader::disjoin_channel);

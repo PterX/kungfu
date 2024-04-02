@@ -7,7 +7,6 @@ const { t } = VueI18n.global;
 const urlPrefix = CURRENT_STAGE === 'prod' ? 'www' : CURRENT_STAGE;
 
 export const ConnectUsUrl = `https://${urlPrefix}.kungfu-trader.com/index.php/consult/`;
-export const LicenseUrl = `https://${urlPrefix}.kungfu-trader.com/index.php/license-checkout/`;
 
 export const LocalStorageKeys = {
   LoginForm: 'AuthingLoginFrom',

@@ -417,7 +417,7 @@ export const useAddUpdateRemoveKfConfig = (): {
     },
     category: KfCategoryTypes,
     group: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 } => {
   const handleRemoveKfConfig = (
     watcher: KungfuApi.Watcher,
@@ -462,7 +462,7 @@ export const useAddUpdateRemoveKfConfig = (): {
     },
     category: KfCategoryTypes,
     group: string,
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     const { formState, idByPrimaryKeys, changeType } = data;
     const changeTypename = changeType === 'add' ? t('add') : t('set');
     const categoryName = getKfCategoryData(category).name;
@@ -506,7 +506,7 @@ export const useAddUpdateRemoveKfConfig = (): {
               .then(() => {
                 useGlobalStore().setKfConfigList();
                 modalResolve();
-                handleResolve();
+                handleResolve(true);
               })
               .catch((err: Error) => {
                 error(`${t('database_locked')}, ${t('please_wait_and_retry')}`);
@@ -516,7 +516,7 @@ export const useAddUpdateRemoveKfConfig = (): {
           });
         },
         onCancel() {
-          handleResolve();
+          handleResolve(false);
         },
       });
     });

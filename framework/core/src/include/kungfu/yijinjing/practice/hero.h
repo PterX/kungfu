@@ -33,7 +33,7 @@ class hero : public resource {
 public:
   explicit hero(yijinjing::io_device_ptr io_device);
 
-  virtual ~hero();
+  ~hero() override;
 
   bool is_usable() override;
 

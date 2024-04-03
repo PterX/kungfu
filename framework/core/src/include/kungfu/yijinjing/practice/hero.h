@@ -12,6 +12,7 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
+#include <kungfu/yijinjing/nanomsg/webserver.h>
 #include <kungfu/yijinjing/time.h>
 
 #ifndef KUNGFU_SETUP_LOG
@@ -208,10 +209,11 @@ protected:
 
   void cleanup_reader_disjoin();
 
+protected:
+  virtual bool drain(const rx::subscriber<event_ptr> &sb);
+
 private:
-  yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
-  int64_t now_;
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
@@ -222,14 +224,8 @@ private:
   std::map<yijinjing::data::location_ptr, uint32_t> disjoin_location_channels_;
 
   volatile bool continual_ = true;
-  volatile bool live_ = false;
-  volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
-
-  bool drain(const rx::subscriber<event_ptr> &sb);
-
-  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 
   template <typename T>
   std::enable_if_t<T::reflect> do_require_read_from(yijinjing::journal::writer_ptr &&writer, int64_t trigger_time,
@@ -245,6 +241,14 @@ private:
   }
 
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
+
+public:
+  yijinjing::io_device_ptr io_device_;
+
+  volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
+  int64_t now_;
+  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_HERO_H

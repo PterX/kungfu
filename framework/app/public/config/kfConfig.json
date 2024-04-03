@@ -3,17 +3,18 @@
     "rocket": false,
     "bypassAccounting": false,
     "bypassTradingData": false,
-    "bypassRefreshBook": false
+    "bypassRefreshBook": false,
+    "lowMemory": false
   },
   "currency": { "instrumentCurrency": true },
   "strategy": { "python": false },
   "system": {
     "logLevel": "-l info",
     "logFrame": false,
-    "autoRestartTd": true,
     "language": "zh-CN",
     "bypassArchive": false,
-    "bypassArchiveDev": false
+    "bypassArchiveDev": false,
+    "bypassCached": false
   },
   "code": { "tabSpaceType": "SPACES", "tabSpaceSize": "TWOINDENT" },
   "trade": {
@@ -21,7 +22,8 @@
     "fatFinger": 0,
     "close": 100,
     "posTableColumns": ["yesterday_volume", "today_volume"],
-    "skipSyncPosition": false
+    "bypassSyncPosition": false,
+    "notAutoRestartTd": false
   },
   "update": { "isCheckVersion": true }
 }

@@ -1057,7 +1057,7 @@ export class LinkedList<T> {
     let node: LinkedNode<T>;
 
     if (typeof nodeOrKey === 'string') {
-      node = this.nodeMap.get(nodeOrKey)!;
+      node = this.nodeMap.get(nodeOrKey) as LinkedNode<T>;
       if (!node) {
         throw new Error(`Node with key ${nodeOrKey} not found.`);
       }
@@ -1145,7 +1145,6 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
       return result;
     }, {});
 };
-
 export const sorter = (
   a: string | number,
   b: string | number,

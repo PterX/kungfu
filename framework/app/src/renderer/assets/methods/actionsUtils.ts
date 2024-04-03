@@ -12,6 +12,7 @@ import {
   getKungfuHistoryData,
   getNanoDateString,
   isShowPosition,
+  isStock,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
@@ -1512,9 +1513,11 @@ export const useQuote = (): {
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
     if (quote) {
-      return quote.last_price || Number(pos[lastPriceKey]) || 0;
+      return dealKfDecimalPrecision(
+        quote.last_price || Number(pos[lastPriceKey]) || 0,
+      );
     }
-    return Number(pos[lastPriceKey]) || 0;
+    return dealKfDecimalPrecision(Number(pos[lastPriceKey]) || 0);
   };
 
   const getLastPricePercent = (
@@ -1763,12 +1766,27 @@ export const useActiveInstruments = () => {
     return currency;
   };
 
+  const getInstrumentName = (
+    instrumentId: string,
+    exchangeId: string,
+    instrumentType: InstrumentTypeEnum,
+  ) => {
+    if (!isStock(instrumentType)) {
+      return '';
+    }
+
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const instrumentResolved = instrumentsMap.value[ukey];
+    return instrumentResolved ? instrumentResolved.instrumentName : '';
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
     getInstrumentCurrency,
+    getInstrumentName,
   };
 };
 

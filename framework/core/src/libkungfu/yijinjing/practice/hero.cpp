@@ -12,6 +12,7 @@
 #include <kungfu/yijinjing/time.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <kungfu/yijinjing/util/util.h>
+using namespace kungfu::yijinjing::webserver;
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::enums;

@@ -17,8 +17,10 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote)
+Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote, bool bypass_accounting,
+                       bool bypass_replace_trading_data)
     : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
+      bypass_accounting_(bypass_accounting), bypass_replace_trading_data_(bypass_replace_trading_data),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
@@ -44,20 +46,27 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   static_data_.on_start(events);
   restore(app_.get_state_bank());
 
-  events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
 
+  events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
+
+
   // events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
-  // events | is(OrderInput::tag) |
-  //     $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
-  // events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
-  // events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
+  // if (not bypass_accounting_) {
+  //   events | is(OrderInput::tag) |
+  //       $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
+  //   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
+  //   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
+  // }
   // events | is(AlgoOrderInput::tag) |
   //     $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
   // events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));
+  // events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   // events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
+  // events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
+  // events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   // events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
   // events | is(OutputKey::tag) | $$(on_output_key(event));
   // events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
@@ -76,15 +85,18 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
     break;
   }
   case OrderInput::tag: {
-    on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>());
+    if (not bypass_accounting_) 
+      on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>());
     break;
   }
   case Order::tag: {
-    update_book<Order>(event, &AccountingMethod::apply_order);
+    if (not bypass_accounting_) 
+      update_book<Order>(event, &AccountingMethod::apply_order);
     break;
   }
   case Trade::tag: {
-    update_book<Trade>(event, &AccountingMethod::apply_trade);
+    if (not bypass_accounting_) 
+      update_book<Trade>(event, &AccountingMethod::apply_trade);
     break;
   }
   case AlgoOrderInput::tag: {
@@ -181,53 +193,55 @@ void Bookkeeper::restore(const cache::bank &state_bank) {
     book->update(app_.now());
   }
 
-  for (auto &pair : state_bank[boost::hana::type_c<OrderInput>]) {
-    auto &order_input_state = pair.second;
-    auto source_book = get_book(order_input_state.source);
-    source_book->replace(order_input_state.data);
-    auto dest_book = get_book(order_input_state.dest);
-    dest_book->replace(order_input_state.data);
-  }
-
-  for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
-    auto &order_state = pair.second;
-    auto source_book = get_book(order_state.source);
-    source_book->replace(order_state.data);
-    if (order_state.dest == location::PUBLIC) {
-      continue;
+  if (not bypass_replace_trading_data_) {
+    for (auto &pair : state_bank[boost::hana::type_c<OrderInput>]) {
+      auto &order_input_state = pair.second;
+      auto source_book = get_book(order_input_state.source);
+      source_book->replace(order_input_state.data);
+      auto dest_book = get_book(order_input_state.dest);
+      dest_book->replace(order_input_state.data);
     }
-    auto dest_book = get_book(order_state.dest);
-    dest_book->replace(order_state.data);
-  }
 
-  for (auto &pair : state_bank[boost::hana::type_c<Trade>]) {
-    auto &trade_state = pair.second;
-    auto source_book = get_book(trade_state.source);
-    source_book->replace(trade_state.data);
-    if (trade_state.dest == location::PUBLIC) {
-      continue;
+    for (auto &pair : state_bank[boost::hana::type_c<Order>]) {
+      auto &order_state = pair.second;
+      auto source_book = get_book(order_state.source);
+      source_book->replace(order_state.data);
+      if (order_state.dest == location::PUBLIC) {
+        continue;
+      }
+      auto dest_book = get_book(order_state.dest);
+      dest_book->replace(order_state.data);
     }
-    auto dest_book = get_book(trade_state.dest);
-    dest_book->replace(trade_state.data);
-  }
 
-  for (auto &pair : state_bank[boost::hana::type_c<AlgoOrderInput>]) {
-    auto &algo_order_input_state = pair.second;
-    auto source_book = get_book(algo_order_input_state.source);
-    source_book->replace(algo_order_input_state.data);
-    auto dest_book = get_book(algo_order_input_state.dest);
-    dest_book->replace(algo_order_input_state.data);
-  }
-
-  for (auto &pair : state_bank[boost::hana::type_c<AlgoOrder>]) {
-    auto &algo_order_state = pair.second;
-    auto source_book = get_book(algo_order_state.source);
-    source_book->replace(algo_order_state.data);
-    if (algo_order_state.dest == location::PUBLIC) {
-      continue;
+    for (auto &pair : state_bank[boost::hana::type_c<Trade>]) {
+      auto &trade_state = pair.second;
+      auto source_book = get_book(trade_state.source);
+      source_book->replace(trade_state.data);
+      if (trade_state.dest == location::PUBLIC) {
+        continue;
+      }
+      auto dest_book = get_book(trade_state.dest);
+      dest_book->replace(trade_state.data);
     }
-    auto dest_book = get_book(algo_order_state.dest);
-    dest_book->replace(algo_order_state.data);
+
+    for (auto &pair : state_bank[boost::hana::type_c<AlgoOrderInput>]) {
+      auto &algo_order_input_state = pair.second;
+      auto source_book = get_book(algo_order_input_state.source);
+      source_book->replace(algo_order_input_state.data);
+      auto dest_book = get_book(algo_order_input_state.dest);
+      dest_book->replace(algo_order_input_state.data);
+    }
+
+    for (auto &pair : state_bank[boost::hana::type_c<AlgoOrder>]) {
+      auto &algo_order_state = pair.second;
+      auto source_book = get_book(algo_order_state.source);
+      source_book->replace(algo_order_state.data);
+      if (algo_order_state.dest == location::PUBLIC) {
+        continue;
+      }
+      auto dest_book = get_book(algo_order_state.dest);
+      dest_book->replace(algo_order_state.data);
+    }
   }
 }
 

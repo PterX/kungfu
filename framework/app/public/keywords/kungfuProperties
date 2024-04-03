@@ -143,6 +143,7 @@ is_trading
 long_margin_ratio
 short_margin_ratio
 conversion_rate
+request_id
 order_id
 parent_id
 limit_price
@@ -353,11 +354,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
-Tick
-Depth
 SubscribeDataType
 Stock
 Future

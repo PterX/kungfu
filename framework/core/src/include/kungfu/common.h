@@ -343,14 +343,18 @@ template <typename DataType> struct data {
     });
   }
 
-  [[nodiscard]] std::string to_string() const {
+  [[nodiscard]] nlohmann::json to_json() const {
     nlohmann::json j = {};
     boost::hana::for_each(boost::hana::accessors<DataType>(), [&, this](auto it) {
       auto name = boost::hana::first(it);
       auto accessor = boost::hana::second(it);
       j[name.c_str()] = accessor(*reinterpret_cast<const DataType *>(this));
     });
-    return j.dump(-1, ' ', false, nlohmann::json::basic_json::error_handler_t::replace);
+    return j;
+  }
+
+  [[nodiscard]] std::string to_string() const {
+    return to_json().dump(-1, ' ', false, nlohmann::json::basic_json::error_handler_t::replace);
   }
 
   explicit operator std::string() const { return to_string(); }

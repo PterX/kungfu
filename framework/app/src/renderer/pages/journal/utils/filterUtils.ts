@@ -1,10 +1,29 @@
-import { OptionProps } from 'ant-design-vue/lib/select';
-import { computed, reactive } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { msgTypes } from './index';
+const { t } = VueI18n.global;
+
+export type ChannelRecords = Record<string, [number, number]>;
+export type TreeSelectProps = {
+  title?: string;
+  value?: string | number;
+  children?: TreeSelectProps[];
+};
 
 export enum FiltersEnum {
   DEST = 'DEST',
   SOURCE = 'SOURCE',
   MSG_TYPE = 'MSG_TYPE',
+}
+
+export enum msgTypeRange {
+  ACCOUNT_INFO = 0,
+  TRADE_RELATED,
+  QUERY_RELATED,
+  MARKET_RELATED,
+  MARKET_SUBSCRIPTION_RELATED,
+  OPERATOR_RELATED,
+  SYSTEM_RELATED,
 }
 
 export const createFiltersEnumMap = <T>(
@@ -18,61 +37,132 @@ export const createFiltersEnumMap = <T>(
   };
 };
 
-export const useFrameFilters = () => {
-  type OptionItem = {
-    label: string;
-    value: string;
-  };
+const initMsgTypeMaps = () => {
+  const msgTypesFilterOptions: TreeSelectProps[] = [
+    {
+      title: t('journalConfig.account_info'),
+      value: '0-1',
+      children: [],
+    },
+    {
+      title: t('journalConfig.trade_related'),
+      value: '0-2',
+      children: [],
+    },
+    {
+      title: t('journalConfig.query_related'),
+      value: '0-3',
+      children: [],
+    },
+    {
+      title: t('journalConfig.market_related'),
+      value: '0-4',
+      children: [],
+    },
+    {
+      title: t('journalConfig.market_subscription_related'),
+      value: '0-5',
+      children: [],
+    },
+    {
+      title: t('journalConfig.operator_related'),
+      value: '0-6',
+      children: [],
+    },
+    {
+      title: t('journalConfig.system_related'),
+      value: '0-7',
+      children: [],
+    },
+  ];
+  const allMsgTypes = Object.keys(msgTypes).map((key) => +key);
 
-  type FilterOptionMap = Record<FiltersEnum, OptionItem[]>;
+  Object.entries(msgTypes).forEach(([key, value]) => {
+    const numericKey = +key;
+    let messageTypeRange;
 
-  type FilterOptionresolvedMap = Record<FiltersEnum, OptionItem[]>;
+    if (numericKey > 100 && numericKey < 200) {
+      messageTypeRange = msgTypeRange.ACCOUNT_INFO;
+    } else if (numericKey > 200 && numericKey < 300) {
+      messageTypeRange = msgTypeRange.TRADE_RELATED;
+    } else if (numericKey > 300 && numericKey < 400) {
+      messageTypeRange = msgTypeRange.QUERY_RELATED;
+    } else if (numericKey > 400 && numericKey < 500) {
+      messageTypeRange = msgTypeRange.MARKET_RELATED;
+    } else if (numericKey > 500 && numericKey < 600) {
+      messageTypeRange = msgTypeRange.MARKET_SUBSCRIPTION_RELATED;
+    } else if (numericKey > 600 && numericKey < 700) {
+      messageTypeRange = msgTypeRange.OPERATOR_RELATED;
+    } else if (numericKey > 10000) {
+      messageTypeRange = msgTypeRange.SYSTEM_RELATED;
+    }
 
-  const filtersFormState = reactive<Record<FiltersEnum, string[]>>(
-    createFiltersEnumMap(() => []),
-  );
-
-  const filtersOptions = reactive<FilterOptionMap>(
-    createFiltersEnumMap<OptionItem[]>(() => []),
-  );
-
-  const filtersOptionsResolved = computed<FilterOptionresolvedMap>(() => {
-    console.log('filtersOptions', filtersOptions);
-    return Object.keys(filtersOptions).reduce<FilterOptionresolvedMap>(
-      (pre, item) => {
-        pre[item] = Object.values(filtersOptions[item]) as OptionItem[];
-
-        return pre;
-      },
-      {} as FilterOptionresolvedMap,
-    );
+    if (
+      messageTypeRange !== undefined &&
+      msgTypesFilterOptions[messageTypeRange] !== undefined
+    ) {
+      (
+        msgTypesFilterOptions[messageTypeRange].children as TreeSelectProps[]
+      ).push({
+        title: value,
+        value: numericKey,
+      });
+    }
   });
 
-  const optionSorter = (a: OptionProps, b: OptionProps) => {
-    const flagA = Number(/\d+/.test(a.key));
-    const flagB = Number(/\d+/.test(b.key));
-    if (flagA === flagB) {
-      return a.key.localeCompare(b.key);
-    } else if (flagA > flagB) {
-      return 1;
-    } else {
-      return -1;
-    }
+  return {
+    allMsgTypes,
+    msgTypesFilterOptions,
   };
+};
 
-  const addFilterOption = (filterEnum: FiltersEnum, options: OptionItem[]) => {
-    options.forEach((option) => {
-      if (option.value && !(option.value in filtersOptions[filterEnum])) {
-        filtersOptions[filterEnum][option.value] = option;
-      }
-    });
-  };
+export const useFrameFilters = (
+  read: boolean,
+  write: boolean,
+  selectedChannels: string[],
+  selectedMsgTypes: number[],
+) => {
+  const formState = reactive<{
+    write: boolean;
+    read: boolean;
+    selectedChannels: string[];
+    selectedMsgTypes: number[];
+  }>({
+    write: true,
+    read: true,
+    selectedChannels: [],
+    selectedMsgTypes: [],
+  });
+
+  const { msgTypesFilterOptions } = initMsgTypeMaps();
+
+  onMounted(() => {
+    formState.read = read;
+    formState.write = write;
+    formState.selectedChannels = selectedChannels;
+    formState.selectedMsgTypes = selectedMsgTypes;
+  });
 
   return {
-    filtersFormState,
-    filtersOptions,
-    filtersOptionsResolved,
-    optionSorter,
-    addFilterOption,
+    formState,
+    msgTypesFilterOptions,
+  };
+};
+
+export const MIS_TRADIND_MESSAGE_TYPE = 100;
+export const MAX_TRADING_MESSAGE_TYPE = 10000;
+
+export const useMsgTypesMap = () => {
+  const selectedMsgTypes = ref<number[]>([]);
+  const selectedMsgTypesMap = computed(() => {
+    return selectedMsgTypes.value.reduce((pre, key) => {
+      pre[key] = true;
+      return pre;
+    }, {} as Record<number, boolean>);
+  });
+
+  return {
+    selectedMsgTypes,
+    selectedMsgTypesMap,
   };
 };

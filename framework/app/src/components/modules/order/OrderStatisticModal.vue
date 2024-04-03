@@ -1,19 +1,26 @@
 <script setup lang="ts">
 import KfTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingDataTable.vue';
+
 import {
   useModalVisible,
   useTableSearchKeyword,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import {
+  dealOffset,
+  dealSide,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import { OrderStatusEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  dealOffset,
-  dealSide,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+  dealKfPrice,
+  dealKfDecimalPrecision,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';
 
+const { getPriceTickAndPrecision } = useActiveInstruments();
 const props = withDefaults(
   defineProps<{
     visible: boolean;
@@ -45,7 +52,7 @@ const cancelRatioMean = computed(() => {
       );
     })
     .map((item) => {
-      return +Number(item.volume_left) / +Number(item.volume);
+      return dealKfDecimalPrecision(item.volume_left / item.volume);
     });
 
   if (!cancelRatioBuckets.length) {
@@ -53,7 +60,7 @@ const cancelRatioMean = computed(() => {
   }
 
   const stats = new Stats().push(...cancelRatioBuckets);
-  return stats.amean().toFixed(2);
+  return stats.amean().kfToFixed(2);
 });
 
 const systemLatencyStats = computed(() => {
@@ -73,7 +80,7 @@ const systemLatencyStats = computed(() => {
   const stats = new Stats().push(...systemLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };
@@ -98,7 +105,7 @@ const networkLatencyStats = computed(() => {
   const stats = new Stats().push(...networkLatencyBuckets);
   const range = stats.range();
   return {
-    mean: stats.amean().toFixed(2),
+    mean: stats.amean().kfToFixed(2),
     min: range[0],
     max: range[1],
   };
@@ -132,12 +139,12 @@ const priceVolumeStats = computed(() => {
         }
 
         priceVolumeData[id].price.push(order.limit_price);
-        priceVolumeData[id].volume.push(+Number(order.volume));
+        priceVolumeData[id].volume.push(order.volume);
         priceVolumeData[id].volumeTraded.push(
-          +Number(order.volume - order.volume_left),
+          dealKfDecimalPrecision(order.volume - order.volume_left),
         );
         priceVolumeData[id].priceByVolume.push(
-          +Number(order.volume) * order.limit_price,
+          dealKfDecimalPrecision(order.volume * order.limit_price),
         );
         return priceVolumeData;
       },
@@ -147,8 +154,8 @@ const priceVolumeStats = computed(() => {
   const priceVolumeDataResolved: Array<{
     id: string;
     instrumentId_exchangeId: string;
-    side: KungfuApi.KfTradeValueCommonData;
-    offset: KungfuApi.KfTradeValueCommonData;
+    side: number;
+    offset: number;
     mean: string;
     min: string;
     max: string;
@@ -156,23 +163,29 @@ const priceVolumeStats = computed(() => {
   }> = Object.keys(priceVolumeData)
     .map((id) => {
       const [instrumentId, exchangeId, side, offset] = id.split('_');
+      const { price_precision } = getPriceTickAndPrecision(
+        instrumentId,
+        exchangeId,
+      );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
       const priceSum = priceVolumeData[id].priceByVolume.reduce(
         (a, b) => a + b,
       );
-      const volumeSum = priceVolumeData[id].volume.reduce((a, b) => a + b);
-      const volumeTradedSum = priceVolumeData[id].volumeTraded.reduce(
-        (a, b) => a + b,
+      const volumeSum = dealKfDecimalPrecision(
+        priceVolumeData[id].volume.reduce((a, b) => a + b),
+      );
+      const volumeTradedSum = dealKfDecimalPrecision(
+        priceVolumeData[id].volumeTraded.reduce((a, b) => a + b),
       );
       const range = priceStats.range();
       return {
         id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        side: dealSide(+side),
-        offset: dealOffset(+offset),
-        mean: Number(priceSum / volumeSum).toFixed(2),
-        min: range[0].toFixed(2),
-        max: range[1].toFixed(2),
+        side: +side,
+        offset: +offset,
+        mean: dealKfPrice(priceSum / volumeSum, price_precision),
+        min: dealKfPrice(range[0], price_precision),
+        max: dealKfPrice(range[1], price_precision),
         volume: `${volumeTradedSum} / ${volumeSum}`,
       };
     })
@@ -183,19 +196,18 @@ const priceVolumeStats = computed(() => {
   return priceVolumeDataResolved;
 });
 
-const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
-  'instrumentId_exchangeId',
-  'side',
-  'offset',
-  'mean',
-  'min',
-  'max',
-  'volume',
-]);
+const { searchKeyword, tableData } = useTableSearchKeyword(
+  priceVolumeStats,
+  ['instrumentId_exchangeId', 'mean', 'min', 'side', 'offset', 'max', 'volume'],
+  {
+    side: (item) => dealSide(Number(item)).name,
+    offset: (item) => dealOffset(Number(item)).name,
+  },
+);
 </script>
 <template>
   <a-modal
-    :width="720"
+    :width="800"
     class="kf-order-statistic-modal"
     v-model:visible="modalVisible"
     :title="`${$t('orderConfig.entrust_statistical')} ${
@@ -233,14 +245,14 @@ const { searchKeyword, tableData } = useTableSearchKeyword(priceVolumeStats, [
           :columns="statisColums"
         >
           <template #default="{ column, item }">
-            <template v-if="column.dataIndex === 'side'">
-              <span :class="`color-${item.side.color}`">
-                {{ item.side.name }}
+            <template v-if="column.dataIndex === 'sideName'">
+              <span :class="`color-${dealSide(item.side).color}`">
+                {{ dealSide(item.side).name }}
               </span>
             </template>
-            <template v-else-if="column.dataIndex === 'offset'">
-              <span :class="`color-${item.offset.color}`">
-                {{ item.offset.name }}
+            <template v-else-if="column.dataIndex === 'offsetName'">
+              <span :class="`color-${dealOffset(item.offset).color}`">
+                {{ dealOffset(item.offset).name }}
               </span>
             </template>
           </template>

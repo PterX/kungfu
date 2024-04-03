@@ -86,25 +86,31 @@ const getKfcCmdArgs = () => {
   return cmdMap[getCurrentMode()];
 };
 
-const getCmakeCmdArgs = () => {
+const getCmakeCmdArgs = (buildType) => {
   const cmdMap = {
-    [ModeMap.IN_CORE]: { cmd: 'yarn', args: ['cmake-js', 'build'] },
+    [ModeMap.IN_CORE]: {
+      cmd: 'yarn',
+      args: ['cmake-js', 'build', '--config', buildType],
+    },
     [ModeMap.IN_PROD_APP]: {
       cmd: 'cmake',
-      args: ['-S', './', '-B', './build', '-DCMAKE_BUILD_TYPE=Release'],
+      args: ['-S', './', '-B', './build', `-DCMAKE_BUILD_TYPE=${buildType}`],
     },
-    [ModeMap.IN_SDK_SRC]: { cmd: 'yarn', args: ['cmake-js', 'build'] },
+    [ModeMap.IN_SDK_SRC]: {
+      cmd: 'yarn',
+      args: ['cmake-js', 'build', '--config', buildType],
+    },
   };
 
   return cmdMap[getCurrentMode()];
 };
 
-const getCmakeNextCmdArgs = () => {
+const getCmakeNextCmdArgs = (buildType) => {
   const cmdMap = {
     [ModeMap.IN_CORE]: null,
     [ModeMap.IN_PROD_APP]: {
       cmd: 'cmake',
-      args: ['--build', './build', '--config', 'Release'],
+      args: ['--build', './build', '--config', buildType],
     },
     [ModeMap.IN_SDK_SRC]: null,
   };
@@ -152,7 +158,9 @@ const parseByCli = (cli, isRootCli = false) => {
 module.exports = {
   isProduction,
   kfcName,
+  ModeMap,
   dealPath,
+  getCurrentMode,
   getKfcPath,
   getKfcCmdArgs,
   getCmakeCmdArgs,

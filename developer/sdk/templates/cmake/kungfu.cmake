@@ -20,6 +20,7 @@ macro(kungfu_setup MODULE_NAME)
   <%_ }); _%>
 
   link_directories("<%- kfcDir -%>")
+  link_directories("<%- kfcDir -%>/libs")
   <%_ links.forEach((dir, i) => { _%>
   link_directories("<%= dir %>")
   <%_ }); _%>
@@ -27,7 +28,11 @@ macro(kungfu_setup MODULE_NAME)
   <%_ sources.forEach((dir, i) => { _%>
   aux_source_directory("<%- dir %>" SOURCE_<%- i %>)
   <%_ }); _%>
-  set(SOURCES <%= extraSource %> <%= sources.map((dir, i) => '${SOURCE_' + i + '}').join(' ') %>)
+  <%_ externalSources.forEach((dir, i) => { _%>
+  include_directories("<%- dir %>")
+  aux_source_directory("<%- dir %>" EXTERNAL_SOURCE_<%- i %>)
+  <%_ }); _%>
+  set(SOURCES <%= extraSource %> <%= sources.map((dir, i) => '${SOURCE_' + i + '}').join(' ') %> <%= externalSources.map((dir, i) => '${EXTERNAL_SOURCE_' + i + '}').join(' ') %>)
 
   set(BUILD_OUTPUT_DIR "${PROJECT_BINARY_DIR}/target")
 
@@ -43,7 +48,34 @@ macro(kungfu_setup MODULE_NAME)
 
   <%- makeTarget %>(${MODULE_NAME} <%- makeTargetLinkType %> ${SOURCES})
   target_link_libraries(${MODULE_NAME} PRIVATE kungfu <%- targetLinks %>)
+  if (NOT WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_libraries(${MODULE_NAME} PRIVATE sqlite3)
+  endif ()  
   set_target_properties(${MODULE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
   set_target_properties(${MODULE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
+
+  if (<%- gtestEnabled %>)
+    target_link_libraries(${MODULE_NAME} PRIVATE gtest gmock)
+
+    set(EXE_NAME ${MODULE_NAME}_gtest)
+    add_executable(${EXE_NAME} ${SOURCES})
+    target_link_libraries(${EXE_NAME} PRIVATE kungfu gtest gmock gmock_main <%- targetLinks %>)
+    set_target_properties(${EXE_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${BUILD_OUTPUT_DIR})
+    set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_OUTPUT_DIR})
+    set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_OUTPUT_DIR})
+
+    if (NOT MSVC)
+      target_link_libraries(${EXE_NAME} PRIVATE pthread)
+    endif ()
+
+    if("<%- makeTarget %>" STREQUAL "pybind11_add_module" )
+      target_include_directories(${EXE_NAME} PRIVATE "<%- kfcDir -%>/pybind11/include")
+      find_package(Python3 COMPONENTS Development REQUIRED)
+      message(STATUS "Python Python3_INCLUDE_DIRS: ${Python3_INCLUDE_DIRS}")
+      message(STATUS "Python Python3_LIBRARIES: ${Python3_LIBRARIES}")
+      target_include_directories(${EXE_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
+      target_link_libraries(${EXE_NAME} PRIVATE ${Python3_LIBRARIES})
+    endif ()
+  endif ()
 endmacro()

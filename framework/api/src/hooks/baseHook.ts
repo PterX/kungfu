@@ -1,40 +1,50 @@
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+
 export class ResetOptionHook<Method, ValueType> {
   hookName: string;
   hooks: Record<string, Method>;
-  constructor(name: string) {
-    this.hookName = name;
+  constructor(hookName: string) {
+    this.hookName = hookName;
     this.hooks = new Proxy(
       {},
       {
         get(target: Record<string, Method>, prop: string) {
           const locationPairs = prop.split('_');
-          if (locationPairs.length != 3) {
-            console.warn(`Invalid hook key: ${prop}`);
+          if (locationPairs.length != 4) {
+            kfLogger.warn(`Invalid ${hookName} hook key: ${prop}`);
             return [];
           }
+          const [category, group, name, mode] = prop.split('_');
+          const originalKeys: [string, string, string, string] = [
+            category,
+            group,
+            name,
+            mode,
+          ];
 
-          const [category, group, name] = prop.split('_');
-          if (target[`${category}_${group}_${name}`]) {
-            return target[`${category}_${group}_${name}`];
-          } else if (target[`${category}_*_${name}`]) {
-            return target[`${category}_*_${name}`];
-          } else if (target[`${category}_${group}_*`]) {
-            return target[`${category}_${group}_*`];
-          } else if (target[`${category}_*_*`]) {
-            return target[`${category}_*_*`];
-          }
+          const findMatchingKey = () => {
+            for (const key of generateLocationCombinations(originalKeys)) {
+              if (target[key]) {
+                return target[key];
+              }
+            }
+            return (
+              _kfLocation: KungfuApi.DerivedKfLocation,
+              value: ValueType,
+            ) => Promise.resolve(value);
+          };
 
-          return (kfLocation: KungfuApi.DerivedKfLocation, value: ValueType) =>
-            Promise.resolve(value);
+          return findMatchingKey();
         },
 
         set(target: Record<string, Method>, prop: string, value: Method) {
           if (Reflect.has(target, prop)) {
-            console.warn(`${name} hook ${prop} already exists`);
+            kfLogger.warn(`${hookName} hook ${prop} already exists`);
             return true;
           }
 
-          console.log(`${name} hook ${prop} register success`);
+          kfLogger.info(`${hookName} hook ${prop} register success`);
           Reflect.set(target, prop, value);
           return true;
         },
@@ -43,17 +53,26 @@ export class ResetOptionHook<Method, ValueType> {
   }
 
   register(kfLocation: KungfuApi.DerivedKfLocation, method: Method) {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     Reflect.set(this.hooks, key, method);
+  }
+
+  unregister(kfLocation: KungfuApi.DerivedKfLocation) {
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
+    if (Reflect.has(this.hooks, key)) {
+      Reflect.deleteProperty(this.hooks, key);
+      kfLogger.info(`Unregistered ${this.hookName} hook: ${key}`);
+    }
   }
 
   trigger(
     kfLocation: KungfuApi.DerivedKfLocation,
     options: ValueType,
   ): Promise<ValueType> {
-    const { category, group, name } = kfLocation;
-    const key = `${category}_${group}_${name}`;
+    const { category, group, name, mode } = kfLocation;
+    const key = `${category}_${group}_${name}_${mode}`;
     return Reflect.get(this.hooks, key)(kfLocation, options);
   }
 }

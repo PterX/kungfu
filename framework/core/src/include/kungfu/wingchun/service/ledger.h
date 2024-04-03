@@ -7,6 +7,7 @@
 #ifndef WINGCHUN_LEDGER_H
 #define WINGCHUN_LEDGER_H
 
+#include <kungfu/wingchun/book/book.h>
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/io.h>
@@ -15,15 +16,13 @@
 
 namespace kungfu::wingchun::service {
 
-// key = hash_instrument(exchange_id, instrument_id)
-
 class Ledger : public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::BrokerStateUpdate> BrokerStateMap;
   typedef std::unordered_map<uint32_t, longfist::types::OperatorStateUpdate> OperatorStateMap;
-  typedef std::unordered_map<uint32_t, longfist::types::Position> PositionMap;
 
 public:
-  explicit Ledger(yijinjing::data::locator_ptr locator, longfist::enums::mode m, bool low_latency = false);
+  explicit Ledger(yijinjing::data::locator_ptr locator, const std::string &group, const std::string &name,
+                  longfist::enums::mode m, bool low_latency, const std::string &arguments = "{}");
 
   ~Ledger() override = default;
 
@@ -37,11 +36,14 @@ protected:
 private:
   broker::AutoClient broker_client_;
   book::Bookkeeper bookkeeper_;
-  book::BookMap tmp_books_;
+  std::unordered_map<uint32_t, book::Book> tmp_books_ = {};
   std::unordered_map<uint64_t, state<longfist::types::OrderStat>> order_stats_ = {};
   BrokerStateMap broker_states_ = {};
   OperatorStateMap operator_states_ = {};
-  bool is_sync_;
+  bool sync_asset_ = false;
+  bool sync_position_ = false;
+
+  static bool bypass_refresh_book();
 
   void on_deregister(const longfist::types::Deregister &deregister);
 
@@ -49,7 +51,7 @@ private:
 
   void refresh_account_book(int64_t trigger_time, uint32_t account_uid);
 
-  longfist::types::OrderStat &get_order_stat(uint64_t order_id, const event_ptr &event);
+  longfist::types::OrderStat &ensure_order_stat(uint64_t order_id, const event_ptr &event);
 
   void update_order_stat(const event_ptr &event, const longfist::types::OrderInput &data);
 
@@ -73,20 +75,18 @@ private:
 
   template <typename AppStateMap>
   void write_app_state(int64_t trigger_time, uint32_t source_id, const AppStateMap &app_states) {
-    auto writer = get_writer(source_id);
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
-      writer->write(trigger_time, app_state);
+      try_write_to(trigger_time, pair.second, source_id);
       SPDLOG_INFO("response to StateRequest, write to location {}, app {} state {}", get_location_uname(source_id),
                   get_location_uname(app_state.location_uid), static_cast<int>(app_state.state));
     }
   };
 
   template <typename AppStateMap> void write_app_state_to_public(const AppStateMap &app_states) {
-    auto writer = get_writer(yijinjing::data::location::PUBLIC);
     for (const auto &pair : app_states) {
       auto &app_state = pair.second;
-      writer->write(now(), app_state);
+      try_write_to(now(), app_state, yijinjing::data::location::PUBLIC);
       SPDLOG_INFO("write to public location app {} state {}", get_location_uname(app_state.location_uid),
                   static_cast<int>(app_state.state));
     }
@@ -96,7 +96,7 @@ private:
 
   void write_strategy_data(int64_t trigger_time, uint32_t strategy_uid);
 
-  void write_positions(int64_t trigger_time, uint32_t dest, book::PositionMap &positions);
+  void write_positions(int64_t trigger_time, uint32_t dest, map::PositionMap &positions);
 
   void request_asset_sync(int64_t trigger_time);
 
@@ -113,9 +113,9 @@ private:
       return;
     }
     auto book = bookkeeper_.get_book(book_uid);
-    write_to(trigger_time, book->get_position_for(data), book_uid);
+    auto apply = [&](auto &position) { try_write_to(trigger_time, position, book_uid); };
+    book->apply_position_for(data, apply);
     write_to(trigger_time, book->asset, book_uid);
-    write_to(trigger_time, book->asset_margin, book_uid);
   }
 };
 } // namespace kungfu::wingchun::service

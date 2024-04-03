@@ -54,7 +54,7 @@ inline bool GetBool(const Napi::CallbackInfo &info, int i) {
   return info[i].As<Napi::Boolean>().Value();
 }
 
-inline bool GetNumber(const Napi::CallbackInfo &info, int i) {
+inline int32_t GetNumber(const Napi::CallbackInfo &info, int i) {
   if (not IsValid(info, i, &Napi::Value::IsNumber)) {
     throw Napi::Error::New(info.Env(), "Invalid number argument index: " + std::to_string(i));
   }

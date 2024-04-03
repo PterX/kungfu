@@ -3,6 +3,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
+#include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
@@ -12,9 +13,9 @@ class CacheTool {
   static int64_t parse_time(const std::string &time);
 
 public:
-  CacheTool(longfist::enums::category category, std::string group, std::string name, std::string start_time,
+  CacheTool(longfist::enums::category category, std::string group, std::string name, std::string begin_time,
             std::string end_time, yijinjing::data::locator_ptr locator, bool overwrite = true);
-  CacheTool(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
+  CacheTool(longfist::enums::category category, std::string group, std::string name, int64_t begin_time,
             int64_t end_time, yijinjing::data::locator_ptr locator, bool overwrite = true);
 
   virtual ~CacheTool() = default;
@@ -73,13 +74,13 @@ protected:
 
 class CacheToolWriter : public CacheTool {
 public:
-  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, std::string start_time,
+  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, std::string begin_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, start_time, end_time, locator, true) {}
+      : CacheTool(category, group, name, begin_time, end_time, locator, true) {}
 
-  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
+  CacheToolWriter(longfist::enums::category category, std::string group, std::string name, int64_t begin_time,
                   int64_t end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, start_time, end_time, locator, true) {}
+      : CacheTool(category, group, name, begin_time, end_time, locator, true) {}
 
   void write_raw(int64_t time_stamp, int32_t msg_type, uint32_t dest_id, uintptr_t data, uint32_t length) {
     write_raw_at(time_stamp, time_stamp, dest_id, msg_type, data, length);
@@ -88,13 +89,13 @@ public:
 
 class CacheToolReader : public CacheTool {
 public:
-  CacheToolReader(longfist::enums::category category, std::string group, std::string name, std::string start_time,
+  CacheToolReader(longfist::enums::category category, std::string group, std::string name, std::string begin_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, start_time, end_time, locator, false) {}
+      : CacheTool(category, group, name, begin_time, end_time, locator, false) {}
 
-  CacheToolReader(longfist::enums::category category, std::string group, std::string name, int64_t start_time,
+  CacheToolReader(longfist::enums::category category, std::string group, std::string name, int64_t begin_time,
                   int64_t end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, start_time, end_time, locator, false) {}
+      : CacheTool(category, group, name, begin_time, end_time, locator, false) {}
 
   yijinjing::journal::frame_ptr current_frame() const { return CacheTool::current_frame(); }
 

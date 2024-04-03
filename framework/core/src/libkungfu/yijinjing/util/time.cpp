@@ -52,8 +52,8 @@ uint32_t time::nano_hashed(int64_t nano_time) {
 }
 
 int64_t time::next_trading_day_end(int64_t nanotime) {
-  int64_t end_offset = 15 * time_unit::NANOSECONDS_PER_HOUR + 30 * time_unit::NANOSECONDS_PER_MINUTE;
-  int64_t trading_day = nanotime - nanotime % time_unit::NANOSECONDS_PER_DAY - time_unit::UTC_OFFSET + end_offset;
+  int64_t end_offset = 16 * time_unit::NANOSECONDS_PER_HOUR;
+  int64_t trading_day = nanotime - ((nanotime + time_unit::UTC_OFFSET) % time_unit::NANOSECONDS_PER_DAY) + end_offset;
   if (trading_day < now_in_nano()) {
     trading_day += time_unit::NANOSECONDS_PER_DAY;
   }
@@ -61,10 +61,12 @@ int64_t time::next_trading_day_end(int64_t nanotime) {
 }
 
 int64_t time::calendar_day_start(int64_t nanotime) {
-  return nanotime - (nanotime % time_unit::NANOSECONDS_PER_DAY) - time_unit::UTC_OFFSET;
+  return nanotime - ((nanotime + time_unit::UTC_OFFSET) % time_unit::NANOSECONDS_PER_DAY);
 }
 
 int64_t time::today_start() { return calendar_day_start(time::now_in_nano()); }
+
+int64_t time::trading_day_start() { return next_trading_day_end(time::now_in_nano()) - time_unit::NANOSECONDS_PER_DAY; }
 
 int64_t time::strptime(const std::string &time_string, const std::string &format) {
   int64_t nano = 0;
@@ -87,8 +89,12 @@ int64_t time::strptime(const std::string &time_string, const std::string &format
   }
 
   std::tm result = {};
+#ifdef __linux__
+  ::strptime(normal_timestr.c_str(), normal_format.c_str(), &result);
+#else
   std::istringstream iss(normal_timestr);
   iss >> std::get_time(&result, normal_format.c_str());
+#endif
   std::time_t parsed_time = std::mktime(&result);
   auto tp_system = system_clock::from_time_t(parsed_time);
   return duration_cast<nanoseconds>(tp_system.time_since_epoch()).count() + nano;

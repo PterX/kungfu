@@ -20,15 +20,16 @@ import {
   StrategyExtTypes,
   UnderweightEnum,
   OrderInputKeyEnum,
-  FrameMsgTypeEnum,
   AddOperatorTypeEnum,
   PriceLevelEnum,
   BasketVolumeTypeEnum,
-  BasketOrderStatusEnum,
   CurrencyEnum,
+  OrderTriggerStatusEnum,
+  FundTransEnum,
+  OrderTriggerFlag,
 } from '../typings/enums';
 
-import { Pm2ProcessStatusTypes } from '../utils/processUtils';
+import { Pm2ProcessStatusTypes } from '../typings/common';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -154,11 +155,6 @@ export const KfCategory: Record<
     color: 'red',
     level: 100,
   },
-  [KfCategoryEnum.daemon]: {
-    name: t('tradingConfig.daemon'),
-    color: 'purple',
-    level: 90,
-  },
   [KfCategoryEnum.md]: {
     name: t('tradingConfig.md'),
     color: 'orange',
@@ -197,6 +193,46 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   [OffsetEnum.CloseYest]: {
     name: t('tradingConfig.close_yesterday'),
     color: 'green',
+  },
+  [OffsetEnum.Unknown]: {
+    name: t('tradingConfig.unknown'),
+    color: 'default',
+  },
+};
+
+export const MarginSideConfig: Record<
+  string,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [SideEnum.GuaranteeStockBuy]: {
+    name: t('tradingConfig.guarantee_stock_buy'),
+    color: 'red',
+    level: SideEnum.GuaranteeStockBuy,
+  },
+  [SideEnum.GuaranteeStockSell]: {
+    name: t('tradingConfig.guarantee_stock_sell'),
+    color: 'green',
+    level: SideEnum.GuaranteeStockSell,
+  },
+  [SideEnum.MarginTrade]: {
+    name: t('tradingConfig.margin_trade'),
+    color: 'red',
+    level: SideEnum.MarginTrade,
+  },
+  [SideEnum.ShortSell]: {
+    name: t('tradingConfig.short_sell'),
+    color: 'green',
+    level: SideEnum.ShortSell,
+  },
+  [SideEnum.RepayStock]: {
+    name: t('tradingConfig.repay_short'),
+    color: 'red',
+    level: SideEnum.RepayStock,
+  },
+  [SideEnum.RepayMargin]: {
+    name: t('tradingConfig.repay_margin'),
+    color: 'green',
+    level: SideEnum.RepayMargin,
   },
 };
 
@@ -277,6 +313,15 @@ export const Side: Record<SideEnum, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.guarantee_stock_redeem'),
     color: 'green',
   },
+
+  [SideEnum.GuaranteeStockBuy]: {
+    name: t('tradingConfig.guarantee_stock_buy'),
+    color: 'red',
+  },
+  [SideEnum.GuaranteeStockSell]: {
+    name: t('tradingConfig.guarantee_stock_sell'),
+    color: 'green',
+  },
   [SideEnum.Unknown]: {
     name: t('tradingConfig.unknown'),
     color: 'default',
@@ -297,6 +342,10 @@ export const OrderStatus: Record<
   },
   [OrderStatusEnum.Pending]: {
     name: t('tradingConfig.pending'),
+    color: 'default',
+  },
+  [OrderStatusEnum.Cancelling]: {
+    name: t('tradingConfig.cancelling'),
     color: 'default',
   },
   [OrderStatusEnum.Cancelled]: {
@@ -323,32 +372,46 @@ export const OrderStatus: Record<
     name: t('tradingConfig.lost'),
     color: 'default',
   },
+  [OrderStatusEnum.Pause]: {
+    name: t('tradingConfig.pause'),
+    color: 'default',
+  },
+  [OrderStatusEnum.PendingSettlement]: {
+    name: t('tradingConfig.pending_settlement'),
+    color: 'default',
+  },
 };
 
-export const BasketOrderStatus: Record<
-  BasketOrderStatusEnum,
-  KungfuApi.KfTradeValueCommonData
-> = {
-  [BasketOrderStatusEnum.Unknown]: {
-    name: t('tradingConfig.unknown'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.Pending]: {
-    name: t('tradingConfig.pending'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.PartialFilledNotActive]: {
-    name: t('tradingConfig.partial_filled_not_active'),
-    color: 'green',
-  },
-  [BasketOrderStatusEnum.PartialFilledActive]: {
-    name: t('tradingConfig.partial_filled_active'),
-    color: 'default',
-  },
-  [BasketOrderStatusEnum.Filled]: {
-    name: t('tradingConfig.filled'),
-    color: 'green',
-  },
+export const MarginSideStatus = [
+  SideEnum.GuaranteeStockBuy,
+  SideEnum.GuaranteeStockSell,
+  SideEnum.MarginTrade,
+  SideEnum.ShortSell,
+  SideEnum.RepayStock,
+  SideEnum.RepayMargin,
+];
+
+export const getOrderStatusStyle = (name: string) => {
+  switch (name) {
+    case t('tradingConfig.unknown'):
+    case t('tradingConfig.submitted'):
+    case t('tradingConfig.pending'):
+    case t('tradingConfig.cancelling'):
+    case t('tradingConfig.cancelled'):
+      return 'default';
+    case t('tradingConfig.error'):
+      return 'red';
+    case t('tradingConfig.filled'):
+    case t('tradingConfig.partial_filled_not_active'):
+      return 'green';
+    case t('tradingConfig.partial_filled_active'):
+    case t('tradingConfig.lost'):
+    case t('tradingConfig.pause'):
+    case t('tradingConfig.pending_settlement'):
+      return 'default';
+    default:
+      return 'red';
+  }
 };
 
 export const UnfinishedOrderStatus = [
@@ -356,6 +419,8 @@ export const UnfinishedOrderStatus = [
   OrderStatusEnum.Pending,
   OrderStatusEnum.Submitted,
   OrderStatusEnum.PartialFilledActive,
+  OrderStatusEnum.Cancelling,
+  OrderStatusEnum.PendingSettlement,
 ];
 
 export const NotTradeAllOrderStatus = [
@@ -368,6 +433,22 @@ export const NotTradeAllOrderStatus = [
 export const WellFinishedOrderStatus = [
   OrderStatusEnum.Cancelled,
   OrderStatusEnum.Filled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
+export const WellCancelledOrderStatus = [
+  OrderStatusEnum.Cancelled,
+  OrderStatusEnum.PartialFilledNotActive,
+];
+
+export const AllFinishedOrderStatus = [
+  ...WellFinishedOrderStatus,
+  OrderStatusEnum.Error,
+  OrderStatusEnum.Lost,
+];
+
+export const OrderCancelledStatus = [
+  OrderStatusEnum.Cancelled,
   OrderStatusEnum.PartialFilledNotActive,
 ];
 
@@ -400,6 +481,15 @@ export const PriceType: Record<
   [PriceTypeEnum.Fok]: {
     name: t('tradingConfig.Fok'),
   },
+  [PriceTypeEnum.EnhancedLimit]: {
+    name: t('tradingConfig.EnhancedLimit'),
+  },
+  [PriceTypeEnum.AtAuctionLimit]: {
+    name: t('tradingConfig.AtAuctionLimit'),
+  },
+  [PriceTypeEnum.AtAuction]: {
+    name: t('tradingConfig.AtAuction'),
+  },
   [PriceTypeEnum.Unknown]: { name: t('tradingConfig.unknown') },
 };
 
@@ -408,16 +498,16 @@ export const PriceLevel: Record<
   KungfuApi.KfTradeValueCommonData
 > = {
   [PriceLevelEnum.Latest]: { name: t('tradingConfig.latest') },
-  [PriceLevelEnum.Sell5]: { name: t('tradingConfig.sell5') },
-  [PriceLevelEnum.Sell4]: { name: t('tradingConfig.sell4') },
-  [PriceLevelEnum.Sell3]: { name: t('tradingConfig.sell3') },
-  [PriceLevelEnum.Sell2]: { name: t('tradingConfig.sell2') },
-  [PriceLevelEnum.Sell1]: { name: t('tradingConfig.sell1') },
-  [PriceLevelEnum.Buy1]: { name: t('tradingConfig.buy1') },
-  [PriceLevelEnum.Buy2]: { name: t('tradingConfig.buy2') },
-  [PriceLevelEnum.Buy3]: { name: t('tradingConfig.buy3') },
-  [PriceLevelEnum.Buy4]: { name: t('tradingConfig.buy4') },
-  [PriceLevelEnum.Buy5]: { name: t('tradingConfig.buy5') },
+  [PriceLevelEnum.Opposing5]: { name: t('tradingConfig.Opposing5') },
+  [PriceLevelEnum.Opposing4]: { name: t('tradingConfig.Opposing4') },
+  [PriceLevelEnum.Opposing3]: { name: t('tradingConfig.Opposing3') },
+  [PriceLevelEnum.Opposing2]: { name: t('tradingConfig.Opposing2') },
+  [PriceLevelEnum.Opposing1]: { name: t('tradingConfig.Opposing1') },
+  [PriceLevelEnum.Own1]: { name: t('tradingConfig.Own1') },
+  [PriceLevelEnum.Own2]: { name: t('tradingConfig.Own2') },
+  [PriceLevelEnum.Own3]: { name: t('tradingConfig.Own3') },
+  [PriceLevelEnum.Own4]: { name: t('tradingConfig.Own4') },
+  [PriceLevelEnum.Own5]: { name: t('tradingConfig.Own5') },
   [PriceLevelEnum.UpperLimitPrice]: { name: t('tradingConfig.up_limit_price') },
   [PriceLevelEnum.LowerLimitPrice]: {
     name: t('tradingConfig.low_limit_price'),
@@ -451,6 +541,41 @@ export const TimeCondition: Record<
   [TimeConditionEnum.IOC]: { name: t('tradingConfig.IOC') },
   [TimeConditionEnum.GFD]: { name: t('tradingConfig.GFD') },
   [TimeConditionEnum.GTC]: { name: t('tradingConfig.GTC') },
+  [TimeConditionEnum.GFS]: { name: t('tradingConfig.GFS') },
+  [TimeConditionEnum.GTD]: { name: t('tradingConfig.GTD') },
+  [TimeConditionEnum.GFA]: { name: t('tradingConfig.GFA') },
+  [TimeConditionEnum.Unknown]: { name: t('tradingConfig.unknown') },
+};
+
+export const OrderTriggerStatus: Record<
+  OrderTriggerStatusEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerStatusEnum.Unknown]: { name: '' },
+  [OrderTriggerStatusEnum.Pending]: {
+    name: t('tradingConfig.order_trigger_status_pending'),
+    color: 'default',
+  },
+  [OrderTriggerStatusEnum.Submitted]: {
+    name: t('tradingConfig.order_trigger_status_submitted'),
+    color: 'default',
+  },
+  [OrderTriggerStatusEnum.Filled]: {
+    name: t('tradingConfig.order_trigger_status_filled'),
+    color: 'green',
+  },
+  [OrderTriggerStatusEnum.Cancelled]: {
+    name: t('tradingConfig.order_trigger_status_cancelled'),
+    color: 'red',
+  },
+  [OrderTriggerStatusEnum.Error]: {
+    name: t('tradingConfig.order_trigger_status_error'),
+    color: 'red',
+  },
+  [OrderTriggerStatusEnum.Cancelling]: {
+    name: t('tradingConfig.order_trigger_status_cancelling'),
+    color: 'default',
+  },
 };
 
 export const CommissionMode: Record<
@@ -476,6 +601,24 @@ export const BasketVolumeType: Record<
   [BasketVolumeTypeEnum.Proportion]: {
     name: t('tradingConfig.by_proportion'),
     color: 'purple',
+  },
+};
+
+export const FundTransType: Record<
+  FundTransEnum,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [FundTransEnum.Error]: {
+    name: t('fundTrans.error'),
+    color: 'red',
+  },
+  [FundTransEnum.Pending]: {
+    name: t('fundTrans.pending'),
+    color: 'gray',
+  },
+  [FundTransEnum.Success]: {
+    name: t('fundTrans.success'),
+    color: 'green',
   },
 };
 
@@ -586,15 +729,21 @@ export const ShotableInstrumentTypes = [
   InstrumentTypeEnum.multi,
 ];
 
+export const showVolumeSideTypes = [
+  SideEnum.GuaranteeStockSell,
+  SideEnum.RepayMargin,
+];
+
 export const T0InstrumentTypes = [
-  InstrumentTypeEnum.cryptofuture,
-  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.bond,
   InstrumentTypeEnum.stockoption,
+  InstrumentTypeEnum.crypto,
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
 ];
 
-export const T0ExchangeIds = ['US', 'HK'];
+export const T0ExchangeIds = ['US', 'HK', 'SHHK', 'SZHK'];
 
 export const AbleSubscribeInstrumentTypesBySourceType: Record<
   InstrumentTypes,
@@ -626,11 +775,23 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
 
   repo: [InstrumentTypeEnum.repo],
 
-  crypto: [InstrumentTypeEnum.crypto],
+  crypto: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
-  cryptofuture: [InstrumentTypeEnum.cryptofuture],
+  cryptofuture: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
-  cryptoufuture: [InstrumentTypeEnum.cryptoufuture],
+  cryptoufuture: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
   multi: [
     InstrumentTypeEnum.stock,
@@ -664,6 +825,10 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.SHFE'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
   },
+  GFEX: {
+    name: t('tradingConfig.GFEX'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
+  },
   DCE: {
     name: t('tradingConfig.DCE'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
@@ -682,6 +847,14 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
   },
   HK: {
     name: t('tradingConfig.HK'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
+  },
+  SHHK: {
+    name: t('tradingConfig.SHHK'),
+    color: InstrumentType[InstrumentTypeEnum.stock].color,
+  },
+  SZHK: {
+    name: t('tradingConfig.SZHK'),
     color: InstrumentType[InstrumentTypeEnum.stock].color,
   },
   HKFUT: {
@@ -872,6 +1045,18 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.IPM'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
   },
+  'OKX-SPOT': {
+    name: t('tradingConfig.OKX_SPOT'),
+    color: InstrumentType[InstrumentTypeEnum.crypto].color,
+  },
+  'OKX-USD-FUTURE': {
+    name: t('tradingConfig.OKX_USD_FUTURE'),
+    color: InstrumentType[InstrumentTypeEnum.cryptoufuture].color,
+  },
+  'OKX-COIN-FUTURE': {
+    name: t('tradingConfig.OKX_COIN_FUTURE'),
+    color: InstrumentType[InstrumentTypeEnum.cryptofuture].color,
+  },
 };
 
 export const FutureArbitrageCodes: Record<
@@ -899,50 +1084,6 @@ export const SystemProcessName: Record<
   master: { name: t('tradingConfig.master') },
   ledger: { name: t('tradingConfig.ledger') },
   archive: { name: t('tradingConfig.archive') },
-};
-
-export const JournalFrameMsgType: Partial<
-  Record<
-    FrameMsgTypeEnum,
-    KungfuApi.KfTradeValueCommonData | { name: string; color: string }
-  >
-> = {
-  [FrameMsgTypeEnum.Order]: {
-    name: 'Order',
-    color: 'rgb(245, 34, 45)',
-  },
-  [FrameMsgTypeEnum.OrderInput]: {
-    name: 'OrderInput',
-    color: 'rgb(250, 84, 28)',
-  },
-  [FrameMsgTypeEnum.Trade]: {
-    name: 'Trade',
-    color: 'rgb(250, 140, 22)',
-  },
-  [FrameMsgTypeEnum.Position]: {
-    name: 'Position',
-    color: 'rgb(250, 219, 20)',
-  },
-  [FrameMsgTypeEnum.Asset]: {
-    name: 'Asset',
-    color: 'rgb(160, 217, 17)',
-  },
-  [FrameMsgTypeEnum.AssetMargin]: {
-    name: 'AssetMargin',
-    color: 'rgb(82, 196, 26)',
-  },
-  [FrameMsgTypeEnum.Quote]: {
-    name: 'Quote',
-    color: 'rgb(24, 144, 255)',
-  },
-  [FrameMsgTypeEnum.Entrust]: {
-    name: 'Entrust',
-    color: 'rgb(47, 84, 235)',
-  },
-  [FrameMsgTypeEnum.Transaction]: {
-    name: 'Transaction',
-    color: 'rgb(83, 29, 171)',
-  },
 };
 
 export const AddOperatorType: Record<
@@ -980,3 +1121,82 @@ export const Currency: Record<CurrencyEnum, KungfuApi.KfTradeValueCommonData> =
     [CurrencyEnum.MYR]: { name: t('tradingConfig.MYR') },
     [CurrencyEnum.CEN]: { name: t('tradingConfig.CEN') },
   };
+
+export const ExportTradingDataColumnsToFilter: Record<
+  KungfuApi.TradingDataTypeName,
+  string[]
+> = {
+  Position: ['dest', 'source'],
+  Trade: [],
+  AlgoOrder: [],
+  Order: [],
+  Instrument: ['product_id', 'dest', 'source'],
+  Asset: ['dest', 'source'],
+  AlgoOrderInput: [],
+  OrderInput: [],
+  OrderStat: ['dest', 'source'],
+  Quote: [],
+  Basket: ['dest', 'source'],
+  BasketInstrument: ['dest', 'source'],
+  BasketOrder: [],
+  InstrumentFactor: ['dest', 'source'],
+  OrderTrigger: [],
+  SyntheticData: [],
+};
+
+export const OrderTriggerCancelStatus = [
+  OrderTriggerStatusEnum.Submitted,
+  OrderTriggerStatusEnum.Pending,
+];
+
+export const TriggerFlag: Record<
+  OrderTriggerFlag,
+  KungfuApi.KfTradeValueCommonData
+> = {
+  [OrderTriggerFlag.TriggerInsert]: {
+    name: t('orderTriggerConfig.trigger_insert'),
+  },
+  [OrderTriggerFlag.TriggerCancel]: {
+    name: t('orderTriggerConfig.trigger_cancel'),
+  },
+};
+
+export const OrderTriggerSide = [SideEnum.Buy, SideEnum.Sell];
+
+export const OrderTriggerOffset = [
+  OffsetEnum.Open,
+  OffsetEnum.Close,
+  OffsetEnum.CloseToday,
+  OffsetEnum.CloseYest,
+];
+
+export const OrderTriggerPriceType = [
+  PriceTypeEnum.Limit,
+  PriceTypeEnum.Market,
+  PriceTypeEnum.FakBest5,
+  PriceTypeEnum.ForwardBest,
+  PriceTypeEnum.ReverseBest,
+  PriceTypeEnum.Fak,
+  PriceTypeEnum.Fok,
+  PriceTypeEnum.EnhancedLimit,
+  PriceTypeEnum.AtAuctionLimit,
+  PriceTypeEnum.AtAuction,
+];
+
+export const sideOffsetMap = {
+  [SideEnum.Buy]: {
+    [OffsetEnum.Open]: t('journalConfig.buy_open'),
+    [OffsetEnum.Close]: t('journalConfig.buy_close'),
+    [OffsetEnum.CloseToday]: t('journalConfig.buy_close'),
+    [OffsetEnum.CloseYest]: t('journalConfig.buy_close'),
+    [OffsetEnum.Unknown]: '--',
+  },
+  [SideEnum.Sell]: {
+    [OffsetEnum.Open]: t('journalConfig.sell_open'),
+    [OffsetEnum.Close]: t('journalConfig.sell_close'),
+    [OffsetEnum.CloseToday]: t('journalConfig.sell_close'),
+    [OffsetEnum.CloseYest]: t('journalConfig.sell_close'),
+    [OffsetEnum.Unknown]: '--',
+  },
+  [SideEnum.Unknown]: '--',
+};

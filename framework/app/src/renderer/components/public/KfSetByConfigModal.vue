@@ -11,7 +11,7 @@ import {
 import { useModalVisible } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 import {
-  buildIdByKeysFromKfConfigSettings,
+  buildIdByPrimaryKeysFromKfConfigSettings,
   initFormStateByConfig,
 } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import KfConfigSettingsForm from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfConfigSettingsForm.vue';
@@ -29,6 +29,8 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify?: boolean;
     primaryKeyAvoidRepeatCompareExtra?: string;
     primaryKeyAvoidRepeatCompareTarget?: string[];
+    formStyle?: Record<string, string>;
+    useFeedback?: boolean;
   }>(),
   {
     visible: false,
@@ -40,6 +42,8 @@ const props = withDefaults(
     passPrimaryKeySpecialWordsVerify: false,
     primaryKeyAvoidRepeatCompareTarget: () => [],
     primaryKeyAvoidRepeatCompareExtra: '',
+    formStyle: () => ({}),
+    useFeedback: false,
   },
 );
 
@@ -56,6 +60,16 @@ defineEmits<{
       idByPrimaryKeys: string;
       changeType: KungfuApi.ModalChangeType;
     },
+  ): void;
+  (
+    e: 'confirmWithFeedback',
+    data: {
+      formState: Record<string, KungfuApi.KfConfigValue>;
+      configSettings: KungfuApi.KfConfigItem[];
+      idByPrimaryKeys: string;
+      changeType: KungfuApi.ModalChangeType;
+    },
+    confirm: () => void,
   ): void;
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
@@ -117,30 +131,56 @@ onMounted(() => {
   }
 });
 
-function handleConfirm(): void {
-  formRef.value
-    .validate()
-    .then(() => {
-      const primaryKeys: string[] = (configSettings.value || [])
-        .filter((item) => item.primary)
-        .map((item) => item.key);
+function handleConfirm(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    formRef.value
+      .validate()
+      .then(() => {
+        const primaryKeys: string[] = (configSettings.value || [])
+          .filter((item) => item.primary)
+          .map((item) => item.key);
 
-      const idByPrimaryKeys = buildIdByKeysFromKfConfigSettings(
-        formState.value,
-        primaryKeys,
-      );
-      app &&
-        app.emit('confirm', {
-          formState: formState.value,
-          configSettings: configSettings.value,
-          idByPrimaryKeys,
-          changeType: props.payload.type,
-        });
-    })
+        const idByPrimaryKeys = buildIdByPrimaryKeysFromKfConfigSettings(
+          formState.value,
+          primaryKeys,
+        );
+
+        if (props.useFeedback) {
+          app &&
+            app.emit(
+              'confirmWithFeedback',
+              {
+                formState: formState.value,
+                configSettings: configSettings.value,
+                idByPrimaryKeys,
+                changeType: props.payload.type,
+              },
+              resolve,
+            );
+        } else {
+          app &&
+            app.emit('confirm', {
+              formState: formState.value,
+              configSettings: configSettings.value,
+              idByPrimaryKeys,
+              changeType: props.payload.type,
+            });
+          resolve();
+        }
+      })
+      .catch((err: Error) => {
+        console.error(err);
+        reject(err);
+      });
+  });
+}
+
+function confirm() {
+  handleConfirm()
     .then(() => {
       closeModal();
     })
-    .catch((err: Error) => {
+    .catch((err) => {
       console.error(err);
     });
 }
@@ -170,7 +210,7 @@ function handleFormStateChange(formState) {
     :title="titleResolved"
     :destroy-on-close="true"
     @cancel="handleCancel"
-    @ok="handleConfirm"
+    @ok="confirm"
   >
     <KfConfigSettingsForm
       ref="formRef"
@@ -187,6 +227,7 @@ function handleFormStateChange(formState) {
       :primary-key-avoid-repeat-compare-extra="
         primaryKeyAvoidRepeatCompareExtra
       "
+      :form-style="props.formStyle"
       @update:form-state="handleFormStateChange"
     ></KfConfigSettingsForm>
   </a-modal>

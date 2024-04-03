@@ -14,15 +14,17 @@ types = lf.types
 def collect_journal_locations(ctx):
     search_path = os.path.join(
         ctx.runtime_dir,
+        "journal",
         ctx.category,
         ctx.group,
         ctx.name,
-        "journal",
         ctx.mode,
         "*.journal",
     )
+    ctx.logger.debug(f"searching journal files in {search_path}")
     locations = {}
     for journal in glob.glob(search_path):
+        ctx.logger.debug(f"{journal}")
         match = JOURNAL_PAGE_PATTERN.match(journal[len(ctx.runtime_dir) + 1 :])
         if match:
             category = match.group(1)
@@ -120,7 +122,6 @@ def read_session(ctx, session_id, io_type):
     uname = "{}/{}/{}/{}".format(
         session["category"], session["group"], session["name"], session["mode"]
     )
-    print(uname)
     uid = yjj.hash_str_32(uname)
     ctx.category = "*"
     ctx.group = "*"

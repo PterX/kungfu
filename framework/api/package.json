@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "3.0.0-alpha.0",
+  "version": "3.0.0-alpha.11",
   "description": "Kungfu Javascript/Typescript API",
   "license": "Apache-2.0",
   "repository": {
@@ -24,7 +24,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "node lib/webpack/build.js",
-    "clean": "rimraf build dist",
+    "clean": "rimraf build dist node_modules/.cache/webpack",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",
     "lint": "eslint src",
@@ -32,9 +32,10 @@
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
-    "@kungfu-trader/kungfu-core": "^3.0.0-alpha.0",
+    "@kungfu-trader/kungfu-core": "^3.0.0-alpha.11",
     "cfonts": "^2.10.0",
     "chalk": "^4.1.0",
+    "dayjs-business-days": "^1.0.4",
     "fast-csv": "^4.3.5",
     "find-process": "^1.4.7",
     "find-root": "^1.1.0",

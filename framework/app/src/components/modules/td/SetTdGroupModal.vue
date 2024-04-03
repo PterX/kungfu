@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { setTdGroup } from '@kungfu-trader/kungfu-js-api/actions';
-import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { getIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getInstrumentTypeColor,
   isInTdGroup,
   useModalVisible,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { AntTreeNodeDropEvent, DataNode } from 'ant-design-vue/lib/tree';
 import { computed, ComputedRef, toRaw, toRefs } from 'vue';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -28,6 +29,9 @@ defineEmits<{
   (e: 'update:visible', visible: boolean): void;
   (e: 'close'): void;
 }>();
+
+const { currentGlobalKfLocation, setCurrentGlobalKfLocation } =
+  useCurrentGlobalKfLocation(window.watcher);
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 const { tdExtTypeMap } = useExtConfigsRelated();
@@ -74,6 +78,7 @@ function transformKfConfigToDataNode(
     title: target.name,
     category: target.category,
     group: target.group,
+    mode: target.mode,
     key: `${target.category}_${target.group}_${target.name}`,
   };
 }
@@ -92,6 +97,29 @@ function isGroup(node: DataNode): KungfuApi.KfExtraLocation | null {
   } else {
     return null;
   }
+}
+
+function setGlobalLocation() {
+  if (
+    currentGlobalKfLocation.value?.category === 'tdGroup' &&
+    tdTreeData.value.length > 0
+  ) {
+    for (const item of tdTreeData.value) {
+      if (item.name === currentGlobalKfLocation.value.name) {
+        setCurrentGlobalKfLocation(
+          item as unknown as KungfuApi.KfExtraLocation,
+        );
+        break;
+      }
+    }
+  }
+}
+
+function setTdGroupAndGlobalLocation() {
+  setTdGroup(toRaw(tdGroup.value)).then(() => {
+    useGlobalStore().setTdGroups();
+    setGlobalLocation();
+  });
 }
 
 function handleDrop(info: AntTreeNodeDropEvent) {
@@ -113,6 +141,10 @@ function handleDrop(info: AntTreeNodeDropEvent) {
 
   const group = isGroup(node);
   if (group) {
+    if (dropPosition === -1) {
+      setTdGroupAndGlobalLocation();
+      return;
+    }
     const groupIndex = tdGroup.value.findIndex(
       (group) => node.name === group.name,
     );
@@ -130,9 +162,7 @@ function handleDrop(info: AntTreeNodeDropEvent) {
     newGroup.children.push(targetAccountId);
   }
 
-  setTdGroup(toRaw(tdGroup.value)).then(() => {
-    useGlobalStore().setTdGroups();
-  });
+  setTdGroupAndGlobalLocation();
 }
 
 getInstrumentTypeColor;
@@ -156,7 +186,7 @@ getInstrumentTypeColor;
       @drop="handleDrop"
     >
       <template #title="{ dataRef }">
-        <div v-if="dataRef.category === 'td'">
+        <div v-if="dataRef.category === 'td'" class="set-td-name__warp">
           <a-tag
             class="kf-td-tree-tag"
             size="small"
@@ -166,7 +196,10 @@ getInstrumentTypeColor;
           </a-tag>
           {{ dataRef.name }}
         </div>
-        <div v-else-if="dataRef.category === 'tdGroup'">
+        <div
+          v-else-if="dataRef.category === 'tdGroup'"
+          class="set-td-name__warp"
+        >
           <a-tag size="small" color="#FAAD14">
             {{ $t('tdConfig.account_group') }}
           </a-tag>
@@ -180,6 +213,9 @@ getInstrumentTypeColor;
 .set-td-group-modal {
   .kf-td-tree-tag {
     display: inline-block;
+  }
+  .set-td-name__warp {
+    word-break: break-all;
   }
 }
 </style>

@@ -18,6 +18,7 @@ struct MDConfiguration {
   int md_port;
   std::string protocol;
   int buffer_size;
+  bool query_instruments;
 };
 
 void from_json(const nlohmann::json &j, MDConfiguration &c) {
@@ -31,10 +32,12 @@ void from_json(const nlohmann::json &j, MDConfiguration &c) {
     c.protocol = "tcp";
   }
   c.buffer_size = j.value("buffer_size", 64);
+  c.query_instruments = j.value<bool>("query_instruments", false);
 }
 
-MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) { //
+MarketDataXTP::MarketDataXTP(broker::BrokerVendor &vendor) : MarketData(vendor), api_(nullptr) {
   KUNGFU_SETUP_LOG();
+  SPDLOG_DEBUG("arguments: {}", get_vendor().get_arguments());
 }
 
 MarketDataXTP::~MarketDataXTP() {
@@ -43,9 +46,12 @@ MarketDataXTP::~MarketDataXTP() {
   }
 }
 
-void MarketDataXTP::on_start() {
-  level2_tick_band_uid_ = request_band("market-data-band");
+void MarketDataXTP::pre_start() {
+  entrust_band_uid_ = request_band("market-data-band-entrust", 256);
+  transaction_band_uid_ = request_band("market-data-band-transaction", 256);
+}
 
+void MarketDataXTP::on_start() {
   MDConfiguration config = nlohmann::json::parse(get_config());
   if (config.client_id < 1 or config.client_id > 99) {
     SPDLOG_ERROR("client_id must between 1 and 99");
@@ -56,7 +62,8 @@ void MarketDataXTP::on_start() {
   auto protocol_type = get_xtp_protocol_type(config.protocol);
   std::string runtime_folder = get_runtime_folder();
   SPDLOG_INFO("Connecting XTP MD for {} at {}://{}:{}", account_id, config.protocol, md_ip, config.md_port);
-  api_ = XTP::API::QuoteApi::CreateQuoteApi(config.client_id, runtime_folder.c_str());
+  api_ =
+      XTP::API::QuoteApi::CreateQuoteApi(config.client_id, runtime_folder.c_str(), XTP_LOG_LEVEL::XTP_LOG_LEVEL_INFO);
   if (config.protocol == "udp") {
     api_->SetUDPBufferSize(config.buffer_size);
   }
@@ -65,10 +72,12 @@ void MarketDataXTP::on_start() {
     update_broker_state(BrokerState::LoggedIn);
     update_broker_state(BrokerState::Ready);
     SPDLOG_INFO("login success! (account_id) {}", config.account_id);
-    api_->QueryAllTickers(XTP_EXCHANGE_SH);
-    api_->QueryAllTickers(XTP_EXCHANGE_SZ);
-    api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
-    api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SZ);
+    if (config.query_instruments and not check_if_stored_instruments(time::strfnow("%Y%m%d"))) {
+      api_->QueryAllTickers(XTP_EXCHANGE_SH);
+      api_->QueryAllTickers(XTP_EXCHANGE_SZ);
+      api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SH);
+      api_->QueryAllTickersFullInfo(XTP_EXCHANGE_SZ);
+    }
   } else {
     update_broker_state(BrokerState::LoginFailed);
     SPDLOG_ERROR("failed to login, [{}] {}", api_->GetApiLastError()->error_id, api_->GetApiLastError()->error_msg);
@@ -88,10 +97,10 @@ bool MarketDataXTP::subscribe(const std::vector<InstrumentKey> &instrument_keys)
     }
   }
   if (!sse_tickers.empty()) {
-    result = result && subscribe(sse_tickers, EXCHANGE_SSE);
+    result &= subscribe(sse_tickers, EXCHANGE_SSE);
   }
   if (!sze_tickers.empty()) {
-    result = result && subscribe(sze_tickers, EXCHANGE_SZE);
+    result &= subscribe(sze_tickers, EXCHANGE_SZE);
   }
   return result;
 }
@@ -100,11 +109,10 @@ bool MarketDataXTP::subscribe(const std::vector<std::string> &instruments, const
   int size = instruments.size();
   std::vector<char *> insts;
   insts.reserve(size);
-  for (auto &s : instruments) {
-    insts.push_back((char *)&s[0]);
-  }
+  std::transform(instruments.begin(), instruments.end(), std::back_inserter(insts),
+                 [](auto &s) { return const_cast<char *>(s.c_str()); });
   XTP_EXCHANGE_TYPE exchange;
-  to_xtp(exchange, (char *)exchange_id.c_str());
+  to_xtp_exchange(exchange, exchange_id.c_str());
   int level1_result = api_->SubscribeMarketData(insts.data(), size, exchange);
   int level2_result = api_->SubscribeTickByTick(insts.data(), size, exchange);
   SPDLOG_INFO("subscribe {} from {}, l1 rtn code {}, l2 rtn code {}", size, exchange_id, level1_result, level2_result);
@@ -130,12 +138,18 @@ void MarketDataXTP::OnDisconnected(int reason) {
 }
 
 void MarketDataXTP::OnSubMarketData(XTPST *ticker, XTPRI *error_info, bool is_last) {
+  if (nullptr != ticker) {
+    SPDLOG_DEBUG("XTPST: {}, is_last: {}", to_string(*ticker), is_last);
+  }
   if (error_info != nullptr && error_info->error_id != 0) {
     SPDLOG_ERROR("failed to subscribe level 1, [{}] {}", error_info->error_id, error_info->error_msg);
   }
 }
 
 void MarketDataXTP::OnSubTickByTick(XTPST *ticker, XTPRI *error_info, bool is_last) {
+  if (nullptr != ticker) {
+    SPDLOG_DEBUG("XTPST: {}, is_last: {}", to_string(*ticker), is_last);
+  }
   if (error_info != nullptr && error_info->error_id != 0) {
     SPDLOG_ERROR("failed to subscribe level 2, [{}] {}", error_info->error_id, error_info->error_msg);
   }
@@ -158,28 +172,55 @@ void MarketDataXTP::OnQueryAllTickers(XTPQSI *ticker_info, XTPRI *error_info, bo
     return;
   }
 
-  Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
+  Instrument &instrument = get_public_writer()->open_data<Instrument>(0);
   from_xtp(ticker_info, instrument);
-  SPDLOG_TRACE("instrument {}", instrument.to_string());
-  get_writer(0)->close_data();
+  get_public_writer()->close_data();
 }
 
 void MarketDataXTP::OnDepthMarketData(XTPMD *market_data, int64_t *bid1_qty, int32_t bid1_count, int32_t max_bid1_count,
                                       int64_t *ask1_qty, int32_t ask1_count, int32_t max_ask1_count) {
-  Quote &quote = get_writer(0)->open_data<Quote>(0);
+  if (nullptr == market_data) {
+    SPDLOG_ERROR("XTPMD is nullptr");
+  }
+
+  Quote &quote = get_public_writer()->open_data<Quote>(0);
   from_xtp(*market_data, quote);
-  get_writer(0)->close_data();
+  get_public_writer()->close_data();
 }
 
 void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
   if (tbt_data->type == XTP_TBT_ENTRUST) {
-    Entrust &entrust = get_writer(level2_tick_band_uid_)->open_data<Entrust>(0);
-    from_xtp(*tbt_data, entrust);
-    get_writer(level2_tick_band_uid_)->close_data();
+    if (tbt_data->entrust.ord_type == 'D') {
+      if (not transaction_band_writer_) {
+        while (not has_band_writer(transaction_band_uid_)) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        transaction_band_writer_ = get_band_writer(transaction_band_uid_);
+      }
+      Transaction &transaction = transaction_band_writer_->open_data<Transaction>(0);
+      from_xtp(*tbt_data, transaction);
+      transaction_band_writer_->close_data();
+    } else {
+      if (not entrust_band_writer_) {
+        while (not has_band_writer(entrust_band_uid_)) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        entrust_band_writer_ = get_band_writer(entrust_band_uid_);
+      }
+      Entrust &entrust = entrust_band_writer_->open_data<Entrust>(0);
+      from_xtp(*tbt_data, entrust);
+      entrust_band_writer_->close_data();
+    }
   } else if (tbt_data->type == XTP_TBT_TRADE) {
-    Transaction &transaction = get_writer(level2_tick_band_uid_)->open_data<Transaction>(0);
+    if (not transaction_band_writer_) {
+      while (not has_band_writer(transaction_band_uid_)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      transaction_band_writer_ = get_band_writer(transaction_band_uid_);
+    }
+    Transaction &transaction = transaction_band_writer_->open_data<Transaction>(0);
     from_xtp(*tbt_data, transaction);
-    get_writer(level2_tick_band_uid_)->close_data();
+    transaction_band_writer_->close_data();
   }
 }
 
@@ -194,8 +235,8 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
     return;
   }
 
-  Instrument &instrument = get_writer(0)->open_data<Instrument>(0);
-  strcpy(instrument.instrument_id, ticker_info->ticker);
+  Instrument &instrument = get_public_writer()->open_data<Instrument>(0);
+  instrument.instrument_id = ticker_info->ticker;
   if (ticker_info->exchange_id == 1) {
     instrument.exchange_id = EXCHANGE_SSE;
   } else if (ticker_info->exchange_id == 2) {
@@ -205,6 +246,10 @@ void MarketDataXTP::OnQueryAllTickersFullInfo(XTPQFI *ticker_info, XTPRI *error_
   memcpy(instrument.product_id, ticker_info->ticker_name, strlen(ticker_info->ticker_name));
   instrument.instrument_type = get_instrument_type(instrument.exchange_id, instrument.instrument_id);
   SPDLOG_TRACE("instrument {}", instrument.to_string());
-  get_writer(0)->close_data();
+  get_public_writer()->close_data();
+
+  if (is_last) {
+    record_stored_instruments_trading_day(time::strfnow("%Y%m%d"));
+  }
 }
 } // namespace kungfu::wingchun::xtp

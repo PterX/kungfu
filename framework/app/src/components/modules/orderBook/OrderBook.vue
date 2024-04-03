@@ -3,15 +3,17 @@ import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
   dealKfPrice,
+  dealKfDecimalPrecision,
   countDecimalPlaces,
-  // roundToDecimalPlaces,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useTriggerMakeOrder } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   computed,
   getCurrentInstance,
   onBeforeUnmount,
   onMounted,
+  onDeactivated,
+  onActivated,
   ref,
 } from 'vue';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
@@ -28,7 +30,6 @@ const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();
 const { getQuoteByInstrument, getLastPricePercent } = useQuote();
 const { triggerOrderBookUpdate } = useTriggerMakeOrder();
 const app = getCurrentInstance();
-let pricePrecision = 0;
 const quoteData = computed(() => {
   if (!currentInstrument.value) {
     return null;
@@ -39,20 +40,24 @@ const quoteData = computed(() => {
 
 onMounted(() => {
   currentInstrument.value = useGlobalStore().orderBookCurrentInstrument;
+});
 
-  if (app?.proxy) {
-    const subscription = app.proxy.$globalBus.subscribe(
-      (data: KfEvent.KfBusEvent) => {
-        if (data.tag === 'orderbook') {
-          currentInstrument.value = data.instrument;
-        }
-      },
-    );
+onActivated(() => {
+  const subscription = app?.proxy?.$globalBus.subscribe(
+    (data: KfEvent.KfBusEvent) => {
+      if (data.tag === 'orderbook') {
+        currentInstrument.value = data.instrument;
+      }
+    },
+  );
 
-    onBeforeUnmount(() => {
-      subscription.unsubscribe();
-    });
-  }
+  onBeforeUnmount(() => {
+    subscription?.unsubscribe();
+  });
+
+  onDeactivated(() => {
+    subscription?.unsubscribe();
+  });
 });
 
 const askPrices = computed(() => {
@@ -106,7 +111,7 @@ function handleTriggerBuyOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Buy,
     price,
-    volume: BigInt(volume),
+    volume: volume,
   });
 }
 
@@ -121,7 +126,7 @@ function handleTriggerSellOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Sell,
     price,
-    volume: BigInt(volume),
+    volume: volume,
   });
 }
 
@@ -136,17 +141,31 @@ function dealQuoteAskPidPrices(
           (window.watcher?.ledger?.Instrument[currentInstrument.value.ukey] ||
             {}) as KungfuApi.Instrument
         ).price_tick ?? 0.001;
-      pricePrecision = countDecimalPlaces(price_tick);
 
       const target_price_tick = type === 'ask' ? +price_tick : -price_tick;
-
       if (price_tick !== 0) {
         return quoteData[`${type}_price`].reduce((pre, cur, index) => {
-          if (index === 0 || toLedgalPriceVolume(cur)) {
-            pre.push(toLedgalPriceVolume(cur));
+          if (
+            index === 0 ||
+            dealKfDecimalPrecision(
+              toLedgalPriceVolume(cur),
+              countDecimalPlaces(target_price_tick),
+            )
+          ) {
+            pre.push(
+              dealKfDecimalPrecision(
+                toLedgalPriceVolume(cur),
+                countDecimalPlaces(target_price_tick),
+              ),
+            );
           } else {
             const prePrice = pre[index - 1];
-            pre.push(toLedgalPriceVolume(prePrice + target_price_tick));
+            pre.push(
+              dealKfDecimalPrecision(
+                toLedgalPriceVolume(prePrice + target_price_tick),
+                countDecimalPlaces(target_price_tick),
+              ),
+            );
           }
 
           return pre;
@@ -203,12 +222,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           "
         ></div>
         <div class="price">
-          {{
-            dealKfPrice(
-              toLedgalPriceVolume(askPrices[9 - index]),
-              pricePrecision,
-            )
-          }}
+          {{ dealKfPrice(toLedgalPriceVolume(askPrices[9 - index])) }}
         </div>
         <div
           class="sell volume"
@@ -244,12 +258,7 @@ function toLedgalPriceVolume(num: number | bigint) {
       </div>
       <div class="price info-item">
         <div class="main">
-          {{
-            dealKfPrice(
-              getQuoteByInstrument(currentInstrument)?.last_price,
-              pricePrecision,
-            )
-          }}
+          {{ dealKfPrice(getQuoteByInstrument(currentInstrument)?.last_price) }}
         </div>
         <div class="sub">
           <KfBlinkNum
@@ -274,9 +283,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
         </div>
         <div class="price">
-          {{
-            dealKfPrice(toLedgalPriceVolume(bidPrices[index]), pricePrecision)
-          }}
+          {{ dealKfPrice(toLedgalPriceVolume(bidPrices[index])) }}
         </div>
         <div
           class="sell volume"

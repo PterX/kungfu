@@ -1,5 +1,5 @@
-import DealJournalDatas from 'worker-loader!./dealJournalDatas';
+// import DealJournalDatas from 'worker-loader!./dealJournalDatas';
 
 export default {
-  dealJournalDatas: new DealJournalDatas(),
+  // dealJournalDatas: new DealJournalDatas(),
 };

@@ -1,13 +1,16 @@
+import os from 'os';
 import path from 'path';
-import fse from 'fs-extra';
+import fse, { Stats } from 'fs-extra';
 import fsPromise from 'fs/promises';
 import * as csv from 'fast-csv';
 import { FormatterRow, ParserOptionsArgs } from 'fast-csv';
-import stream from 'stream';
 import findRoot from 'find-root';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { RootConfigJSON } from '../typings/global';
-const { t } = VueI18n.global;
+import {
+  buildRuntimeChildDirByType,
+  RuntimeChildDirTypes,
+} from '../config/pathConfig';
+import { ifKfDev } from './commonUtils';
 
 //添加文件
 export const addFileSync = (
@@ -20,6 +23,10 @@ export const addFileSync = (
   if (!parentDir) targetPath = filename;
   else targetPath = path.join(parentDir, filename);
   targetPath = path.normalize(targetPath);
+
+  if (isDiskRootDirectory(targetPath)) {
+    return;
+  }
 
   if (type === 'folder') {
     fse.ensureDirSync(targetPath);
@@ -53,6 +60,7 @@ export const readCSV = <T>(
     let parsing = csv.parseFile(filepath, {
       headers: headers,
       skipLines: headers === true ? 0 : 1,
+      trim: true,
     });
 
     if (options?.validator) {
@@ -78,11 +86,20 @@ export const readCSV = <T>(
   });
 };
 
-export const createWriteCsvStream = (
+/**
+ * 返回的 `stream` 通过 `'finished'` 事件判断写入`csv`结束：
+ * ```
+ * csvStream.on('finished', () => {
+ *   ...
+ * });
+ * ```
+ */
+export const createWriteCsvStream = <T extends FormatterRow>(
   filePath: string,
-  transform?: (row: KungfuApi.TradingDataTypes) => FormatterRow,
-) => {
-  const csvStream = csv.format({ headers: true, transform });
+  headers: boolean | string[],
+  transform?: (row: T) => FormatterRow,
+): csv.CsvFormatterStream<T, csv.FormatterRow> => {
+  const csvStream = csv.format({ headers, transform });
   const fileWriteStream = fse.createWriteStream(path.normalize(filePath));
   // 解决Excel导出乱码的问题
   fileWriteStream.write(Buffer.from('\xEF\xBB\xBF', 'binary'));
@@ -91,39 +108,42 @@ export const createWriteCsvStream = (
       fileWriteStream.write(chunk);
     })
     .on('end', () => {
-      fileWriteStream.end();
+      fileWriteStream.end(() => {
+        fileWriteStream.close((err) => {
+          if (!err) {
+            csvStream.emit('finished');
+          } else {
+            console.error(err);
+          }
+        });
+      });
     });
+  fileWriteStream.on('error', (err) => {
+    csvStream.emit('error', err);
+  });
   return csvStream;
 };
 
-export const writeCsvWithUTF8Bom = (
+export const writeCsvWithUTF8Bom = <T extends FormatterRow>(
   filePath: string,
-  rows: KungfuApi.TradingDataTypes[],
-  transform = (row: KungfuApi.TradingDataTypes) => row as FormatterRow,
+  rows: T[],
+  headers: boolean | string[],
+  transform = (row: T) => row as FormatterRow,
 ) => {
   filePath = path.normalize(filePath);
   return new Promise<void>((resolve, reject) => {
-    const csvStream = csv.format({ headers: true, transform });
-    const outStream = new stream.PassThrough();
-    const buffers: Uint8Array[] = [];
-    csvStream
-      .pipe(outStream)
-      .on('data', (chunk) => {
-        buffers.push(chunk);
-      })
-      .on('end', () => {
-        // 解决Excel导出乱码的问题
-        const dataBuffer = Buffer.concat([
-          Buffer.from('\xEF\xBB\xBF', 'binary'),
-          Buffer.concat(buffers),
-        ]);
-        fse.writeFileSync(filePath, dataBuffer);
-        resolve();
-      })
-      .on('error', function (err) {
-        reject(err);
-      });
-    rows.forEach(function (row) {
+    const csvStream = createWriteCsvStream(filePath, headers, transform);
+
+    csvStream.on('finished', () => {
+      resolve();
+    });
+
+    csvStream.on('error', (err) => {
+      console.error(err);
+      reject(err);
+    });
+
+    rows.forEach((row) => {
       csvStream.write(row);
     });
     csvStream.end();
@@ -153,7 +173,8 @@ export const writeCSV = (
 
 //获取文件内容
 export const getFileContent = (targetPath: string): Promise<string> => {
-  if (!targetPath) throw new Error(t('文件路径不存在'));
+  if (!targetPath || !fse.existsSync(targetPath))
+    throw new Error(`${targetPath} not existed!`);
   targetPath = path.normalize(targetPath);
   return new Promise((resolve, reject): void => {
     const file = fse.createReadStream(targetPath);
@@ -204,6 +225,54 @@ export const listDirSync = (filePath: string): string[] => {
   return fse.readdirSync(filePath);
 };
 
+export const removeTargetFoldersInFolder = async (
+  targetFolder: string,
+  includes: string[],
+  filters: string[] = [],
+): Promise<{ successes: string[]; errors: string[] }> => {
+  const results: { successes: string[]; errors: string[] } = {
+    successes: [],
+    errors: [],
+  };
+  const iterator = async (folder: string) => {
+    const items = listDirSync(folder);
+
+    if (!items) return;
+
+    const folders = items.filter((f: string) => {
+      const stat = fse.statSync(path.join(folder, f));
+
+      if (stat.isDirectory() && !filters.includes(f)) return true;
+      return false;
+    });
+
+    for (const f of folders) {
+      if (includes.includes(f)) {
+        try {
+          const targetFolder = path.join(folder, f);
+          await fsPromise.rm(targetFolder, {
+            force: true,
+            recursive: true,
+            maxRetries: 10,
+          });
+          results.successes.push(targetFolder);
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error(error);
+            results.errors.push(error.message);
+          }
+        }
+      } else {
+        await iterator(path.join(folder, f));
+      }
+    }
+  };
+
+  await iterator(targetFolder);
+
+  return results;
+};
+
 export const removeTargetFilesInFolder = async (
   targetFolder: string,
   includes: string[],
@@ -234,7 +303,7 @@ export const removeTargetFilesInFolder = async (
 
     for (const f of files) {
       for (const n of includes) {
-        if (f.includes(n) && !filters.includes(f)) {
+        if (f.includes(n) && !filters.some((filter) => f.includes(filter))) {
           try {
             const targetFile = path.join(folder, f);
             await fsPromise.rm(targetFile);
@@ -260,11 +329,10 @@ export const removeTargetFilesInFolder = async (
 };
 
 export const findPackageRoot = () => {
-  const cwd = process.cwd().toString();
-  const dirname = path.resolve(__dirname);
   let searchPath = '';
+  const cwd = process.cwd().toString();
   if (process.env.NODE_ENV === 'production') {
-    searchPath = dirname;
+    searchPath = process.env.KF_APP_RUNTIME_DIR || __dirname;
   } else {
     searchPath = cwd;
   }
@@ -275,11 +343,13 @@ export const findPackageRoot = () => {
 };
 
 export const readRootPackageJsonSync = (): RootConfigJSON => {
+  if (globalThis.rootPackageJson) return globalThis.rootPackageJson;
   const rootDir = findPackageRoot();
   const packageJsonPath = path.join(rootDir, 'package.json');
   if (fse.existsSync(packageJsonPath)) {
     try {
-      return fse.readJSONSync(packageJsonPath);
+      globalThis.rootPackageJson = fse.readJSONSync(packageJsonPath);
+      return globalThis.rootPackageJson;
     } catch (err) {
       console.error(err);
       return {};
@@ -287,4 +357,71 @@ export const readRootPackageJsonSync = (): RootConfigJSON => {
   }
 
   return {};
+};
+
+export const isDiskRootDirectory = (dirPath: string): boolean => {
+  const absolutePath = path.resolve(dirPath);
+  const rootDirectory = path.parse(absolutePath).root;
+
+  return absolutePath === rootDirectory;
+};
+
+export const getAppRuntimeDirName = () => {
+  const packageJson = readRootPackageJsonSync();
+  const productName = ifKfDev()
+    ? 'electron'
+    : packageJson.kungfuCraft?.productName || 'Kungfu';
+
+  switch (os.platform()) {
+    case 'win32':
+    case 'linux':
+      return productName;
+    case 'darwin':
+      return productName + '.app';
+    default:
+      return productName;
+  }
+};
+
+export const getChildFileStat = async (
+  dirname: string,
+): Promise<Array<{ childFilePath: string; stat: Stats }>> => {
+  if (!(await fse.pathExists(dirname))) {
+    return [];
+  }
+
+  const cDirs = await fse.readdir(dirname);
+  const statsDatas: Array<{ childFilePath: string; stat: Stats }> =
+    await Promise.all(
+      cDirs.map((cDir: string) => {
+        const childFilePath = path.join(dirname, cDir);
+        return fse.stat(childFilePath).then((stat: Stats) => {
+          return {
+            childFilePath,
+            stat,
+          };
+        });
+      }),
+    );
+
+  return statsDatas;
+};
+
+export const removeNoDefaultStrategyFolders = async (): Promise<void> => {
+  const strategyDirs = RuntimeChildDirTypes.map((type) =>
+    path.join(buildRuntimeChildDirByType(type), 'strategy'),
+  );
+  for (const strategyDir of strategyDirs) {
+    if (!fse.pathExists(strategyDir)) continue;
+    const filedirList: string[] = (await listDir(strategyDir)) || [];
+    filedirList.map((fileOrFolder) => {
+      const fullPath = path.join(strategyDir, fileOrFolder);
+      if (fileOrFolder === 'default') {
+        if (fse.statSync(fullPath).isDirectory()) {
+          return Promise.resolve();
+        }
+      }
+      return fse.remove(fullPath);
+    });
+  }
 };

@@ -20,4 +20,5 @@ using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::op {
 Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {}
+
 } // namespace kungfu::wingchun::op

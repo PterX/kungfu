@@ -1,77 +1,161 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import {
+  sorter,
+  dealKfPrice,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
 import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+
 const { t } = VueI18n.global;
 
-const buildSorter =
-  (dataIndex: keyof KungfuApi.Position) =>
-  (a: KungfuApi.Position, b: KungfuApi.Position) =>
-    (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
-
-const buildStrSorter =
-  (dataIndex: keyof KungfuApi.Position) =>
-  (a: KungfuApi.Position, b: KungfuApi.Position) =>
-    a[dataIndex].toString().localeCompare(b[dataIndex].toString());
-
-export const getColumns = (): KfTradingDataTableHeaderConfig[] => [
+const { getPositionLastPrice } = useQuote();
+export { getPositionLastPrice };
+export const getColumns = (): VTable.ColumnDefine[] => [
   {
-    type: 'string',
-    name: t('posGlobalConfig.instrument_id'),
-    dataIndex: 'instrument_id',
-    width: 260,
-    sorter: buildStrSorter('instrument_id'),
+    field: 'instrument_id',
+    title: t('posGlobalConfig.instrument_id'),
+    width: 190,
+    sort: sorter,
   },
   {
-    name: '',
-    dataIndex: 'direction',
+    field: 'direction',
+    title: '',
     width: 50,
-  },
-  {
-    type: 'number',
-    name: t('posGlobalConfig.yesterday_volume'),
-    dataIndex: 'yesterday_volume',
-    width: 80,
-    sorter: buildSorter('yesterday_volume'),
-  },
-  {
-    type: 'number',
-    name: t('posGlobalConfig.today_volume'),
-    dataIndex: 'today_volume',
-    width: 80,
-    sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
-      const deltaA = a.volume - a.yesterday_volume;
-      const deltaB = b.volume - b.yesterday_volume;
-      return +Number(deltaA) - +Number(deltaB);
+    style: {
+      color: (args) => {
+        return defaultColorMap[
+          dealDirection(args.dataValue).color || 'default'
+        ];
+      },
+    },
+    fieldFormat: (args) => {
+      return dealDirection(args.direction).name;
     },
   },
   {
-    type: 'number',
-    name: t('posGlobalConfig.sum_volume'),
-    dataIndex: 'volume',
-    width: 80,
-    sorter: buildSorter('volume'),
+    field: 'static_yesterday',
+    title: t('posGlobalConfig.static_yesterday'),
+    width: 110,
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
   },
   {
-    type: 'number',
-    name: t('posGlobalConfig.avg_open_price'),
-    dataIndex: 'avg_open_price',
+    field: 'open_volume',
+    title: t('posGlobalConfig.open_volume'),
     width: 110,
-    sorter: buildSorter('avg_open_price'),
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
   },
   {
-    type: 'number',
-    name: t('posGlobalConfig.last_price'),
-    dataIndex: 'last_price',
+    field: 'close_volume',
+    title: t('posGlobalConfig.close_volume'),
     width: 110,
-    sorter: buildSorter('last_price'),
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
   },
   {
-    type: 'number',
-    name: t('posGlobalConfig.unrealized_pnl'),
-    dataIndex: 'unrealized_pnl',
+    field: 'yesterday_volume',
+    title: t('posGlobalConfig.yesterday_volume'),
     width: 110,
-    sorter: buildSorter('unrealized_pnl'),
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
+  },
+  {
+    field: 'today_volume',
+    title: t('posGlobalConfig.today_volume'),
+    width: 110,
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
+  },
+  {
+    field: 'volume',
+    title: t('posGlobalConfig.sum_volume'),
+    width: 110,
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
+  },
+  {
+    title: t('posGlobalConfig.avg_open_price'),
+    field: 'avg_open_price_resolved',
+    width: 110,
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
+  },
+  {
+    field: 'last_price_resolved',
+    title: t('posGlobalConfig.last_price'),
+    width: 110,
+    style: {
+      textAlign: 'right',
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    fieldFormat: (args) => {
+      return dealKfPrice(
+        getPositionLastPrice(args, 'last_price_resolved'),
+        args.price_precision,
+      );
+    },
+    sort: sorter,
+  },
+  {
+    field: 'unrealized_pnl_resolved',
+    title: t('posGlobalConfig.unrealized_pnl'),
+    width: 110,
+    style: {
+      textAlign: 'right',
+      color: (args) => {
+        return args.dataValue > 0
+          ? defaultColorMap['red']
+          : defaultColorMap['green'];
+      },
+    },
+    headerStyle: {
+      textAlign: 'right',
+    },
+    sort: sorter,
   },
 ];
 
@@ -85,7 +169,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     color: 'pink',
   },
   order: {
-    getter(watcher, orders, kfLocation) {
+    getter(_watcher, orders, kfLocation) {
       const { group, name } = kfLocation;
       return orders
         .filter('exchange_id', group)
@@ -94,7 +178,7 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   trade: {
-    getter(watcher, trades, kfLocation) {
+    getter(_watcher, trades, kfLocation) {
       const { group, name } = kfLocation;
       return trades
         .filter('exchange_id', group)
@@ -103,11 +187,11 @@ export const categoryRegisterConfig: DealTradingDataGetter = {
     },
   },
   position: {
-    getter(watcher, position, kfLocation) {
+    getter(_watcher, position, kfLocation) {
       const { group, name, direction } =
         kfLocation as KungfuApi.KfExtraLocation;
       return position
-        .nofilter('volume', BigInt(0))
+        .nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)
         .filter('exchange_id', group)
         .filter('instrument_id', name)

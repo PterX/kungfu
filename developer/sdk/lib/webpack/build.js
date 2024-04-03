@@ -64,6 +64,7 @@ const run = (distDir, distName = 'sdk') => {
       mode: 'production',
       distDir: distDir,
       distName: distName,
+      enableThreadLoader: false,
     };
 
     const config = require('./webpack.config');

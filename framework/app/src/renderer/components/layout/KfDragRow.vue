@@ -2,8 +2,12 @@
   <div
     ref="kf-drag-row"
     :class="'kf-drag-row__warp'"
-    :style="style"
     :board-id="id"
+    :style="{
+      height,
+      flex: height ? 'unset' : '1',
+      paddingBottom: id !== 0 ? '6px' : '0',
+    }"
   >
     <div
       class="kf-drag-row__content"
@@ -20,7 +24,7 @@
 <script lang="ts">
 import { defineComponent, PropType, reactive, toRefs } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
+import { useBoards } from '../../pages/index/store/board';
 
 interface KfDragRowData {
   resizeing: boolean;
@@ -42,9 +46,13 @@ export default defineComponent({
       required: true,
       type: Number as PropType<number>,
     },
+    currentBoardsStoreId: {
+      type: String as PropType<string>,
+      default: 'main',
+    },
   },
 
-  setup() {
+  setup(props) {
     const rowData = reactive<KfDragRowData>({
       resizeing: false,
       leftCol$: null,
@@ -57,8 +65,10 @@ export default defineComponent({
       preX: 0,
     });
 
-    const { boardsMap } = storeToRefs(useGlobalStore());
-    const { setBoardsMapAttrById } = useGlobalStore();
+    const { getBoardsStoreById } = useBoards();
+    const useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
+    const { boardsMap } = storeToRefs(useBoardsStore());
+    const { setBoardsMapAttrById } = useBoardsStore();
 
     return {
       ...toRefs(rowData),
@@ -73,15 +83,15 @@ export default defineComponent({
       return this.boardsMap[this.id];
     },
 
-    style(): string {
+    height(): string {
       if (this.boardInfo?.height) {
         if (this.boardInfo?.height.toString().includes('%')) {
-          return `height: ${this.boardInfo?.height}; flex: unset;`;
+          return `${this.boardInfo?.height}`;
         } else {
-          return `height: ${this.boardInfo?.height}px; flex: unset;`;
+          return `${this.boardInfo?.height}px`;
         }
       } else {
-        return ``;
+        return '';
       }
     },
   },
@@ -104,7 +114,8 @@ export default defineComponent({
         this.leftCol$ = target.parentElement;
         this.leftBoardId = this.leftCol$?.getAttribute('board-id') || '';
         this.leftColWidth = this.leftCol$?.clientWidth || 0;
-        this.rightCol$ = target.parentElement?.nextSibling as HTMLElement;
+        this.rightCol$ = target.parentElement
+          ?.nextElementSibling as HTMLElement;
         this.rightBoardId = this.rightCol$?.getAttribute('board-id') || '';
         this.rightColWidth = this.rightCol$?.clientWidth || 0;
         const paElement = this.leftCol$?.parentElement;
@@ -158,16 +169,16 @@ export default defineComponent({
       this.setBoardsMapAttrById(
         +this.leftBoardId,
         'width',
-        Number((this.leftColWidth * 100) / this.paBoundingRect.width).toFixed(
+        Number((this.leftColWidth * 100) / this.paBoundingRect.width).kfToFixed(
           3,
         ) + '%',
       );
       this.setBoardsMapAttrById(
         +this.rightBoardId,
         'width',
-        Number((this.rightColWidth * 100) / this.paBoundingRect.width).toFixed(
-          3,
-        ) + '%',
+        Number(
+          (this.rightColWidth * 100) / this.paBoundingRect.width,
+        ).kfToFixed(3) + '%',
       );
 
       this.$globalBus.next({
@@ -209,6 +220,7 @@ export default defineComponent({
   position: relative;
   transform: translateZ(0);
   overflow: hidden;
+  padding-bottom: 6px;
 
   .kf-drag-row__content {
     display: flex;
@@ -218,6 +230,8 @@ export default defineComponent({
     justify-content: flex-start;
 
     > .kf-drag-col__warp:last-of-type {
+      padding-right: 0 !important;
+
       > .resize-bar-vertical {
         display: none;
       }
@@ -227,16 +241,16 @@ export default defineComponent({
   .resize-bar-horizontal {
     position: absolute;
     left: 0;
-    bottom: 0;
-    height: 8px;
+    bottom: 1px;
+    height: 4px;
     width: 100%;
-    border-bottom: 4px solid #000;
+    background-color: #000;
     cursor: row-resize;
     box-sizing: border-box;
     z-index: 10;
 
     &:hover {
-      border-bottom: 4px solid @border-color-split;
+      background-color: @border-color-split;
     }
   }
 }

@@ -10,7 +10,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { findTargetFromArray } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import * as monaco from 'monaco-editor';
 import { storeToRefs } from 'pinia';
 import { nextTick, ref, watch } from 'vue';
@@ -149,6 +149,10 @@ function createEditor(
 
       fontSize: 14,
       automaticLayout: true,
+
+      ...(document.body.style.fontFamily
+        ? { fontFamily: document.body.style.fontFamily }
+        : {}),
     },
   );
   return editor;
@@ -228,7 +232,7 @@ function clearState(): void {
   activeFile.value = null;
 }
 
-function pythonProvideCompletionItems(model, position, context, token) {
+function pythonProvideCompletionItems(model, position) {
   const lastChars = model.getValueInRange({
     startLineNumber: position.lineNumber,
     startColumn: 0,
@@ -286,6 +290,7 @@ function pythonProvideCompletionItems(model, position, context, token) {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-width: 0;
   #editor-content {
     height: 100%;
     width: 100%;

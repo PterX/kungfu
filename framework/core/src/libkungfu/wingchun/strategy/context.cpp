@@ -10,19 +10,28 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::strategy {
-Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {}
+Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {
+  bypass_accounting_ = std::getenv("KF_BYPASS_ACCOUNTING") != nullptr;
+}
 
 bool Context::is_book_held() const { return book_held_; }
 
-bool Context::is_positions_mirrored() const { return positions_mirrored_; }
+bool Context::is_positions_held() const { return not positions_mirrored_; }
 
 void Context::hold_book() { book_held_ = true; }
 
 void Context::hold_positions() { positions_mirrored_ = false; }
+
+void Context::bypass_accounting() { bypass_accounting_ = true; }
+
+bool Context::is_bypass_accounting() const { return bypass_accounting_; }
+
+void Context::attach_orderbooks(Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
 } // namespace kungfu::wingchun::strategy

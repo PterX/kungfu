@@ -2,12 +2,14 @@ const { parseByCli } = require('../utils');
 
 const subcommands = [
   'build',
+  'package',
   'clean',
   'compile',
   'configure',
   'format',
   'install',
   'list',
+  'init',
 ];
 
 module.exports = {

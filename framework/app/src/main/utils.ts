@@ -5,8 +5,10 @@ import {
   clearProcessBeforeQuitStart,
   clearProcessBeforeQuitEnd,
 } from './events';
-import { KillAll } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { quitClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+
 import {
   KFC_DIR,
   KFC_PARENT_DIR,
@@ -23,11 +25,17 @@ export function openUrl(url: string): void {
   shell.openExternal(url);
 }
 
+const rootPackageJson = readRootPackageJsonSync();
+
 export function showKungfuInfo(): void {
   const version = packageJSON.version;
-  const electronVersion = packageJSON.devDependencies.electron;
+  const electronVersion = packageJSON.dependencies.electron;
+  const appVersion = rootPackageJson.version;
+  const appName = rootPackageJson.kungfuCraft?.productName || 'Kungfu';
   const info =
-    `Version: ${version}\n` +
+    `app_name: ${appName} \n` +
+    `app_version: ${appVersion} \n` +
+    `core_version: ${version}\n` +
     `electron: ${electronVersion} \n` +
     `python: ${__python_version}\n` +
     `platform: ${os.platform()} \n` +
@@ -53,7 +61,7 @@ export function showKungfuInfo(): void {
 export function killAllBeforeQuit(mainWindow: BrowserWindow): Promise<void> {
   console.time('quit clean');
   clearProcessBeforeQuitStart(mainWindow);
-  return KillAll().finally(() => {
+  return quitClean().finally(() => {
     console.timeEnd('quit clean');
     clearProcessBeforeQuitEnd(mainWindow);
   });
@@ -115,4 +123,19 @@ export function showCrashMessageBox(): Promise<boolean> {
         return false;
       }
     });
+}
+
+export function destoryAllWindows() {
+  const windows = BrowserWindow.getAllWindows();
+
+  windows.forEach((window) => {
+    window.destroy();
+  });
+}
+
+export function openDevTool() {
+  const focusedWin = BrowserWindow.getFocusedWindow();
+  if (focusedWin) {
+    focusedWin.webContents.openDevTools();
+  }
 }

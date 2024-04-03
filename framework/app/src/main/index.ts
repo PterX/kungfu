@@ -18,16 +18,18 @@ import {
   showCrashMessageBox,
   showKungfuInfo,
   openUrl,
+  destoryAllWindows,
+  openDevTool,
 } from '@kungfu-trader/kungfu-app/src/main/utils';
-import {
-  kfLogger,
-  isUpdateVersionLogicEnable,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { killExtra } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
+import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import packageJSON from '@kungfu-trader/kungfu-app/package.json';
+import { initClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
 import {
   clearDB,
   clearJournal,
   exportAllTradingData,
+  exportInstrumentWhitelists,
   viewAllJournal,
   openLogFile,
   openSettingDialog,
@@ -38,6 +40,7 @@ import {
   BASE_DB_DIR,
   KF_HOME,
   RENDERER_LOG_DIR,
+  KF_CONFIG_PATH,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import {
   initKfConfig,
@@ -45,9 +48,12 @@ import {
 } from '@kungfu-trader/kungfu-js-api/config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import {
+  performSystemActions,
+  copyConfigDBToLatestVersionDir,
+} from '@kungfu-trader/kungfu-app/src/main/events';
 import { handleUpdateKungfu } from './autoUpdater';
 const { t } = VueI18n.global;
-
 let MainWindow: BrowserWindow | null = null;
 let AllowQuit = false;
 let CrashedReloading = false;
@@ -59,6 +65,7 @@ initialize();
 setMenu();
 initKfConfig();
 initKfDefaultInstruments();
+copyConfigDBToLatestVersionDir();
 
 async function createWindow(
   reloadAfterCrashed = false,
@@ -66,7 +73,7 @@ async function createWindow(
 ) {
   if (reloadAfterCrashed) {
     CrashedReloading = true;
-    MainWindow && MainWindow.close();
+    destoryAllWindows();
   }
 
   if (reloadBySchedule) {
@@ -101,7 +108,7 @@ async function createWindow(
     MainWindow.loadFile(filePath);
   }
 
-  MainWindow.on('ready-to-show', function () {
+  MainWindow.on('ready-to-show', async function () {
     MainWindow && MainWindow.show();
     MainWindow && MainWindow.focus();
     if (reloadAfterCrashed) {
@@ -112,7 +119,8 @@ async function createWindow(
       SecheduleReloading = false;
     }
 
-    isUpdateVersionLogicEnable() && handleUpdateKungfu(MainWindow);
+    isUpdateVersionLogicEnable() && (await handleUpdateKungfu(MainWindow));
+    performSystemActions();
   });
 
   MainWindow.on('close', (e) => {
@@ -187,6 +195,10 @@ if (process.env.NODE_ENV !== 'development') {
   }
 }
 
+// disable GPU,
+app.disableDomainBlockingFor3DAPIs();
+// app.disableHardwareAcceleration();
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -197,22 +209,19 @@ app.on('ready', () => {
   if (appReady && killExtraFinished) createWindow();
 
   globalShortcut.register('CommandOrControl+Shift+I', () => {
-    const focusedWin = BrowserWindow.getFocusedWindow();
-    if (focusedWin) {
-      focusedWin.webContents.openDevTools();
-    }
+    openDevTool();
   });
 });
 
-//一上来先把所有之前意外没关掉的 pm2/kfc 进程kill掉
+//一上来先把所有之前意外没关掉的 pm2/kfc/electron 进程kill掉
+// 并且需要在此步检查是否需要清理 journal 和 DB
+// 以上步骤均在 initClean 方法中
 console.time('init clean');
-killExtra()
-  .catch((err) => kfLogger.error(err))
-  .finally(() => {
-    console.timeEnd('init clean');
-    killExtraFinished = true;
-    if (appReady && killExtraFinished) createWindow();
-  });
+initClean(true, true).finally(() => {
+  console.timeEnd('init clean');
+  killExtraFinished = true;
+  if (appReady && killExtraFinished) createWindow();
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
@@ -276,25 +285,9 @@ function setMenu() {
 
   const rootPackageJson = readRootPackageJsonSync();
   const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
+  const mainVersion = packageJSON.version.slice(0, 3);
 
   const template: MenuItemConstructorOptions[] = [
-    //mac全屏鼠标触摸屏幕顶显示关闭按钮，取消全屏按钮，最小化按钮
-
-    {
-      label: t('File'),
-      submenu: [
-        {
-          label: t('close'),
-          accelerator: 'CommandOrControl+W',
-          click: () => {
-            const focusedWin = BrowserWindow.getFocusedWindow();
-            if (focusedWin) {
-              focusedWin.close();
-            }
-          },
-        },
-      ],
-    },
     {
       label: t('KungFu'),
       submenu: applicationOptions,
@@ -333,9 +326,14 @@ function setMenu() {
           click: () => shell.showItemInFolder(KF_HOME),
         },
         {
+          label: t('open_system_config_directory'),
+          click: () => shell.showItemInFolder(KF_CONFIG_PATH),
+        },
+        {
           label: t('open_install_directory'),
           click: () => shell.showItemInFolder(app.getAppPath()),
         },
+
         {
           label: t('open_basic_configuration'),
           click: () =>
@@ -352,10 +350,14 @@ function setMenu() {
           click: () => MainWindow && openLogFile(MainWindow),
         },
         {
-          label: t('view_all_journal'),
+          label: t('open_inspect_tool'),
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
         },
+        // {
+        //   label: t('open_console_tool'),
+        //   click: () => openDevTool(),
+        // },
       ],
     },
     {
@@ -370,13 +372,17 @@ function setMenu() {
           click: () => MainWindow && clearDB(MainWindow),
         },
         {
-          label: t('reset_main_panel'),
+          label: t('reset_current_panel'),
           click: () => MainWindow && resetMainDashboard(MainWindow),
         },
         {
           label: t('export_all_transaction_data'),
           accelerator: 'CommandOrControl+E',
           click: () => MainWindow && exportAllTradingData(MainWindow),
+        },
+        {
+          label: t('export_instrument_whitelists'),
+          click: () => MainWindow && exportInstrumentWhitelists(MainWindow),
         },
       ],
     },
@@ -392,12 +398,16 @@ function setMenu() {
               {
                 label: t('user_manual'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/index.html'),
+                  openUrl(
+                    `https://docs.kungfu-trader.com/v${mainVersion}/index.html`,
+                  ),
               },
               {
                 label: t('API_documentation'),
                 click: () =>
-                  openUrl('https://docs.kungfu-trader.com/latest/07-api.html'),
+                  openUrl(
+                    `https://docs.kungfu-trader.com/v${mainVersion}/07-api.html`,
+                  ),
               },
               // {
               //   label: t('Kungfu_forum'),

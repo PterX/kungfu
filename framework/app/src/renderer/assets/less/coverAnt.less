@@ -25,12 +25,21 @@
             .ant-table-body {
               height: calc(100% - 35px);
               overflow-y: overlay !important;
+              max-height: none !important;
             }
           }
         }
       }
     }
   }
+}
+
+.ant-table-thead > tr > th {
+  font-weight: bold;
+}
+
+.ant-table-tbody > tr > td {
+  font-weight: bold;
 }
 
 .ant-form {

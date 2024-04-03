@@ -11,17 +11,18 @@ import { computed } from 'vue';
 import { getColumns } from './config';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
+  useActiveInstruments,
   useExtConfigsRelated,
   useInstruments,
   useProcessStatusDetailData,
   useQuote,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { StarFilled, PlusOutlined } from '@ant-design/icons-vue';
+import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   dealKfPrice,
   dealKfNumber,
-  transformSearchInstrumentResultToInstrument,
-} from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   OffsetEnum,
   SideEnum,
@@ -35,7 +36,7 @@ import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/met
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
-const { success, error, warning } = messagePrompt();
+const { success, error, warn } = messagePrompt();
 const { dashboardBodyHeight, dashboardBodyWidth, handleBodySizeChange } =
   useDashboardBodySize();
 
@@ -54,10 +55,11 @@ const {
   handleSearchInstrument,
   handleConfirmSearchInstrumentResult,
 } = useInstruments();
+const { getInstrumentByIdsWithWatcher } = useActiveInstruments();
 const { appStates, processStatusData } = useProcessStatusDetailData();
 const { mdExtTypeMap } = useExtConfigsRelated();
 
-const { getQuoteByInstrument, getPreClosePrice } = useQuote();
+const { getQuoteByInstrument, getLastPricePercent } = useQuote();
 const { customRow, triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { setSubscribedInstrumentsByLocal } = useGlobalStore();
 
@@ -91,7 +93,7 @@ function handleConfirmAddInstrumentCallback(val: string): Promise<void> {
 
   if (targetIndex !== -1) {
     return Promise.reject(new Error('重复订阅')).catch((err) => {
-      warning(err.message);
+      warn(err.message);
     });
   }
 
@@ -128,6 +130,14 @@ function handleConfirmRemoveInstrument(
 }
 
 function triggeOrderBookMakeOrder(instrument: KungfuApi.InstrumentResolved) {
+  if (instrument) {
+    const activeInstrument = getInstrumentByIdsWithWatcher(
+      instrument.instrumentId,
+      instrument.exchangeId,
+    );
+    if (activeInstrument)
+      instrument.instrumentType = activeInstrument?.instrument_type;
+  }
   triggerOrderBook(instrument);
   triggerMakeOrder(instrument, {
     side: SideEnum.Buy,
@@ -226,7 +236,7 @@ function handleClickRow(row: KungfuApi.InstrumentResolved) {
                 <KfBlinkNum
                   blink-type="color"
                   mode="compare-zero"
-                  :num="getPreClosePrice(record)"
+                  :num="getLastPricePercent(record)"
                 ></KfBlinkNum>
               </div>
             </div>

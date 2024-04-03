@@ -155,16 +155,16 @@ protected:
   mutable std::mutex band_mtx_{};
   const size_t main_thread_id_{};
 
-  yijinjing::io_device_ptr io_device_;
-  volatile bool live_ = false;
-  volatile uint32_t step_limit_ = 0;
-  int64_t now_;
-
   rx::connectable_observable<event_ptr> events_ = {};
 
   const yijinjing::data::location_ptr master_home_location_;
   const yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
+
+  yijinjing::io_device_ptr io_device_;
+  volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
+  int64_t now_;
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
 

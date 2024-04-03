@@ -24,7 +24,7 @@ class io_device : public resource {
 public:
   io_device(data::location_ptr home, bool low_latency, bool lazy);
 
-  virtual ~io_device() = default;
+  ~io_device() override = default;
 
   bool is_usable() override { return publisher_ and observer_ and publisher_->is_usable() and observer_->is_usable(); }
 
@@ -122,10 +122,14 @@ DECLARE_PTR(io_device_console)
 
 class io_device_network : public resource {
 public:
-  io_device_network() { stream_manager_ = std::make_shared<kungfu::yijinjing::webserver::stream_manage>(); };
-  ~io_device_network(){};
-  bool is_usable() { return true; };
-  bool setup() { return true; };
+  io_device_network() { stream_manager_ = std::make_shared<kungfu::yijinjing::webserver::stream_manage>(); }
+
+  ~io_device_network() override = default;
+
+  bool is_usable() override { return true; }
+
+  bool setup() override { return true; }
+
   kungfu::yijinjing::webserver::stream_manage_ptr get_stream_manager() { return stream_manager_; };
 
 protected:
@@ -137,11 +141,12 @@ class io_device_network_server : public io_device_network {
 public:
   io_device_network_server(const std::string &address, const std::vector<std::string> &paths, bool is_text_mode = true)
       : http_server_(std::make_shared<kungfu::yijinjing::webserver::http_server>(address)) {
-    for (auto path : paths) {
+    for (const auto &path : paths) {
       http_server_->add_websocket(stream_manager_, path, is_text_mode);
     }
   };
-  ~io_device_network_server(){};
+
+  ~io_device_network_server() override = default;
 
 private:
   kungfu::yijinjing::webserver::http_server_ptr http_server_;
@@ -150,8 +155,10 @@ DECLARE_PTR(io_device_network_server)
 
 class io_device_network_client : public io_device_network {
 public:
-  io_device_network_client(){};
-  ~io_device_network_client(){};
+  io_device_network_client() = default;
+
+  ~io_device_network_client() override = default;
+
   // TODO: how to stand return connect failed?
   uint64_t connect_remote(const std::string &address) {
     auto client = std::make_shared<kungfu::yijinjing::webserver::webclient>(stream_manager_, address);

@@ -155,6 +155,11 @@ protected:
   mutable std::mutex band_mtx_{};
   const size_t main_thread_id_{};
 
+  yijinjing::io_device_ptr io_device_;
+  volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
+  int64_t now_;
+
   rx::connectable_observable<event_ptr> events_ = {};
 
   const yijinjing::data::location_ptr master_home_location_;
@@ -207,8 +212,9 @@ protected:
 
   void cleanup_reader_disjoin();
 
-protected:
   virtual bool drain(const rx::subscriber<event_ptr> &sb);
+
+  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 
 private:
   rx::composite_subscription cs_;
@@ -238,14 +244,6 @@ private:
   }
 
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
-
-public:
-  yijinjing::io_device_ptr io_device_;
-
-  volatile bool live_ = false;
-  volatile uint32_t step_limit_ = 0;
-  int64_t now_;
-  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_HERO_H

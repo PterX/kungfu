@@ -328,10 +328,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
 
   targetVersion = getTargetVersion(curVersion);
   if (!targetVersion) return;
-  kfLogger.info(
-    'Kungfu autoUpdater target version: ',
-    JSON.stringify(targetVersion),
-  );
+  kfLogger.info('Kungfu autoUpdater target version: ', targetVersion);
   function setupAutoUpdaterListeners(MainWindow: BrowserWindow | null) {
     autoUpdater.removeAllListeners();
 

@@ -99,6 +99,21 @@ const download = debounce(() => {
   autoUpdater.downloadUpdate();
 }, 1000);
 
+function getTargetVersion(version: string) {
+  const isRelease = !version.includes('-alpha');
+  if (isRelease && !isAllowReleaseToAlpha()) {
+    return getNextVersionByUpdateType(
+      version,
+      UpdateVersionTypeEnums.UpdateToRelease,
+    );
+  } else {
+    return getNextVersionByUpdateType(
+      version,
+      UpdateVersionTypeEnums.UpdateToNextAlpha,
+    );
+  }
+}
+
 function getNextVersionByUpdateType(
   version: string,
   updateType: UpdateVersionType,
@@ -129,6 +144,16 @@ function getNextVersionByUpdateType(
   }
 }
 
+function isAllowReleaseToAlpha() {
+  return !!rootPackageJson?.kungfuCraft?.autoUpdate?.checkVersion
+    ?.releaseToAlpha;
+}
+
+function isAllowAlphaToRelease() {
+  return !!rootPackageJson?.kungfuCraft?.autoUpdate?.checkVersion
+    ?.alphaToRelease;
+}
+
 function checkUpdateTypeAvailable(
   isPrerelease: boolean,
   updateType: UpdateVersionType,
@@ -139,14 +164,12 @@ function checkUpdateTypeAvailable(
       if (isPrerelease) {
         return true;
       } else {
-        return !!rootPackageJson?.kungfuCraft?.autoUpdate?.checkVersion
-          ?.releaseToAlpha;
+        return isAllowReleaseToAlpha();
       }
     case UpdateVersionTypeEnums.UpdateToRelease:
     case UpdateVersionTypeEnums.UpdateToNextRelease: {
       if (isPrerelease) {
-        return !!rootPackageJson?.kungfuCraft?.autoUpdate?.checkVersion
-          ?.alphaToRelease;
+        return isAllowAlphaToRelease();
       } else {
         return true;
       }
@@ -303,19 +326,13 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   if (curVersion === '') return;
   const version = semver.parse(curVersion as string) as semver.SemVer;
 
-  targetVersion = getNextVersionByUpdateType(
-    curVersion,
-    UpdateVersionTypeEnums.UpdateToNextAlpha,
-  );
+  targetVersion = getTargetVersion(curVersion);
   if (!targetVersion) return;
   kfLogger.info(
     'Kungfu autoUpdater target version: ',
     JSON.stringify(targetVersion),
   );
-  function setupAutoUpdaterListeners(
-    MainWindow: BrowserWindow | null,
-    targetVersion: string,
-  ) {
+  function setupAutoUpdaterListeners(MainWindow: BrowserWindow | null) {
     autoUpdater.removeAllListeners();
 
     autoUpdater.on('error', async (error) => {
@@ -452,7 +469,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
           'Kungfu autoUpdater download latest option: ',
           JSON.stringify(updaterOption),
         );
-        setupAutoUpdaterListeners(MainWindow, targetVersion);
+        setupAutoUpdaterListeners(MainWindow);
         autoUpdater.checkForUpdates();
         download();
         downloadStarted = true;
@@ -464,10 +481,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
     ipcMain.on('auto-update-retry-check-update', async () => {
       const curVersion = getCurrentLatestVersion(rootPackageJson.version || '');
       let version = semver.parse(curVersion as string) as semver.SemVer;
-      targetVersion = getNextVersionByUpdateType(
-        curVersion,
-        UpdateVersionTypeEnums.UpdateToNextAlpha,
-      );
+      targetVersion = getTargetVersion(curVersion);
       if (curVersion === '') return;
       version = semver.parse(curVersion as string) as semver.SemVer;
       if (!targetVersion || !rawUpdateOption) return;
@@ -485,7 +499,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
         'Kungfu autoUpdater recheck option: ',
         JSON.stringify(updaterOption),
       );
-      setupAutoUpdaterListeners(MainWindow, targetVersion);
+      setupAutoUpdaterListeners(MainWindow);
       autoUpdater.checkForUpdates();
     });
   }
@@ -497,7 +511,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   }
 
   configureAutoUpdater();
-  setupAutoUpdaterListeners(MainWindow, targetVersion);
+  setupAutoUpdaterListeners(MainWindow);
   setupIpcListeners();
 
   const updaterOptionResult = await setUpdaterOption(

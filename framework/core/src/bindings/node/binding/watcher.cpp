@@ -122,7 +122,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       refresh_required_data_reader_(std::make_shared<yijinjing::journal::reader>(
           true, false, std::make_shared<yijinjing::journal::bus>(false))),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
-      bookkeeper_(*this, broker_client_, bypass_accounting_, true),           //
+      bookkeeper_(*this, broker_client_, bypass_accounting_, true),                               //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
@@ -463,7 +463,7 @@ void Watcher::on_start() {
     if (not bypass_accounting_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
-  
+
     events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
     events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Asset::tag) | $$(UpdateAsset(event, event->data<Asset>().holder_uid));

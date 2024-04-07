@@ -27,7 +27,8 @@ DECLARE_PTR(BookListener)
 
 class Bookkeeper {
 public:
-  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false, bool bypass_replace_trading_data = false);
+  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false,
+                      bool bypass_replace_trading_data = false);
 
   virtual ~Bookkeeper() = default;
 

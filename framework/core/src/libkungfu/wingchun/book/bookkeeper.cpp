@@ -19,7 +19,8 @@ using namespace kungfu::yijinjing::util;
 namespace kungfu::wingchun::book {
 Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote,
                        bool bypass_replace_trading_data)
-    : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote), bypass_replace_trading_data_(bypass_replace_trading_data),
+    : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
+      bypass_replace_trading_data_(bypass_replace_trading_data),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }

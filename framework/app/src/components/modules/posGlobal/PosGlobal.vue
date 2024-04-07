@@ -17,7 +17,6 @@ import {
   onDeactivated,
   ref,
   toRaw,
-  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';

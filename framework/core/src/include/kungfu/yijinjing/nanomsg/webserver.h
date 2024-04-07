@@ -2,8 +2,8 @@
 #define KUNGFU_WEBSERVER_H
 
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/journal/assemble.h>
-
+#include <kungfu/yijinjing/common.h>
+#include <kungfu/yijinjing/journal/journal.h>
 #include <nng/nng.h>
 #include <nng/supplemental/http/http.h>
 
@@ -76,21 +76,8 @@ static uint64_t generate_stream_id(nng_stream *s) {
 }
 
 class stream {
-private:
-  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
-  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
-  nng_stream *s_;
-  std::vector<uint8_t> rec_buffer_;
-  uint64_t stream_id_;
-  void cancel();
-  std::mutex mtx_;
-
 public:
-  // the first vector is used for callback function receive data, the second vector is used for cache the data have
-  // received when call get_data(), will return the
-  std::vector<std::string> data_received_; // used for receive data
-  // std::vector<std::string> data_received_cache_; // cache data_received, two buffer or just simple lock？
-  stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size = 32768);
+  stream(nng_stream *s, uint64_t stream_id);
 
   virtual ~stream();
 
@@ -107,24 +94,35 @@ public:
   uint64_t get_opposite_stream_id();
 
   std::vector<std::string> get_and_clear_data();
+
+private:
+  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
+  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
+  nng_stream *s_;
+  std::vector<uint8_t> rec_buffer_;
+  uint64_t stream_id_;
+  void cancel();
+  std::mutex mtx_;
+  yijinjing::data::location_ptr location_;
+  journal::writer_ptr writer_;
+  journal::reader_ptr reader_;
+  journal::frame_ptr current_frame_;
+  // the first vector is used for callback function receive data, the second vector is used for cache the data have
+  // received when call get_data(), will return the
+  std::vector<std::string> data_received_; // used for receive data
+  // std::vector<std::string> data_received_cache_; // cache data_received, two buffer or just simple lock？
+
+  void close_data();
 };
 DECLARE_PTR(stream)
 
 class webserver {
-private:
-  nng_stream_listener *listener{nullptr};
-  nng_smart_ptr<nng_aio> aio_accept{nng_aio_free};
-  const nng_url *base_url_;
-  std::string path_;
-  const bool is_text_mode_;
-  const size_t max_num_connections_;
-  size_t num_connected_;
-
 public:
   stream_manage_ptr stream_manager_;
   // std::map<int, std::shared_ptr<stream>> streams_;
   webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path, bool is_text_mode,
             size_t max_num_connections);
+
   virtual ~webserver();
 
   void start_listening();
@@ -134,16 +132,20 @@ public:
   void start_accept();
 
   void accept_cb();
+
+private:
+  nng_stream_listener *listener{nullptr};
+  nng_smart_ptr<nng_aio> aio_accept{nng_aio_free};
+  const nng_url *base_url_;
+  std::string path_;
+  const bool is_text_mode_;
+  const size_t max_num_connections_;
+  size_t num_connected_;
 };
 FORWARD_DECLARE_CLASS_PTR(webserver)
 
 // a http http_server
 class http_server {
-private:
-  nng_smart_ptr<nng_http_server> server_{nng_http_server_release};
-  bool started_{false};
-  nng_smart_ptr<nng_url> url_{nng_url_free};
-
 public:
   std::map<int, std::shared_ptr<webserver>> websockets_;
   explicit http_server(const std::string &address);
@@ -153,6 +155,11 @@ public:
   void remove_websocket(int id);
   void start();
   int port();
+
+private:
+  nng_smart_ptr<nng_http_server> server_{nng_http_server_release};
+  bool started_{false};
+  nng_smart_ptr<nng_url> url_{nng_url_free};
 };
 FORWARD_DECLARE_CLASS_PTR(http_server)
 

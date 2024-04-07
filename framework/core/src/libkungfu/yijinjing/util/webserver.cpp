@@ -7,12 +7,18 @@
 
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::longfist::types;
+using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::webserver {
-stream::stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size)
-    : s_(s), stream_id_(stream_id), rec_buffer_(buffer_size) {
+stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id) {
   SPDLOG_DEBUG("stream");
+  location_ = location::make_shared(mode::LIVE, category::SYSTEM, "webserver", std::to_string(stream_id),
+                                    std::make_shared<locator>(mode::LIVE));
+  writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
+                                     std::make_shared<bus>(false), 256);
+  reader_ = std::make_shared<reader>(false, false, std::make_shared<bus>(false));
+  reader_->join(location_, location::PUBLIC, time::now_in_nano());
 
   int rv;
   if ((rv = nng_aio_alloc(
@@ -33,6 +39,7 @@ stream::stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size)
 stream::~stream() {
   SPDLOG_DEBUG("~stream");
 
+  close_data();
   cancel();
   nng_stream_free(s_);
   nng_aio_free(aio_recv_);
@@ -49,8 +56,17 @@ uint64_t stream::get_opposite_stream_id() {
          (static_cast<uint64_t>(local_address.s_in.sa_port) << 16) | remote_address.s_in.sa_port;
 }
 
+void stream::close_data() {
+  if (current_frame_) {
+    writer_->close_frame_lock_free(1024);
+    current_frame_.reset();
+  }
+}
+
 void stream::start_recv() {
-  nng_iov iov = {rec_buffer_.data(), rec_buffer_.size()};
+  close_data();
+  current_frame_ = writer_->open_frame_lock_free(time::now_in_nano(), 10001000, 1024);
+  nng_iov iov{const_cast<void *>(current_frame_->data_address()), current_frame_->data_length()};
   nng_aio_set_iov(aio_recv_, 1, &iov);
   nng_stream_recv(s_, aio_recv_);
 }
@@ -61,16 +77,17 @@ void stream::stream_recv_cb() {
   auto len = nng_aio_count(aio_recv_);
   switch (rv) {
   case 0: {
-    {
-      std::string data((char *)rec_buffer_.data(), len);
-      std::lock_guard<std::mutex> lock(mtx_);
-      data_received_.emplace_back((char *)rec_buffer_.data(), len);
-    }
+    //    {
+    //      std::string data((char *)rec_buffer_.data(), len);
+    //      std::lock_guard<std::mutex> lock(mtx_);
+    //      data_received_.emplace_back((char *)rec_buffer_.data(), len);
+    //    }
     start_recv();
     break;
   }
   case NNG_ECLOSED: {
     SPDLOG_DEBUG("NNG_ECLOSED");
+    // 写入特殊内容到current_frame里去, 然后close_data();
     // disposer_(this);
     break;
   }
@@ -115,8 +132,13 @@ int stream::stream_send(const char *data, const int len) {
 
 std::vector<std::string> stream::get_and_clear_data() {
   std::lock_guard<std::mutex> lock(mtx_);
-  std::vector<std::string> result = data_received_; // 返回数据的副本
-  data_received_.clear();
+  //  std::vector<std::string> result = data_received_; // 返回数据的副本
+  //  data_received_.clear();
+  std::vector<std::string> result{};
+  while (reader_->data_available()) {
+    result.push_back(reader_->current_frame()->data_as_string());
+    reader_->next();
+  }
   return result;
 }
 
@@ -335,7 +357,10 @@ std::vector<std::string> stream_manage::get_notice(uint64_t stream_id) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);
   return streams_.find(stream_id)->second->get_and_clear_data();
 }
-void stream_manage::clear_notice(uint64_t stream_id) { streams_.find(stream_id)->second->data_received_.clear(); }
+
+void stream_manage::clear_notice(uint64_t stream_id) {
+  //  streams_.find(stream_id)->second->data_received_.clear();
+}
 
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);

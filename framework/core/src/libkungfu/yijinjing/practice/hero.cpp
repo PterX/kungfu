@@ -5,7 +5,6 @@
 //
 
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/practice/hero.h>
@@ -22,7 +21,6 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::yijinjing::nanomsg;
-using namespace kungfu::yijinjing::webserver;
 
 namespace kungfu::yijinjing::practice {
 

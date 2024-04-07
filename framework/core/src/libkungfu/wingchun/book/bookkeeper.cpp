@@ -49,91 +49,24 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
-
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
+  events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
+  if (not bypass_accounting_) {
+    events | is(OrderInput::tag) |
+        $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
+    events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
+    events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
+  }
+  events | is(AlgoOrderInput::tag) |
+      $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
+  events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));
+  events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
+  events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
+  events | is(OutputKey::tag) | $$(on_output_key(event));
+  events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
+  events | is(Register::tag) | $$(on_register(event->data<Register>()));
+  events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 
-
-  // events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
-  // if (not bypass_accounting_) {
-  //   events | is(OrderInput::tag) |
-  //       $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
-  //   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
-  //   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
-  // }
-  // events | is(AlgoOrderInput::tag) |
-  //     $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
-  // events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));
-  // events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
-  // events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
-  // events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
-  // events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
-  // events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
-  // events | is(OutputKey::tag) | $$(on_output_key(event));
-  // events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
-  // events | is(Register::tag) | $$(on_register(event->data<Register>()));
-  // events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
-
-  events | $$(switch (event->msg_type()) {
-    //   case Quote::tag: {
-    //     if (is_own_event<Quote>(broker_client_, event)) {
-    //       try_update_book(event, event->data<Quote>());
-    //     }
-    //     break;
-    //   }
-  case InstrumentKey::tag: {
-    update_book(event, event->data<InstrumentKey>());
-    break;
-  }
-  case OrderInput::tag: {
-    if (not bypass_accounting_) 
-      on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>());
-    break;
-  }
-  case Order::tag: {
-    if (not bypass_accounting_) 
-      update_book<Order>(event, &AccountingMethod::apply_order);
-    break;
-  }
-  case Trade::tag: {
-    if (not bypass_accounting_) 
-      update_book<Trade>(event, &AccountingMethod::apply_trade);
-    break;
-  }
-  case AlgoOrderInput::tag: {
-    on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>());
-    break;
-  }
-  case AlgoOrder::tag: {
-    update_book<AlgoOrder>(event);
-    break;
-  }
-  case Asset::tag: {
-    update_book(event, event->data<Asset>());
-    break;
-  }
-  case ResetBookRequest::tag: {
-    drop_book(event->source());
-    break;
-  }
-  case OutputKey::tag: {
-    on_output_key(event);
-    break;
-  }
-  case BrokerStateUpdate::tag: {
-    on_broker_state(event->data<BrokerStateUpdate>());
-    break;
-  }
-  case Register::tag: {
-    on_register(event->data<Register>());
-    break;
-  }
-  case Deregister::tag: {
-    on_deregister(event->data<Deregister>());
-    break;
-  }
-  default:
-    break;
-  };);
 
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,

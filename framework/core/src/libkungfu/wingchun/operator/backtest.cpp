@@ -51,48 +51,14 @@ void BacktestContext::post_stop() {
 void BacktestContext::on_start() {
   bookkeeper_.on_start(events_);
 
-  // events_ | is(Quote::tag) | $$(report_->on_quote(event->data<Quote>()););
-  // events_ | is(Entrust::tag) | $$(report_->on_entrust(event->data<Entrust>()););
-  // events_ | is(Transaction::tag) | $$(report_->on_transaction(event->data<Transaction>()););
-  // events_ | is(Tree::tag) | $$(report_->on_tree(event->data<Tree>()););
-  // events_ | is(Depth::tag) | $$(report_->on_depth(event->data<Depth>()););
-  // events_ | is(Tick::tag) | $$(report_->on_tick(event->data<Tick>()););
-  // events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
-  // events_ | $$(on_timer_check(););
-  events_ | $$(switch (event->msg_type()) {
-    case Quote::tag: {
-      report_->on_quote(event->data<Quote>());
-      break;
-    }
-    case Entrust::tag: {
-      report_->on_entrust(event->data<Entrust>());
-      break;
-    }
-    case Transaction::tag: {
-      report_->on_transaction(event->data<Transaction>());
-      break;
-    }
-    case Tree::tag: {
-      report_->on_tree(event->data<Tree>());
-      break;
-    }
-    case Depth::tag: {
-      report_->on_depth(event->data<Depth>());
-      break;
-    }
-    case Tick::tag: {
-      report_->on_tick(event->data<Tick>());
-      break;
-    }
-    case SyntheticData::tag: {
-      report_->on_read_synthetic_data(event->data<SyntheticData>());
-      break;
-    }
-    default:
-      break;
-  };
-
-               on_timer_check(););
+  events_ | is(Quote::tag) | $$(report_->on_quote(event->data<Quote>()););
+  events_ | is(Entrust::tag) | $$(report_->on_entrust(event->data<Entrust>()););
+  events_ | is(Transaction::tag) | $$(report_->on_transaction(event->data<Transaction>()););
+  events_ | is(Tree::tag) | $$(report_->on_tree(event->data<Tree>()););
+  events_ | is(Depth::tag) | $$(report_->on_depth(event->data<Depth>()););
+  events_ | is(Tick::tag) | $$(report_->on_tick(event->data<Tick>()););
+  events_ | is(SyntheticData::tag) | $$(report_->on_read_synthetic_data(event->data<SyntheticData>()));
+  events_ | $$(on_timer_check(););
   init_time_events();
   report_->init();
 }

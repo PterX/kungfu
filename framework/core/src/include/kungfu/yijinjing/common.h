@@ -32,11 +32,13 @@ public:
   virtual bool is_usable() = 0;
 
   virtual bool setup() = 0;
+
+  virtual ~resource() = default;
 };
 
 class publisher : public resource {
 public:
-  virtual ~publisher() = default;
+  ~publisher() override = default;
 
   virtual int notify() = 0;
 
@@ -47,7 +49,7 @@ DECLARE_PTR(publisher)
 
 class observer : public resource {
 public:
-  virtual ~observer() = default;
+  ~observer() override = default;
 
   virtual bool wait() = 0;
 
@@ -151,8 +153,8 @@ struct location : public std::enable_shared_from_this<location>, public longfist
     return std::make_shared<location>(msg.mode, msg.category, msg.group, msg.name, l);
   }
 
-  static inline location_ptr make_shared(longfist::enums::mode m, longfist::enums::category c, std::string g,
-                                         std::string n, locator_ptr l) {
+  static inline location_ptr make_shared(longfist::enums::mode m, longfist::enums::category c, const std::string &g,
+                                         const std::string &n, const locator_ptr &l) {
     return std::make_shared<location>(m, c, g, n, l);
   }
 };

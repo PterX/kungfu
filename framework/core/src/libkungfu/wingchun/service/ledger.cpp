@@ -148,6 +148,10 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
     stat.ack_time = event->gen_time();
     try_write_to(event->gen_time(), stat, event->source());
   }
+
+  if (is_final_status(data.status) && order_stats_.find(data.order_id) != order_stats_.end()) {
+    order_stats_.erase(data.order_id);
+  }
 }
 
 void Ledger::update_order_stat(const event_ptr &event, const Trade &data) {

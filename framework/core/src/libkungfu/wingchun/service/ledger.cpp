@@ -141,16 +141,12 @@ void Ledger::update_order_stat(const event_ptr &event, const Order &data) {
   auto inserted = stat.insert_time != 0;
   auto acked = stat.ack_time != 0;
   if (not inserted) {
-    stat.insert_time = event->gen_time();
+    stat.insert_time = data.insert_time; // have to be insert_time, for ui rendering logic
     try_write_to(event->gen_time(), stat, event->source());
   }
   if (inserted and not acked) {
     stat.ack_time = event->gen_time();
     try_write_to(event->gen_time(), stat, event->source());
-  }
-
-  if (is_final_status(data.status) && order_stats_.find(data.order_id) != order_stats_.end()) {
-    order_stats_.erase(data.order_id);
   }
 }
 

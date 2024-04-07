@@ -66,14 +66,6 @@ const getProjectName = (rootConfigJson: RootConfigJSON): string => {
   return `kungfu-project-name-undefined-${new Date().toDateString()}`;
 };
 
-const getAlphaReleaseVersion = (version: semver.SemVer) => {
-  return `${version.major}.${version.minor}.${version.patch}`;
-};
-
-const getNextMinorReleaseVersion = (version: semver.SemVer) => {
-  return `${version.major}.${version.minor + 1}.0`;
-};
-
 const getLatestSkippedVersion = () => {
   const skippedVersions = globalStorage.getItem('skippedVersions');
 
@@ -100,21 +92,6 @@ function saveSkippedVersion(version: string) {
     globalStorage.setItem('skippedVersions', skippedVersions);
   } else {
     globalStorage.setItem('skippedVersions', [version]);
-  }
-}
-
-function getDefaultTargetVersions(version: semver.SemVer) {
-  const isPrerelease = !!version.prerelease.length;
-  if (isPrerelease) {
-    return [
-      semver.inc(version, 'prerelease', 'alpha') || 'kungfu-version-unknow',
-      getAlphaReleaseVersion(version),
-    ];
-  } else {
-    return [
-      semver.inc(version, 'patch') || 'kungfu-version-unknow',
-      getNextMinorReleaseVersion(version),
-    ];
   }
 }
 
@@ -313,8 +290,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   kfLogger.info('Kungfu client version: ', app.getVersion());
   kfLogger.info('Kungfu client isPacked: ', app.isPackaged);
   if (!app.isPackaged) return;
-  let targetVersions: string[] = [];
-  let curErrorBeCalled = false;
+  let targetVersion = '';
   let downloadStarted = false;
   let findLastestVersion = false;
   let isDownloadLatestVersion = false;
@@ -327,25 +303,24 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   if (curVersion === '') return;
   const version = semver.parse(curVersion as string) as semver.SemVer;
 
-  targetVersions = getDefaultTargetVersions(version);
-  if (!targetVersions.length) return;
+  targetVersion = getNextVersionByUpdateType(
+    curVersion,
+    UpdateVersionTypeEnums.UpdateToNextAlpha,
+  );
+  if (!targetVersion) return;
   kfLogger.info(
-    'Kungfu autoUpdater all target versions: ',
-    JSON.stringify(targetVersions),
+    'Kungfu autoUpdater target version: ',
+    JSON.stringify(targetVersion),
   );
   function setupAutoUpdaterListeners(
     MainWindow: BrowserWindow | null,
-    targetVersions: string[],
+    targetVersion: string,
   ) {
     autoUpdater.removeAllListeners();
 
     autoUpdater.on('error', async (error) => {
       kfLogger.error('Kungfu autoUpdater error message: ', error?.message);
       if (MainWindow && downloadStarted) sendUpdatingError(MainWindow, error);
-      if (!curErrorBeCalled && !downloadStarted && targetVersions.length) {
-        curErrorBeCalled = true;
-        await handleUpdateKungfu(MainWindow);
-      }
     });
 
     autoUpdater.on('checking-for-update', () => {
@@ -477,7 +452,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
           'Kungfu autoUpdater download latest option: ',
           JSON.stringify(updaterOption),
         );
-        setupAutoUpdaterListeners(MainWindow, targetVersions);
+        setupAutoUpdaterListeners(MainWindow, targetVersion);
         autoUpdater.checkForUpdates();
         download();
         downloadStarted = true;
@@ -489,13 +464,15 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
     ipcMain.on('auto-update-retry-check-update', async () => {
       const curVersion = getCurrentLatestVersion(rootPackageJson.version || '');
       let version = semver.parse(curVersion as string) as semver.SemVer;
-      targetVersions = getDefaultTargetVersions(version);
+      targetVersion = getNextVersionByUpdateType(
+        curVersion,
+        UpdateVersionTypeEnums.UpdateToNextAlpha,
+      );
       if (curVersion === '') return;
       version = semver.parse(curVersion as string) as semver.SemVer;
-      curTargetVersion = targetVersions.shift();
-      if (!curTargetVersion || !rawUpdateOption) return;
+      if (!targetVersion || !rawUpdateOption) return;
       const updaterOptionResult = await setUpdaterOption(
-        curTargetVersion,
+        targetVersion,
         rawUpdateOption,
         projectName,
         version,
@@ -508,7 +485,7 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
         'Kungfu autoUpdater recheck option: ',
         JSON.stringify(updaterOption),
       );
-      setupAutoUpdaterListeners(MainWindow, targetVersions);
+      setupAutoUpdaterListeners(MainWindow, targetVersion);
       autoUpdater.checkForUpdates();
     });
   }
@@ -520,19 +497,20 @@ async function handleUpdateKungfu(MainWindow: BrowserWindow | null) {
   }
 
   configureAutoUpdater();
-  setupAutoUpdaterListeners(MainWindow, targetVersions);
+  setupAutoUpdaterListeners(MainWindow, targetVersion);
   setupIpcListeners();
 
-  let curTargetVersion = targetVersions.shift();
-  if (!curTargetVersion) return;
-
   const updaterOptionResult = await setUpdaterOption(
-    curTargetVersion,
+    targetVersion,
     rawUpdateOption,
     projectName,
     version,
   );
-  if (!updaterOptionResult) return;
+
+  if (!updaterOptionResult) {
+    kfLogger.info('Kungfu autoUpdater no available version to update');
+    return;
+  }
 
   const { updaterOption } = updaterOptionResult;
   if (updaterOption) {

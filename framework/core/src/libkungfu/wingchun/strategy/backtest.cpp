@@ -125,7 +125,7 @@ void BacktestContext::on_timer_check() {
       time_event["trigger_time"] = now_time;
       time_event["source"] = app_.get_live_home_uid();
       time_event["dest"] = app_.get_live_home_uid();
-      time_event["data"] = nlohmann::json::object();
+      time_event["data"] = "";
       // TODO use app_.make_nano_msg instead
       // Time time_event{};
       it->second.call_back(std::make_shared<nanomsg_json>(time_event.dump()));

@@ -293,6 +293,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    std::lock_guard<std::mutex> guard(feed_mutex_);
     state<longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
     data_bank_ << cache_state_order_trigger_input;
   }
@@ -300,6 +301,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
+    std::lock_guard<std::mutex> guard(feed_mutex_);
     bookkeeper_.on_order_input(now(), source, dest, data);
     state<longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
     refresh_required_data_bank_ << cache_state_order_input;
@@ -308,6 +310,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
+    std::lock_guard<std::mutex> guard(feed_mutex_);
     state<longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
     data_bank_ << cache_state_algo_order_input;
   }

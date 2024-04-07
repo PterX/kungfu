@@ -17,10 +17,9 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
 namespace kungfu::wingchun::book {
-Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote, bool bypass_accounting,
+Bookkeeper::Bookkeeper(apprentice &app, broker::Client &broker_client, bool bypass_quote,
                        bool bypass_replace_trading_data)
-    : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote),
-      bypass_accounting_(bypass_accounting), bypass_replace_trading_data_(bypass_replace_trading_data),
+    : app_(app), broker_client_(broker_client), static_data_(app), bypass_quote_(bypass_quote), bypass_replace_trading_data_(bypass_replace_trading_data),
       account_method_type_(book::get_accounting_method_type()) {
   book::AccountingMethod::setup_defaults(*this, account_method_type_);
 }
@@ -49,12 +48,10 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
 
-  if (not bypass_accounting_) {
-    events | is(OrderInput::tag) |
-        $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
-    events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
-    events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
-  }
+  events | is(OrderInput::tag) |
+      $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
+  events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
+  events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
 
   events | is(AlgoOrderInput::tag) |
       $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));

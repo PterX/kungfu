@@ -28,7 +28,7 @@ Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string 
                const std::string &arguments)
     : apprentice(location::make_shared(m, category::SYSTEM, "service", "ledger", std::move(locator)), low_latency,
                  arguments),
-      broker_client_(*this), bookkeeper_(*this, broker_client_, true, false, true) {
+      broker_client_(*this), bookkeeper_(*this, broker_client_, true, true) {
   sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
   sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);

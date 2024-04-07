@@ -26,7 +26,7 @@ using namespace kungfu::yijinjing::data;
 namespace kungfu::node {
 
 constexpr uint32_t STEP_INTERVAL = 10;
-constexpr uint32_t REFRESH_REQUIRED_DATA_LIMIT_BY_SYNC = 2000;
+constexpr uint32_t REFRESH_REQUIRED_DATA_LIMIT_BY_SYNC = 1500;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 
@@ -122,7 +122,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
       refresh_required_data_reader_(std::make_shared<yijinjing::journal::reader>(
           true, false, std::make_shared<yijinjing::journal::bus>(false))),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
-      bookkeeper_(*this, broker_client_, bypass_accounting_, bypass_accounting_, true),           //
+      bookkeeper_(*this, broker_client_, bypass_accounting_, true),           //
       state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
@@ -307,9 +307,7 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
-
   SPDLOG_INFO("issue algo order manually");
-
   return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 
@@ -464,10 +462,10 @@ void Watcher::on_start() {
     // data, all relay on poistion updating by ledger;
     if (not bypass_accounting_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
-      events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
-      events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     }
-
+  
+    events_ | is(Order::tag) | $$(UpdateBook(event, event->data<Order>()));
+    events_ | is(Trade::tag) | $$(UpdateBook(event, event->data<Trade>()));
     events_ | is(Asset::tag) | $$(UpdateAsset(event, event->data<Asset>().holder_uid));
     events_ | is(Position::tag) | $$(UpdateBook(event, event->data<Position>()));
     events_ | is(PositionEnd::tag) | $$(UpdateAsset(event, event->data<PositionEnd>().holder_uid));

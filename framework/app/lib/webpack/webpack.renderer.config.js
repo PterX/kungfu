@@ -37,7 +37,6 @@ const webpackConfig = (argv) => {
   const threadLoader = argv.enableThreadLoader
     ? toolkit.webpack.getThreadLoaderConfig(argv)
     : [];
-  const fontWeightBySystem = os.platform() === 'win32' ? 'bold' : 'normal';
 
   return merge(toolkit.webpack.makeConfig(argv), {
     externals: getWebpackExternals(),
@@ -69,7 +68,6 @@ const webpackConfig = (argv) => {
                     'green-base': '#17b07f',
                     'red2-base': '#f21717',
                     'green2-base': '#15de9e',
-                    'font-weight-by-system': fontWeightBySystem,
                   },
                 },
               },

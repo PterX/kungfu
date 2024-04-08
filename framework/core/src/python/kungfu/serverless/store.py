@@ -132,6 +132,7 @@ class FeatureStore:
 
         def filter_date(item):
             return item["timestamp"] == date_str
+
         after_filter_results = list(filter(filter_date, results))
 
         if not len(after_filter_results):
@@ -197,7 +198,7 @@ class FeatureStore:
         ).text
         resp = json.loads(resp)
         results = resp.get("results", [])
-        
+
         return sorted(results, key=lambda item: item["timestamp"])
 
     def list_features(self):
@@ -243,6 +244,7 @@ class FeatureStore:
 
         def filter_date(item):
             return item["timestamp"] == date_str
+
         after_filter_results = list(filter(filter_date, results))
 
         if not len(after_filter_results):

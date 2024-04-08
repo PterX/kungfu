@@ -100,25 +100,25 @@ void apprentice::preload_next_page() {
 }
 
 void apprentice::react() {
-  events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
-  events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
-  events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
-  events_ | is(RequestReadFrom::tag) | $$(on_read_from(event));
-  events_ | is(RequestReadFromPublic::tag) | $$(on_read_from_public(event));
-  events_ | is(RequestReadFromSync::tag) | $$(on_read_from_sync(event));
-  events_ | is(RequestWriteTo::tag) | $$(on_write_to(event));
-  events_ | is(RequestWriteToBand::tag) | $$(on_write_to_band(event));
-  events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
-  events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
-  events_ | is(RequestStop::tag) | to(get_live_home_uid()) | $$(signal_stop());
-  events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
-  events_ | is(Deregister::tag) | $$(on_deregister(event));
 
   SPDLOG_TRACE("building reactive event handlers");
   on_react();
   manager_.on_react();
 
   if (get_io_device()->get_home()->mode != mode::BACKTEST) {
+    events_ | is(Location::tag) | $$(add_location(event->gen_time(), event->data<Location>()));
+    events_ | is(Register::tag) | $$(on_register(event->trigger_time(), event->data<Register>()));
+    events_ | is(RequestReadFromOthers::tag) | $$(on_request_read_from_others(event));
+    events_ | is(RequestReadFrom::tag) | $$(on_read_from(event));
+    events_ | is(RequestReadFromPublic::tag) | $$(on_read_from_public(event));
+    events_ | is(RequestReadFromSync::tag) | $$(on_read_from_sync(event));
+    events_ | is(RequestWriteTo::tag) | $$(on_write_to(event));
+    events_ | is(RequestWriteToBand::tag) | $$(on_write_to_band(event));
+    events_ | is(Channel::tag) | $$(register_channel(event->gen_time(), event->data<Channel>()));
+    events_ | is(Band::tag) | $$(register_band(event->gen_time(), event->data<Band>()));
+    events_ | is(RequestStop::tag) | to(get_live_home_uid()) | $$(signal_stop());
+    events_ | take_until(events_ | is(RequestStart::tag)) | $$(cached::feed_state_data(event, state_bank_));
+    events_ | is(Deregister::tag) | $$(on_deregister(event));
     events_ | is(TimeReset::tag) | first() | $$(reset_time(event->data<TimeReset>()));
   }
 

@@ -12,6 +12,7 @@
 #include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
+#include <unordered_map>
 
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
@@ -19,6 +20,8 @@ public:
   explicit BacktestContext(yijinjing::practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                            Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
                            tool::Report_ptr report, int64_t time_interval, std::string backtest_config);
+
+  ~BacktestContext() = default;
 
   /**
    * checked_ is strated started.
@@ -75,7 +78,7 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange IDs
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                  const std::string &exchange_id) override;
@@ -314,8 +317,8 @@ public:
 
 protected:
   void on_start() override;
-
   void prepare(const event_ptr &event) override;
+  void post_stop() override;
 
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;
@@ -353,9 +356,19 @@ protected:
 private:
   struct TimerTask {
     int32_t timer_id;
+    int64_t nanotime;
     std::function<void(event_ptr)> call_back;
-    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
+    TimerTask(int32_t id, int64_t nanotime, std::function<void(event_ptr)> cb)
+        : timer_id(id), nanotime(nanotime), call_back(std::move(cb)){};
+    bool operator<(const TimerTask &other) const { return other.nanotime < this->nanotime; }
   };
+
+  enum class SliceState { Idle, Acquiring, Acquired, Releasing, Released };
+  struct SliceReferenceState {
+    SliceState state;
+    int reference_count;
+  };
+
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
@@ -366,14 +379,19 @@ private:
   const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
   int32_t protected_timer_id_;
-  std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
-  std::multimap<int64_t, TimerTask> timer_callbacks_{};
-  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
+  std::vector<TimerTask> timer_tasks_{};
   void on_timer_check();
-  void lease_expired_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
+  int32_t add_timer_helper(int64_t nanotime, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
+
+  std::unordered_map<yijinjing::data::location, SliceReferenceState> slice_reference_states_;
+  void subscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
+  void unsubscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
+  void subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id,
+                        const std::string &exchange_id, int32_t data_tag);
+  void subscribe_operator_helper(int64_t nanotime, const std::string &group, const std::string &name);
 };
 
 DECLARE_PTR(BacktestContext)

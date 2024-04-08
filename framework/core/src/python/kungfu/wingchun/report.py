@@ -33,6 +33,16 @@ class Report(wc.Report):
         self.ctx = ctx
         self.__init_report(ctx.report)
 
+    def __bind_on_func(self, func_name):
+        if not hasattr(self._module, func_name):
+            return
+        func = getattr(self._module, func_name)
+
+        def proxy_on_func(lf_data):
+            func(self.ctx, lf_data)
+
+        setattr(self, func_name, proxy_on_func)
+
     def __init_report(self, path):
         report_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
@@ -42,37 +52,19 @@ class Report(wc.Report):
         self._init = getattr(self._module, "init", lambda ctx: None)
         self._sumerize = getattr(self._module, "sumerize", lambda ctx: None)
 
-        self._on_quote = getattr(self._module, "on_quote", lambda ctx, quote: None)
-        self._on_entrust = getattr(
-            self._module, "on_entrust", lambda ctx, entrust: None
-        )
-        self._on_transaction = getattr(
-            self._module,
+        for func_name in [
+            "on_quote",
+            "on_entrust",
             "on_transaction",
-            lambda ctx, transaction: None,
-        )
-
-        self._on_tree = getattr(self._module, "on_tree", lambda ctx, tree: None)
-
-        self._on_depth = getattr(self._module, "on_depth", lambda ctx, tree: None)
-
-        self._on_tick = getattr(self._module, "on_tick", lambda ctx, tree: None)
-
-        self._on_read_synthetic_data = getattr(
-            self._module,
+            "on_tree",
+            "on_depth",
+            "on_tick",
             "on_read_synthetic_data",
-            lambda ctx, synthetic_data: None,
-        )
-
-        self._on_write_synthetic_data = getattr(
-            self._module,
             "on_write_synthetic_data",
-            lambda ctx, synthetic_data: None,
-        )
-
-        self._on_order = getattr(self._module, "on_order", lambda ctx, order: None)
-
-        self._on_trade = getattr(self._module, "on_trade", lambda ctx, trade: None)
+            "on_order",
+            "on_trade",
+        ]:
+            self.__bind_on_func(func_name)
 
     def init(self):
         self.ctx.bookkeeper = self.bookkeeper
@@ -81,36 +73,6 @@ class Report(wc.Report):
 
     def sumerize(self):
         self._sumerize(self.ctx)
-
-    def on_quote(self, quote):
-        self._on_quote(self.ctx, quote)
-
-    def on_entrust(self, entrust):
-        self._on_entrust(self.ctx, entrust)
-
-    def on_transaction(self, transaction):
-        self._on_transaction(self.ctx, transaction)
-
-    def on_tree(self, tree):
-        self._on_transaction(self.ctx, tree)
-
-    def on_depth(self, depth):
-        self._on_transaction(self.ctx, depth)
-
-    def on_tick(self, tick):
-        self._on_transaction(self.ctx, tick)
-
-    def on_read_synthetic_data(self, synthetic_data):
-        self._on_read_synthetic_data(self.ctx, synthetic_data)
-
-    def on_write_synthetic_data(self, synthetic_data):
-        self._on_write_synthetic_data(self.ctx, synthetic_data)
-
-    def on_order(self, order):
-        self._on_order(self.ctx, order)
-
-    def on_trade(self, trade):
-        self._on_trade(self.ctx, trade)
 
 
 class PeriodResult(ABC):

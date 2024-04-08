@@ -46,6 +46,23 @@ class Strategy(wc.Strategy):
         self.ctx.books = {}
         self.__init_strategy(ctx.path)
 
+    def __bind_on_func(self, func_name):
+        if not hasattr(self._module, func_name):
+            return
+        func = getattr(self._module, func_name)
+
+        if inspect.iscoroutinefunction(func):
+
+            def proxy_on_func(wc_context, lf_data, location, dest_id):
+                self.__call_proxy(func, self.ctx, lf_data, location, dest_id)
+
+        else:
+
+            def proxy_on_func(wc_context, lf_data, location, dest_id):
+                func(self.ctx, lf_data, location, dest_id)
+
+        setattr(self, func_name, proxy_on_func)
+
     def __init_strategy(self, path):
         strategy_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
@@ -56,60 +73,28 @@ class Strategy(wc.Strategy):
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
 
-        self._on_quote = getattr(
-            self._module, "on_quote", lambda ctx, quote, location, dest: None
-        )
-        self._on_tree = getattr(
-            self._module, "on_tree", lambda ctx, tree, location, dest: None
-        )
-        self._on_entrust = getattr(
-            self._module, "on_entrust", lambda ctx, entrust, location, dest: None
-        )
-        self._on_transaction = getattr(
-            self._module,
+        for func_name in [
+            "on_quote",
+            "on_tree",
+            "on_entrust",
             "on_transaction",
-            lambda ctx, transaction, location, dest: None,
-        )
-        self._on_depth = getattr(
-            self._module, "on_depth", lambda ctx, depth, location: None
-        )
-        self._on_tick = getattr(
-            self._module, "on_tick", lambda ctx, tick, location: None
-        )
-        self._on_synthetic_data = getattr(
-            self._module,
+            "on_depth",
+            "on_tick",
             "on_synthetic_data",
-            lambda ctx, synthetic_data, location, dest: None,
-        )
-        self._on_order = getattr(
-            self._module, "on_order", lambda ctx, order, location, dest: None
-        )
-        self._on_order_trigger = getattr(
-            self._module,
+            "on_order",
             "on_order_trigger",
-            lambda ctx, order_trigger, location, dest: None,
-        )
-        self._on_algo_order = getattr(
-            self._module, "on_algo_order", lambda ctx, algo_order, location, dest: None
-        )
-        self._on_order_action_error = getattr(
-            self._module,
+            "on_algo_order",
             "on_order_action_error",
-            lambda ctx, error, location, dest: None,
-        )
-        self._on_order_trigger_action_error = getattr(
-            self._module,
             "on_order_trigger_action_error",
-            lambda ctx, error, location, dest: None,
-        )
-        self._on_algo_order_action_error = getattr(
-            self._module,
             "on_algo_order_action_error",
-            lambda ctx, error, location, dest: None,
-        )
-        self._on_trade = getattr(
-            self._module, "on_trade", lambda ctx, trade, location, dest: None
-        )
+            "on_trade",
+            "on_history_order",
+            "on_history_trade",
+            "on_req_history_order_error",
+            "on_req_history_trade_error",
+        ]:
+            self.__bind_on_func(func_name)
+
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
         )
@@ -123,26 +108,7 @@ class Strategy(wc.Strategy):
             "on_operator_state_change",
             lambda ctx, operator_state_update, location: None,
         )
-        self._on_history_order = getattr(
-            self._module,
-            "on_history_order",
-            lambda ctx, history_order, location, dest: None,
-        )
-        self._on_history_trade = getattr(
-            self._module,
-            "on_history_trade",
-            lambda ctx, history_trade, location, dest: None,
-        )
-        self._on_req_history_order_error = getattr(
-            self._module,
-            "on_req_history_order_error",
-            lambda ctx, error, location, dest: None,
-        )
-        self._on_req_history_trade_error = getattr(
-            self._module,
-            "on_req_history_trade_error",
-            lambda ctx, error, location, dest: None,
-        )
+
         self._on_position_sync_reset = getattr(
             self._module, "on_position_sync_reset", lambda ctx, old_book, new_book: None
         )
@@ -301,56 +267,6 @@ class Strategy(wc.Strategy):
     def post_stop(self, wc_context):
         self.__call_proxy(self._post_stop, self.ctx)
 
-    def on_quote(self, wc_context, quote, location, dest):
-        self.__call_proxy(self._on_quote, self.ctx, quote, location, dest)
-
-    def on_tree(self, wc_context, tree, location, dest):
-        self.__call_proxy(self._on_tree, self.ctx, tree, location, dest)
-
-    def on_entrust(self, wc_context, entrust, location, dest):
-        self.__call_proxy(self._on_entrust, self.ctx, entrust, location, dest)
-
-    def on_transaction(self, wc_context, transaction, location, dest):
-        self.__call_proxy(self._on_transaction, self.ctx, transaction, location, dest)
-
-    def on_depth(self, wc_context, depth, location, dest_id):
-        self.__call_proxy(self._on_depth, self.ctx, depth, location)
-
-    def on_tick(self, wc_context, tick, location, dest_id):
-        self.__call_proxy(self._on_tick, self.ctx, tick, location)
-
-    def on_synthetic_data(self, wc_context, synthetic_data, location, dest):
-        self.__call_proxy(
-            self._on_synthetic_data, self.ctx, synthetic_data, location, dest
-        )
-
-    def on_order(self, wc_context, order, location, dest):
-        self.__call_proxy(self._on_order, self.ctx, order, location, dest)
-
-    def on_order_trigger(self, wc_context, order_trigger, location, dest):
-        self.__call_proxy(
-            self._on_order_trigger, self.ctx, order_trigger, location, dest
-        )
-
-    def on_algo_order(self, wc_context, algo_order, location, dest):
-        self.__call_proxy(self._on_algo_order, self.ctx, algo_order, location, dest)
-
-    def on_order_action_error(self, wc_context, error, location, dest):
-        self.__call_proxy(self._on_order_action_error, self.ctx, error, location, dest)
-
-    def on_order_trigger_action_error(self, wc_context, error, location, dest):
-        self.__call_proxy(
-            self._on_order_trigger_action_error, self.ctx, error, location, dest
-        )
-
-    def on_algo_order_action_error(self, wc_context, error, location, dest):
-        self.__call_proxy(
-            self._on_algo_order_action_error, self.ctx, error, location, dest
-        )
-
-    def on_trade(self, wc_context, trade, location, dest):
-        self.__call_proxy(self._on_trade, self.ctx, trade, location, dest)
-
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)
 
@@ -365,26 +281,6 @@ class Strategy(wc.Strategy):
             self.ctx,
             operator_state_update,
             location,
-        )
-
-    def on_history_order(self, wc_context, history_order, location, dest):
-        self.__call_proxy(
-            self._on_history_order, self.ctx, history_order, location, dest
-        )
-
-    def on_history_trade(self, wc_context, history_trade, location, dest):
-        self.__call_proxy(
-            self._on_history_trade, self.ctx, history_trade, location, dest
-        )
-
-    def on_req_history_order_error(self, wc_context, error, location, dest):
-        self.__call_proxy(
-            self._on_req_history_order_error, self.ctx, error, location, dest
-        )
-
-    def on_req_history_trade_error(self, wc_context, error, location, dest):
-        self.__call_proxy(
-            self._on_req_history_trade_error, self.ctx, error, location, dest
         )
 
     def on_position_sync_reset(self, wc_context, old_book, new_book):

@@ -146,6 +146,8 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
+  void disjoin_channel(const yijinjing::data::location_ptr &location, uint32_t dest_id);
+
 protected:
   int64_t begin_time_;
   int64_t end_time_;
@@ -225,6 +227,7 @@ private:
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
   std::set<uint32_t> disjoin_uids_ = {};
   std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
+  std::map<yijinjing::data::location_ptr, uint32_t> disjoin_location_channels_;
 
   volatile bool continual_ = true;
 

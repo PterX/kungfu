@@ -133,7 +133,7 @@ export const getColumns = (
               },
               fieldFormat: (args) => {
                 return UnfinishedOrderStatus.includes(args.status)
-                  ? t('orderConfig.cancel')
+                  ? t('orderConfig.cancel_order')
                   : '';
               },
             },

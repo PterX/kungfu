@@ -37,6 +37,7 @@ const webpackConfig = (argv) => {
   const threadLoader = argv.enableThreadLoader
     ? toolkit.webpack.getThreadLoaderConfig(argv)
     : [];
+
   return merge(toolkit.webpack.makeConfig(argv), {
     externals: getWebpackExternals(),
     entry: pagesConfig.entry,

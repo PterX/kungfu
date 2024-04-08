@@ -19,8 +19,8 @@ stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id)
                                     std::make_shared<locator>(mode::LIVE));
   writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
                                      std::make_shared<bus>(false), PAGE_SIZE);
-  reader_ = std::make_shared<reader>(false, false, std::make_shared<bus>(false));
-  reader_->join(location_, location::PUBLIC, time::now_in_nano(), PAGE_SIZE);
+  reader_ = std::make_shared<reader>(false, true, std::make_shared<bus>(false));
+  reader_->join(location_, location::PUBLIC, time::now_in_nano());
 
   int rv;
   if ((rv = nng_aio_alloc(

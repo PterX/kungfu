@@ -112,13 +112,13 @@ bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_pt
 }
 
 Watcher::Watcher(const Napi::CallbackInfo &info)
-    : ObjectWrap(info),                                                                           //
-      apprentice(GetWatcherLocation(info), true),                                                 //
-      bypass_accounting_(GetBool(info, 3)),                                                       //
-      bypass_trading_data_(GetBool(info, 4)),                                                     //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
-      bypass_refresh_book_(GetBool(info, 6)),                                                     //
-      milliseconds_sleep_after_step_(GetNumber(info, 7)),                                         //
+    : ObjectWrap(info),                                    //
+      apprentice(GetWatcherLocation(info), true),          //
+      bypass_accounting_(GetBool(info, 3)),                //
+      bypass_trading_data_(GetBool(info, 4)),              //
+      refresh_trading_data_before_sync_(GetBool(info, 5)), //
+      bypass_refresh_book_(GetBool(info, 6)),              //
+      milliseconds_sleep_after_step_(GetNumber(info, 7)),  //
       trading_data_reader_(std::make_shared<yijinjing::journal::reader>(
           true, false, std::make_shared<yijinjing::journal::bus>(false))),                        //
       broker_client_(*this, bypass_trading_data_),                                                //

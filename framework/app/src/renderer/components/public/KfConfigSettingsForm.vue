@@ -296,7 +296,7 @@ watch(
                 case 'float':
                 case 'percent':
                   formState.value[key] = Number(newVal[key]).kfRound(
-                    numberKeys.value[key].precision ?? 4,
+                    numberKeys.value[key].precision ?? 12,
                   );
                   break;
               }
@@ -1411,8 +1411,8 @@ defineExpose({
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
-          :precision="item.precision ?? 4"
-          :step="item.step ?? 0.0001"
+          :precision="item.precision ?? 12"
+          :step="item.step ?? 0.000000000001"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
@@ -1420,7 +1420,7 @@ defineExpose({
           @focus="numbersTyping[item.key] = true"
           @blur="
             () => {
-              formState[item.key] = Number(formState[item.key]); // change value '' to 0.0000
+              formState[item.key] = Number(formState[item.key]); // change value '' to 0.000000000000
               numbersTyping[item.key] = false;
             }
           "

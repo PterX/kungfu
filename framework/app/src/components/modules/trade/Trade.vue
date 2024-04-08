@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
   messagePrompt,
@@ -49,7 +48,6 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
-const { getPriceTickAndPrecision } = useActiveInstruments();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
@@ -214,19 +212,8 @@ watch(historyDate, async (newDate) => {
 
       const tempAllTrades = toRaw(
         tradesResolved.map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
-
           return toRaw(
-            dealTrade(
-              window.watcher,
-              item,
-              tradingData.OrderStat,
-              true,
-              price_precision,
-            ),
+            dealTrade(window.watcher, item, tradingData.OrderStat, true),
           );
         }),
       );

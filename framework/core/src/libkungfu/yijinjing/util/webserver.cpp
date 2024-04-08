@@ -11,14 +11,16 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::yijinjing::webserver {
+constexpr uint64_t PAGE_SIZE = 256;
+
 stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id) {
   SPDLOG_DEBUG("stream");
   location_ = location::make_shared(mode::LIVE, category::SYSTEM, "webserver", std::to_string(stream_id),
                                     std::make_shared<locator>(mode::LIVE));
   writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
-                                     std::make_shared<bus>(false), 256);
+                                     std::make_shared<bus>(false), PAGE_SIZE);
   reader_ = std::make_shared<reader>(false, false, std::make_shared<bus>(false));
-  reader_->join(location_, location::PUBLIC, time::now_in_nano());
+  reader_->join(location_, location::PUBLIC, time::now_in_nano(), PAGE_SIZE);
 
   int rv;
   if ((rv = nng_aio_alloc(
@@ -58,6 +60,7 @@ uint64_t stream::get_opposite_stream_id() {
 
 void stream::close_data() {
   if (current_frame_) {
+    SPDLOG_INFO("close_frame_lock_free");
     writer_->close_frame_lock_free(1024);
     current_frame_.reset();
   }
@@ -65,6 +68,7 @@ void stream::close_data() {
 
 void stream::start_recv() {
   close_data();
+  SPDLOG_INFO("open_frame_lock_free");
   current_frame_ = writer_->open_frame_lock_free(time::now_in_nano(), 10001000, 1024);
   nng_iov iov{const_cast<void *>(current_frame_->data_address()), current_frame_->data_length()};
   nng_aio_set_iov(aio_recv_, 1, &iov);
@@ -135,9 +139,12 @@ std::vector<std::string> stream::get_and_clear_data() {
   //  std::vector<std::string> result = data_received_; // 返回数据的副本
   //  data_received_.clear();
   std::vector<std::string> result{};
-  while (reader_->data_available()) {
+  int count = 0;
+  while (reader_->data_available() and count < 100) {
     result.push_back(reader_->current_frame()->data_as_string());
     reader_->next();
+    ++count;
+    SPDLOG_INFO("data_available, count: {}", count);
   }
   return result;
 }

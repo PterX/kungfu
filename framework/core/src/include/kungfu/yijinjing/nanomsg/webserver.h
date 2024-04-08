@@ -103,10 +103,10 @@ private:
   uint64_t stream_id_;
   void cancel();
   std::mutex mtx_;
-  yijinjing::data::location_ptr location_;
-  journal::writer_ptr writer_;
-  journal::reader_ptr reader_;
-  journal::frame_ptr current_frame_;
+  yijinjing::data::location_ptr location_ = nullptr;
+  journal::writer_ptr writer_ = nullptr;
+  journal::reader_ptr reader_ = nullptr;
+  journal::frame_ptr current_frame_ = nullptr;
   // the first vector is used for callback function receive data, the second vector is used for cache the data have
   // received when call get_data(), will return the
   std::vector<std::string> data_received_; // used for receive data

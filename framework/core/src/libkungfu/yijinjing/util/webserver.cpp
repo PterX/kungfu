@@ -1,11 +1,10 @@
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/common.h>
-#include <kungfu/yijinjing/journal/assemble.h>
-#include <kungfu/yijinjing/nanomsg/socket.h>
 #include <kungfu/yijinjing/nanomsg/webserver.h>
+#include <memory>
 #include <thread>
+#include <utility>
 
-using namespace kungfu::yijinjing::nanomsg;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::longfist::types;
 using namespace kungfu::yijinjing::journal;
@@ -19,7 +18,7 @@ stream::stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size)
   if ((rv = nng_aio_alloc(
            &aio_recv_,
            [](void *arg) {
-             stream *pThis = (stream *)arg;
+             auto *pThis = reinterpret_cast<stream *>(arg);
              pThis->stream_recv_cb();
            },
            this)) != 0) {
@@ -30,6 +29,7 @@ stream::stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size)
   }
   start_recv();
 }
+
 stream::~stream() {
   SPDLOG_DEBUG("~stream");
 
@@ -38,7 +38,8 @@ stream::~stream() {
   nng_aio_free(aio_recv_);
   nng_aio_free(aio_send_);
 }
-uint64_t stream::get_stream_id() { return stream_id_; }
+
+uint64_t stream::get_stream_id() const { return stream_id_; }
 
 uint64_t stream::get_opposite_stream_id() {
   nng_sockaddr local_address, remote_address;
@@ -78,6 +79,7 @@ void stream::stream_recv_cb() {
     break;
   }
 }
+
 void stream::stream_send(const std::string &data) {
   nng_iov iov;
   iov.iov_buf = (void *)data.data();
@@ -125,10 +127,10 @@ void stream::cancel() {
   nng_aio_wait(aio_send_);
 }
 
-webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, const std::string &path,
+webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path,
                      const bool is_text_mode, const size_t max_num_connections)
-    : stream_manager_(stream_manager), base_url_(base_url), path_(path), is_text_mode_(is_text_mode),
-      max_num_connections_(max_num_connections), num_connected_(0) {
+    : stream_manager_(std::move(stream_manager)), base_url_(base_url), path_(std::move(path)),
+      is_text_mode_(is_text_mode), max_num_connections_(max_num_connections), num_connected_(0) {
   SPDLOG_DEBUG("webserver");
 
   int rv;
@@ -138,6 +140,7 @@ webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, 
   }
   start_listening();
 }
+
 webserver::~webserver() {
   SPDLOG_DEBUG("~webserver");
 
@@ -145,6 +148,7 @@ webserver::~webserver() {
   nng_aio_cancel(aio_accept);
   stop_listening();
 }
+
 void webserver::start_listening() {
   nng_url url = *base_url_;
   const bool secure = (strcmp(base_url_->u_scheme, "https") == 0);
@@ -168,6 +172,7 @@ void webserver::start_listening() {
 
   start_accept();
 }
+
 void webserver::stop_listening() {
   if (listener != nullptr) {
     nng_stream_listener_close(listener);
@@ -175,14 +180,16 @@ void webserver::stop_listening() {
     listener = nullptr;
   }
 }
+
 void webserver::start_accept() { nng_stream_listener_accept(listener, aio_accept); }
+
 void webserver::accept_cb() {
   int rv = nng_aio_result(aio_accept);
   if (rv != 0) {
     return;
   }
 
-  nng_stream *s = (nng_stream *)nng_aio_get_output(aio_accept, 0);
+  auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_accept, 0));
   // disable Nagle, send-msg low-latency
   nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
 
@@ -198,7 +205,7 @@ void webserver::accept_cb() {
   }
 }
 
-http_server::http_server(const std::string address) {
+http_server::http_server(const std::string &address) {
   SPDLOG_DEBUG("http_server");
   int rv;
   if ((rv = nng_url_parse(&url_, address.c_str())) != 0) {
@@ -221,13 +228,11 @@ http_server::~http_server() {
   }
 }
 
-void http_server::add_websocket(stream_manage_ptr stream_manager, const std::string &path, bool is_text_mode,
+void http_server::add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode,
                                 const size_t max_num_connections) {
-  auto websocket =
-      std::shared_ptr<webserver>(new webserver(stream_manager, url_, path, is_text_mode, max_num_connections));
+  auto websocket = std::make_shared<webserver>(stream_manager, url_, path, is_text_mode, max_num_connections);
   const auto id = websockets_.empty() ? 1 : websockets_.rbegin()->first + 1;
   websockets_.emplace(std::make_pair(id, std::move(websocket)));
-  return;
 }
 
 void http_server::remove_websocket(int id) {
@@ -267,7 +272,8 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
                      std::function<void(webclient &, const std::string &)> message,
                      std::function<void(webclient &)> open, std::function<void(webclient &, const std::string &)> error,
                      std::function<void(webclient &)> close, const bool is_text_mode)
-    : stream_manager_(stream_manager), on_message(message), on_open(open), on_error(error), on_close(close) {
+    : stream_manager_(std::move(stream_manager)), on_message(std::move(message)), on_open(std::move(open)),
+      on_error(std::move(error)), on_close(std::move(close)) {
   SPDLOG_DEBUG("webclient");
   int rv;
   nng_smart_ptr<nng_url> url{nng_url_free};
@@ -292,7 +298,7 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
   if (rv != 0) {
     fatal("dial", rv);
   }
-  nng_stream *s = (nng_stream *)nng_aio_get_output(aio_dialer, 0);
+  auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_dialer, 0));
   // disable Nagle, send-msg low-latency
   nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
 
@@ -304,8 +310,6 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
 webclient::~webclient() { SPDLOG_DEBUG("~webclient"); }
 
 uint64_t webclient::get_stream_id() { return stream_->get_stream_id(); }
-stream_manage::stream_manage() {}
-stream_manage::~stream_manage() {}
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);

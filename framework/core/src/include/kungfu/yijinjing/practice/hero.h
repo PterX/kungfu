@@ -33,7 +33,7 @@ class hero : public resource {
 public:
   explicit hero(yijinjing::io_device_ptr io_device);
 
-  virtual ~hero();
+  ~hero() override;
 
   bool is_usable() override;
 
@@ -163,6 +163,11 @@ protected:
   const yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
 
+  yijinjing::io_device_ptr io_device_;
+  volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
+  int64_t now_;
+
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
 
   bool check_location_exists(uint32_t source_id, uint32_t dest_id) const;
@@ -209,8 +214,9 @@ protected:
 
   void cleanup_reader_disjoin();
 
-protected:
   virtual bool drain(const rx::subscriber<event_ptr> &sb);
+
+  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 
 private:
   rx::composite_subscription cs_;
@@ -241,14 +247,6 @@ private:
   }
 
   static void delegate_produce(hero *instance, const rx::subscriber<event_ptr> &subscriber);
-
-public:
-  yijinjing::io_device_ptr io_device_;
-
-  volatile bool live_ = false;
-  volatile uint32_t step_limit_ = 0;
-  int64_t now_;
-  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 };
 } // namespace kungfu::yijinjing::practice
 #endif // KUNGFU_HERO_H

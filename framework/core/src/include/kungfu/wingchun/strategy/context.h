@@ -46,7 +46,7 @@ public:
    * Get config from database.
    * @return  config of current location_uid
    */
-  virtual const std::string get_config() const = 0;
+  virtual std::string get_config() const = 0;
 
   /**
    * Get arguments kfc run -a

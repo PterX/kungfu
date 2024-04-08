@@ -85,7 +85,7 @@ void BacktestContext::on_start() {
 
 bool BacktestContext::is_started() const { return true; }
 
-const std::string BacktestContext::get_config() const {
+std::string BacktestContext::get_config() const {
   // todo figure out how to deal with configure from sqlite.
   return "{}";
 }

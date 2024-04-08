@@ -1,5 +1,5 @@
-#ifndef KUNGFU_WEBserver_H
-#define KUNGFU_WEBserver_H
+#ifndef KUNGFU_WEBSERVER_H
+#define KUNGFU_WEBSERVER_H
 
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/journal/assemble.h>
@@ -16,7 +16,7 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <assert.h>
+#include <cassert>
 
 #ifdef _WIN32
 #include <WS2tcpip.h>
@@ -46,16 +46,21 @@ template <class nng_type> class nng_smart_ptr {
   }
 
 public:
-  nng_smart_ptr(nng_free_function fn) : fn_free(fn) {}
-  nng_smart_ptr(nng_type *nng_pointer, nng_free_function fn) : obj(nng_pointer), fn_free(fn) {}
+  explicit nng_smart_ptr(nng_free_function fn) : fn_free(fn) {}
+
+  explicit nng_smart_ptr(nng_type *nng_pointer, nng_free_function fn) : obj(nng_pointer), fn_free(fn) {}
+
   ~nng_smart_ptr() { release(); }
   nng_smart_ptr &operator=(nng_type *new_obj) {
     release();
     obj = new_obj;
     return *this;
   }
+
   nng_type **operator&() { return &obj; }
+
   operator nng_type *() const { return obj; }
+
   nng_type *operator->() { return obj; }
 };
 
@@ -68,7 +73,7 @@ static uint64_t generate_stream_id(nng_stream *s) {
   nng_stream_get_addr(s, NNG_OPT_LOCADDR, &local_address);
   return (static_cast<uint64_t>(remote_address.s_in.sa_addr) << 32) |
          (static_cast<uint64_t>(remote_address.s_in.sa_port) << 16) | local_address.s_in.sa_port;
-};
+}
 
 class stream {
 private:
@@ -86,13 +91,21 @@ public:
   std::vector<std::string> data_received_; // used for receive data
   // std::vector<std::string> data_received_cache_; // cache data_received, two buffer or just simple lock？
   stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size = 32768);
-  ~stream();
+
+  virtual ~stream();
+
   void start_recv();
+
   void stream_recv_cb();
+
   void stream_send(const std::string &data);
-  int stream_send(const char *data, const int len);
-  uint64_t get_stream_id();
+
+  int stream_send(const char *data, int len);
+
+  uint64_t get_stream_id() const;
+
   uint64_t get_opposite_stream_id();
+
   std::vector<std::string> get_and_clear_data();
 };
 DECLARE_PTR(stream)
@@ -110,12 +123,16 @@ private:
 public:
   stream_manage_ptr stream_manager_;
   // std::map<int, std::shared_ptr<stream>> streams_;
-  webserver(stream_manage_ptr stream_manager, const nng_url *base_url, const std::string &path, const bool is_text_mode,
-            const size_t max_num_connections);
-  ~webserver();
+  webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path, bool is_text_mode,
+            size_t max_num_connections);
+  virtual ~webserver();
+
   void start_listening();
+
   void stop_listening();
+
   void start_accept();
+
   void accept_cb();
 };
 FORWARD_DECLARE_CLASS_PTR(webserver)
@@ -129,10 +146,10 @@ private:
 
 public:
   std::map<int, std::shared_ptr<webserver>> websockets_;
-  http_server(const std::string address);
+  explicit http_server(const std::string &address);
   ~http_server();
-  void add_websocket(stream_manage_ptr stream_manager, const std::string &path, bool is_text_mode,
-                     const size_t max_num_connections = 0);
+  void add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode,
+                     size_t max_num_connections = 0);
   void remove_websocket(int id);
   void start();
   int port();
@@ -166,8 +183,10 @@ public:
             std::function<void(webclient &, const std::string &)> message = nullptr,
             std::function<void(webclient &)> open = nullptr,
             std::function<void(webclient &, const std::string &)> error = nullptr,
-            std::function<void(webclient &)> close = nullptr, const bool is_text_mode = true);
-  ~webclient();
+            std::function<void(webclient &)> close = nullptr, bool is_text_mode = true);
+
+  virtual ~webclient();
+
   uint64_t get_stream_id();
 
 private:
@@ -184,15 +203,24 @@ FORWARD_DECLARE_CLASS_PTR(webclient)
 
 class stream_manage {
 public:
-  stream_manage();
-  ~stream_manage();
+  stream_manage() = default;
+
+  virtual ~stream_manage() = default;
+
   int publish(uint64_t stream_id, const std::string &msg);
-  int publish(uint64_t stream_id, const char *data, const int len);
+
+  int publish(uint64_t stream_id, const char *data, int len);
+
   std::vector<std::string> get_notice(uint64_t stream_id);
+
   void clear_notice(uint64_t stream_id);
+
   stream_ptr get_stream_by_id(uint64_t stream_id);
+
   std::unordered_map<uint64_t, stream_ptr> &get_all_streams();
+
   void add_stream(nng_stream *s);
+
   void add_stream(stream_ptr s);
 
 private:
@@ -209,4 +237,4 @@ std::shared_ptr<webclient> connect_server(const std::string &uri, const bool is_
 */
 } // namespace kungfu::yijinjing::webserver
 
-#endif // KUNGFU_WEBserver_H
+#endif // KUNGFU_WEBSERVER_H

@@ -203,7 +203,7 @@ declare namespace KungfuApi {
     max?: number;
     min?: number;
     step?: number;
-    precision?: number;
+    precision?: number | null;
     disabled?: boolean;
     primary?: boolean;
     options?: KfSelectOption[];

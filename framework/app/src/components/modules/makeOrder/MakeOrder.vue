@@ -176,8 +176,8 @@ const configSettings = computed(() => {
     return getConfigSettings({});
   }
 
-  let step = 0.000000000001,
-    pricePrecision = 12;
+  let step = 1,
+    pricePrecision = 0;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(
@@ -196,7 +196,7 @@ const configSettings = computed(() => {
     isSpecifyContract: isSpecifyContract.value,
     side,
     priceType: +formState.value.price_type,
-    pricePrecision,
+    pricePrecision: pricePrecision || null,
     step,
     sideList: sideList.value,
     offsetList: offsetList.value,

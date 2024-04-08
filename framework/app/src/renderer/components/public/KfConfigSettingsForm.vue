@@ -1411,16 +1411,16 @@ defineExpose({
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
-          :precision="item.precision ?? 12"
-          :step="item.step ?? 0.000000000001"
+          :step="item.step ?? 1"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
           "
+          :precision="item.precision === null ? undefined : item.precision"
           @focus="numbersTyping[item.key] = true"
           @blur="
             () => {
-              formState[item.key] = Number(formState[item.key]); // change value '' to 0.000000000000
+              formState[item.key] = Number(formState[item.key]);
               numbersTyping[item.key] = false;
             }
           "

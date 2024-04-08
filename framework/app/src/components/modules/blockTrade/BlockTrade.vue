@@ -84,8 +84,8 @@ const configSettings = computed(() => {
     return getConfigSettings();
   }
 
-  let step = 0.000000000001,
-    pricePrecision = 12;
+  let step = 1,
+    pricePrecision = 0;
   if (curInstrumentResolved.value) {
     const { instrumentId, exchangeId } = curInstrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(
@@ -97,7 +97,7 @@ const configSettings = computed(() => {
   }
 
   const { category } = currentGlobalKfLocation.value;
-  return getConfigSettings(category, pricePrecision, step);
+  return getConfigSettings(category, pricePrecision || null, step);
 });
 
 function numberValidator(_rule: RuleObject, value: string | number) {

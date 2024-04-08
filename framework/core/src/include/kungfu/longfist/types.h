@@ -955,8 +955,8 @@ KF_DEFINE_PACK_TYPE(                                                            
     (enums::CashReplaceFlag, replace_flag),                                           // 是否可以由现金替代
     (double, cash_premium_ratio),                                                     // 现金替代溢价比率
     (double, replace_balance),                                                        // 替代金额
-    (bool, is_retain_oneside),                                                        // 保留单边
-    (bool, is_close_prior)                                                            // 优先平今
+    (bool, keep_single_side),                                                         // 保留单边
+    (bool, close_today_first)                                                         // 优先平今
 );
 
 KF_DEFINE_PACK_TYPE(                              //

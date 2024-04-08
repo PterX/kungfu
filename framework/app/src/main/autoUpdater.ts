@@ -45,7 +45,7 @@ const UpdateVersionTypeEnums = {
 };
 
 type UpdateVersionType =
-  (typeof UpdateVersionTypeEnums)[keyof typeof UpdateVersionTypeEnums];
+  typeof UpdateVersionTypeEnums[keyof typeof UpdateVersionTypeEnums];
 
 const getChannel = (isPrerelease: boolean) => {
   const prefix = 'kungfu-update';

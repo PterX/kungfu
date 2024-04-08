@@ -3255,22 +3255,22 @@
   dependencies:
     "@visactor/vutils" "0.18.1"
 
-"@visactor/vtable-editors@0.23.1":
-  version "0.23.1"
-  resolved "https://registry.npmmirror.com/@visactor/vtable-editors/-/vtable-editors-0.23.1.tgz#19af4af6526f398714b6311224763e199b921a9c"
-  integrity sha512-6aD2p2Oj6Wy+LuZU2dTwzR8JckLVNg8t5hoJmqxGnJVXNIk181mfLS5IfUNomSsISW63vF6s3nTLvswVwyvoTA==
+"@visactor/vtable-editors@0.23.0":
+  version "0.23.0"
+  resolved "https://registry.npmmirror.com/@visactor/vtable-editors/-/vtable-editors-0.23.0.tgz#8e7c5ae957698bc1cd20b5136ee4bdd92c78bf47"
+  integrity sha512-5xa9tOr96axQJi7dVjqnsvsudZaR5+VbziskyuNFpS/CMcP4oUJIg6V9+auPG/TvwdLaBbXgnLB6Aov+40H5Lg==
 
-"@visactor/vtable@~0.23.0":
-  version "0.23.1"
-  resolved "https://registry.npmmirror.com/@visactor/vtable/-/vtable-0.23.1.tgz#b17a930cb2ba09ddb114d8d64affeb6e84ee7c51"
-  integrity sha512-s9XvEwfNDI5aqI/CNS+deVp4pIdtH1hAoR4+cFj30sQinRr2jy/FqPYUUQ5oHxAqdAxvahdJRrVBhKFgn4cNbA==
+"@visactor/vtable@0.23.0":
+  version "0.23.0"
+  resolved "https://registry.npmmirror.com/@visactor/vtable/-/vtable-0.23.0.tgz#4af260ffab884b68d48544a259bede5ffd8ff80e"
+  integrity sha512-KySN84cKUoMbDR4324AWHXtSGmajBG2wRiPxdAmbWou74M6C+pRhSyLUOkDswtJdzPrQOz+QXQMlQfTDJND/EQ==
   dependencies:
     "@visactor/vdataset" "~0.18.1"
     "@visactor/vrender-components" "0.18.2-alpha.1"
     "@visactor/vrender-core" "0.18.2-alpha.1"
     "@visactor/vrender-kits" "0.18.2-alpha.1"
     "@visactor/vscale" "~0.18.1"
-    "@visactor/vtable-editors" "0.23.1"
+    "@visactor/vtable-editors" "0.23.0"
     "@visactor/vutils" "~0.18.1"
     "@visactor/vutils-extension" "~1.8.5"
     cssfontparser "^1.2.1"

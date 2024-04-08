@@ -87,8 +87,7 @@ void Runner::on_start() {
   start_events | is(Entrust::tag) |
       $$(invoke(&Operator::on_entrust, event->data<Entrust>(), get_location(event->source()), event->dest()));
   start_events | is(Transaction::tag) |
-      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()),
-      event->dest()));
+      $$(invoke(&Operator::on_transaction, event->data<Transaction>(), get_location(event->source()), event->dest()));
   start_events | is(SyntheticData::tag) |
       $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
                 event->dest()));
@@ -99,7 +98,6 @@ void Runner::on_start() {
                 get_location(event->source())));
   events_ | is(Deregister::tag) |
       $$(invoke(&Operator::on_deregister, event->data<Deregister>(), get_location(event->source())));
-
 
   events_ | take_until(events_ | filter([&](auto e) { return context_->is_started(); })) |
       $$(prepare(event, *context_));

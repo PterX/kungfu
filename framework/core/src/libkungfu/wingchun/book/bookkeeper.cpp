@@ -67,7 +67,6 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Register::tag) | $$(on_register(event->data<Register>()));
   events | is(Deregister::tag) | $$(on_deregister(event->data<Deregister>()));
 
-
   if (bypass_quote_) {
     app_.add_time_interval(yijinjing::time_unit::NANOSECONDS_PER_SECOND * 15,
                            [&](auto e) { batch_update_book_by_quote(); });

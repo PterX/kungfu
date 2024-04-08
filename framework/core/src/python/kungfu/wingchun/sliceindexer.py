@@ -134,6 +134,6 @@ class SliceIndexer(wc.SliceIndexer):
 
     def wait_release_location(self, location):
         return self.__call_proxy(self._wait_release_location, self.ctx, location)
-    
+
     def sync_save_location(self, location):
         return self.__call_proxy(self._sync_save_location, self.ctx, location)

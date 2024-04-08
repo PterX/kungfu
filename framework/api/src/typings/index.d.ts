@@ -1286,6 +1286,8 @@ declare namespace KungfuApi {
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率
     replace_balance: number; // 替代金额
+    is_retain_oneside: boolean; // 保留单边
+    is_close_prior: boolean; // 优先平今
   }
 
   export interface BasketInstrumentResolved

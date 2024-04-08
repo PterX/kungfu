@@ -2566,3 +2566,13 @@ export const clearLocalStorageWithNewVersion = () => {
     }
   }
 };
+
+export const setPreStyle = () => {
+  const styleMap = {
+    '--ant-table-font-weight': os.platform() === 'win32' ? 'normal' : 'bold',
+  };
+  for (const key in styleMap) {
+    const value = styleMap[key];
+    document.documentElement.style.setProperty(key, value);
+  }
+};

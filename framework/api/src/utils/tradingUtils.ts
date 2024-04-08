@@ -173,7 +173,7 @@ export const resolveAccountId = (
 
 export const getAccountIdStyle = (name: string): string => {
   if (name.includes(`${t('手动')}`)) {
-    return 'orange';
+    return '#D87A16';
   }
   return '#ffffffd9';
 };
@@ -1129,9 +1129,14 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
 
 export const getOrderResolved = (
   watcher: KungfuApi.Watcher,
-  orderResolved: KungfuApi.OrderResolved | null,
   order: KungfuApi.Order,
   orderStats: KungfuApi.OrderStat | null,
+  orderStatResolved?: {
+    latency_system: string | number;
+
+    latency_network: string | number;
+    avg_price: number;
+  } | null,
 ): KungfuApi.OrderResolved => {
   const latencyData = getOrderStatResolve(orderStats);
   const destResolvedData = resolveClientId(watcher, order.dest);
@@ -1143,7 +1148,6 @@ export const getOrderResolved = (
   const statusData = dealOrderStatus(order.status, order.error_msg);
 
   return {
-    ...(orderResolved || {}),
     ...order,
     ...latencyData,
     volume: dealKfDecimalPrecision(order.volume),
@@ -1159,8 +1163,19 @@ export const getOrderResolved = (
     avg_price_resolved:
       'avg_price' in latencyData
         ? dealKfNumber(latencyData.avg_price)
-        : orderResolved?.avg_price_resolved || '--',
-    status_uname: statusData.name,
+        : orderStatResolved?.avg_price || '--',
+    status_resolved: {
+      name: statusData.name,
+      color: statusData.color || 'default',
+    },
+    latency_system:
+      'latency_system' in latencyData
+        ? latencyData.latency_system
+        : orderStatResolved?.latency_system || '--',
+    latency_network:
+      'latency_network' in latencyData
+        ? latencyData.latency_network
+        : orderStatResolved?.latency_network || '--',
   } as unknown as KungfuApi.OrderResolved;
 };
 
@@ -1453,6 +1468,7 @@ export const dealSide = (
 ): KungfuApi.KfTradeValueCommonData => {
   return Side[+side as SideEnum];
 };
+
 export const dealTimeCondition = (
   timeCondition: TimeConditionEnum | number,
 ): KungfuApi.KfTradeValueCommonData => {
@@ -1583,7 +1599,7 @@ export const kfConfigItemsToArgsByShowArgForShow = (
 // 处理下单时输入数据
 export const dealOrderInputItem = (
   inputData: KungfuApi.MakeOrderInput,
-  price_precision?: number,
+  precision?: number,
 ): Record<string, KungfuApi.KfTradeValueCommonData> => {
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     {};
@@ -1606,7 +1622,7 @@ export const dealOrderInputItem = (
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
     } else if (key === 'limit_price') {
       orderInputResolved[key] = {
-        name: dealKfNumber(inputData[key]) + '',
+        name: dealKfNumber(inputData[key], precision || 12) + '',
         color: 'default',
       };
     } else {

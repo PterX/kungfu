@@ -176,8 +176,8 @@ const configSettings = computed(() => {
     return getConfigSettings({});
   }
 
-  let step = 0.0001,
-    pricePrecision = 4;
+  let step = 0.000000000001,
+    pricePrecision = 12;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(
@@ -185,7 +185,6 @@ const configSettings = computed(() => {
       exchangeId,
     );
     step = price_tick;
-    console.log('price_precision', price_precision);
     pricePrecision = price_precision;
   }
 

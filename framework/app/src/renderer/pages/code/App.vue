@@ -44,7 +44,8 @@ function bindCloseWindowEvent() {
       $textarea && $textarea.blur();
     });
     shouldClose = true;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      timer && clearTimeout(timer);
       window.close();
     }, 100);
     return false;

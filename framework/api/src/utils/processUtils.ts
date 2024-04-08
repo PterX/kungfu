@@ -722,10 +722,9 @@ export function startProcessGetStatusUntilStop(
   cb?: (processStatus: Pm2ProcessStatusTypes) => void,
   acceptEnvArgs = true,
 ) {
-  let timer;
   return new Promise((resolve) => {
     startProcess({ ...options }, acceptEnvArgs).then(() => {
-      timer = startGetProcessStatusByName(
+      const timer = startGetProcessStatusByName(
         options.name,
         (res: ProcessDescription[]) => {
           const status = res[0]?.pm2_env?.status as Pm2ProcessStatusTypes;
@@ -1751,7 +1750,8 @@ function promiseWithTimeout<T>(
   return Promise.race([
     promise,
     new Promise<T | T[]>((_, reject) => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        clearTimeout(timer);
         reject(`${promise} Timed out in ${ms}ms.`);
       }, ms);
     }),

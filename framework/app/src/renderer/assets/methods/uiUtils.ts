@@ -692,7 +692,7 @@ export function useKeyboardControlContainerStyle(
   );
 
   function focusOutHandler() {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (
         container &&
         document.activeElement &&
@@ -700,6 +700,7 @@ export function useKeyboardControlContainerStyle(
       ) {
         removeStyle(element);
       }
+      clearTimeout(timer);
     });
   }
 

@@ -757,11 +757,11 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
             <KfBlinkNum
               v-if="record.category === 'td'"
               mode="compare-zero"
-              :num="dealKfPrice(getAssetsByKfConfig(record).total_asset)"
+              :num="dealKfNumber(getAssetsByKfConfig(record).total_asset)"
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
-              :num="dealKfPrice(getAssetsByTdGroup(record).total_asset)"
+              :num="dealKfNumber(getAssetsByTdGroup(record).total_asset)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'short_cash'">

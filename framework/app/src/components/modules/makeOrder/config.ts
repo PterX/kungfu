@@ -137,7 +137,7 @@ export const getConfigSettings = ({
           : t('tradingConfig.protect_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 4,
+      precision: pricePrecision ?? 12,
       step: step || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },

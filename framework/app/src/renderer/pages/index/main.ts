@@ -281,7 +281,7 @@ loadCustomFont().then(async () => {
   });
 });
 
-triggerStartStep(500);
+triggerStartStep(1000);
 
 const webContents = getCurrentWebContents();
 webContents.on('devtools-reload-page', () => {

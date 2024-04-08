@@ -9,6 +9,7 @@
 #include "config_store.h"
 #include "history.h"
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/util/os.h>
 #include <sstream>
 
@@ -25,6 +26,7 @@ using namespace kungfu::yijinjing::data;
 namespace kungfu::node {
 
 constexpr uint32_t STEP_INTERVAL = 10;
+constexpr uint32_t REFRESH_REQUIRED_DATA_LIMIT_BY_SYNC = 1500;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 
@@ -52,13 +54,6 @@ inline bool GetBypassRestore(const Napi::CallbackInfo &info) {
     throw Napi::Error::New(info.Env(), "Invalid bypassRestore argument");
   }
   return info[2].As<Napi::Boolean>().Value();
-}
-
-inline int GetMillisecondsSleepAfterStep(const Napi::CallbackInfo &info) {
-  if (not IsValid(info, 7, &Napi::Value::IsNumber)) {
-    throw Napi::Error::New(info.Env(), "Invalid millisecondsSleepAfterStep argument");
-  }
-  return info[7].As<Napi::Number>().Int32Value();
 }
 
 WatcherAutoClient::WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_data)
@@ -117,26 +112,24 @@ bool WatcherAutoClient::should_connect_system(const yijinjing::data::location_pt
 }
 
 Watcher::Watcher(const Napi::CallbackInfo &info)
-    : ObjectWrap(info),                                                                           //
-      apprentice(GetWatcherLocation(info), true),                                                 //
-      bypass_quote_(GetBool(info, 3)),                                                            //
-      bypass_trading_data_(GetBool(info, 4)),                                                     //
-      refresh_trading_data_before_sync_(GetBool(info, 5)),                                        //
-      bypass_refresh_book_(GetBool(info, 6)),                                                     //
-      milliseconds_sleep_after_step_(GetMillisecondsSleepAfterStep(info)),                        //
+    : ObjectWrap(info),                                    //
+      apprentice(GetWatcherLocation(info), true),          //
+      bypass_accounting_(GetBool(info, 3)),                //
+      bypass_trading_data_(GetBool(info, 4)),              //
+      refresh_trading_data_before_sync_(GetBool(info, 5)), //
+      bypass_refresh_book_(GetBool(info, 6)),              //
+      milliseconds_sleep_after_step_(GetNumber(info, 7)),  //
+      trading_data_reader_(std::make_shared<yijinjing::journal::reader>(
+          true, false, std::make_shared<yijinjing::journal::bus>(false))),                        //
       broker_client_(*this, bypass_trading_data_),                                                //
-      bookkeeper_(*this, broker_client_, bypass_quote_, true),                                    //
-      state_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                   //
+      bookkeeper_(*this, broker_client_, bypass_accounting_, true),                               //
       ledger_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),                  //
       app_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),              //
       strategy_states_ref_(Napi::ObjectReference::New(Napi::Object::New(info.Env()), 1)),         //
       config_ref_(Napi::ObjectReference::New(ConfigStore::NewInstance({info[0]}).ToObject(), 1)), //
-      update_state(state_ref_),                                                                   //
       update_ledger(ledger_ref_),                                                                 //
-      publish(*this, state_ref_),                                                                 //
       reset_cache(*this, ledger_ref_) {                                                           //
 
-  serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitStateMap(info, ledger_ref_, "ledger");
 
   auto today = time::today_start();
@@ -173,7 +166,6 @@ Watcher::~Watcher() {
   config_ref_.Reset();
   app_states_ref_.Reset();
   ledger_ref_.Reset();
-  state_ref_.Reset();
   SPDLOG_INFO("~Watcher Done");
 }
 
@@ -229,8 +221,6 @@ Napi::Value Watcher::GetInstrumentType(const Napi::CallbackInfo &info) {
   auto instrument_type = get_instrument_type(exchange_id, instrument_id);
   return Napi::Number::New(info.Env(), int(instrument_type));
 }
-
-Napi::Value Watcher::GetState(const Napi::CallbackInfo &info) { return state_ref_.Value(); }
 
 Napi::Value Watcher::GetLedger(const Napi::CallbackInfo &info) { return ledger_ref_.Value(); }
 
@@ -310,9 +300,7 @@ Napi::Value Watcher::IssueOrder(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Watcher::IssueAlgoOrder(const Napi::CallbackInfo &info) {
-
   SPDLOG_INFO("issue algo order manually");
-
   return InteractWithTD<AlgoOrderInput>(info, info[0].ToObject(), &AlgoOrderInput::order_id);
 }
 
@@ -417,7 +405,6 @@ void Watcher::Init(Napi::Env env, Napi::Object exports) {
                       InstanceMethod("start", &Watcher::Start),                                         //
                       InstanceMethod("sync", &Watcher::Sync),                                           //
                       InstanceMethod("quit", &Watcher::Quit),                                           //
-                      InstanceAccessor("state", &Watcher::GetState, &Watcher::NoSet),                   //
                       InstanceAccessor("ledger", &Watcher::GetLedger, &Watcher::NoSet),                 //
                       InstanceAccessor("appStates", &Watcher::GetAppStates, &Watcher::NoSet),           //
                       InstanceAccessor("strategyStates", &Watcher::GetStrategyStates, &Watcher::NoSet), //
@@ -437,8 +424,9 @@ void Watcher::on_react() {
   // for receive history data
   auto before_start_events = events_ | take_until(events_ | is(RequestStart::tag));
   // accept trading data from cached state, so even if ui reload, history data is able to be shown
-  before_start_events | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
-  before_start_events | not_refresh_required() | $$(cached::feed_state_data(event, data_bank_));
+  before_start_events | is_trading_data() | skip_while(while_is(OrderInput::tag)) |
+      $$(cached::feed_state_data(event, trading_data_cached_bank_));
+  before_start_events | not_trading_data() | $$(cached::feed_state_data(event, data_bank_));
 }
 
 bool Watcher::has_writer(uint32_t dest_id) const { return writers_.find(dest_id) != writers_.end(); }
@@ -458,12 +446,12 @@ void Watcher::on_start() {
     bookkeeper_.guard_positions();
     bookkeeper_.add_book_listener(std::make_shared<BookListener>(*this));
 
-    events_ | is_refresh_required() | $$(cached::feed_state_data(event, refresh_required_data_bank_));
     // position should be always read from bookkeeper in watcher, because of position_guard, instead of feeds;
-    events_ | not_refresh_required() | skip_while(while_is(Position::tag)) |
-        $$(cached::feed_state_data(event, data_bank_));
+    events_ | not_trading_data() | skip_while(while_is(Position::tag)) | $$(cached::feed_state_data(event, data_bank_));
 
-    if (not bypass_quote_) {
+    // for reduce cpu consuming, if in bypass_accounting mode, the bookkeeper no longer update position/asset by trading
+    // data, all relay on poistion updating by ledger;
+    if (not bypass_accounting_) {
       events_ | is(Quote::tag) | is_subscribed(subscribed_instruments_) | $$(UpdateBook(event, event->data<Quote>()));
     }
 
@@ -535,8 +523,10 @@ void Watcher::Sync(const Napi::CallbackInfo &info) {
   SyncAppStates();
   SyncStrategyStates();
   SyncLedger();
-  TryRefreshTradingData();
+  TryRefreshTradingData(info);
+  SyncTradingDataFromCached();
   SyncTradingData();
+  ResetTradingDataCount();
 }
 
 void Watcher::SyncLedger() {
@@ -546,17 +536,22 @@ void Watcher::SyncLedger() {
   });
 }
 
-void Watcher::TryRefreshTradingData() {
+void Watcher::TryRefreshTradingData(const Napi::CallbackInfo &info) {
   if (not refresh_trading_data_before_sync_) {
     return;
   }
 
-  serialize::RefreshTradingDataInStateMap(ledger_ref_, "ledger");
+  serialize::RefreshTradingDataInStateMap(info, ledger_ref_, "ledger");
 }
 
 void Watcher::SyncTradingData() {
   boost::hana::for_each(longfist::RefreshRequiredDataTypes,
                         [&](auto it) { UpdateTradingData(+boost::hana::second(it)); });
+}
+
+void Watcher::SyncTradingDataFromCached() {
+  boost::hana::for_each(longfist::RefreshRequiredDataTypes,
+                        [&](auto it) { UpdateTradingDataFromCacheD(+boost::hana::second(it)); });
 }
 
 void Watcher::SyncAppStates() {
@@ -641,6 +636,24 @@ void Watcher::InspectChannel(int64_t trigger_time, const Channel &channel) {
   if (channel.source_id != get_live_home_uid() and channel.dest_id != get_live_home_uid()) {
     reader_join(channel.source_id, channel.dest_id, trigger_time);
   }
+
+  if (has_location(channel.source_id) && has_location(channel.dest_id)) {
+    auto source_location = get_location(channel.source_id);
+    auto dest_location = get_location(channel.dest_id);
+
+    if (source_location->category == category::TD) {
+      if (dest_location->group == "node") { // for as soon as possible to get trading data made by renderer process;
+        trading_data_reader_->join(source_location, channel.dest_id, get_begin_time(), 0, Priority::High);
+      } else {
+        trading_data_reader_->join(source_location, channel.dest_id, get_begin_time());
+      }
+    }
+
+    // for order stat
+    if (source_location->uid == ledger_home_location_->uid) {
+      trading_data_reader_->join(source_location, channel.dest_id, get_begin_time());
+    }
+  }
 }
 
 void Watcher::MonitorMarketData(int64_t trigger_time, const location_ptr &md_location) {
@@ -675,6 +688,10 @@ void Watcher::OnRegister(int64_t trigger_time, const Register &register_data) {
   if (app_location->category == category::MD and app_location->mode == mode::LIVE) {
     MonitorMarketData(trigger_time, app_location);
   }
+
+  if (app_location->category == category::TD) {
+    trading_data_reader_->join(app_location, location::PUBLIC, get_begin_time());
+  }
 }
 
 void Watcher::OnDeregister(int64_t trigger_time, const Deregister &deregister_data) {
@@ -700,9 +717,11 @@ void Watcher::StartWorker() {
       if (not watcher->is_live() and not watcher->is_started() and watcher->is_usable()) {
         watcher->setup();
       }
-      while (watcher->is_live() && watcher->reader_->data_available()) {
+      while (watcher->is_live() &&
+             (watcher->reader_->data_available() || watcher->get_trading_data_reader()->data_available())) {
         std::lock_guard<std::mutex> guard(watcher->feed_mutex_);
         watcher->step(STEP_INTERVAL);
+        watcher->drain_from_trading_data_reader(STEP_INTERVAL);
       }
       std::this_thread::sleep_for(std::chrono::microseconds(watcher->milliseconds_sleep_after_step_));
     }
@@ -762,7 +781,6 @@ void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   writers_.clear();
   serialize::InitObjectReference(info, app_states_ref_);
   serialize::InitObjectReference(info, strategy_states_ref_);
-  serialize::InitStateMap(info, state_ref_, "state");
   serialize::InitStateMap(info, ledger_ref_, "ledger");
 }
 
@@ -802,7 +820,8 @@ bool Watcher::is_reactable(const event_ptr &event) {
     return false;
   }
 
-  if (bypass_trading_data_ and
+  // is_started() is supposed to be accpeted RefreshRequiredDataTags from cached
+  if ((bypass_trading_data_ or (bypass_accounting_ and is_started())) and
       longfist::RefreshRequiredDataTags.find(event->msg_type()) != longfist::RefreshRequiredDataTags.end()) {
     return false;
   }
@@ -813,6 +832,22 @@ bool Watcher::is_reactable(const event_ptr &event) {
   }
 
   return not is_custom_event(event);
+}
+
+void Watcher::drain_from_trading_data_reader(uint32_t step_limit) {
+  std::size_t step_count = 0;
+  while ((step_limit == 0 || step_count < step_limit) and
+         trading_data_count_by_step_ < REFRESH_REQUIRED_DATA_LIMIT_BY_SYNC and trading_data_reader_->data_available()) {
+    const yijinjing::journal::frame_ptr frame = trading_data_reader_->current_frame();
+
+    if (longfist::RefreshRequiredDataTags.find(frame->msg_type()) != longfist::RefreshRequiredDataTags.end() and
+        frame->msg_type() != OrderInput::tag) {
+      cached::feed_state_data(frame, trading_data_bank_);
+      trading_data_count_by_step_++;
+    }
+    step_count++;
+    trading_data_reader_->next();
+  }
 }
 
 void Watcher::UpdateBook(const event_ptr &event, const Position &position) {

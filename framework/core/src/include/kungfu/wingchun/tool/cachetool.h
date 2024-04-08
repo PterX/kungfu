@@ -7,6 +7,8 @@
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/journal.h>
 
+#include <utility>
+
 namespace kungfu::wingchun::tool {
 
 class CacheTool {
@@ -48,7 +50,7 @@ protected:
 
   int64_t get_last_read_gen_time() const { return last_read_gen_time_; }
 
-  void join(uint32_t dest_id, const int64_t from_time);
+  void join(uint32_t dest_id, int64_t from_time);
 
   yijinjing::journal::frame_ptr current_frame() const;
 
@@ -76,11 +78,12 @@ class CacheToolWriter : public CacheTool {
 public:
   CacheToolWriter(longfist::enums::category category, std::string group, std::string name, std::string begin_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, begin_time, end_time, locator, true) {}
+      : CacheTool(category, std::move(group), std::move(name), std::move(begin_time), std::move(end_time),
+                  std::move(locator), true) {}
 
   CacheToolWriter(longfist::enums::category category, std::string group, std::string name, int64_t begin_time,
                   int64_t end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, begin_time, end_time, locator, true) {}
+      : CacheTool(category, std::move(group), std::move(name), begin_time, end_time, std::move(locator), true) {}
 
   void write_raw(int64_t time_stamp, int32_t msg_type, uint32_t dest_id, uintptr_t data, uint32_t length) {
     write_raw_at(time_stamp, time_stamp, dest_id, msg_type, data, length);
@@ -91,11 +94,12 @@ class CacheToolReader : public CacheTool {
 public:
   CacheToolReader(longfist::enums::category category, std::string group, std::string name, std::string begin_time,
                   std::string end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, begin_time, end_time, locator, false) {}
+      : CacheTool(category, std::move(group), std::move(name), std::move(begin_time), std::move(end_time),
+                  std::move(locator), false) {}
 
   CacheToolReader(longfist::enums::category category, std::string group, std::string name, int64_t begin_time,
                   int64_t end_time, yijinjing::data::locator_ptr locator)
-      : CacheTool(category, group, name, begin_time, end_time, locator, false) {}
+      : CacheTool(category, std::move(group), std::move(name), begin_time, end_time, std::move(locator), false) {}
 
   yijinjing::journal::frame_ptr current_frame() const { return CacheTool::current_frame(); }
 

@@ -48,10 +48,12 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
 
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
+
   events | is(OrderInput::tag) |
       $$(on_order_input(event->gen_time(), event->source(), event->dest(), event->data<OrderInput>()));
   events | is(Order::tag) | $$(update_book<Order>(event, &AccountingMethod::apply_order));
   events | is(Trade::tag) | $$(update_book<Trade>(event, &AccountingMethod::apply_trade));
+
   events | is(AlgoOrderInput::tag) |
       $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
   events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));

@@ -37,6 +37,8 @@ const webpackConfig = (argv) => {
   const threadLoader = argv.enableThreadLoader
     ? toolkit.webpack.getThreadLoaderConfig(argv)
     : [];
+  const fontWeightBySystem = os.platform() === 'win32' ? 'bold' : 'normal';
+
   return merge(toolkit.webpack.makeConfig(argv), {
     externals: getWebpackExternals(),
     entry: pagesConfig.entry,
@@ -67,6 +69,7 @@ const webpackConfig = (argv) => {
                     'green-base': '#17b07f',
                     'red2-base': '#f21717',
                     'green2-base': '#15de9e',
+                    'font-weight-by-system': fontWeightBySystem,
                   },
                 },
               },
@@ -132,22 +135,22 @@ const devConfig = {
     ...(os.platform() === 'win32'
       ? []
       : [
-          new CopyPlugin({
-            patterns: [
-              {
-                from: path.join(
-                  getCoreDir(),
-                  'build',
-                  'python',
-                  'dist',
-                  '*.whl',
-                ),
-                to: path.join(publicDir, 'python'),
-                context: path.resolve(getCoreDir(), 'build', 'python', 'dist'),
-              },
-            ],
-          }),
-        ]),
+        new CopyPlugin({
+          patterns: [
+            {
+              from: path.join(
+                getCoreDir(),
+                'build',
+                'python',
+                'dist',
+                '*.whl',
+              ),
+              to: path.join(publicDir, 'python'),
+              context: path.resolve(getCoreDir(), 'build', 'python', 'dist'),
+            },
+          ],
+        }),
+      ]),
   ],
 };
 

@@ -2,7 +2,7 @@ import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTr
 import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
 import {
   sorter,
-  dealKfPrice,
+  dealKfNumber,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
@@ -171,9 +171,8 @@ export const getColumns = (
           textAlign: 'right',
         },
         fieldFormat: (args) => {
-          return dealKfPrice(
+          return dealKfNumber(
             getPositionLastPrice(args, 'last_price_resolved'),
-            args.price_precision,
           );
         },
         sort: sorter,

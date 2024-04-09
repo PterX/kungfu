@@ -32,7 +32,11 @@ yjj = kungfu.__binding__.yijinjing
 @click.option("-g", "--group", type=str, required=True, help="source")
 @click.option("-n", "--name", type=str, required=True, help="source")
 @click.option(
-    "-t", "--tool_path", type=str, required=True, help="path to tool dynamic library"
+    "-t",
+    "--tool_path",
+    type=str,
+    required=True,
+    help="path to tool dynamic library or py script",
 )
 @click.option(
     "-i",
@@ -45,7 +49,7 @@ yjj = kungfu.__binding__.yijinjing
     "-a",
     "--arguments",
     type=str,
-    default="",
+    default="{}",
     required=False,
     help="arguments passed to SliceTool::get_arguments",
 )
@@ -57,6 +61,14 @@ yjj = kungfu.__binding__.yijinjing
     default=True,
     required=False,
     help="do not use it until you really understand what you are doing!",
+)
+@click.option(
+    "-s",
+    "--size",
+    type=int,
+    default=32,
+    required=False,
+    help="journal size in MB",
 )
 @kfc.pass_context()
 def slicetool(
@@ -70,6 +82,7 @@ def slicetool(
     indexer_path,
     arguments,
     overwrite,
+    size,
 ):
     location = yjj.location(
         kfj.MODES["data"],
@@ -98,17 +111,23 @@ def slicetool(
     else:
         # indexer = wc.DayIndexer(begin_time_stamp, end_time_stamp)
         indexer = wc.SliceIndexer(begin_time_stamp, end_time_stamp)
-
+    ctx.indexer = indexer
     try:
         slice_tool_builder = getattr(module, "slice_tool")
         tool = slice_tool_builder(
-            kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
+            kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments, size
         )
         tool.run()
     except AttributeError:
         tool_script = getattr(module, "run")
         tool_script(
             wc.SliceTool(
-                kfj.CATEGORIES[category], group, name, indexer, overwrite, arguments
+                kfj.CATEGORIES[category],
+                group,
+                name,
+                indexer,
+                overwrite,
+                arguments,
+                size,
             )
         )

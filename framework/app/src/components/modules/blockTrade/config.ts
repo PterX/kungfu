@@ -8,7 +8,7 @@ const { t } = VueI18n.global;
 
 export const getConfigSettings = (
   category?: KfCategoryTypes,
-  pricePrecision?: number,
+  pricePrecision?: number | null,
   step?: number,
 ): KungfuApi.KfConfigItem[] =>
   [
@@ -45,7 +45,7 @@ export const getConfigSettings = (
       name: t('blockTradeConfig.limit_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 4,
+      precision: pricePrecision ?? null,
       step: step || 1,
       required: true,
     },

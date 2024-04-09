@@ -26,7 +26,7 @@ using namespace kungfu::yijinjing::data;
 namespace kungfu::node {
 
 constexpr uint32_t STEP_INTERVAL = 10;
-constexpr uint32_t REFRESH_REQUIRED_DATA_LIMIT_BY_SYNC = 1500;
+constexpr uint32_t REFRESH_REQUIRED_DATA_LIMIT_BY_SYNC = 3000;
 
 inline std::string format(uint32_t uid) { return fmt::format("{:08x}", uid); }
 

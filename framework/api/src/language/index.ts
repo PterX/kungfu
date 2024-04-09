@@ -144,9 +144,16 @@ export const useLanguage = () => {
     return typeof result === 'string';
   };
 
+  const t = (key: string, ...args: unknown[]): string => {
+    const result = i18n.global.t(key, [...args]);
+    return `${result}`;
+  };
+
   return {
     buildExtLangKey,
     isLanguageKeyAvailable,
+    locale,
+    t,
   };
 };
 

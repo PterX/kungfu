@@ -52,6 +52,7 @@ import {
   loadCustomFont,
   showInitAfterReloadConfirmDialog,
   clearLocalStorageWithNewVersion,
+  setPreStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { buildIfWatcherLiveObservable } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
@@ -249,6 +250,7 @@ const initStartAll = (bypassArchive = false) => {
 
 loadCustomFont().then(async () => {
   await mergeExtLanguages();
+  setPreStyle();
   await useComponents(app, router);
   clearLocalStorageWithNewVersion();
   (globalThis.HookKeeper as KfHookKeeper)
@@ -281,7 +283,7 @@ loadCustomFont().then(async () => {
   });
 });
 
-triggerStartStep(500);
+triggerStartStep(1000);
 
 const webContents = getCurrentWebContents();
 webContents.on('devtools-reload-page', () => {

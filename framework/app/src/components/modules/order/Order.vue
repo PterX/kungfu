@@ -249,27 +249,16 @@ watch(historyDate, async (newDate) => {
 
       const tempAllOrders = toRaw(
         orderResolved.map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
-
           return toRaw({
-            ...dealDataWithCache(
-              item,
-              () => dealOrder(window.watcher, item, true, price_precision),
-              { price_precision },
+            ...dealDataWithCache(item, () =>
+              dealOrder(window.watcher, item, true),
             ),
-            ...getOrderLatencyDataByOrderStat(
-              item,
-              tradingData.OrderStat,
-              price_precision,
-            ),
+            ...getOrderLatencyDataByOrderStat(item, tradingData.OrderStat),
           });
         }),
       );
-      allOrders.value = tempAllOrders;
-      canvasRef.value.getListTable()?.setRecords(allOrders.value);
+      allOrders.value = tempAllOrders as KungfuApi.OrderResolved[];
+      canvasRef.value?.setRecords(allOrders.value);
     })
     .catch((err) => {
       if (err.message === 'database_locked') {

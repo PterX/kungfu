@@ -160,10 +160,14 @@ protected:
 
   virtual void prepare(const event_ptr &event) = 0;
 
+  virtual void post_stop(){};
+
 private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
+
+  friend void stop(Context &context) { context.post_stop(); }
 };
 } // namespace kungfu::wingchun::op
 

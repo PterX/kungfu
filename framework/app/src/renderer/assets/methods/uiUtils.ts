@@ -692,7 +692,7 @@ export function useKeyboardControlContainerStyle(
   );
 
   function focusOutHandler() {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (
         container &&
         document.activeElement &&
@@ -700,6 +700,7 @@ export function useKeyboardControlContainerStyle(
       ) {
         removeStyle(element);
       }
+      clearTimeout(timer);
     });
   }
 
@@ -2564,5 +2565,15 @@ export const clearLocalStorageWithNewVersion = () => {
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }
+  }
+};
+
+export const setPreStyle = () => {
+  const styleMap = {
+    '--ant-table-font-weight': os.platform() === 'win32' ? 'normal' : 'bold',
+  };
+  for (const key in styleMap) {
+    const value = styleMap[key];
+    document.documentElement.style.setProperty(key, value);
   }
 };

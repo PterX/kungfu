@@ -91,7 +91,6 @@ void Runner::on_start() {
   start_events | is(SyntheticData::tag) |
       $$(invoke(&Operator::on_synthetic_data, event->data<SyntheticData>(), get_location(event->source()),
                 event->dest()));
-
   events_ | is(BrokerStateUpdate::tag) |
       $$(invoke(&Operator::on_broker_state_change, event->data<BrokerStateUpdate>(), get_location(event->source())));
   events_ | is(OperatorStateUpdate::tag) |
@@ -129,7 +128,10 @@ void Runner::post_start() {
 
 void Runner::pre_stop() { invoke(&Operator::pre_stop); }
 
-void Runner::post_stop() { invoke(&Operator::post_stop); }
+void Runner::post_stop() {
+  invoke(&Operator::post_stop);
+  stop(*context_);
+}
 
 bool Runner::is_reactable(const event_ptr &event) {
   auto iter = map_is_own_event.find(event->msg_type());

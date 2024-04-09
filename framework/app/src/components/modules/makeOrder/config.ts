@@ -42,7 +42,7 @@ export const getConfigSettings = ({
   isSpecifyContract?: boolean;
   side?: SideEnum;
   priceType?: PriceTypeEnum;
-  pricePrecision?: number;
+  pricePrecision?: null | number;
   step?: number;
   sideList?: string[];
   offsetList?: string[];
@@ -137,7 +137,7 @@ export const getConfigSettings = ({
           : t('tradingConfig.protect_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 4,
+      precision: pricePrecision ?? null,
       step: step || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },

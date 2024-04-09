@@ -872,6 +872,9 @@ function handleSelectFile(target: KungfuApi.KfConfigItem): void {
     .showOpenDialog({
       defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openFile'],
+      filters: target.fileExtensions
+        ? [{ name: 'Files', extensions: target.fileExtensions }]
+        : [],
     })
     .then((res) => {
       const { filePaths } = res;
@@ -917,6 +920,9 @@ function handleSelectFiles(target: KungfuApi.KfConfigItem): void {
     .showOpenDialog({
       defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openDirectory'],
+      filters: target.fileExtensions
+        ? [{ name: 'Files', extensions: target.fileExtensions }]
+        : [],
     })
     .then((res) => {
       const { filePaths } = res;

@@ -27,7 +27,6 @@ import {
   ref,
   toRaw,
   watch,
-  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getColumns, getPositionLastPrice } from './config';
@@ -66,8 +65,7 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
 
-const { getPriceTickAndPrecision, getInstrumentCurrency, getInstrumentName } =
-  useActiveInstruments();
+const { getInstrumentCurrency } = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -75,7 +73,6 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
-const isRendering = ref(false);
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
@@ -136,8 +133,6 @@ const columns = computed(() => {
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
-  if (isRendering.value) return;
-  isRendering.value = true;
   const tableData = searchByKeyword<KungfuApi.PositionResolved>(
     searchKeyword.value,
     pos.value,
@@ -148,10 +143,7 @@ const setTableData = () => {
       'account_id_resolved',
     ],
   );
-  nextTick(() => {
-    canvasRef.value.getListTable()?.setRecords(tableData);
-    isRendering.value = false;
-  });
+  canvasRef.value?.setRecords(tableData);
 };
 
 onActivated(() => {
@@ -170,27 +162,17 @@ onActivated(() => {
 
       pos.value = toRaw(
         positions.reverse().map((item) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            item.instrument_id,
-            item.exchange_id,
-          );
           const currency = getInstrumentCurrency(
             item.instrument_id,
             item.exchange_id,
           );
-          const instrumentName = getInstrumentName(
-            item.instrument_id,
-            item.exchange_id,
-            item.instrument_type,
-          );
 
-          return dealDataWithCache(
-            item,
-            () => dealPosition(watcher, item, price_precision, instrumentName),
-            { currency },
-          );
+          return dealDataWithCache(item, () => dealPosition(watcher, item), {
+            currency,
+          });
         }),
       );
+
       setTableData();
     });
 

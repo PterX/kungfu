@@ -15,12 +15,7 @@ import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/met
 import { debounce } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import LoginModalVue from '../../components/LoginModal.vue';
-import {
-  CURRENT_STAGE,
-  ConnectUsUrl,
-  LicenseUrl,
-  LoginAuthingKeys,
-} from '../../configs';
+import { CURRENT_STAGE, ConnectUsUrl, LoginAuthingKeys } from '../../configs';
 import { useAuthLoginStore } from '../../store';
 import { clearCredentials, readCredentials } from '../../utils/credential';
 import { useAuthingCredential } from '../../utils/externalUtils';
@@ -124,10 +119,6 @@ function handleLoginFailed() {
   isLoggedIn.value = false;
 }
 
-function handleGetLicense() {
-  shell.openExternal(LicenseUrl);
-}
-
 function handleOpenWallet() {
   app?.proxy?.$globalBus.next({
     tag: 'aws-wallet:show-records',
@@ -162,21 +153,11 @@ function handleLogout() {
             {{ $t('loginAuthing.login') }}
           </span>
         </div>
-        <div class="login-menu-item" @click="handleGetLicense">
-          <span>
-            {{ $t('loginAuthing.license') }}
-          </span>
-        </div>
       </template>
       <template v-else>
         <div class="login-menu-item" @click="handleOpenWallet">
           <span>
             {{ $t('loginAuthing.transaction') }}
-          </span>
-        </div>
-        <div class="login-menu-item" @click="handleGetLicense">
-          <span>
-            {{ $t('loginAuthing.license') }}
           </span>
         </div>
         <div class="login-menu-item" @click="handleLogout">

@@ -225,6 +225,8 @@ declare namespace KungfuApi {
     // ---- some ui releated ----;
     noDivider?: boolean;
     wrap?: string;
+
+    fileExtensions?: string[]; // 选择文件时支持的文件扩展名
   }
 
   export interface KfExhibitConfigItem {

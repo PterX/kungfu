@@ -77,7 +77,7 @@ export const getStrategyDemoAutoAddConfigs = async () => {
       STRATEGY_DEMO_DIR,
       path.basename(strategyDemoPath),
     );
-    if (!fse.existsSync(targetStrategyPath))
+    if (fse.existsSync(strategyDemoPath) && !fse.existsSync(targetStrategyPath))
       fse.copySync(strategyDemoPath, targetStrategyPath);
 
     configs.push({

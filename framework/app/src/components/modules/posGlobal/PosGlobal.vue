@@ -144,6 +144,15 @@ const columns = computed(() => {
 });
 const hasData = computed(() => pos.value.length > 0);
 
+const setTableData = () => {
+  const tableData = searchByKeyword<KungfuApi.PositionResolved>(
+    searchKeyword.value,
+    pos.value,
+    ['instrument_id_resolved', 'instrument_id', 'exchange_id', 'direction'],
+  );
+  canvasRef.value?.setRecords(tableData);
+};
+
 onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
@@ -177,14 +186,7 @@ onActivated(() => {
         }),
       );
 
-      const tableData = searchByKeyword<KungfuApi.PositionResolved>(
-        searchKeyword.value,
-        pos.value,
-        ['instrument_id_resolved', 'instrument_id', 'exchange_id', 'direction'],
-      );
-      nextTick(() => {
-        canvasRef.value?.getListTable()?.setRecords(tableData);
-      });
+      setTableData();
     });
 
     onBeforeUnmount(() => {

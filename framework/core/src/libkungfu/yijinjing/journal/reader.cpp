@@ -71,8 +71,8 @@ void reader::seek_to_time(int64_t nanotime) {
 void reader::next() {
   if (current_ != nullptr) {
     current_->next();
-    has_data_journals_heap_.pop();
-    no_data_journals_buffer_.push_back(current_);
+    // has_data_journals_heap_.pop();
+    // no_data_journals_buffer_.push_back(current_);
   }
   sort();
 }
@@ -113,6 +113,8 @@ void reader::sort() {
   auto min_journal = has_data_journals_heap_.top();
   if (min_journal->current_frame()->gen_time() <= min_time) {
     current_ = min_journal;
+    has_data_journals_heap_.pop();
+    no_data_journals_buffer_.push_back(current_);
   }
 }
 

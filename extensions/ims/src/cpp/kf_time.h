@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef YIJINJING_TIME_H
-#define YIJINJING_TIME_H
+#ifndef KF_TIME_H
+#define KF_TIME_H
 
 #include <memory>
 #include <string>

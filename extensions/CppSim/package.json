@@ -1,0 +1,270 @@
+{
+  "name": "@kungfu-trader/kfx-broker-cpp-sim",
+  "author": {
+    "name": "kungfu-trader",
+    "email": "info@kungfu.link"
+  },
+  "version": "2.7.4-alpha.10",
+  "description": "Kungfu Extension - SIM",
+  "license": "UNLICENSED",
+  "main": "package.json",
+  "repository": {
+    "url": "https://github.com/kungfu-trader/kfx-group-broker-multi.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "binary": {
+    "module_name": "kfx-broker-cpp-sim",
+    "module_path": "dist/CppSim",
+    "remote_path": "{module_name}/v{major}/v{version}",
+    "package_name": "{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz",
+    "host": "https://prebuilt.libkungfu.cc"
+  },
+  "scripts": {
+    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
+    "build": "kfs extension build",
+    "clean": "kfs extension clean",
+    "format": "node ../../node_modules/@kungfu-trader/kungfu-core/.gyp/run-format-cpp.js src",
+    "dev": "kfs craft dev",
+    "package": "kfs extension package"
+  },
+  "dependencies": {
+    "@kungfu-trader/kungfu-app": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-core": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-js-api": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-toolchain": "~2.7.0 || ~2.7.4-0"
+  },
+  "devDependencies": {
+    "@kungfu-trader/kfx-broker-xtp-demo": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-cli": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-sdk": "~2.7.0 || ~2.7.4-0"
+  },
+  "resolutions": {
+    "@kungfu-trader/kungfu-core": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-cli": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-sdk": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-app": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-js-api": "~2.7.0 || ~2.7.4-0",
+    "@kungfu-trader/kungfu-toolchain": "~2.7.0 || ~2.7.4-0"
+  },
+  "kungfuBuild": {
+    "skipBuildPlatforms": [],
+    "cpp": {
+      "target": "bind/python",
+      "links": {
+        "windows": [],
+        "linux": [],
+        "macos": []
+      }
+    }
+  },
+  "kungfuConfig": {
+    "key": "CppSim",
+    "name": "功夫模拟",
+    "config": {
+      "td": {
+        "type": "multi",
+        "settings": [
+          {
+            "key": "account_id",
+            "name": "CppSim.account_id",
+            "type": "str",
+            "errMsg": "CppSim.account_id_error",
+            "required": true,
+            "primary": true
+          },
+          {
+            "key": "match_mode",
+            "name": "CppSim.match_mode",
+            "type": "select",
+            "options": [
+              {
+                "value": "Reject",
+                "label": "CppSim.reject"
+              },
+              {
+                "value": "Pending",
+                "label": "CppSim.pend"
+              },
+              {
+                "value": "Cancel",
+                "label": "CppSim.cancel"
+              },
+              {
+                "value": "PartialFillAndCancel",
+                "label": "CppSim.partialfillandcancel"
+              },
+              {
+                "value": "PartialFill",
+                "label": "CppSim.partialfill"
+              },
+              {
+                "value": "Fill",
+                "label": "CppSim.fill"
+              },
+              {
+                "value": "MultipleTransactions",
+                "label": "CppSim.multiple_transactions"
+              }
+            ],
+            "errMsg": "CppSim.match_mode_error",
+            "required": true
+          },
+          {
+            "key": "recover_order_trade",
+            "name": "CppSim.recover_order_trade",
+            "type": "bool",
+            "errMsg": "CppSim.recover_order_trade_msg",
+            "required": true,
+            "default": true,
+            "tip": "CppSim.recover_order_trade_tip"
+          },
+          {
+            "key": "asset",
+            "name": "CppSim.asset",
+            "type": "float",
+            "required": true,
+            "default": 100000,
+            "primary": false
+          },
+          {
+            "key": "cancel_delay",
+            "name": "CppSim.cancel_delay",
+            "type": "float",
+            "required": false,
+            "primary": false,
+            "default": 0
+          },
+          {
+            "key": "trigger_delay",
+            "name": "CppSim.trigger_delay",
+            "type": "float",
+            "required": false,
+            "primary": false,
+            "default": 0
+          },
+          {
+            "key": "position_list",
+            "name": "CppSim.position_list",
+            "type": "table",
+            "columns": [
+              {
+                "key": "instrument",
+                "name": "CppSim.instrument",
+                "type": "instrument",
+                "required": true,
+                "primary": false
+              },
+              {
+                "key": "direction",
+                "name": "CppSim.offset",
+                "type": "direction",
+                "required": true,
+                "primary": false
+              },
+              {
+                "key": "volume_yesterday",
+                "name": "CppSim.volume_yesterday",
+                "type": "int",
+                "required": true,
+                "primary": false
+              },
+              {
+                "key": "volume_today",
+                "name": "CppSim.volume_today",
+                "type": "int",
+                "required": true,
+                "primary": false
+              }
+            ],
+            "required": false,
+            "primary": false
+          }
+        ],
+        "order_trigger": {
+          "MakeOrder": true,
+          "CancelOrder": true
+        },
+        "supportEtf": true
+      },
+      "md": {
+        "type": "multi",
+        "settings": [
+          {
+            "key": "quote",
+            "name": "CppSim.quote_interval",
+            "type": "float",
+            "required": true,
+            "primary": false,
+            "default": 3
+          },
+          {
+            "key": "tick",
+            "name": "CppSim.tick_interval",
+            "type": "float",
+            "required": true,
+            "primary": false,
+            "default": 0.5
+          }
+        ]
+      }
+    },
+    "language": {
+      "zh-CN": {
+        "CppSim": "功夫模拟",
+        "account_id": "账户 ID",
+        "account_id_error": "请填写账户 account_id",
+        "match_mode": "撮合模式",
+        "match_mode_error": "请选择撮合模式",
+        "reject": "失败",
+        "pend": "等待中",
+        "cancel": "撤单",
+        "partialfillandcancel": "部分成交部分撤单",
+        "partialfill": "部分成交部分等待",
+        "fill": "成交",
+        "multiple_transactions": "多笔成交",
+        "recover_order_trade": "恢复订单",
+        "recover_order_trade_msg": "启动时是否查询恢复订单",
+        "recover_order_trade_tip": "若开启则启动时恢复今日委托和成交",
+        "instrument": "标的",
+        "volume_yesterday": "昨仓",
+        "volume_today": "今仓",
+        "asset": "初始资金",
+        "offset": "持仓方向",
+        "cancel_delay": "撤单延迟(s)",
+        "trigger_delay": "预埋单触发延迟(s)",
+        "position_list": "持仓列表",
+        "quote_interval": "快照生成间隔(s)",
+        "tick_interval": "逐笔生成间隔(s)"
+      },
+      "en-US": {
+        "CppSim": "SIM",
+        "account_id": "Account ID",
+        "account_id_error": "Please input the Account ID",
+        "match_mode": "Match Mode",
+        "match_mode_error": "Please select the Match Mode",
+        "reject": "Reject",
+        "pend": "Pending",
+        "cancel": "Cancel",
+        "partialfillandcancel": "PartialFillAndCancel",
+        "partialfill": "PartialFillAndPending",
+        "fill": "Fill",
+        "multiple_transactions": "Multiple Transactions",
+        "recover_order_trade": "recover order trade",
+        "recover_order_trade_msg": "Whether recover order trade",
+        "recover_order_trade_tip": "If enabled, recover order and trade when TD ready",
+        "instrument": "Instrument",
+        "volume_yesterday": "Volume Yesterday",
+        "volume_today": "Volume Today",
+        "asset": "Asset",
+        "offset": "Offset",
+        "cancel_delay": "cancel delay(s)",
+        "trigger_delay": "trigger delay(s)",
+        "position_list": "position list",
+        "quote_interval": "quote interval(s)",
+        "tick_interval": "tick interval(s)"
+      }
+    }
+  }
+}

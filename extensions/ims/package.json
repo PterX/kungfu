@@ -37,7 +37,7 @@
     "@kungfu-trader/kungfu-sdk": "^2.7.4-alpha.11"
   },
   "kungfuDependencies": {
-    "ims": "v2.2.37.4"
+    "IMSTradeAPI": "v1.0.0"
   },
   "kungfuBuild": {
     "build_type": "Release",
@@ -48,9 +48,6 @@
           "IMSTradeAPI"
         ],
         "linux": [
-          "IMSTradeAPI"
-        ],
-        "macos": [
           "IMSTradeAPI"
         ]
       }

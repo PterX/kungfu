@@ -16,36 +16,11 @@ StaticData::StaticData(apprentice &app) : app_(app) {}
 void StaticData::on_start(const rx::connectable_observable<event_ptr> &events) {
   restore(app_.get_state_bank());
 
-  // events | is(Basket::tag) | $$(replace(event->data<Basket>()));
-  // events | is(BasketInstrument::tag) | $$(replace(event->data<BasketInstrument>()));
-  // events | is(Commission::tag) | $$(replace(event->data<Commission>()));
-  // events | is(Instrument::tag) | $$(replace(event->data<Instrument>()));
-  // events | is(InstrumentFactor::tag) | $$(replace(event->data<InstrumentFactor>()));
-
-  events | $$(switch (event->msg_type()) {
-    case Basket::tag: {
-      replace(event->data<Basket>());
-      break;
-    }
-    case BasketInstrument::tag: {
-      replace(event->data<BasketInstrument>());
-      break;
-    }
-    case Commission::tag: {
-      replace(event->data<Commission>());
-      break;
-    }
-    case Instrument::tag: {
-      replace(event->data<Instrument>());
-      break;
-    }
-    case InstrumentFactor::tag: {
-      replace(event->data<InstrumentFactor>());
-      break;
-    }
-    default:
-      break;
-  };);
+  events | is(Basket::tag) | $$(replace(event->data<Basket>()));
+  events | is(BasketInstrument::tag) | $$(replace(event->data<BasketInstrument>()));
+  events | is(Commission::tag) | $$(replace(event->data<Commission>()));
+  events | is(Instrument::tag) | $$(replace(event->data<Instrument>()));
+  events | is(InstrumentFactor::tag) | $$(replace(event->data<InstrumentFactor>()));
 }
 
 void StaticData::restore(const cache::bank &state_bank) {

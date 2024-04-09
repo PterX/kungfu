@@ -71,8 +71,6 @@ void reader::seek_to_time(int64_t nanotime) {
 void reader::next() {
   if (current_ != nullptr) {
     current_->next();
-    // has_data_journals_heap_.pop();
-    // no_data_journals_buffer_.push_back(current_);
   }
   sort();
 }

@@ -184,7 +184,9 @@ export const getColumns = (
         style: {
           textAlign: 'right',
           color: (args) => {
-            return args.dataValue > 0
+            if (!Number(args.dataValue)) return defaultColorMap['text'];
+
+            return +args.dataValue > 0
               ? defaultColorMap['red']
               : defaultColorMap['green'];
           },

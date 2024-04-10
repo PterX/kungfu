@@ -123,7 +123,7 @@ public:
 
   void drain_from_trading_data_reader(uint32_t step_limit = 0);
 
-  const yijinjing::journal::reader_ptr &get_trading_data_reader() { return trading_data_reader_; }
+  bool is_step_continually();
 
 protected:
   const bool bypass_accounting_;
@@ -232,7 +232,7 @@ private:
 
   void SyncLedger();
 
-  void TryRefreshTradingData(const Napi::CallbackInfo &info);
+  void TryRefreshTradingData();
 
   void SyncTradingData();
 

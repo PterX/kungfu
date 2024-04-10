@@ -122,7 +122,7 @@ void BacktestContext::on_timer_check() {
     time_event["trigger_time"] = now_time;
     time_event["source"] = app_.get_live_home_uid();
     time_event["dest"] = app_.get_live_home_uid();
-    time_event["data"] = nlohmann::json::object();
+    time_event["data"] = "";
     auto nanomsg_event = std::make_shared<nanomsg_json>(time_event.dump());
     while (!timer_tasks_.empty() && timer_tasks_.front().nanotime <= now_time) {
       // TODO use app_.make_nano_msg instead

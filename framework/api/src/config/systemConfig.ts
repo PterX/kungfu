@@ -31,7 +31,7 @@ export const defaultColorMap = {
   gray: '#FFFFFF80',
   pink: '#FFC0CB',
   cyan: '#00ffff',
-  text: '#FFFFFF80',
+  text: '#FFFFFFD9',
   '#ffffffd9': '#FFFFFFD9',
   default: '#FFFFFF80',
   '#FAAD14': '#FAAD14',

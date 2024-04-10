@@ -61,7 +61,6 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   dealKfNumber,
-  dealKfPrice,
   getYearMonthDay,
   countDecimalPlaces,
   findTargetFromArray,
@@ -175,8 +174,10 @@ export const useUpdateVersion = () => {
     ipcRenderer.send('auto-update-retry-check-update');
     checkingUpdate.value = true;
     // 超过 10 秒视为检测完成
-    setTimeout(() => {
+
+    const timer = setTimeout(() => {
       checkingUpdate.value = false;
+      clearTimeout(timer);
     }, 10000);
   };
 
@@ -1749,8 +1750,8 @@ export const useActiveInstruments = () => {
   const getPriceTickAndPrecision = (
     instrumentId: string,
     exchangeId: string,
-    defaultTick = 0.0001,
-    defaultPrecision = 0.0001,
+    defaultTick = 1,
+    defaultPrecision = 0,
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const price_tick = instrument?.price_tick || defaultTick;
@@ -2776,25 +2777,25 @@ export const useMakeOrderInfo = (
           currentAccountLocation.value,
         ).gage_buy_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail);
       } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).credit_buy_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail);
       } else if (side === SideEnum.RepayStock) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).buyredeliver_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail);
       }
     }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
-    return dealKfPrice(avail);
+    return dealKfNumber(avail);
   });
 
   const currentAvailPosVolume = computed(() => {
@@ -2813,7 +2814,7 @@ export const useMakeOrderInfo = (
   });
 
   function dealTradeAmount(preNumber: number | null) {
-    return !Number(preNumber) ? '--' : dealKfPrice(preNumber);
+    return !Number(preNumber) ? '--' : dealKfNumber(preNumber);
   }
 
   const currentPrice = computed(() => {
@@ -2862,11 +2863,11 @@ export const useMakeOrderInfo = (
     if (currentAvailMoney.value !== '--') {
       if (currentTradeAmount.value !== '--') {
         if (offset === OffsetEnum.Open) {
-          return dealKfPrice(
+          return dealKfNumber(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
           );
         } else {
-          return dealKfPrice(
+          return dealKfNumber(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
           );
         }
@@ -3129,7 +3130,7 @@ export const useMakeOrderSubscribe = (
               ? dealMarginSideByTransFormType(+side, 'direction')
               : +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
+            formState.value.limit_price = +Number(dealPrice).kfToFixed(12);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
@@ -3152,7 +3153,7 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(+price)) {
-              formState.value.limit_price = +price.kfToFixed(4);
+              formState.value.limit_price = +price.kfToFixed(12);
             }
             formState.value.volume = +volume.kfToFixed(0);
             formState.value.side = isMarginMakeOrder.value

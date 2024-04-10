@@ -2,7 +2,6 @@
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
-  dealKfPrice,
   dealKfDecimalPrecision,
   countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
@@ -203,7 +202,7 @@ function toLedgalPriceVolume(num: number | bigint) {
         <div class="price">
           {{
             limitPrices[0] !== 0 && limitPrices[0] !== undefined
-              ? dealKfPrice(toLedgalPriceVolume(limitPrices[0]))
+              ? dealKfNumber(toLedgalPriceVolume(limitPrices[0]))
               : '--'
           }}
         </div>
@@ -222,7 +221,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           "
         ></div>
         <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(askPrices[9 - index])) }}
+          {{ dealKfNumber(toLedgalPriceVolume(askPrices[9 - index])) }}
         </div>
         <div
           class="sell volume"
@@ -258,7 +257,9 @@ function toLedgalPriceVolume(num: number | bigint) {
       </div>
       <div class="price info-item">
         <div class="main">
-          {{ dealKfPrice(getQuoteByInstrument(currentInstrument)?.last_price) }}
+          {{
+            dealKfNumber(getQuoteByInstrument(currentInstrument)?.last_price)
+          }}
         </div>
         <div class="sub">
           <KfBlinkNum
@@ -283,7 +284,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
         </div>
         <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(bidPrices[index])) }}
+          {{ dealKfNumber(toLedgalPriceVolume(bidPrices[index])) }}
         </div>
         <div
           class="sell volume"
@@ -300,7 +301,7 @@ function toLedgalPriceVolume(num: number | bigint) {
         <div class="price">
           {{
             limitPrices[1] !== 0 && limitPrices[1] !== undefined
-              ? dealKfPrice(toLedgalPriceVolume(limitPrices[1]))
+              ? dealKfNumber(toLedgalPriceVolume(limitPrices[1]))
               : '--'
           }}
         </div>

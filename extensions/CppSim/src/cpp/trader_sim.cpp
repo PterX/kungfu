@@ -11,15 +11,15 @@ using namespace longfist::enums;
 
 void order_from_order_trigger(const OrderTrigger &trigger, Order &order) {
   order.order_id = trigger.trigger_id;
-  order.instrument_id = trigger.instrument_id;     // 合约ID
-  order.exchange_id = trigger.exchange_id;         // 交易所ID
-  order.instrument_type = trigger.instrument_type; // 合约类型
-  order.limit_price = trigger.limit_price;         // 价格
-  order.frozen_price = trigger.frozen_price; // 冻结价格, 市价单冻结价格为0
-  order.volume = trigger.volume;             // 数量
-  order.is_swap = trigger.is_swap;           // 互换单
-  order.side = trigger.side;                 // 买卖方向
-  order.offset = trigger.offset;             // 开平方向
+  order.instrument_id = trigger.instrument_id;       // 合约ID
+  order.exchange_id = trigger.exchange_id;           // 交易所ID
+  order.instrument_type = trigger.instrument_type;   // 合约类型
+  order.limit_price = trigger.limit_price;           // 价格
+  order.frozen_price = trigger.frozen_price;         // 冻结价格, 市价单冻结价格为0
+  order.volume = trigger.volume;                     // 数量
+  order.is_swap = trigger.is_swap;                   // 互换单
+  order.side = trigger.side;                         // 买卖方向
+  order.offset = trigger.offset;                     // 开平方向
   order.hedge_flag = trigger.hedge_flag;             // 投机套保标识
   order.price_type = trigger.price_type;             // 价格类型
   order.volume_condition = trigger.volume_condition; // 成交量类型
@@ -85,8 +85,7 @@ bool TraderSim::cancel_order(const event_ptr &event) {
   if (not has_order(action.order_id)) {
     OrderActionError error{};
     error.error_id = -1;
-    error.error_msg =
-        fmt::format("Order of order_id {} not exists", action.order_id).c_str();
+    error.error_msg = fmt::format("Order of order_id {} not exists", action.order_id).c_str();
     error.order_action_id = action.order_action_id;
     SPDLOG_DEBUG("OrderActionError: {}", error.to_string());
     try_write_to(error, event->source());
@@ -105,12 +104,8 @@ bool TraderSim::cancel_order(const event_ptr &event) {
 
     map_trigger_id_to_timer_id_.insert_or_assign(
         trigger.trigger_id,
-        add_timer(time::now_in_nano() +
-                      int64_t(config_.trigger_delay *
-                              time_unit::NANOSECONDS_PER_SECOND),
-                  [&, trigger_id = trigger.trigger_id](const auto &) {
-                    trigger_start(trigger_id);
-                  }));
+        add_timer(time::now_in_nano() + int64_t(config_.trigger_delay * time_unit::NANOSECONDS_PER_SECOND),
+                  [&, trigger_id = trigger.trigger_id](const auto &) { trigger_start(trigger_id); }));
   }
   return true;
 }
@@ -125,8 +120,7 @@ bool TraderSim::req_position() {
     size_t firstUnderscore = pos.instrument.find('_');
     size_t secondUnderscore = pos.instrument.find('_', firstUnderscore + 1);
     std::string market = pos.instrument.substr(0, firstUnderscore);
-    std::string code = pos.instrument.substr(
-        firstUnderscore + 1, secondUnderscore - firstUnderscore - 1);
+    std::string code = pos.instrument.substr(firstUnderscore + 1, secondUnderscore - firstUnderscore - 1);
     po.instrument_id = code.c_str();
     po.exchange_id = market.c_str();
     po.yesterday_volume = pos.volume_yesterday;
@@ -200,8 +194,7 @@ void TraderSim::generate_trade(const Order &order, uint32_t dest_id) {
       writer->close_data();
     } else {
       Trade trade{};
-      trade.trade_id = get_public_writer()->current_frame_uid() xor
-                       (time::now_in_nano() & 0xFFFFFFFF);
+      trade.trade_id = get_public_writer()->current_frame_uid() xor (time::now_in_nano() & 0xFFFFFFFF);
       trade_from_order(order, trade);
       trade.trade_time = time::now_in_nano();
       trade.volume = trade_volume;
@@ -238,9 +231,7 @@ bool TraderSim::verify_order(Order &order) {
   if (int64_t(order.volume) % int64_t(min_vol) != 0) {
     const std::string msg =
         fmt::format("volume of InstrumentType {} must be multiple of {}",
-                    nlohmann::json(get_instrument_type(order.exchange_id,
-                                                       order.instrument_id)),
-                    min_vol);
+                    nlohmann::json(get_instrument_type(order.exchange_id, order.instrument_id)), min_vol);
     order.status = OrderStatus::Error;
     order.error_id = -1;
     order.error_msg = msg.c_str();
@@ -281,8 +272,7 @@ void TraderSim::trigger_start(uint64_t trigger_id) {
 
   if (trigger_state.data.action_flag == OrderTriggerFlag::TriggerCancel) {
     cancel_order(trigger_state.data.order_id);
-  } else if (trigger_state.data.action_flag ==
-             OrderTriggerFlag::TriggerInsert) {
+  } else if (trigger_state.data.action_flag == OrderTriggerFlag::TriggerInsert) {
     Order order{};
     order_from_order_trigger(trigger_state.data, order);
     order.external_order_id = std::to_string(order.order_id).c_str();
@@ -312,10 +302,9 @@ void TraderSim::cancel_order(uint64_t order_id) {
     return;
   }
   auto &order_state = get_order(order_id);
-  order_state.data.status =
-      order_state.data.volume_left == order_state.data.volume
-          ? OrderStatus::Cancelled
-          : OrderStatus::PartialFilledNotActive;
+  order_state.data.status = order_state.data.volume_left == order_state.data.volume
+                                ? OrderStatus::Cancelled
+                                : OrderStatus::PartialFilledNotActive;
   order_state.data.update_time = time::now_in_nano();
   try_write_to(order_state.data, order_state.dest);
   // order_state.data.status = OrderStatus::Cancelling;
@@ -346,26 +335,19 @@ bool TraderSim::insert_order_trigger(const event_ptr &event) {
 
   map_trigger_id_to_timer_id_.insert_or_assign(
       trigger.trigger_id,
-      add_timer(time::now_in_nano() +
-                    int64_t(config_.trigger_delay *
-                            time_unit::NANOSECONDS_PER_SECOND),
-                [&, trigger_id = trigger.trigger_id](const auto &) {
-                  trigger_start(trigger_id);
-                }));
+      add_timer(time::now_in_nano() + int64_t(config_.trigger_delay * time_unit::NANOSECONDS_PER_SECOND),
+                [&, trigger_id = trigger.trigger_id](const auto &) { trigger_start(trigger_id); }));
   return true;
 }
 
 bool TraderSim::cancel_order_trigger(const event_ptr &event) {
   auto &action = event->data<OrderTriggerAction>();
-  if (map_trigger_id_to_timer_id_.find(action.trigger_id) ==
-          map_trigger_id_to_timer_id_.end() or
+  if (map_trigger_id_to_timer_id_.find(action.trigger_id) == map_trigger_id_to_timer_id_.end() or
       not has_order_trigger(action.trigger_id)) {
     OrderTriggerActionError error{};
     error.trigger_id = action.trigger_id;
     error.error_id = -1;
-    error.error_msg = fmt::format("OrderTrigger of trigger_id {} not exists",
-                                  action.trigger_id)
-                          .c_str();
+    error.error_msg = fmt::format("OrderTrigger of trigger_id {} not exists", action.trigger_id).c_str();
     error.order_trigger_action_id = action.order_trigger_action_id;
     SPDLOG_DEBUG("OrderTriggerActionError: {}", error.to_string());
     try_write_to(error, event->source());

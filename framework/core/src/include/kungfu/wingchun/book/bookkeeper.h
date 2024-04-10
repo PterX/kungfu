@@ -28,7 +28,7 @@ DECLARE_PTR(BookListener)
 class Bookkeeper {
 public:
   explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false,
-                      bool bypass_accounting = false, bool bypass_replace_trading_data = false);
+                      bool bypass_replace_trading_data = false);
 
   virtual ~Bookkeeper() = default;
 
@@ -155,7 +155,6 @@ private:
   const bool bypass_quote_;
   QuoteStateMap quotes_;
   const bool bypass_replace_trading_data_;
-  const bool bypass_accounting_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;

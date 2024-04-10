@@ -67,8 +67,13 @@ class Exchange:
     METL = "METL"  # ES-METL: 74
     IPM = "IPM"  # 国际贵金属: 5000
 
-    BINANCE = "BINANCE"
     HB = "HB"
+    OKX_SPOT = "OKX-SPOT"
+    OKX_USD_FUTURE = "OKX-UFUT"
+    OKX_COIN_FUTURE = "OKX-CFUT"
+    BINANCE_SPOT = "BINANCE-SPOT"
+    BINANCE_USD_FUTURE = "BINANCE-UFUT"
+    BINANCE_COIN_FUTURE = "BINANCE-CFUT"
 
 
 class Region:

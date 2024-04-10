@@ -29,6 +29,20 @@ public:
   virtual int64_t get_operator_slice_end_time(int64_t nano_time, const std::string &group,
                                               const std::string &name) const;
 
+  virtual void submit_acquire_location(const yijinjing::data::location_ptr &location) {}
+
+  virtual void submit_release_location(const yijinjing::data::location_ptr &location) {}
+
+  virtual void wait_acquire_location(const yijinjing::data::location_ptr &location) {}
+
+  virtual void wait_release_location(const yijinjing::data::location_ptr &location) {}
+
+  virtual int acquire_lead_ratio() const;
+
+  virtual int release_delay_ratio() const;
+
+  virtual void sync_save_location(const yijinjing::data::location_ptr &location) {}
+
 private:
   int64_t begin_time_;
   int64_t end_time_;

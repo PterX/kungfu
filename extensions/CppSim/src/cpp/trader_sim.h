@@ -4,39 +4,27 @@
 #include <kungfu/wingchun/broker/trader.h>
 
 namespace kungfu::wingchun::sim {
-enum class MatchMode {
-  Reject,
-  Pending,
-  Cancel,
-  PartialFillAndCancel,
-  PartialFill,
-  Fill,
-  MultipleTransactions
-};
+enum class MatchMode { Reject, Pending, Cancel, PartialFillAndCancel, PartialFill, Fill, MultipleTransactions };
 
 // map TaskState values to JSON as strings
-KF_JSON_SERIALIZE_ENUM(
-    MatchMode, {
-                   {MatchMode::Reject, "Reject"},
-                   {MatchMode::Pending, "Pending"},
-                   {MatchMode::Cancel, "Cancel"},
-                   {MatchMode::PartialFillAndCancel, "PartialFillAndCancel"},
-                   {MatchMode::PartialFill, "PartialFill"},
-                   {MatchMode::Fill, "Fill"},
-                   {MatchMode::MultipleTransactions, "MultipleTransactions"},
-               })
+KF_JSON_SERIALIZE_ENUM(MatchMode, {
+                                      {MatchMode::Reject, "Reject"},
+                                      {MatchMode::Pending, "Pending"},
+                                      {MatchMode::Cancel, "Cancel"},
+                                      {MatchMode::PartialFillAndCancel, "PartialFillAndCancel"},
+                                      {MatchMode::PartialFill, "PartialFill"},
+                                      {MatchMode::Fill, "Fill"},
+                                      {MatchMode::MultipleTransactions, "MultipleTransactions"},
+                                  })
 
-static const std::map<MatchMode, longfist::enums::OrderStatus>
-    mao_order_status = {
-        {MatchMode::Reject, longfist::enums::OrderStatus::Error},
-        {MatchMode::Pending, longfist::enums::OrderStatus::Pending},
-        {MatchMode::Cancel, longfist::enums::OrderStatus::Cancelled},
-        {MatchMode::PartialFillAndCancel,
-         longfist::enums::OrderStatus::PartialFilledNotActive},
-        {MatchMode::PartialFill,
-         longfist::enums::OrderStatus::PartialFilledActive},
-        {MatchMode::Fill, longfist::enums::OrderStatus::Filled},
-        {MatchMode::MultipleTransactions, longfist::enums::OrderStatus::Filled},
+static const std::map<MatchMode, longfist::enums::OrderStatus> mao_order_status = {
+    {MatchMode::Reject, longfist::enums::OrderStatus::Error},
+    {MatchMode::Pending, longfist::enums::OrderStatus::Pending},
+    {MatchMode::Cancel, longfist::enums::OrderStatus::Cancelled},
+    {MatchMode::PartialFillAndCancel, longfist::enums::OrderStatus::PartialFilledNotActive},
+    {MatchMode::PartialFill, longfist::enums::OrderStatus::PartialFilledActive},
+    {MatchMode::Fill, longfist::enums::OrderStatus::Filled},
+    {MatchMode::MultipleTransactions, longfist::enums::OrderStatus::Filled},
 };
 
 struct Pos {
@@ -45,8 +33,7 @@ struct Pos {
   int volume_yesterday{};
   int volume_today{};
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Pos, instrument, direction, volume_yesterday,
-                                 volume_today)
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Pos, instrument, direction, volume_yesterday, volume_today)
 };
 
 struct TDConfiguration {
@@ -58,8 +45,7 @@ struct TDConfiguration {
   double trigger_delay;
   std::vector<Pos> position_list;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(TDConfiguration, account_id, match_mode,
-                                 recover_order_trade, asset, cancel_delay,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(TDConfiguration, account_id, match_mode, recover_order_trade, asset, cancel_delay,
                                  trigger_delay, position_list)
 };
 

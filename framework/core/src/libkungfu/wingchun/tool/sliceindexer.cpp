@@ -7,7 +7,6 @@ using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
-namespace fs = std::filesystem;
 
 namespace kungfu::wingchun::tool {
 location_ptr SliceIndexer::find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,
@@ -39,6 +38,10 @@ int64_t SliceIndexer::get_operator_slice_end_time(int64_t nano_time, const std::
                                                   const std::string &name) const {
   return get_end_time();
 }
+
+int SliceIndexer::acquire_lead_ratio() const { return 1; }
+
+int SliceIndexer::release_delay_ratio() const { return 0; }
 
 location_ptr DayIndexer::find_md_slice_location(int64_t nano_time, const std::string &group, const std::string &name,
                                                 const std::string &instrument_id, const std::string &exchange_id,

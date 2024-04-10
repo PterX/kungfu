@@ -4,7 +4,7 @@
     "name": "kungfu-trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.4-alpha.11",
+  "version": "2.7.4-alpha.14",
   "description": "Kungfu Extension - webserver",
   "license": "UNLICENSED",
   "main": "package.json",
@@ -30,16 +30,16 @@
     "package": "kfs project package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.7.4-alpha.11"
+    "@kungfu-trader/kungfu-core": "^2.7.4-alpha.14"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-cli": "^2.7.4-alpha.11",
-    "@kungfu-trader/kungfu-sdk": "^2.7.4-alpha.11"
+    "@kungfu-trader/kungfu-cli": "^2.7.4-alpha.14",
+    "@kungfu-trader/kungfu-sdk": "^2.7.4-alpha.14"
   },
   "resolutions": {
-    "@kungfu-trader/kungfu-core": "^2.7.4-alpha.11",
-    "@kungfu-trader/kungfu-cli": "^2.7.4-alpha.11",
-    "@kungfu-trader/kungfu-sdk": "^2.7.4-alpha.11",
+    "@kungfu-trader/kungfu-core": "^2.7.4-alpha.14",
+    "@kungfu-trader/kungfu-cli": "^2.7.4-alpha.14",
+    "@kungfu-trader/kungfu-sdk": "^2.7.4-alpha.14",
     "nanopop": "~2.3.0"
   },
   "kungfuConfig": {

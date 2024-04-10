@@ -17,7 +17,6 @@ import {
   onDeactivated,
   ref,
   toRaw,
-  nextTick,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -25,7 +24,7 @@ import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
 import { categoryRegisterConfig, getColumns } from './config';
 import {
-  dealKfPrice,
+  dealKfNumber,
   dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { dealCurrency } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
@@ -75,12 +74,8 @@ const { setCurrentGlobalKfLocation } = useCurrentGlobalKfLocation(
 const { instruments } = useInstruments();
 const { getPositionLastPrice } = useQuote();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const {
-  getInstrumentCurrencyByIds,
-  getPriceTickAndPrecision,
-  getInstrumentCurrency,
-  getInstrumentName,
-} = useActiveInstruments();
+const { getInstrumentCurrencyByIds, getInstrumentCurrency, getInstrumentName } =
+  useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -163,10 +158,6 @@ onActivated(() => {
 
       pos.value = toRaw(
         buildGlobalPositions(positions).map((position) => {
-          const { price_precision } = getPriceTickAndPrecision(
-            position.instrument_id,
-            position.exchange_id,
-          );
           const currency = getInstrumentCurrency(
             position.instrument_id,
             position.exchange_id,
@@ -179,8 +170,7 @@ onActivated(() => {
 
           return dealDataWithCache(
             position,
-            () =>
-              dealPosition(watcher, position, price_precision, instrumentName),
+            () => dealPosition(watcher, position, instrumentName),
             { currency },
           );
         }),
@@ -229,11 +219,11 @@ function buildGlobalPositions(
       posStat[id].open_volume = dealKfDecimalPrecision(
         open_volume + pos.open_volume,
       );
-      posStat[id].avg_open_price = +dealKfPrice(
+      posStat[id].avg_open_price = +dealKfNumber(
         (avg_open_price * volume + pos.avg_open_price * pos.volume) /
           (volume + pos.volume),
       );
-      posStat[id].unrealized_pnl = +dealKfPrice(
+      posStat[id].unrealized_pnl = +dealKfNumber(
         unrealized_pnl + pos.unrealized_pnl,
       );
       posStat[id].update_time =

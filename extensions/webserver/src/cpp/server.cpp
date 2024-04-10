@@ -81,18 +81,18 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
 
 server::~server() {}
 
-void server::write_data(uint32_t msg_type, const std::string &msg, uint64_t stream_id) {
+void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) {
   switch (msg_type) {
   case CICC::types::AccountInfoType: {
-    custom_OnInitEvent(msg.data(), stream_id);
+    custom_OnInitEvent(msg, stream_id);
     break;
   }
   case CICC::types::OrderInputType: {
-    custom_OnNewOrder(const_cast<char *>(msg.data()), stream_id);
+    custom_OnNewOrder(const_cast<char *>(msg), stream_id);
     break;
   }
   case CICC::types::OrderActionType: {
-    custom_OnCancelOrder(const_cast<char *>(msg.data()), stream_id);
+    custom_OnCancelOrder(const_cast<char *>(msg), stream_id);
     break;
   }
   default:
@@ -224,12 +224,21 @@ bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
 
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
   for (auto stream : io_network_->get_stream_manager()->get_all_streams()) {
-    auto msgs = io_network_->get_stream_manager()->get_notice(stream.first);
-    for (auto msg : msgs) {
-      uint32_t messageType;
-      std::memcpy(&messageType, msg.data(), sizeof(uint32_t));
-      write_data(messageType, msg, stream.first);
+    uint64_t stream_id = stream.first;
+    auto reader = io_network_->get_stream_manager()->get_reader(stream_id);
+    int count = 0;
+    while (reader != nullptr and reader->data_available() and count < 100) {
+      const char *data = reader->current_frame()->data_as_bytes();
+      write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id);
+      reader->next();
+      ++count;
     }
+    //    auto msgs = io_network_->get_stream_manager()->get_notice(stream.first);
+    //    for (auto msg : msgs) {
+    //      uint32_t messageType;
+    //      std::memcpy(&messageType, msg.data(), sizeof(uint32_t));
+    //      write_data(messageType, msg, stream.first);
+    //    }
   }
 }
 

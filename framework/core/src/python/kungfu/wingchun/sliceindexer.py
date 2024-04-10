@@ -31,6 +31,16 @@ class SliceIndexer(wc.SliceIndexer):
         self.ctx = ctx
         self.__init_slice_indexer(module_path)
 
+    def __bind_const_func(self, func_name):
+        if not hasattr(self._module, func_name):
+            return
+        func = getattr(self._module, func_name)
+
+        def proxy_on_func():
+            return func(self.ctx)
+
+        setattr(self, func_name, proxy_on_func)
+
     def __init_slice_indexer(self, path):
         indexer_dir = os.path.dirname(path)
         name_no_ext = os.path.split(os.path.basename(path))
@@ -54,6 +64,23 @@ class SliceIndexer(wc.SliceIndexer):
         self._get_operator_slice_end_time = getattr(
             self._module, "get_operator_slice_end_time", lambda ctx: None
         )
+        self._submit_acquire_location = getattr(
+            self._module, "submit_acquire_location", lambda ctx, location: None
+        )
+        self._wait_acquire_location = getattr(
+            self._module, "wait_acquire_location", lambda ctx, location: None
+        )
+        self._submit_release_location = getattr(
+            self._module, "submit_release_location", lambda ctx, location: None
+        )
+        self._wait_release_location = getattr(
+            self._module, "wait_release_location", lambda ctx, location: None
+        )
+        self._sync_save_location = getattr(
+            self._module, "sync_save_location", lambda ctx, location: None
+        )
+        for func_name in ["acquire_lead_ratio", "release_delay_ratio"]:
+            self.__bind_const_func(func_name)
 
     def __call_proxy(self, func, *args):
         return func(*args)
@@ -95,3 +122,18 @@ class SliceIndexer(wc.SliceIndexer):
         return self.__call_proxy(
             self._get_operator_slice_end_time, self.ctx, nano_time, group, name
         )
+
+    def submit_acquire_location(self, location):
+        return self.__call_proxy(self._submit_acquire_location, self.ctx, location)
+
+    def wait_acquire_location(self, location):
+        return self.__call_proxy(self._wait_acquire_location, self.ctx, location)
+
+    def submit_release_location(self, location):
+        return self.__call_proxy(self._submit_release_location, self.ctx, location)
+
+    def wait_release_location(self, location):
+        return self.__call_proxy(self._wait_release_location, self.ctx, location)
+
+    def sync_save_location(self, location):
+        return self.__call_proxy(self._sync_save_location, self.ctx, location)

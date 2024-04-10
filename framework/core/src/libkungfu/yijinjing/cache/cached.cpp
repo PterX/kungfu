@@ -20,7 +20,7 @@ using namespace kungfu::yijinjing::cache;
 // 1,000,000,000.
 #define DEFAULT_STORE_VOLUME_BY_INTERVAL 1000
 #define STORE_INTERVAL 100
-#define RESTORE_LIMIT 2000
+#define RESTORE_LIMIT 5000
 
 namespace kungfu::yijinjing::cache {
 

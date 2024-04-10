@@ -5,8 +5,7 @@
 
 namespace kungfu::wingchun::sim {
 template <typename T> double get_min_volume(const T &data) {
-  longfist::enums::InstrumentType t =
-      get_instrument_type(data.exchange_id, data.instrument_id);
+  longfist::enums::InstrumentType t = get_instrument_type(data.exchange_id, data.instrument_id);
   switch (t) {
   case longfist::enums::InstrumentType::Stock:
   case longfist::enums::InstrumentType::TechStock:

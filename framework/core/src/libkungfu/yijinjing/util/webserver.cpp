@@ -19,7 +19,7 @@ stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id)
                                     std::make_shared<locator>(mode::LIVE));
   writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
                                      std::make_shared<bus>(false), PAGE_SIZE);
-  reader_ = std::make_shared<reader>(false, true, std::make_shared<bus>(false));
+  reader_ = std::make_shared<reader>(true, true, std::make_shared<bus>(false));
   reader_->join(location_, location::PUBLIC, time::now_in_nano());
 
   int rv;
@@ -60,7 +60,7 @@ uint64_t stream::get_opposite_stream_id() {
 
 void stream::close_data() {
   if (current_frame_) {
-    SPDLOG_INFO("close_frame_lock_free");
+    //    SPDLOG_INFO("close_frame_lock_free");
     writer_->close_frame_lock_free(1024);
     current_frame_.reset();
   }
@@ -68,7 +68,7 @@ void stream::close_data() {
 
 void stream::start_recv() {
   close_data();
-  SPDLOG_INFO("open_frame_lock_free");
+  //  SPDLOG_INFO("open_frame_lock_free");
   current_frame_ = writer_->open_frame_lock_free(time::now_in_nano(), 10001000, 1024);
   nng_iov iov{const_cast<void *>(current_frame_->data_address()), current_frame_->data_length()};
   nng_aio_set_iov(aio_recv_, 1, &iov);
@@ -144,10 +144,12 @@ std::vector<std::string> stream::get_and_clear_data() {
     result.push_back(reader_->current_frame()->data_as_string());
     reader_->next();
     ++count;
-    SPDLOG_INFO("data_available, count: {}", count);
+    //    SPDLOG_INFO("data_available, count: {}", count);
   }
   return result;
 }
+
+journal::reader_ptr &stream::get_reader() { return reader_; }
 
 void stream::cancel() {
   nng_aio_cancel(aio_recv_);
@@ -287,7 +289,7 @@ void http_server::start() {
 
 int http_server::port() {
   if (!started_) {
-    throw std::runtime_error("http_server not started");
+    throw webserver_error("http_server not started");
   }
   nng_sockaddr addr;
   int rv;
@@ -384,10 +386,19 @@ void stream_manage::add_stream(nng_stream *s) {
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
 }
-void stream_manage::add_stream(stream_ptr s) {
+
+void stream_manage::add_stream(const stream_ptr &s) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);
   SPDLOG_DEBUG("add_stream");
   streams_.emplace(s->get_stream_id(), s);
+}
+
+journal::reader_ptr stream_manage::get_reader(uint64_t stream_id) {
+  auto iter = streams_.find(stream_id);
+  if (iter != streams_.end()) {
+    return iter->second->get_reader();
+  }
+  return nullptr;
 }
 
 /*

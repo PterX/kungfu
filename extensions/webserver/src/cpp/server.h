@@ -159,7 +159,7 @@ private:
   std::unordered_map<std::pair<uint64_t, uint64_t>, std::uint64_t, StreamRequestHash> request_order_map = {};
   void submit_read_read_assemble();
   void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
-  void write_data(uint32_t msg_type, const std::string &msg, uint64_t stream_id);
+  void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id);
   bool custom_OnInitEvent(const char *ptr, uint64_t stream_id);
   bool custom_OnNewOrder(const char *ptr, uint64_t stream_id);
   bool custom_OnCancelOrder(const char *ptr, uint64_t stream_id);

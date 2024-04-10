@@ -52,9 +52,48 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
   Side entrust_side = entrust.side;
   deal_trading_day(data_time);
   SPDLOG_DEBUG("Entrust : {}", entrust.to_string());
+
+  if (price == 0 && entrust.price_type == PriceType::Any) {
+    if (entrust_side == Side::Buy) {
+      while (!ask_map.empty() && volume != 0) {
+        if (ask_map.begin()->second.volume > volume) {
+          ask_map.begin()->second.volume -= volume;
+          volume = 0;
+        } else {
+          volume -= ask_map.begin()->second.volume;
+          ask_map.erase(ask_map.begin());
+        }
+      }
+    } else {
+      while (!bid_map.empty() && volume != 0) {
+        if (bid_map.rbegin()->second.volume > volume) {
+          bid_map.rbegin()->second.volume -= volume;
+          volume = 0;
+        } else {
+          volume -= bid_map.rbegin()->second.volume;
+          bid_map.erase(bid_map.rbegin()->first);
+        }
+      }
+    }
+    return;
+  }
+
+  if (entrust.price_type == PriceType::ForwardBest) {
+    if (entrust_side == Side::Buy) {
+      bid_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
+      bid_map.rbegin()->second.volume += volume;
+      bid_map.rbegin()->second.data_time = data_time;
+    } else {
+      ask_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
+      ask_map.begin()->second.volume += volume;
+      ask_map.begin()->second.data_time = data_time;
+    }
+    return;
+  }
+
   if (entrust_side == Side::Buy) {
-    bid_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
     if (bid_map.find(price) != bid_map.end()) {
+      bid_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
       bid_map.at(price).volume += volume;
       bid_map.at(price).data_time = data_time;
     } else {
@@ -68,12 +107,13 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
         }
       }
       if (volume != 0) {
+        bid_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
         bid_map[price] = Level(price, volume, data_time);
       }
     }
   } else {
-    ask_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
     if (ask_map.find(price) != ask_map.end()) {
+      ask_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
       ask_map.at(price).volume += volume;
       ask_map.at(price).data_time = data_time;
     } else {
@@ -87,6 +127,7 @@ void DepthOrderbook::on_entrust(const Entrust &entrust) {
         }
       }
       if (volume != 0) {
+        ask_seq_id_map[entrust.orig_order_no] = Level(price, volume, data_time);
         ask_map[price] = Level(price, volume, data_time);
       }
     }

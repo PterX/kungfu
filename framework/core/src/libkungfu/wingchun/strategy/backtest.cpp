@@ -4,13 +4,7 @@
 // Created by Keren Dong on 2020/7/20.
 //
 
-#include <fmt/format.h>
 #include <kungfu/wingchun/strategy/backtest.h>
-#include <kungfu/yijinjing/log.h>
-#include <kungfu/yijinjing/nanomsg/socket.h>
-#include <kungfu/yijinjing/time.h>
-
-#include <utility>
 
 using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
@@ -37,10 +31,31 @@ BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectabl
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
 }
 
-void BacktestContext::on_start() {
-  if (not is_bypass_accounting()) {
-    bookkeeper_.on_start(events_);
+void BacktestContext::post_stop() {
+  std::vector<location_ptr> unreleased_locations;
+  // TODO use C++20 range
+  // TODO deconstructor not called ?
+  SPDLOG_TRACE("unreleased sliced location checking.");
+
+  for (const auto &[slice_location_obj, reference_state] : slice_reference_states_) {
+    if (reference_state.reference_count > 0 or reference_state.state != SliceState::Released) {
+      auto slice_location = std::make_shared<location>(slice_location_obj);
+      unreleased_locations.push_back(slice_location);
+      if (reference_state.reference_count > 0)
+        SPDLOG_DEBUG("sliced location locator={}, location={} reference count={} is not released, now releasing",
+                     slice_location->locator->get_root(), slice_location->uname, reference_state.reference_count);
+      from_indexer_->submit_release_location(slice_location);
+    }
   }
+  std::for_each(unreleased_locations.begin(), unreleased_locations.end(), [this](const auto &slice_location) {
+    from_indexer_->wait_release_location(slice_location);
+    SPDLOG_TRACE("sliced location locator={}, location={} released.", slice_location->locator->get_root(),
+                 slice_location->uname);
+  });
+}
+
+void BacktestContext::on_start() {
+  bookkeeper_.on_start(events_);
   events_ | is(Quote::tag) | $$(matcher_->on_quote(event->data<Quote>()); report_->on_quote(event->data<Quote>()););
   events_ | is(Entrust::tag) |
       $$(matcher_->on_entrust(event->data<Entrust>()); report_->on_entrust(event->data<Entrust>()););
@@ -63,7 +78,7 @@ void BacktestContext::on_start() {
          add_order_id(*matcher_, order_action.order_id, event->source(), event->dest());
          matcher_->on_order_action(order_action));
   events_ | is(OrderActionError::tag) | $$(remove_order_id(*matcher_, event->data<OrderActionError>().order_id));
-  events_ | $$(on_timer_check(); lease_expired_check(););
+  events_ | $$(on_timer_check(););
   init_time_events();
   report_->init();
 }
@@ -80,11 +95,16 @@ void BacktestContext::prepare(const event_ptr &event) {}
 int64_t BacktestContext::now() const { return app_.now(); }
 
 int32_t BacktestContext::add_timer(int64_t nanotime, const std::function<void(event_ptr)> &callback) {
-  const int32_t timer_id = timer_usage_count_++;
+  return add_timer_helper(nanotime, timer_usage_count_++, callback);
+}
+
+int32_t BacktestContext::add_timer_helper(int64_t nanotime, int32_t timer_id,
+                                          const std::function<void(event_ptr)> &callback) {
   if (timer_id < 0) {
     throw wingchun_error(fmt::format("timer_id={} is overflow", timer_id));
   }
-  pre_timer_callbacks_.emplace(nanotime, TimerTask{timer_id, callback});
+  timer_tasks_.emplace_back(timer_id, nanotime, callback);
+  std::push_heap(std::begin(timer_tasks_), std::end(timer_tasks_));
   return timer_id;
 }
 
@@ -99,7 +119,8 @@ int32_t BacktestContext::add_timer_interval_helper(int64_t duration, int32_t tim
     callback(event);
     this->add_timer_interval_helper(duration, timer_id, callback);
   };
-  pre_timer_callbacks_.emplace(now() + duration, TimerTask{timer_id, timer_callback});
+  timer_tasks_.emplace_back(timer_id, now() + duration, timer_callback);
+  std::push_heap(std::begin(timer_tasks_), std::end(timer_tasks_));
   return timer_id;
 }
 
@@ -108,51 +129,28 @@ void BacktestContext::clear_timer(int32_t timer_id) {
     SPDLOG_WARN("timer_id={} lower than {} is reserved which is not allowed to clear", timer_id, protected_timer_id_);
     return;
   }
-  std::erase_if(pre_timer_callbacks_,
-                [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
-  std::erase_if(timer_callbacks_,
-                [timer_id](const auto &timer_task) { return timer_task.second.timer_id == timer_id; });
+  std::erase_if(timer_tasks_, [timer_id](const auto &timer_task) { return timer_task.timer_id == timer_id; });
+  std::make_heap(std::begin(timer_tasks_), std::end(timer_tasks_));
 }
 
 void BacktestContext::on_timer_check() {
-  timer_callbacks_.merge(pre_timer_callbacks_);
   auto now_time = now();
-  for (auto it = timer_callbacks_.begin(); it != timer_callbacks_.end();) {
-    if (it->first <= now_time) {
-      nlohmann::json time_event;
-      time_event["msg_type"] = Time::tag;
-      time_event["gen_time"] = now_time;
-      time_event["trigger_time"] = now_time;
-      time_event["source"] = app_.get_live_home_uid();
-      time_event["dest"] = app_.get_live_home_uid();
-      time_event["data"] = nlohmann::json::object();
+  if (!timer_tasks_.empty() && timer_tasks_.front().nanotime <= now_time) {
+    nlohmann::json time_event;
+    time_event["msg_type"] = Time::tag;
+    time_event["gen_time"] = now_time;
+    time_event["trigger_time"] = now_time;
+    time_event["source"] = app_.get_live_home_uid();
+    time_event["dest"] = app_.get_live_home_uid();
+    time_event["data"] = "";
+    auto nanomsg_event = std::make_shared<nanomsg_json>(time_event.dump());
+    while (!timer_tasks_.empty() && timer_tasks_.front().nanotime <= now_time) {
       // TODO use app_.make_nano_msg instead
       // Time time_event{};
-      it->second.call_back(std::make_shared<nanomsg_json>(time_event.dump()));
-      it = timer_callbacks_.erase(it);
-    } else {
-      return;
-    }
-  }
-}
-
-void BacktestContext::add_account(const std::string &source, const std::string &account) {
-  auto td_location = find_td_location(source, account, false);
-  add_location(app_, td_location);
-}
-
-void BacktestContext::lease_expired_check() {
-  int64_t now_time = now();
-  for (auto it = lease_locations_.begin(); it != lease_locations_.end();) {
-    if (it->first < now_time) {
-      for (const auto &expired_location : it->second) {
-        SPDLOG_TRACE("sliced location expired, locator={}, location={} disjoining.",
-                     expired_location->locator->get_root(), expired_location->uname);
-        app_.get_reader()->disjoin(expired_location, location::PUBLIC);
-      }
-      it = lease_locations_.erase(it);
-    } else {
-      break;
+      std::pop_heap(timer_tasks_.begin(), timer_tasks_.end());
+      auto task = timer_tasks_.back();
+      timer_tasks_.pop_back();
+      task.call_back(nanomsg_event);
     }
   }
 }
@@ -167,6 +165,7 @@ void BacktestContext::init_time_events() {
     auto next_time = now() + time_interval_;
     writer->mark_at(next_time, next_time, Time::tag);
   };
+  writer->mark_at(app_.now(), app_.now(), Time::tag);
   write_next_time_mark(nullptr);
   protected_timer_id_ = add_time_interval(time_interval_, write_next_time_mark);
 
@@ -175,37 +174,152 @@ void BacktestContext::init_time_events() {
 
 void BacktestContext::subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                                 const std::string &exchange_id) {
-  boost::hana::for_each(longfist::MarketDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    for (const auto &instrument_id : instrument_ids) {
-      int64_t slice_begin_time = app_.now();
-      int64_t slice_end_time{INT64_MAX};
-      do {
-        auto md_location = from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id,
-                                                                 exchange_id, DataType::tag);
-        slice_end_time = from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
-                                                              exchange_id, DataType::tag);
-        if (not md_location)
-          continue;
-        if (md_location->locator->list_page_id(md_location, location::PUBLIC).empty()) {
-          SPDLOG_WARN("failed to subscribe market data between {} and {}, md public journal in locator={}, location={} "
-                      "not exists",
-                      time::strftime(slice_begin_time), time::strftime(slice_end_time),
-                      md_location->locator->get_root(), md_location->uname);
-        }
-
-        add_location(app_, md_location);
-        for (const auto dest_id : md_location->locator->list_location_dest(md_location)) {
-          SPDLOG_TRACE("subscribed md dest {}, locator={}, location={}", dest_id, md_location->locator->get_root(),
-                       md_location->uname);
-          app_.get_reader()->join(md_location, dest_id, slice_begin_time);
-        }
-
-        broker_client_.subscribe(md_location, exchange_id, instrument_id);
-        lease_locations_[slice_end_time].push_back(std::move(md_location));
-      } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+  for (const auto &instrument_id : instrument_ids) {
+    if (broker_client_.is_subscribed(exchange_id, instrument_id)) {
+      SPDLOG_WARN("instrument_id={} in exchange={} already subscribed", instrument_id, exchange_id);
+      continue;
     }
-  });
+    boost::hana::for_each(longfist::MarketDataTypes, [&](auto it) {
+      using DataType = typename decltype(+boost::hana::second(it))::type;
+      int64_t slice_begin_time = app_.now();
+      subscribe_helper(slice_begin_time, source, instrument_id, exchange_id, DataType::tag);
+    });
+  }
+}
+
+void BacktestContext::subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id,
+                                       const std::string &exchange_id, int32_t data_tag) {
+  auto md_location =
+      from_indexer_->find_md_slice_location(begin_time, source, source, instrument_id, exchange_id, data_tag);
+  auto slice_end_time =
+      from_indexer_->get_md_slice_end_time(begin_time, source, source, instrument_id, exchange_id, data_tag);
+  int64_t nanotime = begin_time - 1;
+  int64_t offset = slice_end_time - begin_time;
+  if (md_location) {
+    subscribe_slice(md_location, nanotime, offset);
+    add_location(app_, md_location);
+    // TODO
+    broker_client_.subscribe(md_location, exchange_id, instrument_id);
+  }
+  if (slice_end_time < app_.get_end_time()) {
+    add_timer_helper(nanotime, 0,
+                     [this, slice_end_time, source, instrument_id, exchange_id, data_tag](event_ptr event) {
+                       subscribe_helper(slice_end_time, source, instrument_id, exchange_id, data_tag);
+                     });
+  }
+}
+
+void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_t nanotime, int64_t offset) {
+  auto confirm_callback = [=, this](event_ptr event) {
+    auto &reference_count = slice_reference_states_[*slice_location];
+    switch (reference_count.state) {
+    case SliceState::Acquiring:
+      from_indexer_->wait_acquire_location(slice_location);
+      reference_count.state = SliceState::Acquired;
+      assert(reference_count.reference_count == 0);
+
+      if (slice_location->locator->list_page_id(slice_location, location::PUBLIC).empty()) {
+        SPDLOG_WARN("failed to subscribe data between {} and {}, md public journal in locator={}, location={} "
+                    "not exists",
+                    time::strftime(nanotime + 1), time::strftime(nanotime + offset),
+                    slice_location->locator->get_root(), slice_location->uname);
+      }
+      for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
+        SPDLOG_TRACE("subscribed dest {}, locator={}, location={}", dest_id, slice_location->locator->get_root(),
+                     slice_location->uname);
+        app_.get_reader()->join(slice_location, dest_id, nanotime);
+      }
+    case SliceState::Acquired:
+      reference_count.reference_count += 1;
+      break;
+    default:
+      SPDLOG_ERROR(" probably failed to acquire data between {} and {}, public journal in locator={}, location={} "
+                   "not exists",
+                   time::strftime(nanotime + 1), time::strftime(nanotime + offset), slice_location->locator->get_root(),
+                   slice_location->uname);
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm acquiring stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
+    }
+    unsubscribe_slice(slice_location, nanotime + offset, offset);
+  };
+  auto submit_callback = [=, this](event_ptr event) {
+    auto &reference_count = slice_reference_states_[*slice_location];
+    switch (reference_count.state) {
+    case SliceState::Idle:
+      from_indexer_->submit_acquire_location(slice_location);
+      reference_count.state = SliceState::Acquiring;
+    case SliceState::Acquiring:
+      add_timer_helper(nanotime, 0, confirm_callback);
+      break;
+    case SliceState::Acquired:
+      SPDLOG_WARN("slice data between {} and {} is already acquired with reference count={}, public journal in "
+                  "locator={}, location={}",
+                  time::strftime(nanotime + 1), time::strftime(nanotime + offset), reference_count.reference_count,
+                  slice_location->locator->get_root(), slice_location->uname);
+      break;
+    default:
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit acquiring stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
+    }
+  };
+
+  int lead_ratio = from_indexer_->acquire_lead_ratio();
+  if (lead_ratio < 0) {
+    throw wingchun_error(fmt::format("lead_ratio={} is invalid", lead_ratio));
+  }
+  add_timer_helper(nanotime - lead_ratio * offset, 0, submit_callback);
+}
+
+void BacktestContext::unsubscribe_slice(const location_ptr &slice_location, int64_t nanotime, int64_t offset) {
+  int delay_ratio = from_indexer_->release_delay_ratio();
+  if (delay_ratio < 0) {
+    throw wingchun_error(fmt::format("delay_ratio={} is invalid", delay_ratio));
+  }
+  auto confirm_callback = [=, this](event_ptr event) {
+    auto &reference_count = slice_reference_states_[*slice_location];
+    switch (reference_count.state) {
+    case SliceState::Releasing:
+      from_indexer_->wait_release_location(slice_location);
+      reference_count.state = SliceState::Released;
+
+    case SliceState::Released:
+      assert(reference_count.reference_count == 0);
+      break;
+    default:
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm releasing stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
+    }
+  };
+  auto submit_callback = [=, this](event_ptr event) {
+    auto &reference_count = slice_reference_states_[*slice_location];
+    switch (reference_count.state) {
+    case SliceState::Acquired:
+      reference_count.reference_count -= 1;
+      if (reference_count.reference_count == 0) {
+        SPDLOG_TRACE("disjoining sliced location expired, locator={}, location={} at {}",
+                     slice_location->locator->get_root(), slice_location->uname, app_.now());
+        for (const auto dest_id : slice_location->locator->list_location_dest(slice_location)) {
+          SPDLOG_TRACE("disjoining subscribed dest {}, locator={}, location={}", dest_id,
+                       slice_location->locator->get_root(), slice_location->uname);
+          app_.disjoin_channel(slice_location, dest_id);
+        }
+        from_indexer_->submit_release_location(slice_location);
+        reference_count.state = SliceState::Releasing;
+      }
+      assert(reference_count.reference_count >= 0);
+    case SliceState::Releasing:
+      add_timer_helper(nanotime + (1 + delay_ratio) * offset, 0, confirm_callback);
+      break;
+    default:
+      SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit releasing stage.",
+                   static_cast<int>(reference_count.state), reference_count.reference_count);
+      return;
+    }
+  };
+  add_timer_helper(nanotime + delay_ratio * offset, 0, submit_callback);
 }
 
 void BacktestContext::unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
@@ -222,29 +336,29 @@ void BacktestContext::subscribe_all(const std::string &source, uint8_t market_ty
 
 void BacktestContext::subscribe_operator(const std::string &group, const std::string &name) {
   int64_t slice_begin_time = app_.now();
-  int64_t slice_end_time{INT64_MAX};
-  do {
-    auto op_location = from_indexer_->find_operator_slice_location(slice_begin_time, group, name);
-    slice_end_time = from_indexer_->get_operator_slice_end_time(slice_begin_time, group, name);
-    if (not op_location)
-      continue;
-    if (op_location->locator->list_page_id(op_location, location::PUBLIC).empty()) {
-      SPDLOG_WARN("failed to subscribe operator data between {} and {}, md public journal in locator={}, location={} "
-                  "not exists",
-                  time::strftime(slice_begin_time), time::strftime(slice_end_time), op_location->locator->get_root(),
-                  op_location->uname);
-      continue;
-    }
-    add_location(app_, op_location);
-    for (const auto dest_id : op_location->locator->list_location_dest(op_location)) {
-      SPDLOG_TRACE("subscribed operator dest {}, locator={}, location={}", dest_id, op_location->locator->get_root(),
-                   op_location->uname);
-      app_.get_reader()->join(op_location, dest_id, slice_begin_time);
-    }
+  subscribe_operator_helper(slice_begin_time, group, name);
+}
 
+void BacktestContext::subscribe_operator_helper(int64_t begin_time, const std::string &group, const std::string &name) {
+  auto op_location = from_indexer_->find_operator_slice_location(begin_time, group, name);
+  auto slice_end_time = from_indexer_->get_operator_slice_end_time(begin_time, group, name);
+  int64_t nanotime = begin_time - 1;
+  int64_t offset = slice_end_time - begin_time;
+  if (op_location) {
+    subscribe_slice(op_location, nanotime, offset);
+    add_location(app_, op_location);
     broker_client_.enroll_operator(op_location);
-    lease_locations_[slice_end_time].push_back(std::move(op_location));
-  } while ((slice_begin_time = 1 + slice_end_time) < app_.get_end_time());
+  }
+  if (slice_end_time < app_.get_end_time()) {
+    add_timer_helper(nanotime, 0, [this, slice_end_time, group, name](event_ptr event) {
+      subscribe_operator_helper(slice_end_time, group, name);
+    });
+  }
+}
+
+void BacktestContext::add_account(const std::string &source, const std::string &account) {
+  auto td_location = find_td_location(source, account, false);
+  add_location(app_, td_location);
 }
 
 uint64_t BacktestContext::insert_block_message(const std::string &source, const std::string &account,

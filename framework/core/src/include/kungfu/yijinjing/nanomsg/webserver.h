@@ -28,10 +28,15 @@
 
 namespace kungfu::yijinjing::webserver {
 
+class webserver_error : public std::runtime_error {
+public:
+  explicit webserver_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
+};
+
 static void fatal(const char *what, int rv) {
   std::stringstream ss;
   ss << what << ": " << nng_strerror(rv);
-  throw std::runtime_error(ss.str());
+  throw webserver_error(ss.str());
 }
 
 template <class nng_type> class nng_smart_ptr {
@@ -94,6 +99,8 @@ public:
   uint64_t get_opposite_stream_id();
 
   std::vector<std::string> get_and_clear_data();
+
+  journal::reader_ptr &get_reader();
 
 private:
   nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
@@ -228,7 +235,9 @@ public:
 
   void add_stream(nng_stream *s);
 
-  void add_stream(stream_ptr s);
+  void add_stream(const stream_ptr &s);
+
+  journal::reader_ptr get_reader(uint64_t stream_id);
 
 private:
   std::unordered_map<uint64_t, stream_ptr> streams_;

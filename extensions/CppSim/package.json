@@ -4,7 +4,7 @@
     "name": "kungfu-trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.4-alpha.10",
+  "version": "2.7.4-alpha.14",
   "description": "Kungfu Extension - SIM",
   "license": "UNLICENSED",
   "main": "package.json",

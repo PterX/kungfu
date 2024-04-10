@@ -79,9 +79,7 @@ void reader::sort_without_buffer() {
   buffer_built_ = false;
   // those could be refacted to std::ranges after cxx==20
   std::vector<journal *> has_data_journals;
-  SPDLOG_INFO("sort_without_buffer begin");
   for (auto &pair : journals_) {
-    SPDLOG_INFO("sort_without_buffer for");
     auto &journal = pair.second;
     if (journal.current_frame()->has_data()) {
       has_data_journals.push_back(&journal);
@@ -91,7 +89,6 @@ void reader::sort_without_buffer() {
   if (min_journal_it != has_data_journals.end()) {
     current_ = *min_journal_it;
   }
-  SPDLOG_INFO("sort_without_buffer over");
 }
 
 void reader::sort() {

@@ -150,7 +150,7 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
   reader->join(get_home(), td_location->location_uid, now);
   stream_reader_map.try_emplace(stream_id, reader);
 
-  if (has_location(td_location->location_uid)) {
+  if (has_writer(td_location->location_uid)) {
     auto writer = get_writer(td_location->location_uid);
     stream_writer_map.try_emplace(stream_id, writer);
     SPDLOG_DEBUG("add writer for stream:{}", stream_id);

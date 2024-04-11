@@ -97,7 +97,7 @@ class FeatureStore:
         results = self.__get_feature_data_meta(feature_key)
 
         def get_date(item):
-            return datetime.strptime(item["timestamp"], "%Y%m%d")
+            return datetime.strptime(item["timestamp"], "%Y%m%d").strftime("%Y-%m-%d")
 
         dates = list(map(get_date, results))
         return dates
@@ -113,6 +113,36 @@ class FeatureStore:
         factors_map = {}
 
         for item in results:
+            self.__deal_result(item, factors_map, access_key, secret_key, session_token)
+
+        return factors_map
+
+    def get_public_feature_data_by_date(self, feature_key, date):
+        try:
+            date_str = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d")
+        except ValueError as e:
+            self.logger.error(e)
+
+        config = self.__get_feature_config(feature_key)
+        if config is None:
+            self.logger.error("No configuration for feature {feature_key}")
+            return
+
+        results = self.__get_feature_data_meta(feature_key)
+
+        def filter_date(item):
+            return item["timestamp"] == date_str
+
+        after_filter_results = list(filter(filter_date, results))
+
+        if not len(after_filter_results):
+            self.logger.error(f"No result of {feature_key} by date {date_str}")
+            return
+
+        access_key, secret_key, session_token = get_credentials_for_identity(self.stage)
+
+        factors_map = {}
+        for item in after_filter_results:
             self.__deal_result(item, factors_map, access_key, secret_key, session_token)
 
         return factors_map
@@ -168,7 +198,8 @@ class FeatureStore:
         ).text
         resp = json.loads(resp)
         results = resp.get("results", [])
-        return results
+
+        return sorted(results, key=lambda item: item["timestamp"])
 
     def list_features(self):
         self.feature_config_map = self.__get_features(self.user_id)
@@ -178,7 +209,7 @@ class FeatureStore:
         results = self.__get_feature_data_meta(feature_key, self.user_id)
 
         def get_date(item):
-            return datetime.strptime(item["timestamp"], "%Y%m%d")
+            return datetime.strptime(item["timestamp"], "%Y%m%d").strftime("%Y-%m-%d")
 
         dates = list(map(get_date, results))
         return dates
@@ -194,6 +225,36 @@ class FeatureStore:
         factors_map = {}
 
         for item in results:
+            self.__deal_result(item, factors_map, access_key, secret_key, session_token)
+
+        return factors_map
+
+    def get_feature_data_by_date(self, feature_key, date):
+        try:
+            date_str = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d")
+        except ValueError as e:
+            self.logger.error(e)
+
+        config = self.__get_feature_config(feature_key, self.user_id)
+        if config is None:
+            self.logger.error("No configuration for feature {feature_key}")
+            return
+
+        results = self.__get_feature_data_meta(feature_key, self.user_id)
+
+        def filter_date(item):
+            return item["timestamp"] == date_str
+
+        after_filter_results = list(filter(filter_date, results))
+
+        if not len(after_filter_results):
+            self.logger.error(f"No result of {feature_key} by date {date_str}")
+            return
+
+        access_key, secret_key, session_token = get_credentials_for_identity(self.stage)
+
+        factors_map = {}
+        for item in after_filter_results:
             self.__deal_result(item, factors_map, access_key, secret_key, session_token)
 
         return factors_map

@@ -224,20 +224,20 @@ bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
 
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
   for (auto stream : io_network_->get_stream_manager()->get_all_streams()) {
+    auto &jour = stream.second->get_journal();
     uint64_t stream_id = stream.first;
-    auto reader = io_network_->get_stream_manager()->get_reader(stream_id);
     int count = 0;
-    while (reader != nullptr and reader->data_available() and count < 100) {
-      const char *data = reader->current_frame()->data_as_bytes();
+    while (jour.current_frame()->has_data() and count < 100) {
+      const char *data = jour.current_frame()->data_as_bytes();
       write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id);
-      reader->next();
+      jour.next();
       ++count;
     }
     //    auto msgs = io_network_->get_stream_manager()->get_notice(stream.first);
     //    for (auto msg : msgs) {
     //      uint32_t messageType;
     //      std::memcpy(&messageType, msg.data(), sizeof(uint32_t));
-    //      write_data(messageType, msg, stream.first);
+    //      write_data(messageType, msg.data(), stream.first);
     //    }
   }
 }

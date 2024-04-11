@@ -102,6 +102,8 @@ public:
 
   journal::reader_ptr &get_reader();
 
+  journal::journal &get_journal();
+
 private:
   nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
   nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};

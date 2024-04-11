@@ -135,14 +135,15 @@ int stream::stream_send(const char *data, const int len) {
 }
 
 std::vector<std::string> stream::get_and_clear_data() {
-  std::lock_guard<std::mutex> lock(mtx_);
+  //  std::lock_guard<std::mutex> lock(mtx_);
   //  std::vector<std::string> result = data_received_; // 返回数据的副本
   //  data_received_.clear();
   std::vector<std::string> result{};
   int count = 0;
-  while (reader_->data_available() and count < 100) {
-    result.push_back(reader_->current_frame()->data_as_string());
-    reader_->next();
+  auto &jour = get_journal();
+  while (jour.current_frame()->has_data() and count < 100) {
+    result.push_back(jour.current_frame()->data_as_string());
+    jour.next();
     ++count;
     //    SPDLOG_INFO("data_available, count: {}", count);
   }
@@ -157,6 +158,8 @@ void stream::cancel() {
   nng_aio_cancel(aio_send_);
   nng_aio_wait(aio_send_);
 }
+
+journal::journal &stream::get_journal() { return reader_->get_journal_ref(location_, location::PUBLIC); }
 
 webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path,
                      const bool is_text_mode, const size_t max_num_connections)

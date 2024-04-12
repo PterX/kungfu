@@ -24,8 +24,8 @@ public:
     entrust2.biz_index = 300059;
     entrust1.price = 1.1;
     entrust2.price = 2.2;
-    entrust1.Side = kungfu::longfist::enums::Side::Buy;
-    entrust2.Side = kungfu::longfist::enums::Side::Sell;
+    entrust1.side = kungfu::longfist::enums::Side::Buy;
+    entrust2.side = kungfu::longfist::enums::Side::Sell;
     entrust1.instrument_type = kungfu::longfist::enums::InstrumentType::Stock;
     entrust2.instrument_type = kungfu::longfist::enums::InstrumentType::Future;
     entrust_vec_.push_back(entrust1);

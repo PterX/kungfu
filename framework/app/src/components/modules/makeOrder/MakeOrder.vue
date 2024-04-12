@@ -26,6 +26,7 @@ import {
   makeOrderByOrderInput,
   getPosClosableVolume,
   makeOrderByOrderTriggerInput,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   InstrumentTypeEnum,
@@ -763,7 +764,13 @@ async function confirmApartCloseToOpen(
       return [makeOrderInput];
 
     if (volume > closableVolume) {
-      const openVolume = dealKfDecimalPrecision(volume - closableVolume);
+      const precision = getPrecisionByInstrumentType(
+        makeOrderInstrumentType.value,
+      );
+      const openVolume = dealKfDecimalPrecision(
+        volume - closableVolume,
+        precision,
+      );
       const firstOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         volume: closableVolume,
@@ -771,7 +778,7 @@ async function confirmApartCloseToOpen(
       const secondOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         offset: OffsetEnum.Open,
-        volume: dealKfDecimalPrecision(volume - closableVolume),
+        volume: dealKfDecimalPrecision(volume - closableVolume, precision),
       };
       const flag = await confirmContinueOrderModal(
         t('tradingConfig.close_apart_open_modal', {
@@ -982,6 +989,7 @@ function closeModalConditions(
   result: boolean;
   relationship?: string;
 } {
+  const precision = getPrecisionByInstrumentType(makeOrderInstrumentType.value);
   const makeOrderInput = dealStockOffset(orderInput);
   const { offset } = makeOrderInput;
 
@@ -991,6 +999,7 @@ function closeModalConditions(
 
   const positionVolumeResolved = dealKfDecimalPrecision(
     positionVolume * (closeRange / 100),
+    precision,
   );
 
   if (makeOrderInput.volume === positionVolumeResolved) {

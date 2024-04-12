@@ -674,7 +674,6 @@ declare namespace KungfuApi {
     long_avail: number; // otc业务可用资金(多)
     short_avail: number; // otc业务可用资金(空）
     market_value: number; //市值(股票)
-    margin: number; //保证金(期货)
     accumulated_fee: number; //累计手续费
     intraday_fee: number; //当日手续费
     frozen_cash: number; //冻结资金(股票: 买入挂单资金), 期货: 冻结保证金+冻结手续费)
@@ -691,9 +690,8 @@ declare namespace KungfuApi {
     avail_margin: number; //可用保证金
     long_margin: number; //融资占用保证金
     short_margin: number; //融券占用保证金
-    margin: number; //总占用保证金
+    margin: number; //保证金占用
 
-    cash_debt: number; //融资欠款 (不含利息和费用)
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值

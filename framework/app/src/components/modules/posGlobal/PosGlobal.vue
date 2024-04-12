@@ -23,10 +23,7 @@ import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/publi
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfCanvasTradingDataTable from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfCanvasTradingDataTable.vue';
 import { categoryRegisterConfig, getColumns } from './config';
-import {
-  dealKfNumber,
-  dealKfDecimalPrecision,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealCurrency,
   getPrecisionByInstrumentType,
@@ -229,12 +226,12 @@ function buildGlobalPositions(
         open_volume + pos.open_volume,
         precision,
       );
-      posStat[id].avg_open_price = +dealKfNumber(
+      posStat[id].avg_open_price = dealKfDecimalPrecision(
         (avg_open_price * volume + pos.avg_open_price * pos.volume) /
           (volume + pos.volume),
         precision,
       );
-      posStat[id].unrealized_pnl = +dealKfNumber(
+      posStat[id].unrealized_pnl = dealKfDecimalPrecision(
         unrealized_pnl + pos.unrealized_pnl,
         precision,
       );

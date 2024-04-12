@@ -67,6 +67,7 @@ import {
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
   dealKfDecimalPrecision,
+  ASSET_PRECISION,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -2110,7 +2111,10 @@ export const useAssets = (): {
     const assetCopy = { ...asset };
     Object.keys(assetCopy).forEach((key) => {
       if (typeof assetCopy[key] === 'number') {
-        assetCopy[key] = dealKfDecimalPrecision(assetCopy[key], 4);
+        assetCopy[key] = dealKfDecimalPrecision(
+          assetCopy[key],
+          ASSET_PRECISION,
+        );
       }
     });
     return assetCopy;
@@ -2805,25 +2809,25 @@ export const useMakeOrderInfo = (
           currentAccountLocation.value,
         ).gage_buy_fund_available;
 
-        return dealKfNumber(avail, 4);
+        return dealKfNumber(avail, ASSET_PRECISION);
       } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).credit_buy_fund_available;
 
-        return dealKfNumber(avail, 4);
+        return dealKfNumber(avail, ASSET_PRECISION);
       } else if (side === SideEnum.RepayStock) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).buyredeliver_fund_available;
 
-        return dealKfNumber(avail, 4);
+        return dealKfNumber(avail, ASSET_PRECISION);
       }
     }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
-    return dealKfNumber(avail, 4);
+    return dealKfNumber(avail, ASSET_PRECISION);
   });
 
   const currentAvailPosVolume = computed(() => {
@@ -2893,12 +2897,12 @@ export const useMakeOrderInfo = (
         if (offset === OffsetEnum.Open) {
           return dealKfNumber(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
-            4,
+            ASSET_PRECISION,
           );
         } else {
           return dealKfNumber(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
-            4,
+            ASSET_PRECISION,
           );
         }
       } else {

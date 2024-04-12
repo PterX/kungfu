@@ -58,7 +58,7 @@ export class PosTable extends Table {
           p.volume,
           dealKfNumber(p.avg_open_price, precision),
           dealKfNumber(p.last_price, precision),
-          colorNum(dealKfNumber(p.unrealized_pnl, precision)),
+          colorNum(dealKfDecimalPrecision(p.unrealized_pnl, precision)),
         ],
         calcHeaderWidth(this.headers, this.columnWidth),
         this.pad,

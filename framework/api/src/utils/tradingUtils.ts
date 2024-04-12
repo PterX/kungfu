@@ -1696,5 +1696,5 @@ export const isCryptoInstrument = (
 export const getPrecisionByInstrumentType = (
   instrumentType: InstrumentTypeEnum,
 ): number => {
-  return InstrumentPrecision[instrumentType] || 9;
+  return InstrumentPrecision[instrumentType] || DEFAULT_PRECISION;
 };

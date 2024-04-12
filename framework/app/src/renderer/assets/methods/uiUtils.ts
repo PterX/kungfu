@@ -980,16 +980,30 @@ export const useWritableTableSearchKeyword = <T>(
     () => ({ keyword: searchKeyword.value, list: targetList.value }),
     (newValue) => {
       const { keyword, list } = newValue;
-      tableData.value = searchByKeyword(
-        keyword,
-        list?.map((item, index) => ({
-          data: toRaw(item),
-          index,
-          id: generateItemId(item as unknown as object),
-        })),
-        keys,
-        transform,
-      );
+      tableData.value =
+        list
+          ?.map((item, index) => ({
+            data: toRaw(item),
+            index,
+            id: generateItemId(item as unknown as object),
+          }))
+          .filter((item: { data: T; index: number }) => {
+            const combinedValue = keys
+              .map((key: string) => {
+                let keyWord = (item.data as Record<string, unknown>)[key] as
+                  | string
+                  | number;
+
+                if (transform && transform[key]) {
+                  keyWord = transform[key](keyWord);
+                }
+
+                return keyWord ? keyWord.toString() : '';
+              })
+              .join('_');
+            const escapedKeyword = escapeSpecialChar(keyword);
+            return new RegExp(escapedKeyword, 'ig').test(combinedValue);
+          }) || [];
     },
     {
       deep: true,

@@ -1,24 +1,29 @@
 import random
+import numpy as np
+import pandas as pd
 from kungfu.wingchun.constants import *
 import kungfu
 
 wc = kungfu.__binding__.wingchun
 
 source = "sim"  # 目标交易账户的柜台名称
-account = "simTest"  # 目标交易账户的账户号, 需添加 sim 柜台的账户号为 simTest 的账户
-md_source = "sim"  # 目标行情源的柜台名称, 需添加 sim 行情源
+account = "123"  # 目标交易账户的账户号, 需添加 sim 柜台的账户号为 simTest 的账户
+# md_source = "sim"  # 目标行情源的柜台名称, 需添加 sim 行情源
 
-
+column_names = ["biz_index", "data_time", "exchange_id", "instrument_id", "instrument_type",
+                "main_seq", "orig_order_no", "price", "price_type", "seq", "side", "volume"]
 def pre_start(context):
     context.log.info("pre start")
-    context.add_account(source, account)  # 添加交易账户
-    context.subscribe(md_source, ["600000", "600004", "600009"], Exchange.SSE)  # 订阅行情
-    context.subscribe(md_source, ["300033", "300059"], Exchange.SZE)  # 订阅行情
-    context.subscribe(md_source, ["rb2401"], Exchange.SHFE)  # 订阅行情
-    context.subscribe(md_source, ["sc2401"], Exchange.INE)  # 订阅行情
-    # context.subscribe_operator("bar", "123") # 需从算子入口添加bar插件, 并定义bar的id为123
-    context.throttle_insert_order = {}
+    context.log.info(f"test start")
+    
+    context.stream_data_batcher = wc.StreamDataBatcher()
+    entrust_array = np.asarray(context.stream_data_batcher)
+    # todo 设置列名
+    entrust_df = pd.DataFrame(entrust_array)
+    context.log.info(f"{entrust_array}")
+    context.log.info(f"{entrust_df}")
 
+    context.log.info(f"test end")
 
 def post_start(context):
     account_uid = context.get_account_uid(source, account)

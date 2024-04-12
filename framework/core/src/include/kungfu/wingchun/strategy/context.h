@@ -14,8 +14,8 @@
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
+#include <kungfu/wingchun/streamdatabatcher/streamdatabatcher.h>
 
-using namespace kungfu::wingchun::orderbook;
 namespace kungfu::wingchun::strategy {
 
 class Context : public std::enable_shared_from_this<Context> {
@@ -389,7 +389,13 @@ public:
    * attach the orderbooks to market data received.
    * @param orderbooks
    */
-  void attach_orderbooks(Orderbooks &orderbooks);
+  void attach_orderbooks(wingchun::orderbook::Orderbooks &orderbooks);
+
+  /**
+   * Batch processing of data streams
+   * @param streamdatabatcher
+   */
+  void batch_streaming(wingchun::streamdatabatcher::StreamDataBatcher &streamdatabatcher);
 
 protected:
   yijinjing::practice::apprentice &app_;

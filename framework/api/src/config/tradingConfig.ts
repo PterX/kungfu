@@ -28,6 +28,10 @@ import {
   FundTransEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
+import {
+  DEFAULT_PRECISION,
+  CRYPTO_PRECISION,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
 
@@ -1173,17 +1177,17 @@ export const CryptoInstrumentTypes = [
 ];
 
 export const InstrumentPrecision: Record<InstrumentTypeEnum, number> = {
-  [InstrumentTypeEnum.unknown]: 9,
-  [InstrumentTypeEnum.stock]: 9,
-  [InstrumentTypeEnum.stockoption]: 9,
-  [InstrumentTypeEnum.techstock]: 9,
-  [InstrumentTypeEnum.future]: 9,
-  [InstrumentTypeEnum.bond]: 9,
-  [InstrumentTypeEnum.fund]: 9,
-  [InstrumentTypeEnum.index]: 9,
-  [InstrumentTypeEnum.repo]: 9,
-  [InstrumentTypeEnum.crypto]: 14,
-  [InstrumentTypeEnum.cryptofuture]: 14,
-  [InstrumentTypeEnum.cryptoufuture]: 14,
-  [InstrumentTypeEnum.multi]: 9,
+  [InstrumentTypeEnum.unknown]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stockoption]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.techstock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.future]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.bond]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.fund]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.index]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.repo]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.crypto]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptofuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptoufuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.multi]: DEFAULT_PRECISION,
 };

@@ -49,6 +49,7 @@ import {
   getMdTdKfLocationByProcessId,
   getResultUntilValuable,
   dealKfDecimalPrecision,
+  DEFAULT_PRECISION,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -991,7 +992,7 @@ export const getOrderLatencyDataByOrderStat = (
 
 export const getOrderStatResolve = (
   orderStat: KungfuApi.OrderStat | null,
-  precision = 9,
+  precision = DEFAULT_PRECISION,
 ):
   | {
       latency_system: string | number;
@@ -1647,7 +1648,7 @@ export const dealOrderInputItem = (
         (orderInputResolved[key] = dealIsSwap(inputData.is_swap));
     } else if (key === 'limit_price') {
       orderInputResolved[key] = {
-        name: dealKfNumber(inputData[key], precision || 9) + '',
+        name: dealKfNumber(inputData[key], precision || DEFAULT_PRECISION) + '',
         color: 'default',
       };
     } else {

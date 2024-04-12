@@ -44,10 +44,7 @@ onMounted(() => {
 const orderNumber = computed(() => {
   return volume.value
     ? Math.floor(
-        dealKfDecimalPrecision(
-          curOrderVolume.value / volume.value,
-          precision.value,
-        ),
+        dealKfDecimalPrecision(curOrderVolume.value / volume.value, precision),
       )
     : 0;
 });
@@ -56,18 +53,9 @@ const { modalVisible, closeModal } = useModalVisible(props.visible);
 const { curOrderType } = props;
 const { curOrderVolume } = toRefs(props);
 
-const defaultVolume = computed(() => {
-  if (isShotable(curOrderType)) {
-    return 1;
-  }
-  return 100;
-});
-
-const precision = computed(() => {
-  return getPrecisionByInstrumentType(curOrderType);
-});
-
-const volume = ref<number>(defaultVolume.value);
+const defaultVolume = isShotable(curOrderType) ? 1 : 100;
+const precision = getPrecisionByInstrumentType(curOrderType);
+const volume = ref<number>(defaultVolume);
 
 function handleConfirm() {
   if (volume.value === null) {
@@ -76,7 +64,7 @@ function handleConfirm() {
   }
   const remainder: number = dealKfDecimalPrecision(
     curOrderVolume.value % volume.value,
-    precision.value,
+    precision,
   ); // 剩余数量
   const volumeList: number[] = new Array(+orderNumber.value).fill(volume.value);
 

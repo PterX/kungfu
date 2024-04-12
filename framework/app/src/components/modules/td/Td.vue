@@ -49,7 +49,7 @@ import {
 import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
-  CRYPTO_PRECISION,
+  ASSET_PRECISION,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealKfNumber,
@@ -365,7 +365,7 @@ function handleFundTransModeDialog(config: KungfuApi.KfConfig) {
   currentAccout.config = config;
   currentAccout.avail = dealKfDecimalPrecision(
     getAssetsByKfConfig(config).avail,
-    CRYPTO_PRECISION,
+    ASSET_PRECISION,
   );
   setFundTransModeModalVisible.value = true;
 }
@@ -702,7 +702,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).unrealized_pnl,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -712,7 +712,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).unrealized_pnl,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -723,7 +723,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).market_value,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -732,7 +732,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).market_value,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -744,7 +744,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
                 dealKfNumber(
                   getAssetsByKfConfig(record).margin ||
                     getAssetsByKfConfig(record).margin,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -764,16 +764,13 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               v-if="record.category === 'td'"
               mode="compare-zero"
               :num="
-                dealKfNumber(
-                  getAssetsByKfConfig(record).avail,
-                  CRYPTO_PRECISION,
-                )
+                dealKfNumber(getAssetsByKfConfig(record).avail, ASSET_PRECISION)
               "
             ></KfBlinkNum>
             <KfBlinkNum
               v-else-if="record.category === 'tdGroup'"
               :num="
-                dealKfNumber(getAssetsByTdGroup(record).avail, CRYPTO_PRECISION)
+                dealKfNumber(getAssetsByTdGroup(record).avail, ASSET_PRECISION)
               "
             ></KfBlinkNum>
           </template>
@@ -784,7 +781,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).frozen_cash,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -793,7 +790,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).frozen_cash,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -805,7 +802,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).total_asset,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -814,7 +811,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).total_asset,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -826,7 +823,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).short_cash,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -835,7 +832,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).short_cash,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -860,7 +857,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).avail_margin,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -869,7 +866,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).avail_margin,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -881,7 +878,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).total_debt,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -890,7 +887,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).total_debt,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -902,7 +899,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).net_assets,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -911,7 +908,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).net_assets,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -923,7 +920,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).long_total_debt,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -932,7 +929,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).long_total_debt,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -944,7 +941,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByKfConfig(record).short_total_debt,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>
@@ -953,7 +950,7 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
               :num="
                 dealKfNumber(
                   getAssetsByTdGroup(record).short_total_debt,
-                  CRYPTO_PRECISION,
+                  ASSET_PRECISION,
                 )
               "
             ></KfBlinkNum>

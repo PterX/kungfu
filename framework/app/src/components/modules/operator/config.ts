@@ -100,6 +100,7 @@ export const setOperatorConfig: KungfuApi.KfOperatorExtConfig = {
       key: 'file_path',
       name: t('operatorConfig.operator_path'),
       type: 'file',
+      fileExtensions: ['py', 'pyd', 'so'],
       tip: t('operatorConfig.operator_path_tip'),
       required: true,
     },

@@ -1,11 +1,6 @@
 import { getRendererProcessId, kf } from './index';
 import { KF_RUNTIME_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
-import {
-  setTimerPromiseTask,
-  // statTime,
-  // statTimeEnd,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
@@ -36,7 +31,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
 
   const bypassRestore =
     booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED) ||
-    process.env.BY_PASS_RESTORE;
+    booleanProcessEnv(process.env.BY_PASS_RESTORE);
   const globalSetting = getKfGlobalSettingsValue();
   const bypassAccounting =
     process.env.BY_PASS_ACCOUNTING ??
@@ -47,7 +42,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     globalSetting?.performance?.bypassTradingData ??
     false;
   const refreshTradingDataBeforeSync =
-    process.env.REFRESH_LEDGER_BEFORE_SYNC ?? false;
+    process.env.REFRESH_LEDGER_BEFORE_SYNC ?? true;
 
   const bypassRefreshBook =
     process.env.BY_PASS_REFRESHBOOK ??
@@ -55,7 +50,7 @@ export const watcher = ((): KungfuApi.Watcher | null => {
     false;
 
   const millisecondsSleepAfterStep =
-    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 50;
+    process.env.MILLISECONDS_SLEEP_AFTER_STEP ?? 100;
 
   kfLogger.info('bypassRestore', bypassRestore);
   kfLogger.info('bypassAccounting', bypassAccounting);
@@ -79,16 +74,4 @@ export const watcher = ((): KungfuApi.Watcher | null => {
 export const startWatcher = () => {
   if (watcher === null) return;
   watcher.start();
-};
-
-export const startWatcherSyncTask = (
-  interval = 1000,
-  callback?: (watcher: KungfuApi.Watcher) => void,
-) => {
-  if (watcher === null) return;
-  return setTimerPromiseTask(async () => {
-    watcher.sync();
-    callback && (await callback(watcher));
-    return true;
-  }, interval);
 };

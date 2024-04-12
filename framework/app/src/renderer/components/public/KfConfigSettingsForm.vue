@@ -296,7 +296,7 @@ watch(
                 case 'float':
                 case 'percent':
                   formState.value[key] = Number(newVal[key]).kfRound(
-                    numberKeys.value[key].precision ?? 4,
+                    numberKeys.value[key].precision ?? 12,
                   );
                   break;
               }
@@ -816,19 +816,7 @@ function handleSelectCsv<T>(
           transformer: buildCsvHeadersTransformer(headers),
         })
           .then(({ resRows, errRows }) => {
-            const newRows = resRows.map((row) => {
-              const newRow: Partial<T> = {};
-              Object.keys(row).forEach((key) => {
-                if (typeof row[key] === 'string') {
-                  newRow[key] = `${row[key]}`.trim();
-                } else {
-                  newRow[key] = row[key];
-                }
-              });
-              return newRow;
-            });
-
-            if (callback) return callback(newRows as T[], errRows, targetKey);
+            if (callback) return callback(resRows, errRows, targetKey);
 
             return Promise.resolve();
           })
@@ -884,6 +872,9 @@ function handleSelectFile(target: KungfuApi.KfConfigItem): void {
     .showOpenDialog({
       defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openFile'],
+      filters: target.fileExtensions
+        ? [{ name: 'Files', extensions: target.fileExtensions }]
+        : [],
     })
     .then((res) => {
       const { filePaths } = res;
@@ -929,6 +920,9 @@ function handleSelectFiles(target: KungfuApi.KfConfigItem): void {
     .showOpenDialog({
       defaultPath: existPath || target.defaultDir || os.homedir(),
       properties: ['openDirectory'],
+      filters: target.fileExtensions
+        ? [{ name: 'Files', extensions: target.fileExtensions }]
+        : [],
     })
     .then((res) => {
       const { filePaths } = res;
@@ -1417,16 +1411,16 @@ defineExpose({
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
-          :precision="item.precision ?? 4"
-          :step="item.step ?? 0.0001"
+          :step="item.step ?? 1"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
           "
+          :precision="item.precision === null ? undefined : item.precision"
           @focus="numbersTyping[item.key] = true"
           @blur="
             () => {
-              formState[item.key] = Number(formState[item.key]); // change value '' to 0.0000
+              formState[item.key] = Number(formState[item.key]);
               numbersTyping[item.key] = false;
             }
           "

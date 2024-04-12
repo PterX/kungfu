@@ -78,6 +78,72 @@ private:
   longfist::StateMapType state_map_ = longfist::build_state_map(longfist::StateDataTypes);
 };
 
+class deque_bank {
+public:
+  template <typename DataType> void operator<<(const state<DataType> &state) {
+    auto &target_vector = state_map_[boost::hana::type_c<DataType>];
+    target_vector.push_back(state);
+  }
+
+  template <typename DataType> void operator<<(const typed_event_ptr<DataType> &event) {
+    auto &target_vector = state_map_[boost::hana::type_c<DataType>];
+    target_vector.push_back(*event);
+  }
+
+  void operator>>(const yijinjing::journal::writer_ptr &writer) const {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : state_map_[type]) {
+        writer->write(0, element.data);
+      }
+    });
+  }
+
+  void operator=(deque_bank &another_bank) {
+    clear();
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : another_bank[type]) {
+        auto &target_map = state_map_[type];
+        target_map.push_back(element);
+      }
+    });
+  }
+
+  void operator>>(yijinjing::cache::deque_bank &bank) {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      for (const auto &element : state_map_[type]) {
+        bank << element;
+      }
+    });
+  }
+
+  void clear() {
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      state_map_[type].clear();
+    });
+  }
+
+  uint32_t size() {
+    uint32_t size = 0;
+    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
+      auto type = boost::hana::second(it);
+      size += state_map_[type].size();
+    });
+    return size;
+  }
+
+  template <typename DataType>
+  const std::deque<state<DataType>> &operator[](const boost::hana::basic_type<DataType> &type) const {
+    return state_map_[type];
+  }
+
+private:
+  longfist::StateDequeMapType state_map_ = longfist::build_state_deque_map(longfist::StateDataTypes);
+};
+
 class location_bank {
 public:
   template <typename DataType> void operator<<(const state<DataType> &state) {

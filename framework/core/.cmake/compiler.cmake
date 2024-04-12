@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD 20)
 # Set the global compile options.
 # Some of the options may be override by target_compiles_options later in sub-projects.
 if (UNIX)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC") # set -fPIC for nng
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
   set(CMAKE_CXX_FLAGS_RELEASE "-O0")
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})

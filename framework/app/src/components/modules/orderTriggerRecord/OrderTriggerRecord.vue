@@ -130,30 +130,27 @@ watch(
 );
 
 onActivated(() => {
-  if (app?.proxy) {
-    const subscription = app.proxy.$tradingDataSubject.subscribe(
-      (watcher: KungfuApi.Watcher) => {
-        if (!currentGlobalKfLocation.value) return;
-        const currentUID = watcher.getLocationUID(
-          currentGlobalKfLocation.value,
-        );
+  if (app?.proxy && 0) {
+    const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+      const { watcher } = data;
+      if (!currentGlobalKfLocation.value) return;
+      const currentUID = watcher.getLocationUID(currentGlobalKfLocation.value);
 
-        const orderTradeFilterKey = getOrderTradeFilterKey(
-          currentGlobalKfLocation.value.category,
-        );
-        const orderTriggerData = (
-          window.watcher.ledger[
-            'OrderTrigger'
-          ] as KungfuApi.DataTable<KungfuApi.OrderTrigger>
-        )
-          .filter(orderTradeFilterKey, currentUID)
-          .list();
+      const orderTradeFilterKey = getOrderTradeFilterKey(
+        currentGlobalKfLocation.value.category,
+      );
+      const orderTriggerData = (
+        window.watcher.ledger[
+          'OrderTrigger'
+        ] as KungfuApi.DataTable<KungfuApi.OrderTrigger>
+      )
+        .filter(orderTradeFilterKey, currentUID)
+        .list();
 
-        tableDataResolved.value = orderTriggerData.map((item, index) => {
-          return dealOrderTrigger(window.watcher, item, false, 4, index);
-        });
-      },
-    );
+      tableDataResolved.value = orderTriggerData.map((item, index) => {
+        return dealOrderTrigger(window.watcher, item, false, index);
+      });
+    });
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();

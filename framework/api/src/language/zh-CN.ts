@@ -421,6 +421,7 @@ export default {
 
   orderConfig: {
     update_time: '更新时间',
+    order_time: '委托时间',
     instrument_id: '标的',
     limit_price: '委托价',
     order_status: '订单状态',
@@ -505,7 +506,6 @@ export default {
 
     avail_funds: '可用资金',
     avail_margin: '可用保证金',
-    cash_debt: '融资负债',
     total_asset: '总资产',
     actions: '操作',
 
@@ -833,9 +833,9 @@ export default {
     log_frame_desc:
       '对系统内所有日志生效, 开启后会在 log 上附加当前 frame 的信息, 修改后重启功夫生效',
 
-    auto_restart_td: '交易进程自动重启',
-    auto_restart_td_desc:
-      '交易进程断开时是否自动重启, 如果打开, 则当交易进程出错后, 会尝试重连三次, 如果关闭, 则不会；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change 这两个方法来判断柜台状态是否断开/重启就绪',
+    not_auto_restart_td: '交易进程断开不再自动重启',
+    not_auto_restart_td_desc:
+      '交易进程断开时是否自动重启, 如果关闭, 则当交易进程出错后, 不会尝试重连三次, 如果打开, 则会重启三次；在重启过程中（重启开始到交易进程就绪）, 策略内查询到的持仓会为0, 需要在策略内通过 on_deregister, on_broker_state_change 这两个方法来判断柜台状态是否断开/重启就绪',
 
     language: '语言',
     select_language_desc: '选择语言, 修改后重启功夫生效',
@@ -845,6 +845,10 @@ export default {
     bypass_archive_dev: '跳过归档 (开发者模式)',
     bypass_archive_dev_desc:
       '非开发者请勿开启此选项\n开启后, 每次启动客户端时不进行任何归档操作, 保留所有 journal 和 log 文件, 帮助开发者更快地使用诊断工具排查问题, 重启后生效。 当普通跳过归档与开发者跳过归档设置同时开启时, 开发者模式跳过归档功能优先生效',
+
+    bypass_cacheD: '纯易筋经内存数据库模式',
+    bypass_cacheD_desc:
+      '在此模式下, 交易数据不在会落地到本地关系数据库内, 仅会在内存数据库中保留, 应对特殊场景, 除非明确知道风险, 请勿打开, 重启后生效',
 
     bypass_subscribe_position: '跳过持仓行情订阅',
     bypass_subscribe_position_desc:
@@ -859,6 +863,10 @@ export default {
     bypass_trading_data: '纯监控模式',
     bypass_trading_data_desc:
       '该模式下仅可监控进程运行状态, UI 进行性能占用达到最低, 重启后生效',
+    low_memory: '低内存模式',
+    low_memory_desc:
+      '柜台进程定期清理维护的交易信息缓存, 以减少内存占用, 应对特殊场景, 可能造成前端展示信息错误, 除非明确知道风险, 请勿打开, 开启后重启柜台进程生效',
+
     strategy: '策略',
     use_local_python: '使用本地 Python',
     local_python_desc:
@@ -1010,6 +1018,11 @@ export default {
     process_not_found: '进程不存在',
     enable_matcher_tip: '使用撮合器以回测模式运行,  策略逻辑可修改',
   },
+
+  open_folder: '打开文件夹',
+  install_app: '安装应用',
+  unzip_tip: '请解压 {zipName} 文件完成安装',
+  open_folder_detail: '点击 "打开文件夹" 将展示压缩包所在位置',
 
   master_interrupt: '主控进程 master 中断',
   master_desc: '主控进程负责策略进程间通信与资源配置, 请重启功夫交易系统',

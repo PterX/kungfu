@@ -425,6 +425,7 @@ export default {
 
   orderConfig: {
     update_time: 'update_time',
+    order_time: 'order_time',
     instrument_id: 'Instrument',
     limit_price: 'limit_price',
     order_status: 'order_status',
@@ -510,7 +511,6 @@ export default {
 
     avail_funds: 'Avail Funds',
     avail_margin: 'Avail Margin',
-    cash_debt: 'Cash Debt',
     total_asset: 'Total Asset',
     actions: 'Actions',
 
@@ -831,9 +831,9 @@ export default {
     log_frame_desc:
       'It takes effect on all logs in the system. After it is enabled, the information of the current frame will be attached to the log, the modified restart takes effect',
 
-    auto_restart_td: 'Trading Process Auto Restart',
-    auto_restart_td_desc:
-      'While the trade process interruption, if this switch open, it will try to reconnect three times; if closed, it will not. During the restart process (from restart to trade process ready) , the position queried in the strategy will be 0, both `on_deregister` and `on_broker_state_change` methods need to be used within the policy to determine whether the status of the counter is `disconnected` or `restart ready`.',
+    not_auto_restart_td: 'Trading Process No Auto Restart',
+    not_auto_restart_td_desc:
+      'While the trade process interruption, if this switch open, it will Not try to reconnect three times, During the restart process (from restart to trade process ready) , the position queried in the strategy will be 0, both `on_deregister` and `on_broker_state_change` methods need to be used within the policy to determine whether the status of the counter is `disconnected` or `restart ready`.',
 
     language: 'Language',
     select_language_desc: 'Select Language, the modified restart takes effect',
@@ -843,6 +843,10 @@ export default {
     bypass_archive_dev: 'ByPass Archive (For developer)',
     bypass_archive_dev_desc:
       "Non-developers don't turn this option on\nIf open, archive will not do anything, all journal and log file will be retained, help developers troubleshoot issues faster with inspect tool, effective after restart. When the normal skip archive setting and the developer skip archive setting are enabled at the same time, the developer mode skip archive function takes effect first.",
+
+    bypass_cacheD: 'Pure Yijinjing Memory Mode',
+    bypass_cacheD_desc:
+      'In this mode, trading data no longer store in sqlite, all data will be stored in yijinjing memory db, for special case, never open if the user is aware of the risks, effective after restart',
 
     bypass_subscribe_position: 'Skip position market subscription',
     bypass_subscribe_position_desc:
@@ -857,6 +861,10 @@ export default {
     bypass_trading_data: 'Pure Monitor Mode',
     bypass_trading_data_desc:
       'Only monit processes status, ui costs lowest, restart is required',
+    low_memory: 'Low Memory Mode',
+    low_memory_desc:
+      'Broker Process clear memory every interval, only for special case, restart broker process required',
+
     strategy: 'Strategy',
     use_local_python: 'Use Local Python',
     local_python_desc:
@@ -1023,6 +1031,12 @@ export default {
     enable_matcher_tip:
       'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
+
+  open_folder: 'Open Folder',
+  install_app: 'Install App',
+  unzip_tip: 'Please unzip {zipName} to install',
+  open_folder_detail:
+    'Click "Open Folder" to show the location of the zip file',
 
   master_interrupt: 'master interrupted',
   master_desc:

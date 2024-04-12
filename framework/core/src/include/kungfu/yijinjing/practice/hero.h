@@ -12,6 +12,7 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
+#include <kungfu/yijinjing/nanomsg/webserver.h>
 #include <kungfu/yijinjing/time.h>
 
 #ifndef KUNGFU_SETUP_LOG
@@ -32,7 +33,7 @@ class hero : public resource {
 public:
   explicit hero(yijinjing::io_device_ptr io_device);
 
-  virtual ~hero();
+  ~hero() override;
 
   bool is_usable() override;
 
@@ -145,32 +146,7 @@ public:
 
   void disjoin_channel(uint32_t location_uid, uint32_t dest_id);
 
-  static constexpr auto feed_profile_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_state_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
-
-  static constexpr auto feed_trading_data = [](const event_ptr &event, auto &receiver) {
-    boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-      using DataType = typename decltype(+boost::hana::second(it))::type;
-      if (DataType::tag == event->msg_type()) {
-        receiver << typed_event_ptr<DataType>(event);
-      }
-    });
-  };
+  void disjoin_channel(const yijinjing::data::location_ptr &location, uint32_t dest_id);
 
 protected:
   int64_t begin_time_;
@@ -186,6 +162,11 @@ protected:
   const yijinjing::data::location_ptr master_home_location_;
   const yijinjing::data::location_ptr master_cmd_location_;
   const yijinjing::data::location_ptr ledger_home_location_;
+
+  yijinjing::io_device_ptr io_device_;
+  volatile bool live_ = false;
+  volatile uint32_t step_limit_ = 0;
+  int64_t now_;
 
   static uint64_t make_source_dest_hash(uint32_t source_id, uint32_t dest_id);
 
@@ -233,10 +214,12 @@ protected:
 
   void cleanup_reader_disjoin();
 
+  virtual bool drain(const rx::subscriber<event_ptr> &sb);
+
+  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
+
 private:
-  yijinjing::io_device_ptr io_device_;
   rx::composite_subscription cs_;
-  int64_t now_;
 
   std::unordered_map<uint64_t, longfist::types::Band> bands_ = {};
   std::unordered_map<uint64_t, longfist::types::Channel> channels_ = {};
@@ -244,16 +227,11 @@ private:
   std::unordered_map<uint32_t, longfist::types::Register> registry_ = {};
   std::set<uint32_t> disjoin_uids_ = {};
   std::set<std::pair<uint32_t, uint32_t>> disjoin_channels_ = {};
+  std::map<yijinjing::data::location_ptr, uint32_t> disjoin_location_channels_;
 
   volatile bool continual_ = true;
-  volatile bool live_ = false;
-  volatile uint32_t step_limit_ = 0;
 
   void produce(const rx::subscriber<event_ptr> &sb);
-
-  bool drain(const rx::subscriber<event_ptr> &sb);
-
-  void deal_notice(bool bypass, bool notify, const rx::subscriber<event_ptr> &sb);
 
   template <typename T>
   std::enable_if_t<T::reflect> do_require_read_from(yijinjing::journal::writer_ptr &&writer, int64_t trigger_time,

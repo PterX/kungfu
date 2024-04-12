@@ -22,6 +22,7 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::yijinjing::nanomsg;
+using namespace kungfu::yijinjing::webserver;
 
 namespace kungfu::yijinjing::practice {
 
@@ -477,6 +478,10 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   disjoin_channels_.insert({location_uid, dest_id});
 }
 
+void hero::disjoin_channel(const data::location_ptr &location, uint32_t dest_id) {
+  disjoin_location_channels_.emplace(location, dest_id);
+}
+
 void hero::cleanup_reader_disjoin() {
   /**
    * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
@@ -495,8 +500,12 @@ void hero::cleanup_reader_disjoin() {
       reader_->disjoin(get_location(pair.first), pair.second);
     }
   }
+  for (const auto &[location, dest_id] : disjoin_location_channels_) {
+    reader_->disjoin(location, dest_id);
+  }
   disjoin_uids_.clear();
   disjoin_channels_.clear();
+  disjoin_location_channels_.clear();
 }
 
 } // namespace kungfu::yijinjing::practice

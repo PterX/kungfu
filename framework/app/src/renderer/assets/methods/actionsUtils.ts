@@ -12,6 +12,8 @@ import {
   getKungfuHistoryData,
   getNanoDateString,
   isShowPosition,
+  isStock,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
@@ -60,12 +62,12 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   dealKfNumber,
-  dealKfPrice,
   getYearMonthDay,
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
   dealKfDecimalPrecision,
+  ASSET_PRECISION,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -174,8 +176,10 @@ export const useUpdateVersion = () => {
     ipcRenderer.send('auto-update-retry-check-update');
     checkingUpdate.value = true;
     // 超过 10 秒视为检测完成
-    setTimeout(() => {
+
+    const timer = setTimeout(() => {
       checkingUpdate.value = false;
+      clearTimeout(timer);
     }, 10000);
   };
 
@@ -1354,7 +1358,8 @@ export const useSubscibeInstrumentAtEntry = (
     if (app?.proxy) {
       const subscription = app.proxy.$tradingDataSubject
         .pipe(throttleTime(30000))
-        .subscribe((watcher: KungfuApi.Watcher) => {
+        .subscribe((data) => {
+          const { watcher } = data;
           const instrumentsForSub = customInstrumentsForSubGetter
             ? customInstrumentsForSubGetter(watcher)
             : getCurrentPositionsForSub(watcher);
@@ -1450,11 +1455,10 @@ export const useQuote = (): {
 
   onActivated(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          quotes.value = toRaw({ ...watcher.ledger.Quote });
-        },
-      );
+      const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+        const { watcher } = data;
+        quotes.value = toRaw({ ...watcher.ledger.Quote });
+      });
 
       onBeforeUnmount(() => {
         subscription.unsubscribe();
@@ -1511,17 +1515,21 @@ export const useQuote = (): {
     //有行情时，根据 quote 和 position 更新时间取最新 last_price,
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
+    const precision = getPrecisionByInstrumentType(pos.instrument_type);
     if (quote) {
-      return quote.last_price || Number(pos[lastPriceKey]) || 0;
+      return dealKfDecimalPrecision(
+        quote.last_price || Number(pos[lastPriceKey]) || 0,
+        precision,
+      );
     }
-    return Number(pos[lastPriceKey]) || 0;
+    return dealKfDecimalPrecision(Number(pos[lastPriceKey]) || 0, precision);
   };
 
   const getLastPricePercent = (
     instrument: KungfuApi.InstrumentResolved,
   ): string => {
     const quote = getQuoteByInstrument(instrument);
-
+    const precision = getPrecisionByInstrumentType(instrument.instrumentType);
     if (!quote) {
       return '--';
     }
@@ -1533,6 +1541,7 @@ export const useQuote = (): {
 
     const percent = dealKfDecimalPrecision(
       (last_price - pre_close_price) / pre_close_price,
+      precision,
     );
     if (percent === Infinity) {
       return '--';
@@ -1640,7 +1649,8 @@ export const useDealInstruments = (): void => {
 
       const subscription = app.proxy.$tradingDataSubject
         .pipe(throttleTime(5000))
-        .subscribe((watcher: KungfuApi.Watcher) => {
+        .subscribe((data) => {
+          const { watcher } = data;
           const instruments = watcher.ledger.Instrument.list();
           const instrumentsLength = instruments.length;
           if (!instruments || !instrumentsLength) {
@@ -1745,8 +1755,8 @@ export const useActiveInstruments = () => {
   const getPriceTickAndPrecision = (
     instrumentId: string,
     exchangeId: string,
-    defaultTick = 0.0001,
-    defaultPrecision = 0.0001,
+    defaultTick = 1,
+    defaultPrecision = 0,
   ) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const price_tick = instrument?.price_tick || defaultTick;
@@ -1762,12 +1772,27 @@ export const useActiveInstruments = () => {
     return currency;
   };
 
+  const getInstrumentName = (
+    instrumentId: string,
+    exchangeId: string,
+    instrumentType: InstrumentTypeEnum,
+  ) => {
+    if (!isStock(instrumentType)) {
+      return '';
+    }
+
+    const ukey = hashInstrumentUKey(instrumentId, exchangeId);
+    const instrumentResolved = instrumentsMap.value[ukey];
+    return instrumentResolved ? instrumentResolved.instrumentName : '';
+  };
+
   return {
     getInstrumentByIds,
     getInstrumentByIdsWithWatcher,
     getInstrumentCurrencyByIds,
     getPriceTickAndPrecision,
     getInstrumentCurrency,
+    getInstrumentName,
   };
 };
 
@@ -2078,8 +2103,22 @@ export const useAssets = (): {
   getAssetsByTdGroup(
     tdGroup: KungfuApi.KfExtraLocation,
   ): KungfuApi.Asset | Record<string, never>;
+  dealAssetPrecision(asset: KungfuApi.Asset): KungfuApi.Asset;
 } => {
   const { assets } = storeToRefs(useGlobalStore());
+
+  const dealAssetPrecision = (asset: KungfuApi.Asset) => {
+    const assetCopy = { ...asset };
+    Object.keys(assetCopy).forEach((key) => {
+      if (typeof assetCopy[key] === 'number') {
+        assetCopy[key] = dealKfDecimalPrecision(
+          assetCopy[key],
+          ASSET_PRECISION,
+        );
+      }
+    });
+    return assetCopy;
+  };
 
   const getAssetsByKfConfig = (
     kfConfig: KungfuApi.KfLocation | KungfuApi.KfConfig,
@@ -2120,6 +2159,7 @@ export const useAssets = (): {
     assets,
     getAssetsByKfConfig,
     getAssetsByTdGroup,
+    dealAssetPrecision,
   };
 };
 
@@ -2447,26 +2487,25 @@ export const useCurrentPositionList = () => {
 
   onActivated(() => {
     if (app?.proxy) {
-      const subscription = app.proxy.$tradingDataSubject.subscribe(
-        (watcher: KungfuApi.Watcher) => {
-          if (!currentGlobalKfLocation.value) return;
+      const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
+        const { watcher } = data;
+        if (!currentGlobalKfLocation.value) return;
 
-          const currentPositions =
-            globalThis.HookKeeper.getHooks().dealTradingData.trigger(
-              window.watcher,
-              currentGlobalKfLocation.value,
-              watcher.ledger.Position,
-              'position',
-            ) as KungfuApi.Position[];
-          currentPositionList.value = toRaw(
-            currentPositions
-              .reverse()
-              .map((item) =>
-                dealDataWithCache(item, () => dealPosition(watcher, item)),
-              ),
-          );
-        },
-      );
+        const currentPositions =
+          globalThis.HookKeeper.getHooks().dealTradingData.trigger(
+            window.watcher,
+            currentGlobalKfLocation.value,
+            watcher.ledger.Position,
+            'position',
+          ) as KungfuApi.Position[];
+        currentPositionList.value = toRaw(
+          currentPositions
+            .reverse()
+            .map((item) =>
+              dealDataWithCache(item, () => dealPosition(watcher, item)),
+            ),
+        );
+      });
 
       onBeforeUnmount(() => {
         subscription.unsubscribe();
@@ -2540,16 +2579,28 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = dealKfDecimalPrecision(volume - yesterday_volume);
+  const precision = getPrecisionByInstrumentType(position.instrument_type);
+  const today_volume = dealKfDecimalPrecision(
+    volume - yesterday_volume,
+    precision,
+  );
   const frozen_today = frozen_total - frozen_yesterday;
   const shotable_closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_yesterday,
+    precision,
   );
   const closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_total,
+    precision,
   );
-  const closable_today = dealKfDecimalPrecision(today_volume - frozen_today);
-  const closable_total = dealKfDecimalPrecision(volume - frozen_total);
+  const closable_today = dealKfDecimalPrecision(
+    today_volume - frozen_today,
+    precision,
+  );
+  const closable_total = dealKfDecimalPrecision(
+    volume - frozen_total,
+    precision,
+  );
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2758,25 +2809,25 @@ export const useMakeOrderInfo = (
           currentAccountLocation.value,
         ).gage_buy_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail, ASSET_PRECISION);
       } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).credit_buy_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail, ASSET_PRECISION);
       } else if (side === SideEnum.RepayStock) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).buyredeliver_fund_available;
 
-        return dealKfPrice(avail);
+        return dealKfNumber(avail, ASSET_PRECISION);
       }
     }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
-    return dealKfPrice(avail);
+    return dealKfNumber(avail, ASSET_PRECISION);
   });
 
   const currentAvailPosVolume = computed(() => {
@@ -2795,7 +2846,7 @@ export const useMakeOrderInfo = (
   });
 
   function dealTradeAmount(preNumber: number | null) {
-    return !Number(preNumber) ? '--' : dealKfPrice(preNumber);
+    return !Number(preNumber) ? '--' : dealKfNumber(preNumber);
   }
 
   const currentPrice = computed(() => {
@@ -2844,12 +2895,14 @@ export const useMakeOrderInfo = (
     if (currentAvailMoney.value !== '--') {
       if (currentTradeAmount.value !== '--') {
         if (offset === OffsetEnum.Open) {
-          return dealKfPrice(
+          return dealKfNumber(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
+            ASSET_PRECISION,
           );
         } else {
-          return dealKfPrice(
+          return dealKfNumber(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
+            ASSET_PRECISION,
           );
         }
       } else {
@@ -3111,7 +3164,7 @@ export const useMakeOrderSubscribe = (
               ? dealMarginSideByTransFormType(+side, 'direction')
               : +side;
             formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(dealPrice).kfToFixed(4);
+            formState.value.limit_price = +Number(dealPrice).kfToFixed(12);
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {
@@ -3134,7 +3187,7 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(+price)) {
-              formState.value.limit_price = +price.kfToFixed(4);
+              formState.value.limit_price = +price.kfToFixed(12);
             }
             formState.value.volume = +volume.kfToFixed(0);
             formState.value.side = isMarginMakeOrder.value

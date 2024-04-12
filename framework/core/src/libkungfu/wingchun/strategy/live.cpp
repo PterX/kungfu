@@ -114,7 +114,7 @@ void LiveContext::prepare(const event_ptr &event) {
   started_ = true;
 }
 
-const std::string LiveContext::get_config() const {
+std::string LiveContext::get_config() const {
   auto &config_map = app_.get_state_bank()[boost::hana::type_c<Config>];
   if (config_map.find(app_.get_live_home_uid()) == config_map.end()) {
     return "{}";

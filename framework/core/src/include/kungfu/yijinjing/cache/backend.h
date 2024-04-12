@@ -87,8 +87,9 @@ template <typename DataType> struct time_spec<DataType, std::enable_if_t<DataTyp
     auto just = boost::hana::find_if(boost::hana::accessors<DataType>(), comparator);
     [[maybe_unused]] auto accessor = boost::hana::second(*just);
     auto ts = member_pointer_trait<decltype(accessor)>().pointer();
-    return storage->get_all<DataType>(sqlite_orm::where(
-        sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from), sqlite_orm::lesser_or_equal(ts, to))));
+    return storage->get_all<DataType>(sqlite_orm::where(sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from),
+                                                                         sqlite_orm::lesser_or_equal(ts, to))),
+                                      sqlite_orm::order_by(ts).asc());
   };
 
   static std::vector<DataType> get_all(StateStoragePtr &storage, int64_t from, int64_t to, int limit) {
@@ -97,9 +98,12 @@ template <typename DataType> struct time_spec<DataType, std::enable_if_t<DataTyp
     [[maybe_unused]] auto accessor = boost::hana::second(*just);
     auto ts = member_pointer_trait<decltype(accessor)>().pointer();
 
-    return storage->get_all<DataType>(sqlite_orm::where(sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from),
-                                                                         sqlite_orm::lesser_or_equal(ts, to))),
-                                      sqlite_orm::order_by(ts).desc(), sqlite_orm::limit(limit));
+    auto store_data =
+        storage->get_all<DataType>(sqlite_orm::where(sqlite_orm::and_(sqlite_orm::greater_or_equal(ts, from),
+                                                                      sqlite_orm::lesser_or_equal(ts, to))),
+                                   sqlite_orm::order_by(ts).desc(), sqlite_orm::limit(limit));
+    std::reverse(store_data.begin(), store_data.end());
+    return store_data;
   };
 };
 
@@ -114,6 +118,11 @@ public:
   void ensure_storage(uint32_t dest);
 
   bool check_storage_exists(uint32_t dest);
+
+  StateStoragePtr get_storage(uint32_t dest) {
+    ensure_storage(dest);
+    return storage_map_.at(dest);
+  }
 
   template <typename TargetType> void operator>>(TargetType &target) {
     for (auto dest : location_->locator->list_location_dest_by_db(location_)) {

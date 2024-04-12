@@ -1,135 +1,183 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
+import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   isTdStrategyCategory,
-  buildTableColumnSorterWithStrike,
+  sorter,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
-
-const buildSorter =
-  (dataIndex: keyof KungfuApi.OrderResolved) =>
-  (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) =>
-    (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
-
-const buildStrSorter =
-  (dataIndex: keyof KungfuApi.OrderResolved) =>
-  (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) =>
-    a[dataIndex].toString().localeCompare(b[dataIndex].toString());
+import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  dealOffset,
+  dealSide,
+  getAccountIdStyle,
+  getPrecisionByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+const { t } = useLanguage();
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
   isHistory = false,
-): KfTradingDataTableHeaderConfig[] =>
+): VTable.ColumnDefine[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'order')
-    .getColumns<KfTradingDataTableHeaderConfig>([
+    .getColumns<VTable.ColumnDefine>([
       {
-        type: 'string',
-        name: t('orderConfig.update_time'),
-        dataIndex: 'update_time_resolved',
+        field: 'insert_time',
+        title: t('orderConfig.order_time'),
         width: isHistory ? 160 : 120,
-        sorter: buildSorter('update_time'),
-      },
-      {
-        type: 'string',
-        name: t('orderConfig.instrument_id'),
-        dataIndex: 'instrument_id',
-        sorter: buildStrSorter('instrument_id'),
-        width: 80,
-      },
-      {
-        type: 'string',
-        name: '',
-        dataIndex: 'side',
-        width: 80,
-      },
-      {
-        type: 'string',
-        name: '',
-        dataIndex: 'offset',
-        width: 40,
-      },
-      {
-        type: 'number',
-        name: t('orderConfig.limit_price'),
-        dataIndex: 'limit_price_resolved',
-        width: 120,
-        align: 'right',
-        sorter: buildSorter('limit_price'),
-      },
-      {
-        type: 'number',
-        name: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
-        dataIndex: 'volume_left',
-        width: 140,
-        sorter: (a: KungfuApi.OrderResolved, b: KungfuApi.OrderResolved) => {
-          return +Number(a.volume_left) - +Number(b.volume_left);
+        sort: sorter,
+        fieldFormat: (args) => {
+          return dealKfTime(args.insert_time, isHistory);
         },
       },
       {
-        type: 'number',
-        name: t('orderConfig.avg_price'),
-        dataIndex: 'avg_price_resolved',
+        field: 'instrument_id',
+        title: t('orderConfig.instrument_id'),
+        width: 140,
+      },
+      {
+        field: 'side',
+        title: '',
+        width: 80,
+        style: {
+          color: (args) => {
+            return defaultColorMap[dealSide(args.dataValue).color || 'default'];
+          },
+        },
+        fieldFormat: (args) => {
+          return dealSide(args.side).name;
+        },
+      },
+      {
+        field: 'offset',
+        title: '',
+        width: 50,
+        style: {
+          color: (args) => {
+            return defaultColorMap[
+              dealOffset(args.dataValue).color || 'default'
+            ];
+          },
+        },
+        fieldFormat: (args) => {
+          return dealOffset(args.offset).name;
+        },
+      },
+      {
+        title: t('orderConfig.limit_price'),
+        field: 'limit_price_resolved',
         width: 120,
-        align: 'right',
-        sorter: buildSorter('avg_price'),
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
       },
       {
-        type: 'string',
-        name: t('orderConfig.order_status'),
-        dataIndex: 'status_uname',
+        field: 'avg_price_resolved',
+        title: t('orderConfig.avg_price'),
         width: 120,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+
+        sort: sorter,
       },
       {
-        type: 'number',
-        name: t('orderConfig.latency_system'),
-        dataIndex: 'latency_system',
-        width: 90,
-        align: 'right',
-        sorter: buildTableColumnSorterWithStrike<KungfuApi.OrderResolved>(
-          'num',
-          'latency_system',
-        ),
+        field: 'volume_left',
+        title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
+        width: 120,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+        fieldFormat: (args) => {
+          const precision = getPrecisionByInstrumentType(args.instrument_type);
+          return `${dealKfDecimalPrecision(
+            args.volume - args.volume_left,
+            precision,
+          )} / ${dealKfDecimalPrecision(args.volume, precision)}`;
+        },
       },
       {
-        type: 'number',
-        name: t('orderConfig.latency_network'),
-        dataIndex: 'latency_network',
-        width: 90,
-        align: 'right',
-        sorter: buildTableColumnSorterWithStrike<KungfuApi.OrderResolved>(
-          'num',
-          'latency_network',
-        ),
+        field: 'status_resolved',
+        title: t('orderConfig.order_status'),
+        width: 120,
+        style: {
+          color: (args) => {
+            return defaultColorMap[args.dataValue?.color || 'default'];
+          },
+        },
+        fieldFormat: (args) => {
+          return args.status_resolved?.name;
+        },
+      },
+      ...(isHistory
+        ? []
+        : [
+            {
+              field: 'actions',
+              title: '',
+              width: 60,
+              style: {
+                color: defaultColorMap.red,
+                cursor: 'pointer',
+              },
+              fieldFormat: (args) => {
+                return UnfinishedOrderStatus.includes(args.status)
+                  ? t('orderConfig.cancel_order')
+                  : '';
+              },
+            },
+          ]),
+      {
+        field: 'latency_system',
+        title: t('orderConfig.latency_system'),
+        width: 160,
+        sort: sorter,
       },
       {
-        name:
-          kfLocation.category == 'td'
+        field: 'latency_network',
+        title: t('orderConfig.latency_network'),
+        width: 160,
+        sort: sorter,
+      },
+      {
+        field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',
+        title:
+          kfLocation.category === 'td'
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
-        dataIndex: kfLocation.category == 'td' ? 'dest_uname' : 'source_uname',
-        sorter: buildStrSorter(
-          kfLocation.category == 'td' ? 'dest_uname' : 'source_uname',
-        ),
-        flex: 1,
+        width: 300,
+        style: {
+          color: (args) => {
+            return getAccountIdStyle(args.dataValue);
+          },
+        },
       },
       ...(isTdStrategyCategory(kfLocation.category)
         ? []
         : [
             {
-              name: t('orderConfig.dest_uname'),
-              dataIndex: 'dest_uname',
-              sorter: buildStrSorter('dest_uname'),
-              flex: 1,
-            },
-          ]),
-      ...(isHistory
-        ? []
-        : [
-            {
-              name: '',
-              dataIndex: 'actions',
-              width: 120,
+              field: 'dest_uname',
+              title: t('orderConfig.dest_uname'),
+              width: 300,
+              style: {
+                color: (args) => {
+                  return getAccountIdStyle(args.dataValue);
+                },
+              },
             },
           ]),
     ]);
@@ -142,12 +190,12 @@ export const statisColums: KfTradingDataTableHeaderConfig[] = [
   {
     name: '',
     dataIndex: 'sideName',
-    width: 40,
+    width: 80,
   },
   {
     name: '',
     dataIndex: 'offsetName',
-    width: 40,
+    width: 60,
   },
   {
     name: t('orderConfig.mean'),

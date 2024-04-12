@@ -49,7 +49,11 @@ struct frame : event {
 
   [[nodiscard]] std::string data_as_string() const override { return std::string{data_as_bytes(), data_length()}; }
 
-  [[nodiscard]] std::string to_string() const override { return std::string{reinterpret_cast<char *>(address())}; }
+  [[nodiscard]] std::string to_string() const override {
+    auto j = header_->to_json();
+    j["data"] = data_as_string();
+    return j.dump(-1, ' ', false, nlohmann::json::basic_json::error_handler_t::replace);
+  }
 
   [[nodiscard]] int8_t data_type() const override { return int8_t(header_->data_type); }
 

@@ -22,7 +22,7 @@ import {
   CommissionMode,
   UnderweightType,
   PriceLevel,
-  marginSideConfig,
+  MarginSideConfig,
   Offset,
 } from '../config/tradingConfig';
 import {
@@ -945,7 +945,7 @@ export const enableCustomRadioType: Record<
   Record<string, KungfuApi.KfTradeValueCommonData>
 > = {
   side: Side,
-  marginSide: marginSideConfig,
+  marginSide: MarginSideConfig,
   offset: getOffsetConfig(),
 };
 
@@ -1173,7 +1173,10 @@ export async function startReplay(
           'strategy'
         ] || {})[extKey];
         const soPath = path.join(extConfig.extPath, extKey);
-        const processId = getProcessIdByKfLocation(location);
+        const processId = getProcessIdByKfLocation({
+          ...location,
+          mode: 'live',
+        });
 
         const processStatusDetail = processStatusWithDetail[processId];
         if (!processStatusDetail) {

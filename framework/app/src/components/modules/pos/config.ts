@@ -1,147 +1,194 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { buildTableColumnSorterWithStrike } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { sorter } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+
+import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 
-const buildSorter =
-  (dataIndex: keyof KungfuApi.PositionResolved) =>
-  (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
-    (+Number(a[dataIndex]) || 0) - (+Number(b[dataIndex]) || 0);
-
-const buildStrSorter =
-  (dataIndex: keyof KungfuApi.PositionResolved) =>
-  (a: KungfuApi.PositionResolved, b: KungfuApi.PositionResolved) =>
-    a[dataIndex].toString().localeCompare(b[dataIndex].toString());
-
+const { getPositionLastPrice } = useQuote();
+export { getPositionLastPrice };
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
-  lastPriceSorter: (a: KungfuApi.Position, b: KungfuApi.Position) => number,
-): KfTradingDataTableHeaderConfig[] =>
+): VTable.ColumnDefine[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'position')
-    .getColumns<KfTradingDataTableHeaderConfig>([
+    .getColumns<VTable.ColumnDefine>([
       {
-        type: 'string',
-        name: t('posGlobalConfig.instrument_id'),
-        dataIndex: 'instrument_id_resolved',
-        sorter: buildStrSorter('instrument_id_resolved'),
-        width: 140,
+        field: 'instrument_id_resolved',
+        title: t('posGlobalConfig.instrument_id'),
+        width: 190,
+        sort: sorter,
       },
       ...(isTd(kfLocation.category)
         ? []
         : [
             {
-              name: t('posGlobalConfig.account_id_resolved'),
-              dataIndex: 'account_id_resolved',
-              sorter: buildStrSorter('account_id_resolved'),
+              field: 'account_id_resolved',
+              title: t('posGlobalConfig.account_id_resolved'),
               width: 120,
+              sort: sorter,
             },
           ]),
       {
-        type: 'string',
-        name: '',
-        dataIndex: 'direction',
-        sorter: buildSorter('direction'),
-        width: 40,
-      },
-      {
-        type: 'number',
-        name: t('posGlobalConfig.static_yesterday'),
-        dataIndex: 'static_yesterday',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('static_yesterday'),
-      },
-      {
-        type: 'number',
-        name: t('posGlobalConfig.open_volume'),
-        dataIndex: 'open_volume',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('open_volume'),
-      },
-      {
-        type: 'number',
-        name: t('posGlobalConfig.close_volume'),
-        dataIndex: 'close_volume',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('close_volume'),
-      },
-      {
-        type: 'number',
-        name: t('posGlobalConfig.yesterday_volume'),
-        dataIndex: 'yesterday_volume',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('yesterday_volume'),
-      },
-      {
-        type: 'number',
-        name: t('posGlobalConfig.today_volume'),
-        dataIndex: 'today_volume',
-        flex: 1,
-        align: 'right',
-        sorter: (a: KungfuApi.Position, b: KungfuApi.Position) => {
-          const deltaA = a.volume - a.yesterday_volume;
-          const deltaB = b.volume - b.yesterday_volume;
-          return +Number(deltaA) - +Number(deltaB);
+        field: 'direction',
+        title: '',
+        width: 50,
+        style: {
+          color: (args) => {
+            return defaultColorMap[
+              dealDirection(args.dataValue).color || 'default'
+            ];
+          },
+        },
+        fieldFormat: (args) => {
+          return dealDirection(args.direction).name;
         },
       },
       {
-        type: 'number',
-        name: t('posGlobalConfig.sum_volume'),
-        dataIndex: 'volume',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('volume'),
+        field: 'static_yesterday',
+        title: t('posGlobalConfig.static_yesterday'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
       },
       {
-        type: 'number',
-        name: t('posGlobalConfig.frozen_volume'),
-        dataIndex: 'frozen_total',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('frozen_total'),
+        field: 'open_volume',
+        title: t('posGlobalConfig.open_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
       },
       {
-        type: 'number',
-        name: t('posGlobalConfig.closable_volume'),
-        dataIndex: 'closable_volume',
-        flex: 1,
-        align: 'right',
-        sorter: buildSorter('closable_volume'),
+        field: 'close_volume',
+        title: t('posGlobalConfig.close_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+      },
+      {
+        field: 'yesterday_volume',
+        title: t('posGlobalConfig.yesterday_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+      },
+      {
+        field: 'today_volume',
+        title: t('posGlobalConfig.today_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+      },
+      {
+        field: 'volume',
+        title: t('posGlobalConfig.sum_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+      },
+      {
+        field: 'frozen_total',
+        title: t('posGlobalConfig.frozen_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
+      },
+      {
+        field: 'closable_volume',
+        title: t('posGlobalConfig.closable_volume'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
       },
 
       {
-        type: 'number',
-        name: t('posGlobalConfig.avg_open_price'),
-        dataIndex: 'avg_open_price_resolved',
-        flex: 1.2,
-        align: 'right',
-        sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
-          'num',
-          'avg_open_price_resolved',
-        ),
+        field: 'avg_open_price_resolved',
+        title: t('posGlobalConfig.avg_open_price'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
       },
       {
-        type: 'number',
-        name: t('posGlobalConfig.last_price'),
-        dataIndex: 'last_price_resolved',
-        flex: 1.5,
-        align: 'right',
-        sorter: lastPriceSorter,
+        field: 'last_price_resolved',
+        title: t('posGlobalConfig.last_price'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        fieldFormat: (args) => {
+          return getPositionLastPrice(args, 'last_price_resolved') ?? '--';
+        },
+        sort: sorter,
       },
       {
-        type: 'number',
-        name: t('posGlobalConfig.unrealized_pnl'),
-        dataIndex: 'unrealized_pnl_resolved',
-        flex: 1.5,
-        align: 'right',
-        sorter: buildTableColumnSorterWithStrike<KungfuApi.PositionResolved>(
-          'num',
-          'unrealized_pnl_resolved',
-        ),
+        field: 'unrealized_pnl_resolved',
+        title: t('posGlobalConfig.unrealized_pnl'),
+        width: 110,
+        style: {
+          textAlign: 'right',
+          color: (args) => {
+            if (!Number(args.dataValue)) return defaultColorMap['text'];
+
+            return +args.dataValue > 0
+              ? defaultColorMap['red']
+              : defaultColorMap['green'];
+          },
+        },
+        headerStyle: {
+          textAlign: 'right',
+        },
+        sort: sorter,
       },
     ]);

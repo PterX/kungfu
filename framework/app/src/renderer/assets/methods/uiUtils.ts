@@ -122,33 +122,38 @@ import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 const globalStorage = getGlobalStorage();
 
-export const loadCustomFont = () => {
+export const getCustomFont = async (): Promise<string> => {
   const fontsDir = path.normalize(path.join(KUNGFU_RESOURCES_DIR, 'fonts'));
-  if (!fse.existsSync(fontsDir)) return Promise.resolve();
+  if (!fse.existsSync(fontsDir)) return '';
 
-  return fse.readdir(fontsDir).then((fontFiles) => {
-    return Promise.all(
-      fontFiles.map((fontFileName) => {
-        const fontName = fontFileName.split('.')[0];
-        const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
+  const fontFiles = await fse.readdir(fontsDir);
+  const loadedFonts: string[] = [];
 
-        if (fse.existsSync(fontFullPath)) {
-          return fsPromise.readFile(fontFullPath).then((fontBuffer) => {
-            const font = new FontFace(fontName, fontBuffer);
-            return font.load().then(() => {
-              document.fonts.add(font);
-              return fontName;
-            });
-          });
-        }
+  await Promise.all(
+    fontFiles.map(async (fontFileName) => {
+      const fontName = fontFileName.split('.')[0];
+      const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
 
-        return Promise.resolve('');
-      }),
-    ).then((fontNames) => {
-      const newLoadedFont = fontNames.filter((item) => !!item).join(', ');
-      document.body.style.fontFamily = `${newLoadedFont}, monospace, sans-serif`;
-    });
-  });
+      if (fse.existsSync(fontFullPath)) {
+        const fontBuffer = await fsPromise.readFile(fontFullPath);
+        const font = new FontFace(fontName, fontBuffer);
+        await font.load();
+        document.fonts.add(font);
+        loadedFonts.push(fontName);
+      }
+    }),
+  );
+
+  return loadedFonts.length > 0
+    ? `${loadedFonts.join(', ')}, monospace, sans-serif`
+    : '';
+};
+
+export const loadCustomFont = async () => {
+  const loadedFont = await getCustomFont();
+  if (loadedFont) {
+    document.body.style.fontFamily = loadedFont;
+  }
 };
 
 export const mergeExtLanguages = async () => {
@@ -687,7 +692,7 @@ export function useKeyboardControlContainerStyle(
   );
 
   function focusOutHandler() {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (
         container &&
         document.activeElement &&
@@ -695,6 +700,7 @@ export function useKeyboardControlContainerStyle(
       ) {
         removeStyle(element);
       }
+      clearTimeout(timer);
     });
   }
 
@@ -808,6 +814,39 @@ export const useTreeTableSearchKeyword = <T extends { children?: T[] }>(
   };
 };
 
+export const isKeywordInString = (keyword: string, str: string) => {
+  const escapedKeyword = escapeSpecialChar(keyword);
+  return new RegExp(escapedKeyword, 'ig').test(str);
+};
+
+export const searchByKeyword = <T>(
+  keyword: string,
+  dataList: T[],
+  keys: string[],
+  transform?: Record<string, (value: string | number) => string>,
+): T[] => {
+  if (!keyword) {
+    return dataList;
+  }
+
+  return dataList.filter((item: T) => {
+    const combinedValue = keys
+      .map((key: string) => {
+        let keyValue = (item as Record<string, unknown>)[key] as
+          | string
+          | number;
+
+        if (transform && transform[key]) {
+          keyValue = transform[key](keyValue);
+        }
+
+        return keyValue ? keyValue.toString() : '';
+      })
+      .join('_');
+    return isKeywordInString(keyword, combinedValue);
+  });
+};
+
 export const useTableSearchKeywordList = <T>(
   targetList: Ref<T[]> | ComputedRef<T[]>,
   searchObjects: {
@@ -875,25 +914,12 @@ export const useTableSearchKeyword = <T>(
 } => {
   const searchKeyword = ref<string>('');
   const tableData = computed(() => {
-    return targetList.value
-      .filter((item: T) => {
-        const combinedValue = keys
-          .map((key: string) => {
-            let keyWord = (item as Record<string, unknown>)[key] as
-              | string
-              | number;
-
-            if (transform && transform[key]) {
-              keyWord = transform[key](keyWord);
-            }
-
-            return keyWord ? keyWord.toString() : '';
-          })
-          .join('_');
-        const escapedKeyword = escapeSpecialChar(searchKeyword.value);
-        return new RegExp(escapedKeyword, 'ig').test(combinedValue);
-      })
-      .map((item) => toRaw(item));
+    return searchByKeyword(
+      searchKeyword.value,
+      targetList.value,
+      keys,
+      transform,
+    ).map((item) => toRaw(item));
   });
 
   return {
@@ -916,16 +942,7 @@ export const useDeepWatchTableSearchKeyword = <T>(
     () => ({ keyword: searchKeyword.value, list: targetList.value }),
     (newValue) => {
       const { keyword, list } = newValue;
-      tableData.value =
-        list.filter((item) => {
-          const combinedValue = keys
-            .map(
-              (key: string) =>
-                ((item[key] as string | number) || '').toString() || '',
-            )
-            .join('_');
-          return new RegExp(keyword, 'ig').test(combinedValue);
-        }) || [];
+      tableData.value = searchByKeyword(keyword, list, keys);
     },
     {
       deep: true,
@@ -1091,6 +1108,9 @@ export const openNewBrowserWindow = (
     });
 
     win.on('closed', () => {
+      if (currentWindow && currentWindow.isDestroyed()) {
+        currentWindow.restore();
+      }
       resolve(win);
     });
 
@@ -2559,5 +2579,15 @@ export const clearLocalStorageWithNewVersion = () => {
     if (rootPackageJson.appConfig?.clearLocalStorageWithNewVersion ?? false) {
       localStorage.clear();
     }
+  }
+};
+
+export const setPreStyle = () => {
+  const styleMap = {
+    '--ant-table-font-weight': os.platform() === 'win32' ? 'normal' : 'bold',
+  };
+  for (const key in styleMap) {
+    const value = styleMap[key];
+    document.documentElement.style.setProperty(key, value);
   }
 };

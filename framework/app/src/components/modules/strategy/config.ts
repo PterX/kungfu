@@ -97,6 +97,7 @@ export const setStrategyConfig: KungfuApi.KfStrategyExtConfig = {
       key: 'file_path',
       name: t('strategyConfig.strategy_path'),
       type: 'file',
+      fileExtensions: ['py', 'pyd', 'so'],
       tip: t('strategyConfig.strategy_path_tip'),
       required: true,
     },

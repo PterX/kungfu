@@ -2,7 +2,9 @@
   <div class="kf-state-status">
     <div
       v-if="stateStatusData && (stateStatusData.level || 0) !== 0"
-      :class="['kf-dot', stateStatusData?.color || '']"
+      :class="['kf-dot', stateStatusData?.color || '',
+        isWaveStatus(stateStatusData?.color) ? 'kf-dot-wave' : '',
+]"
     ></div>
     <div class="kf-state-name">
       {{ +(stateStatusData?.level || 0) === 0 ? '--' : stateStatusData?.name }}
@@ -26,6 +28,13 @@ export default defineComponent({
   computed: {
     stateStatusData(): KungfuApi.KfTradeValueCommonData | undefined {
       return getStateStatusData(this.statusName);
+    },
+  },
+
+  methods: {
+    isWaveStatus(statusColor: KungfuApi.AntInKungfuColorTypes | undefined) {
+      if (statusColor === 'kf-color-waiting') return true;
+      return false;
     },
   },
 });

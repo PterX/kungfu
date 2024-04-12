@@ -26,6 +26,7 @@ import {
   makeOrderByOrderInput,
   getPosClosableVolume,
   makeOrderByOrderTriggerInput,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
   InstrumentTypeEnum,
@@ -176,8 +177,8 @@ const configSettings = computed(() => {
     return getConfigSettings({});
   }
 
-  let step = 0.0001,
-    pricePrecision = 4;
+  let step = 1,
+    pricePrecision = 0;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
     const { price_tick, price_precision } = getPriceTickAndPrecision(
@@ -196,7 +197,7 @@ const configSettings = computed(() => {
     isSpecifyContract: isSpecifyContract.value,
     side,
     priceType: +formState.value.price_type,
-    pricePrecision,
+    pricePrecision: pricePrecision || null,
     step,
     sideList: sideList.value,
     offsetList: offsetList.value,
@@ -763,7 +764,13 @@ async function confirmApartCloseToOpen(
       return [makeOrderInput];
 
     if (volume > closableVolume) {
-      const openVolume = dealKfDecimalPrecision(volume - closableVolume);
+      const precision = getPrecisionByInstrumentType(
+        makeOrderInstrumentType.value,
+      );
+      const openVolume = dealKfDecimalPrecision(
+        volume - closableVolume,
+        precision,
+      );
       const firstOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         volume: closableVolume,
@@ -771,7 +778,7 @@ async function confirmApartCloseToOpen(
       const secondOrderInput: KungfuApi.MakeOrderInput = {
         ...makeOrderInput,
         offset: OffsetEnum.Open,
-        volume: dealKfDecimalPrecision(volume - closableVolume),
+        volume: dealKfDecimalPrecision(volume - closableVolume, precision),
       };
       const flag = await confirmContinueOrderModal(
         t('tradingConfig.close_apart_open_modal', {
@@ -982,6 +989,7 @@ function closeModalConditions(
   result: boolean;
   relationship?: string;
 } {
+  const precision = getPrecisionByInstrumentType(makeOrderInstrumentType.value);
   const makeOrderInput = dealStockOffset(orderInput);
   const { offset } = makeOrderInput;
 
@@ -991,6 +999,7 @@ function closeModalConditions(
 
   const positionVolumeResolved = dealKfDecimalPrecision(
     positionVolume * (closeRange / 100),
+    precision,
   );
 
   if (makeOrderInput.volume === positionVolumeResolved) {
@@ -1027,7 +1036,7 @@ const handlePercentChange = (target: number) => {
 
   let targetVolume;
   if (curOffset === OffsetEnum.Open) {
-    const availMoney = dealStringToNumber(currentAvailMoney.value);
+    const availMoney = dealStringToNumber(currentAvailMoney.value + '');
     const allVolume = currentPrice.value ? availMoney / currentPrice.value : 0;
     targetVolume = allVolume * targetPercent;
   } else {

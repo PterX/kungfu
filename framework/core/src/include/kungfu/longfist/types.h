@@ -232,6 +232,7 @@ KF_DEFINE_PACK_TYPE(                                                            
 
 KF_DEFINE_PACK_TYPE(                                       //
     OrderInput, 201, PK(order_id), TIMESTAMP(insert_time), //
+    (uint64_t, request_id),                                // api请求ID
     (uint64_t, order_id),                                  // 订单ID
     (uint64_t, parent_id),                                 // 母单号
 

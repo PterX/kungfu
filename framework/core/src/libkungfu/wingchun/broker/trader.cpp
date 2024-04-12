@@ -6,6 +6,7 @@
 
 #include <kungfu/common.h>
 #include <kungfu/wingchun/broker/trader.h>
+#include <kungfu/yijinjing/cache/cached.h>
 #include <kungfu/yijinjing/journal/tracer.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -16,6 +17,7 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
+using namespace kungfu::yijinjing::cache;
 
 namespace kungfu::wingchun::broker {
 
@@ -148,7 +150,7 @@ void Trader::recover_from_journal() {
     case Order::tag:
     case Trade::tag:
     case OrderTrigger::tag:
-      get_vendor().feed_state_data(frame, state_bank);
+      cached::feed_state_data(frame, state_bank);
       ++count;
       break;
     }
@@ -195,7 +197,7 @@ void Trader::deal_write_frame() {
 
   SPDLOG_DEBUG("after state_bank read, count: {}", count);
 
-  get_order_service().clean_orders(disable_recover_);
+  get_order_service().lost_orders(disable_recover_);
   get_order_trigger_service().clean_order_triggers(disable_recover_);
   get_algo_order_service().clean_algo_orders(disable_recover_);
 }
@@ -210,7 +212,7 @@ void Trader::deal_read_frame() {
   count += order_input_state_map.size();
   std::for_each(order_input_state_map.begin(), order_input_state_map.end(), [&](auto &pair) {
     auto &order_input_state = pair.second;
-    get_order_service().clean_orders(order_input_state.source, order_input_state.data, disable_recover_);
+    get_order_service().lost_orders(order_input_state.source, order_input_state.data, disable_recover_);
   });
 
   auto &order_trigger_input_state_map = state_bank[boost::hana::type_c<OrderTriggerInput>];
@@ -231,6 +233,16 @@ void Trader::deal_read_frame() {
 
   SPDLOG_DEBUG("after state_bank read, count: {}", count);
 }
+
+void Trader::clean_finished_orders() {
+  if (state_ == BrokerState::Ready) {
+    get_order_service().clean_finished_orders(time::now_in_nano());
+  }
+}
+
+void Trader::clean_orders() { get_order_service().clean_finished_orders(); }
+
+void Trader::clean_trades() { get_order_service().clean_trades(); }
 
 uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 

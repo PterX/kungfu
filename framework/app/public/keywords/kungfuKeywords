@@ -143,6 +143,7 @@ is_trading
 long_margin_ratio
 short_margin_ratio
 conversion_rate
+request_id
 order_id
 parent_id
 limit_price
@@ -467,6 +468,13 @@ find_md_slice_location
 get_md_slice_end_time
 find_operator_slice_location
 get_operator_slice_end_time
+submit_acquire_location
+submit_release_location
+wait_acquire_location
+wait_release_location
+acquire_lead_ratio
+release_delay_ratio
+sync_save_location
 init
 sumerize
 on_read_synthetic_data
@@ -587,11 +595,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
-Tick
-Depth
 SubscribeDataType
 Stock
 Future

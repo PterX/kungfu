@@ -28,11 +28,15 @@ import {
   FundTransEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
+import {
+  DEFAULT_PRECISION,
+  CRYPTO_PRECISION,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
 
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
+import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+const { t } = useLanguage();
 
 export const Pm2ProcessStatus: Record<
   Pm2ProcessStatusTypes,
@@ -200,7 +204,7 @@ export const Offset: Record<OffsetEnum, KungfuApi.KfTradeValueCommonData> = {
   },
 };
 
-export const marginSideConfig: Record<
+export const MarginSideConfig: Record<
   string,
   KungfuApi.KfTradeValueCommonData
 > = {
@@ -712,11 +716,12 @@ export const showVolumeSideTypes = [
 ];
 
 export const T0InstrumentTypes = [
-  InstrumentTypeEnum.cryptofuture,
-  InstrumentTypeEnum.cryptoufuture,
   InstrumentTypeEnum.future,
   InstrumentTypeEnum.bond,
   InstrumentTypeEnum.stockoption,
+  InstrumentTypeEnum.crypto,
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
 ];
 
 export const T0ExchangeIds = ['US', 'HK', 'SHHK', 'SZHK'];
@@ -751,11 +756,23 @@ export const AbleSubscribeInstrumentTypesBySourceType: Record<
 
   repo: [InstrumentTypeEnum.repo],
 
-  crypto: [InstrumentTypeEnum.crypto],
+  crypto: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
-  cryptofuture: [InstrumentTypeEnum.cryptofuture],
+  cryptofuture: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
-  cryptoufuture: [InstrumentTypeEnum.cryptoufuture],
+  cryptoufuture: [
+    InstrumentTypeEnum.crypto,
+    InstrumentTypeEnum.cryptofuture,
+    InstrumentTypeEnum.cryptoufuture,
+  ],
 
   multi: [
     InstrumentTypeEnum.stock,
@@ -1151,4 +1168,26 @@ export const sideOffsetMap = {
     [OffsetEnum.Unknown]: '--',
   },
   [SideEnum.Unknown]: '--',
+};
+
+export const CryptoInstrumentTypes = [
+  InstrumentTypeEnum.crypto,
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
+];
+
+export const InstrumentPrecision: Record<InstrumentTypeEnum, number> = {
+  [InstrumentTypeEnum.unknown]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stockoption]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.techstock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.future]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.bond]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.fund]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.index]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.repo]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.crypto]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptofuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptoufuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.multi]: DEFAULT_PRECISION,
 };

@@ -27,7 +27,8 @@ DECLARE_PTR(BookListener)
 
 class Bookkeeper {
 public:
-  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false);
+  explicit Bookkeeper(yijinjing::practice::apprentice &app, broker::Client &broker_client, bool bypass_quote = false,
+                      bool bypass_replace_trading_data = false);
 
   virtual ~Bookkeeper() = default;
 
@@ -97,7 +98,9 @@ public:
       auto apply = [&](auto &position) { position.update_time = update_time; };
       auto direction = get_direction(data.instrument_type, data.side, data.offset);
       book->apply_position(account_id, direction, data.exchange_id, data.instrument_id, apply);
-      book->replace(data);
+      if (not bypass_replace_trading_data_) {
+        book->replace(data);
+      }
       book->update(update_time);
     };
     apply_and_update(account_id);
@@ -116,7 +119,9 @@ public:
     auto apply_and_update = [&](uint32_t book_uid, bool is_td = false) {
       auto book = get_book(book_uid);
       book->add_source_id(account_id);
-      book->replace(data);
+      if (not bypass_replace_trading_data_) {
+        book->replace(data);
+      }
     };
     apply_and_update(account_id);
     if (dest != yijinjing::data::location::PUBLIC and dest != yijinjing::data::location::SYNC) {
@@ -146,8 +151,10 @@ private:
   yijinjing::practice::apprentice &app_;
   broker::Client &broker_client_;
   book::StaticData static_data_;
+
   const bool bypass_quote_;
   QuoteStateMap quotes_;
+  const bool bypass_replace_trading_data_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
   std::mutex update_book_mutex_;

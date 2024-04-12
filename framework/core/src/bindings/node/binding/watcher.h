@@ -22,8 +22,8 @@
 namespace kungfu::node {
 constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
-constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
 constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
+constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 1000;
 
 class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
 public:
@@ -58,8 +58,6 @@ public:
   Napi::Value GetInstrumentUID(const Napi::CallbackInfo &info);
 
   Napi::Value GetInstrumentType(const Napi::CallbackInfo &info);
-
-  Napi::Value GetState(const Napi::CallbackInfo &info);
 
   Napi::Value GetLedger(const Napi::CallbackInfo &info);
 
@@ -123,8 +121,12 @@ public:
 
   bool is_reactable(const event_ptr &event) override;
 
+  void drain_from_trading_data_reader(uint32_t step_limit = 0);
+
+  bool is_step_continually();
+
 protected:
-  const bool bypass_quote_;
+  const bool bypass_accounting_;
   const bool bypass_trading_data_;
   const bool refresh_trading_data_before_sync_;
   const bool bypass_refresh_book_;
@@ -148,24 +150,25 @@ private:
 
   WatcherAutoClient broker_client_;
   wingchun::book::Bookkeeper bookkeeper_;
-  Napi::ObjectReference state_ref_;
   Napi::ObjectReference ledger_ref_;
   Napi::ObjectReference app_states_ref_;
   Napi::ObjectReference strategy_states_ref_;
   Napi::ObjectReference config_ref_;
-  serialize::JsUpdateState update_state;
   serialize::JsUpdateState update_ledger;
-  serialize::JsPublishState publish;
   serialize::JsResetCache reset_cache;
   yijinjing::cache::bank data_bank_;
-  yijinjing::cache::bank unfinished_trading_data_bank_;
+  yijinjing::cache::bank trading_data_bank_;
+  yijinjing::cache::deque_bank trading_data_cached_bank_;
   std::vector<kungfu::state<longfist::types::CacheReset>> reset_cache_states_;
   InstrumentKeyMap subscribed_instruments_ = {};
   std::unordered_map<uint32_t, int> broker_states_map_ = {};
   std::unordered_map<uint32_t, longfist::types::StrategyStateUpdate> strategy_states_map_ = {};
 
-  typedef kungfu::longfist::enums::mode mode;
-  typedef kungfu::longfist::enums::category category;
+  yijinjing::journal::reader_ptr trading_data_reader_; // order, trade, orderStat
+  uint32_t trading_data_count_by_step_ = 0;
+
+  typedef longfist::enums::mode mode;
+  typedef longfist::enums::category category;
 
   static constexpr auto bypass = [](yijinjing::practice::apprentice *app, bool bypass_quotes) {
     return rx::filter([&](const event_ptr &event) {
@@ -182,20 +185,19 @@ private:
 
   static constexpr auto is_trading_data = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::TradingDataTags.find(event->msg_type()) != kungfu::longfist::TradingDataTags.end();
+      return longfist::RefreshRequiredDataTags.find(event->msg_type()) != longfist::RefreshRequiredDataTags.end();
     });
   };
 
-  static constexpr auto is_trading_data_with_status = []() {
+  static constexpr auto not_trading_data = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::TradingDataWithStatusTags.find(event->msg_type()) !=
-             kungfu::longfist::TradingDataWithStatusTags.end();
+      return longfist::RefreshRequiredDataTags.find(event->msg_type()) == longfist::RefreshRequiredDataTags.end();
     });
   };
 
   static constexpr auto is_static_data = []() {
     return rx::filter([&](const event_ptr &event) {
-      return kungfu::longfist::StaticDataTags.find(event->msg_type()) != kungfu::longfist::StaticDataTags.end();
+      return longfist::StaticDataTags.find(event->msg_type()) != longfist::StaticDataTags.end();
     });
   };
 
@@ -234,6 +236,8 @@ private:
 
   void SyncTradingData();
 
+  void SyncTradingDataFromCached();
+
   void SyncAppStates();
 
   void SyncStrategyStates();
@@ -245,6 +249,8 @@ private:
   void StartWorker();
 
   void CancelWorker();
+
+  void ResetTradingDataCount() { trading_data_count_by_step_ = 0; };
 
   void refresh_books();
 
@@ -269,14 +275,14 @@ private:
       auto book = bookkeeper_.get_book(source);
 
       auto apply = [&](auto &position) {
-        state<kungfu::longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
+        state<longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
         feed_state_data_bank(cache_state_position, data_bank_);
       };
 
       book->apply_position_for(data, apply);
       book->apply_opposite_position_for(data, apply);
 
-      state<kungfu::longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
+      state<longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
       feed_state_data_bank(cache_state_asset, data_bank_);
     };
     update(event->source(), event->dest());
@@ -286,7 +292,7 @@ private:
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<kungfu::longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
+    state<longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
     data_bank_ << cache_state_order_trigger_input;
   }
 
@@ -294,14 +300,14 @@ private:
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
                                                                                         const TradingData &data) {
     bookkeeper_.on_order_input(now(), source, dest, data);
-    state<kungfu::longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
-    data_bank_ << cache_state_order_input;
+    state<longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
+    trading_data_bank_ << cache_state_order_input;
   }
 
   template <typename TradingData>
   std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
   UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<kungfu::longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
+    state<longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
     data_bank_ << cache_state_algo_order_input;
   }
 
@@ -332,8 +338,8 @@ private:
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
     auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
     auto is_static_data_type = longfist::StaticDataTags.find(DataType::tag) != longfist::StaticDataTags.end();
-    auto iter = target_map.begin();
     auto count = 0;
+    auto iter = target_map.begin();
     while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
@@ -347,14 +353,24 @@ private:
 
   template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
     using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &target_map = const_cast<DataTypeMap &>(data_bank_[type]);
+    auto &target_map = const_cast<DataTypeMap &>(trading_data_bank_[type]);
     auto iter = target_map.begin();
-    auto count = 0;
-    while (iter != target_map.end() and count < TRANSFER_TRADING_DATA_LIMIT) {
+    while (iter != target_map.end()) {
       const auto &state = iter->second;
       update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter = target_map.erase(iter);
-      count++;
+      iter++;
+    }
+    target_map.clear();
+  }
+
+  template <typename DataType> void UpdateTradingDataFromCacheD(const boost::hana::basic_type<DataType> &type) {
+    using DataTypeDeque = std::deque<state<DataType>>;
+    auto &target_deque = const_cast<DataTypeDeque &>(trading_data_cached_bank_[type]);
+    auto count = 0;
+    while (not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
+      const auto &state = target_deque.front();
+      update_ledger(state.update_time, state.source, state.dest, state.data);
+      target_deque.pop_front();
     }
   }
 
@@ -391,6 +407,7 @@ private:
 
   template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
   Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {
+    std::lock_guard<std::mutex> guard(feed_mutex_);
     try {
       auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
       if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {

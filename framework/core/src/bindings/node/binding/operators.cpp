@@ -27,25 +27,11 @@ void InitStateMap(const Napi::CallbackInfo &info, Napi::ObjectReference &state, 
   state.Value().DefineProperty(Napi::PropertyDescriptor::Value("state_name", Napi::String::New(state.Env(), name)));
 }
 
-void InitTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name) {
-  boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
-    auto name = std::string(boost::hana::first(it).c_str());
-    state.Set(name, DataTable::NewInstance(state.Value()));
-  });
-  state.Value().DefineProperty(Napi::PropertyDescriptor::Value("state_name", Napi::String::New(state.Env(), name)));
-}
-
-void RefreshTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name,
-                                  const yijinjing::cache::bank &state_bank) {
-  boost::hana::for_each(longfist::TradingDataTypes, [&](auto it) {
+void RefreshTradingDataInStateMap(Napi::ObjectReference &state, const std::string &name) {
+  boost::hana::for_each(longfist::RefreshRequiredDataTypes, [&](auto it) {
     using DataType = typename decltype(+boost::hana::second(it))::type;
     auto hana_type = boost::hana::type_c<DataType>;
     auto type_name = std::string(boost::hana::first(it).c_str());
-
-    if (state_bank[hana_type].size() == 0) {
-      return;
-    }
-
     state.Set(type_name, DataTable::NewInstance(state.Value()));
   });
 }

@@ -50,13 +50,7 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
 
 bool AccountingMethod::guard_order_accounting(uint32_t source, uint32_t dest, Book_ptr book,
                                               const longfist::types::Order &order) {
-  auto &orders = book->orders;
   if (not is_final_status(order.status)) {
-    return false;
-  }
-
-  // prevent pos && asset from repeat unfrozen
-  if (orders.find(order.order_id) != orders.end() and is_final_status(orders.at(order.order_id).status)) {
     return false;
   }
 
@@ -69,11 +63,6 @@ bool AccountingMethod::guard_order_accounting(uint32_t source, uint32_t dest, Bo
 
 bool AccountingMethod::guard_trade_accounting(uint32_t source, uint32_t dest, Book_ptr book,
                                               const longfist::types::Trade &trade) {
-  auto &trades = book->trades;
-  if (trades.find(trade.trade_id) != trades.end()) {
-    return false;
-  }
-
   if (dest == location::SYNC or dest == location::PUBLIC) {
     return false;
   }

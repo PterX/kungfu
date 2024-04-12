@@ -1001,7 +1001,8 @@ export const useWritableTableSearchKeyword = <T>(
                 return keyWord ? keyWord.toString() : '';
               })
               .join('_');
-            return new RegExp(keyword, 'ig').test(combinedValue);
+            const escapedKeyword = escapeSpecialChar(keyword);
+            return new RegExp(escapedKeyword, 'ig').test(combinedValue);
           }) || [];
     },
     {

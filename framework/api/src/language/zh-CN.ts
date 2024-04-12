@@ -506,7 +506,6 @@ export default {
 
     avail_funds: '可用资金',
     avail_margin: '可用保证金',
-    cash_debt: '融资负债',
     total_asset: '总资产',
     actions: '操作',
 

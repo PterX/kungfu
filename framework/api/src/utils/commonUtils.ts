@@ -29,7 +29,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
-  precision = 12,
+  precision = 9,
 ): string | number => {
   if (
     preNumber === undefined ||
@@ -50,7 +50,7 @@ export const dealKfNumber = (
 
 export const dealKfDecimalPrecision = (
   originNum: number,
-  precision = 12,
+  precision = 9,
 ): number => {
   if (originNum.toString().indexOf('e') !== -1) {
     return originNum;
@@ -386,7 +386,7 @@ export function countDecimalPlaces(num: number) {
   if (String(num).indexOf('e-') !== -1) {
     return parseInt(String(num).split('e-')[1], 10);
   }
-  const normalNum = Number(num).kfToFixed(12);
+  const normalNum = Number(num).kfToFixed(9);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')
     .replace(/\.0+$/, '');

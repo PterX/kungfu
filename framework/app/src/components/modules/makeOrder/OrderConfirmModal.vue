@@ -7,7 +7,10 @@ import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commo
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ref, toRefs, computed, getCurrentInstance, onMounted } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  isShotable,
+  getPrecisionByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
 const { error } = messagePrompt();
@@ -40,7 +43,12 @@ onMounted(() => {
 
 const orderNumber = computed(() => {
   return volume.value
-    ? Math.floor(dealKfDecimalPrecision(curOrderVolume.value / volume.value))
+    ? Math.floor(
+        dealKfDecimalPrecision(
+          curOrderVolume.value / volume.value,
+          precision.value,
+        ),
+      )
     : 0;
 });
 
@@ -55,6 +63,10 @@ const defaultVolume = computed(() => {
   return 100;
 });
 
+const precision = computed(() => {
+  return getPrecisionByInstrumentType(curOrderType);
+});
+
 const volume = ref<number>(defaultVolume.value);
 
 function handleConfirm() {
@@ -64,6 +76,7 @@ function handleConfirm() {
   }
   const remainder: number = dealKfDecimalPrecision(
     curOrderVolume.value % volume.value,
+    precision.value,
   ); // 剩余数量
   const volumeList: number[] = new Array(+orderNumber.value).fill(volume.value);
 

@@ -280,12 +280,12 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'unrealizedPnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealKfNumber(getAssetsByKfConfig(record).unrealized_pnl)"
+              :num="dealKfNumber(getAssetsByKfConfig(record).unrealized_pnl, 4)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'marketValue'">
             <KfBlinkNum
-              :num="dealKfNumber(getAssetsByKfConfig(record).market_value)"
+              :num="dealKfNumber(getAssetsByKfConfig(record).market_value, 4)"
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">

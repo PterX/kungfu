@@ -13,6 +13,7 @@ import {
   getNanoDateString,
   isShowPosition,
   isStock,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
@@ -1513,19 +1514,21 @@ export const useQuote = (): {
     //有行情时，根据 quote 和 position 更新时间取最新 last_price,
     // 若 position 没有 last_price, 则取 quote 的 last_price
     const quote = getQuoteByPosition(pos);
+    const precision = getPrecisionByInstrumentType(pos.instrument_type);
     if (quote) {
       return dealKfDecimalPrecision(
         quote.last_price || Number(pos[lastPriceKey]) || 0,
+        precision,
       );
     }
-    return dealKfDecimalPrecision(Number(pos[lastPriceKey]) || 0);
+    return dealKfDecimalPrecision(Number(pos[lastPriceKey]) || 0, precision);
   };
 
   const getLastPricePercent = (
     instrument: KungfuApi.InstrumentResolved,
   ): string => {
     const quote = getQuoteByInstrument(instrument);
-
+    const precision = getPrecisionByInstrumentType(instrument.instrumentType);
     if (!quote) {
       return '--';
     }
@@ -1537,6 +1540,7 @@ export const useQuote = (): {
 
     const percent = dealKfDecimalPrecision(
       (last_price - pre_close_price) / pre_close_price,
+      precision,
     );
     if (percent === Infinity) {
       return '--';
@@ -2098,8 +2102,19 @@ export const useAssets = (): {
   getAssetsByTdGroup(
     tdGroup: KungfuApi.KfExtraLocation,
   ): KungfuApi.Asset | Record<string, never>;
+  dealAssetPrecision(asset: KungfuApi.Asset): KungfuApi.Asset;
 } => {
   const { assets } = storeToRefs(useGlobalStore());
+
+  const dealAssetPrecision = (asset: KungfuApi.Asset) => {
+    const assetCopy = { ...asset };
+    Object.keys(assetCopy).forEach((key) => {
+      if (typeof assetCopy[key] === 'number') {
+        assetCopy[key] = dealKfDecimalPrecision(assetCopy[key], 4);
+      }
+    });
+    return assetCopy;
+  };
 
   const getAssetsByKfConfig = (
     kfConfig: KungfuApi.KfLocation | KungfuApi.KfConfig,
@@ -2140,6 +2155,7 @@ export const useAssets = (): {
     assets,
     getAssetsByKfConfig,
     getAssetsByTdGroup,
+    dealAssetPrecision,
   };
 };
 
@@ -2559,16 +2575,28 @@ export const getPosClosableVolumeByOffset = (
     frozen_total,
     frozen_yesterday,
   } = position;
-  const today_volume = dealKfDecimalPrecision(volume - yesterday_volume);
+  const precision = getPrecisionByInstrumentType(position.instrument_type);
+  const today_volume = dealKfDecimalPrecision(
+    volume - yesterday_volume,
+    precision,
+  );
   const frozen_today = frozen_total - frozen_yesterday;
   const shotable_closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_yesterday,
+    precision,
   );
   const closable_yesterday = dealKfDecimalPrecision(
     yesterday_volume - frozen_total,
+    precision,
   );
-  const closable_today = dealKfDecimalPrecision(today_volume - frozen_today);
-  const closable_total = dealKfDecimalPrecision(volume - frozen_total);
+  const closable_today = dealKfDecimalPrecision(
+    today_volume - frozen_today,
+    precision,
+  );
+  const closable_total = dealKfDecimalPrecision(
+    volume - frozen_total,
+    precision,
+  );
 
   if (isShotable(instrument_type) || isT0(instrument_type, exchange_id)) {
     if (offset === OffsetEnum.CloseYest) {
@@ -2777,25 +2805,25 @@ export const useMakeOrderInfo = (
           currentAccountLocation.value,
         ).gage_buy_fund_available;
 
-        return dealKfNumber(avail);
+        return dealKfNumber(avail, 4);
       } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).credit_buy_fund_available;
 
-        return dealKfNumber(avail);
+        return dealKfNumber(avail, 4);
       } else if (side === SideEnum.RepayStock) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).buyredeliver_fund_available;
 
-        return dealKfNumber(avail);
+        return dealKfNumber(avail, 4);
       }
     }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
-    return dealKfNumber(avail);
+    return dealKfNumber(avail, 4);
   });
 
   const currentAvailPosVolume = computed(() => {
@@ -2865,10 +2893,12 @@ export const useMakeOrderInfo = (
         if (offset === OffsetEnum.Open) {
           return dealKfNumber(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
+            4,
           );
         } else {
           return dealKfNumber(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
+            4,
           );
         }
       } else {

@@ -345,10 +345,10 @@ export class TradingDataDashboard extends Dashboard {
 
     const { market_value, avail, margin, unrealized_pnl } = asset;
 
-    assetForShow.market_value = dealKfNumber(market_value) + '';
-    assetForShow.avail = colorNum(dealKfNumber(avail));
-    assetForShow.margin = dealKfNumber(margin) + '';
-    assetForShow.unrealized_pnl = colorNum(dealKfNumber(unrealized_pnl));
+    assetForShow.market_value = dealKfNumber(market_value, 4) + '';
+    assetForShow.avail = colorNum(dealKfNumber(avail, 4));
+    assetForShow.margin = dealKfNumber(margin, 4) + '';
+    assetForShow.unrealized_pnl = colorNum(dealKfNumber(unrealized_pnl, 4));
 
     return Object.entries(assetForShow).map((kvPair: (string | number)[]) => {
       const key = kvPair[0];

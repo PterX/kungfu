@@ -11,6 +11,7 @@ import {
   dealOffset,
   dealSide,
   getAccountIdStyle,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
@@ -102,9 +103,11 @@ export const getColumns = (
         },
         sort: sorter,
         fieldFormat: (args) => {
-          return `${dealKfDecimalPrecision(args.volume - args.volume_left)} / ${
-            args.volume
-          }`;
+          const precision = getPrecisionByInstrumentType(args.instrument_type);
+          return `${dealKfDecimalPrecision(
+            args.volume - args.volume_left,
+            precision,
+          )} / ${dealKfDecimalPrecision(args.volume, precision)}`;
         },
       },
       {

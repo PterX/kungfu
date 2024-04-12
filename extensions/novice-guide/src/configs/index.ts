@@ -8,6 +8,7 @@ import {
   KF_HOME,
 } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
 import { addFileSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
 
 import { AutoAddConfigs } from '../typings';
 
@@ -52,6 +53,7 @@ export const getStrategyDemoAutoAddConfigs = async () => {
     (ext) => ext.type === KfExtTypeEnum.Example,
   );
 
+  kfLogger.info('extList', extList);
   if (!strategyDemoExts.length) return configs;
 
   const strategyDemoAssets: Array<

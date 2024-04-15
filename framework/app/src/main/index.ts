@@ -9,6 +9,7 @@ import {
   Menu,
   MenuItemConstructorOptions,
   shell,
+  powerSaveBlocker,
 } from 'electron';
 import { initialize, enable as enableRemote } from '@electron/remote/main';
 import path from 'path';
@@ -66,6 +67,8 @@ setMenu();
 initKfConfig();
 initKfDefaultInstruments();
 copyConfigDBToLatestVersionDir();
+
+powerSaveBlocker.start('prevent-app-suspension');
 
 async function createWindow(
   reloadAfterCrashed = false,

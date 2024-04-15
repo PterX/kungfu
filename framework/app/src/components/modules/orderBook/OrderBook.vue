@@ -21,6 +21,7 @@ import {
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { getPrecisionByInstrumentType } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -202,7 +203,10 @@ function toLedgalPriceVolume(num: number | bigint) {
         <div class="price">
           {{
             limitPrices[0] !== 0 && limitPrices[0] !== undefined
-              ? dealKfNumber(toLedgalPriceVolume(limitPrices[0]))
+              ? dealKfNumber(
+                  toLedgalPriceVolume(limitPrices[0]),
+                  getPrecisionByInstrumentType(quoteData?.instrument_type),
+                )
               : '--'
           }}
         </div>
@@ -258,14 +262,19 @@ function toLedgalPriceVolume(num: number | bigint) {
       <div class="price info-item">
         <div class="main">
           {{
-            dealKfNumber(getQuoteByInstrument(currentInstrument)?.last_price)
+            dealKfNumber(
+              getQuoteByInstrument(currentInstrument)?.last_price,
+              getPrecisionByInstrumentType(quoteData?.instrument_type),
+            )
           }}
         </div>
         <div class="sub">
           <KfBlinkNum
             blink-type="color"
             mode="compare-zero"
-            :num="getLastPricePercent(currentInstrument)"
+            :num="
+              currentInstrument ? getLastPricePercent(currentInstrument) : 0
+            "
           ></KfBlinkNum>
         </div>
       </div>
@@ -301,7 +310,10 @@ function toLedgalPriceVolume(num: number | bigint) {
         <div class="price">
           {{
             limitPrices[1] !== 0 && limitPrices[1] !== undefined
-              ? dealKfNumber(toLedgalPriceVolume(limitPrices[1]))
+              ? dealKfNumber(
+                  toLedgalPriceVolume(limitPrices[1]),
+                  getPrecisionByInstrumentType(quoteData?.instrument_type),
+                )
               : '--'
           }}
         </div>

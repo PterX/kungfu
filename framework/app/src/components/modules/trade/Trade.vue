@@ -4,6 +4,7 @@ import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtil
 import {
   messagePrompt,
   searchByKeyword,
+  useBrowserWindowFocus,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -48,6 +49,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
+const windowFocus = useBrowserWindowFocus();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
@@ -137,6 +139,9 @@ onActivated(() => {
     async (data) => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
+
+      if (!windowFocus.value) return;
+
       if (historyDate.value) {
         return;
       }

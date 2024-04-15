@@ -49,6 +49,8 @@ import {
 import {
   getIdByKfLocation,
   getPrimaryKeys,
+  MAX_PRECISION,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealPriceType,
@@ -295,8 +297,9 @@ watch(
                   break;
                 case 'float':
                 case 'percent':
-                  formState.value[key] = Number(newVal[key]).kfRound(
-                    numberKeys.value[key].precision ?? 12,
+                  formState.value[key] = dealKfDecimalPrecision(
+                    formState.value[key],
+                    numberKeys.value[key].precision ?? MAX_PRECISION,
                   );
                   break;
               }

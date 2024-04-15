@@ -511,7 +511,6 @@ export default {
 
     avail_funds: 'Avail Funds',
     avail_margin: 'Avail Margin',
-    cash_debt: 'Cash Debt',
     total_asset: 'Total Asset',
     actions: 'Actions',
 

@@ -42,6 +42,7 @@ import {
   getProcessIdByKfLocation,
   getConfigValue,
   buildTableColumnSorterWithStrike,
+  ASSET_PRECISION,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { getColumns, setStrategyConfig } from './config';
 import path from 'path';
@@ -280,12 +281,22 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
           <template v-else-if="column.dataIndex === 'unrealizedPnl'">
             <KfBlinkNum
               mode="compare-zero"
-              :num="dealKfNumber(getAssetsByKfConfig(record).unrealized_pnl)"
+              :num="
+                dealKfNumber(
+                  getAssetsByKfConfig(record).unrealized_pnl,
+                  ASSET_PRECISION,
+                )
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'marketValue'">
             <KfBlinkNum
-              :num="dealKfNumber(getAssetsByKfConfig(record).market_value)"
+              :num="
+                dealKfNumber(
+                  getAssetsByKfConfig(record).market_value,
+                  ASSET_PRECISION,
+                )
+              "
             ></KfBlinkNum>
           </template>
           <template v-else-if="column.dataIndex === 'actions'">

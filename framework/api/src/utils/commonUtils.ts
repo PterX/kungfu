@@ -5,6 +5,11 @@ import path from 'path';
 import { Observable } from 'rxjs';
 import os from 'os';
 
+export const DEFAULT_PRECISION = 9;
+export const CRYPTO_PRECISION = 14;
+export const ASSET_PRECISION = 4;
+export const MAX_PRECISION = 14;
+
 export const booleanProcessEnv = (
   val: string | boolean | undefined,
 ): boolean => {
@@ -29,7 +34,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
-  precision = 12,
+  precision = DEFAULT_PRECISION,
 ): string | number => {
   if (
     preNumber === undefined ||
@@ -50,7 +55,7 @@ export const dealKfNumber = (
 
 export const dealKfDecimalPrecision = (
   originNum: number,
-  precision = 12,
+  precision = DEFAULT_PRECISION,
 ): number => {
   if (originNum.toString().indexOf('e') !== -1) {
     return originNum;
@@ -386,7 +391,7 @@ export function countDecimalPlaces(num: number) {
   if (String(num).indexOf('e-') !== -1) {
     return parseInt(String(num).split('e-')[1], 10);
   }
-  const normalNum = Number(num).kfToFixed(12);
+  const normalNum = Number(num).kfToFixed(DEFAULT_PRECISION);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')
     .replace(/\.0+$/, '');

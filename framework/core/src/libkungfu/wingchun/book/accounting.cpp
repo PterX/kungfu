@@ -9,6 +9,7 @@
 #include "accounting/default/future.hpp"
 #include "accounting/default/repo.hpp"
 #include "accounting/default/stock.hpp"
+#include "accounting/otc/otc_future.hpp"
 #include "accounting/otc/stock.hpp"
 #include <kungfu/wingchun/book/bookkeeper.h>
 
@@ -30,6 +31,8 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
     bookkeeper.set_accounting_method(InstrumentType::TechStock, otc_stock_accounting_method);
     bookkeeper.set_accounting_method(InstrumentType::Fund, otc_stock_accounting_method);
     bookkeeper.set_accounting_method(InstrumentType::Index, otc_stock_accounting_method);
+    auto otc_future_accounting_method = std::make_shared<OtcFutureAccountingMethod>();
+    bookkeeper.set_accounting_method(InstrumentType::Future, otc_future_accounting_method);
   } else {
     auto stock_accouting_method = std::make_shared<StockAccountingMethod>();
     bookkeeper.set_accounting_method(InstrumentType::Unknown, stock_accouting_method);
@@ -37,10 +40,11 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
     bookkeeper.set_accounting_method(InstrumentType::TechStock, stock_accouting_method);
     bookkeeper.set_accounting_method(InstrumentType::Fund, stock_accouting_method);
     bookkeeper.set_accounting_method(InstrumentType::Index, stock_accouting_method);
+    auto future_accounting_method = std::make_shared<FutureAccountingMethod>();
+    bookkeeper.set_accounting_method(InstrumentType::Future, future_accounting_method);
   }
 
   bookkeeper.set_accounting_method(InstrumentType::StockOption, future_accounting_method);
-  bookkeeper.set_accounting_method(InstrumentType::Future, future_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Bond, bond_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Repo, repo_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Crypto, crypto_accounting_method);

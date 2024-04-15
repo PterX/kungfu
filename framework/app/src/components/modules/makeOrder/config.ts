@@ -149,7 +149,7 @@ export const getConfigSettings = ({
       key: 'volume',
       name: t('tradingConfig.volume'),
       type: volumePrecision ? 'float' : 'int',
-      precision: volumePrecision || 0,
+      precision: volumePrecision ?? null,
       min: 0,
       step: volumeStep || 1,
       required: true,

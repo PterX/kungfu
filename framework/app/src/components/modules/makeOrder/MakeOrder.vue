@@ -1043,8 +1043,9 @@ const handlePercentChange = (target: number) => {
       instrumentId,
       exchangeId,
     );
-    quantityUnit = quantity_unit || 0;
+    quantityUnit = quantity_unit;
   }
+
 
   const curOffset = getResolvedOffset(
     offset,

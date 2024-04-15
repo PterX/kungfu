@@ -1673,8 +1673,7 @@ export const dealVolumeByInstrumentType = (
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
 
-  if (minOrderVolume === 0)
-    return dealKfDecimalPrecision(orderVolume, precision);
+  if (!minOrderVolume) return dealKfDecimalPrecision(orderVolume, precision);
 
   const multiplier = Math.floor(orderVolume / minOrderVolume);
   const maxMultipleValue = minOrderVolume * multiplier;

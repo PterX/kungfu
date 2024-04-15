@@ -28,6 +28,10 @@ import {
   FundTransEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
+import {
+  DEFAULT_PRECISION,
+  CRYPTO_PRECISION,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
 
@@ -1164,4 +1168,26 @@ export const sideOffsetMap = {
     [OffsetEnum.Unknown]: '--',
   },
   [SideEnum.Unknown]: '--',
+};
+
+export const CryptoInstrumentTypes = [
+  InstrumentTypeEnum.crypto,
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
+];
+
+export const InstrumentPrecision: Record<InstrumentTypeEnum, number> = {
+  [InstrumentTypeEnum.unknown]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stockoption]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.techstock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.future]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.bond]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.fund]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.index]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.repo]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.crypto]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptofuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptoufuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.multi]: DEFAULT_PRECISION,
 };

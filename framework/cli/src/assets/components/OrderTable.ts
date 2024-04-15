@@ -11,6 +11,7 @@ import {
   dealSide,
   dealOffset,
   dealOrderStatus,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { WellFinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
@@ -87,7 +88,7 @@ export class OrderTable extends Table {
       const offset = this.dealOffset(order.offset);
       const orderStatus = this.dealOrderStatus(order.status);
       const last = this.dealLast(order);
-
+      const precision = getPrecisionByInstrumentType(order.instrument_type);
       return parseToString(
         [
           order.update_time_resolved,
@@ -97,7 +98,8 @@ export class OrderTable extends Table {
           order.limit_price,
           `${dealKfDecimalPrecision(
             order.volume - order.volume_left,
-          )}/${dealKfDecimalPrecision(order.volume)}`,
+            precision,
+          )}/${dealKfDecimalPrecision(order.volume, precision)}`,
           orderStatus,
           last,
           order.latency_system,

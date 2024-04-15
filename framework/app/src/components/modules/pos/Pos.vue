@@ -152,9 +152,9 @@ onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
-      console.log('windowFocus', windowFocus.value);
+
       if (!windowFocus.value) return;
-      console.log('watcher', watcher);
+
       if (!currentGlobalKfLocation.value) return;
 
       const positions =

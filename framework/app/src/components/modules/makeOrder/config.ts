@@ -28,9 +28,11 @@ export const getConfigSettings = ({
   side,
   priceType,
   pricePrecision,
-  step,
+  priceStep,
   sideList,
   offsetList,
+  volumePrecision,
+  volumeStep,
 }: {
   location?:
     | KungfuApi.KfLocation
@@ -43,9 +45,11 @@ export const getConfigSettings = ({
   side?: SideEnum;
   priceType?: PriceTypeEnum;
   pricePrecision?: null | number;
-  step?: number;
+  priceStep?: number;
   sideList?: string[];
   offsetList?: string[];
+  volumePrecision?: number;
+  volumeStep?: number;
 }): KungfuApi.KfConfigItem[] => {
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     location?.category === 'td'
@@ -138,14 +142,16 @@ export const getConfigSettings = ({
       type: 'float',
       min: 0,
       precision: pricePrecision ?? null,
-      step: step || 1,
+      step: priceStep || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },
     {
       key: 'volume',
       name: t('tradingConfig.volume'),
-      type: 'int',
+      type: volumePrecision ? 'float' : 'int',
+      precision: volumePrecision || 0,
       min: 0,
+      step: volumeStep || 1,
       required: true,
     },
   ].filter((item) => !!item) as KungfuApi.KfConfigItem[];

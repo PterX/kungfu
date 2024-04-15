@@ -207,7 +207,7 @@ public:
     asset.dynamic_equity += position.margin + position.position_pnl * exchange_rate;
   }
 
-private:
+public:
   void apply_open(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
                                                       trade.instrument_id);
@@ -240,7 +240,7 @@ private:
     book->asset.margin += margin;
   }
 
-  void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
+  virtual void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
                                                       trade.instrument_id);
     auto contract_multiplier = future_i_a.contract_multiplier;

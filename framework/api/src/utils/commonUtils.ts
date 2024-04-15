@@ -8,6 +8,7 @@ import os from 'os';
 export const DEFAULT_PRECISION = 9;
 export const CRYPTO_PRECISION = 14;
 export const ASSET_PRECISION = 4;
+export const MAX_PRECISION = 14;
 
 export const booleanProcessEnv = (
   val: string | boolean | undefined,

@@ -84,7 +84,8 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { getPriceTickAndPrecision } = useActiveInstruments();
+const { getPriceTickAndPrecision, getQuantityUnitAndPrecision } =
+  useActiveInstruments();
 const { globalSetting, instrumentsMap } = storeToRefs(useGlobalStore());
 const { handleBodySizeChange } = useDashboardBodySize();
 const { mdExtTypeMap, extConfigs } = useExtConfigsRelated();
@@ -177,16 +178,24 @@ const configSettings = computed(() => {
     return getConfigSettings({});
   }
 
-  let step = 1,
-    pricePrecision = 0;
+  let priceStep = 1,
+    pricePrecision = 0,
+    volumePrecision = 0,
+    volumeStep = 1;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
+    const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
+      instrumentId,
+      exchangeId,
+    );
     const { price_tick, price_precision } = getPriceTickAndPrecision(
       instrumentId,
       exchangeId,
     );
-    step = price_tick;
+    priceStep = price_tick;
     pricePrecision = price_precision;
+    volumeStep = quantity_unit;
+    volumePrecision = volume_precision;
   }
 
   const { side } = formState.value;
@@ -198,9 +207,11 @@ const configSettings = computed(() => {
     side,
     priceType: +formState.value.price_type,
     pricePrecision: pricePrecision || null,
-    step,
+    priceStep,
     sideList: sideList.value,
     offsetList: offsetList.value,
+    volumeStep,
+    volumePrecision,
   });
 });
 
@@ -1025,6 +1036,16 @@ const dealStringToNumber = (tar: string) =>
 let lastPercentSetVolume = 0;
 const handlePercentChange = (target: number) => {
   const { side, offset } = formState.value;
+  const { instrumentId, exchangeId } = instrumentResolved.value || {};
+  let quantityUnit = 0;
+  if (instrumentId && exchangeId) {
+    const { quantity_unit } = getQuantityUnitAndPrecision(
+      instrumentId,
+      exchangeId,
+    );
+    quantityUnit = quantity_unit;
+  }
+
 
   const curOffset = getResolvedOffset(
     offset,
@@ -1045,8 +1066,9 @@ const handlePercentChange = (target: number) => {
   }
 
   formState.value.volume = dealVolumeByInstrumentType(
-    Math.floor(targetVolume),
+    targetVolume,
     instrumentResolved.value?.instrumentType,
+    quantityUnit,
   );
   if (formState.value.volume) {
     currentPercent.value = target;

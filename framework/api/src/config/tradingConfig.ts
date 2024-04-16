@@ -1030,11 +1030,11 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.OKX_SPOT'),
     color: InstrumentType[InstrumentTypeEnum.crypto].color,
   },
-  'OKX-USD-FUTURE': {
+  'OKX-UFUT': {
     name: t('tradingConfig.OKX_USD_FUTURE'),
     color: InstrumentType[InstrumentTypeEnum.cryptoufuture].color,
   },
-  'OKX-COIN-FUTURE': {
+  OKX_CFUT: {
     name: t('tradingConfig.OKX_COIN_FUTURE'),
     color: InstrumentType[InstrumentTypeEnum.cryptofuture].color,
   },

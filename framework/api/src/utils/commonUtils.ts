@@ -36,7 +36,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
   precision = DEFAULT_PRECISION,
-): string | number => {
+): string => {
   if (
     preNumber === undefined ||
     preNumber === null ||
@@ -47,11 +47,11 @@ export const dealKfNumber = (
     return '--';
   }
 
-  if (typeof preNumber === 'number') {
-    return dealKfDecimalPrecision(preNumber, precision);
+  if (preNumber === Number.MAX_VALUE || preNumber === Number.MIN_VALUE) {
+    return '--';
   }
 
-  return Number(preNumber) || 0;
+  return `${dealKfDecimalPrecision(Number(preNumber), precision)}`;
 };
 
 export const dealKfDecimalPrecision = (
@@ -1159,7 +1159,7 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
       return result;
     }, {});
 };
-export const sorter = (
+export const vTableSorter = (
   a: string | number,
   b: string | number,
   sorterOrder: 'asc' | 'desc' | 'normal',

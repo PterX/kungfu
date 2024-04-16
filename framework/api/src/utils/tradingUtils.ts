@@ -1360,13 +1360,10 @@ export const dealPosition = (
     instrument_id_resolved: `${pos.instrument_id} ${instrumentName} ${
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
-    last_price_resolved: dealKfDecimalPrecision(pos.last_price, precision),
-    avg_open_price_resolved: dealKfDecimalPrecision(
-      pos.avg_open_price,
-      precision,
-    ),
+    last_price_resolved: dealKfNumber(pos.last_price, precision),
+    avg_open_price_resolved: dealKfNumber(pos.avg_open_price, precision),
     unrealized_pnl_resolved: pos.avg_open_price
-      ? dealKfDecimalPrecision(pos.unrealized_pnl, precision)
+      ? dealKfNumber(pos.unrealized_pnl, precision)
       : '--',
     avg_open_price: dealKfDecimalPrecision(pos.avg_open_price, precision),
     close_pnl: dealKfDecimalPrecision(pos.close_pnl, precision),

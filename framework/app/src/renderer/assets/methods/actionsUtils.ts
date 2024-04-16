@@ -1547,7 +1547,7 @@ export const useQuote = (): {
       return '--';
     }
 
-    if (percent === Number.MAX_VALUE) {
+    if (percent === Number.MAX_VALUE || percent === Number.MIN_VALUE) {
       return '--';
     }
 

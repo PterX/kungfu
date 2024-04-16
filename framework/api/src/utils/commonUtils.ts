@@ -46,7 +46,7 @@ export const dealKfNumber = (
     return '--';
   }
 
-  if (preNumber === Number.MAX_VALUE) {
+  if (preNumber === Number.MAX_VALUE || preNumber === Number.MIN_VALUE) {
     return '--';
   }
 

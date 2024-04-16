@@ -1046,7 +1046,6 @@ const handlePercentChange = (target: number) => {
     quantityUnit = quantity_unit;
   }
 
-
   const curOffset = getResolvedOffset(
     offset,
     side,

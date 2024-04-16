@@ -3,9 +3,10 @@
     <WalletOutlined />
     <span style="margin-left: 4px">
       {{
-        `${t('awsWallet.balance')}: ${
-          dealKfPrice(walletStore.currentBalance, 2) ?? '--'
-        }${t('awsWallet.unit')}`
+        `${t('awsWallet.balance')}: ${dealKfNumber(
+          walletStore.currentBalance,
+          2,
+        )}${t('awsWallet.unit')}`
       }}
     </span>
   </div>
@@ -27,7 +28,7 @@ import { WalletOutlined } from '@ant-design/icons-vue';
 import walletDetail from './walletDetail.vue';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfNumber } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useAuthingCredential } from '@kungfu-trader/kfx-ui-login-authing/src/utils/externalUtils';
 
 import { useWalletStore } from '../../store';

@@ -4,6 +4,8 @@
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/yijinjing/time.h>
 
+#include <utility>
+
 namespace kungfu::wingchun::orderbook {
 
 class DepthOrderbook;
@@ -21,10 +23,12 @@ public:
 
     explicit iterator(Container::const_iterator iter, Container::const_reverse_iterator reiter,
                       longfist::enums::Side side)
-        : iter_(iter), reiter_(reiter), side_(side) {}
+        : iter_(std::move(iter)), reiter_(std::move(reiter)), side_(side) {}
 
     reference operator*() const { return is_bid() ? reiter_->second : iter_->second; }
+
     pointer operator->() const { return is_bid() ? &(reiter_->second) : &(iter_->second); }
+
     iterator &operator++() {
       if (is_bid())
         ++reiter_;
@@ -32,6 +36,7 @@ public:
         ++iter_;
       return *this;
     }
+
     iterator operator++(int) {
       iterator temp = *this;
       if (is_bid())
@@ -42,6 +47,7 @@ public:
     }
 
     bool operator==(const iterator &rhs) const { return is_bid() ? reiter_ == rhs.reiter_ : iter_ == rhs.iter_; }
+
     bool operator!=(const iterator &rhs) const { return !operator==(rhs); }
 
   private:
@@ -55,24 +61,30 @@ public:
 
   iterator end() const { return iterator(levels_.end(), levels_.rend(), get_side()); }
 
-  BidirectionMapOrderbookSide(longfist::enums::Side side) : OrderbookSide(side) {}
+  explicit BidirectionMapOrderbookSide(longfist::enums::Side side) : OrderbookSide(side) {}
 
 private:
   friend DepthOrderbook;
   Container levels_;
   std::unordered_map<int, Level> map_seq_id_2_level_;
 };
+
 class DepthOrderbook : public Orderbook<BidirectionMapOrderbookSide, BidirectionMapOrderbookSide> {
 public:
-  void on_entrust(const longfist::types::Entrust &entrust);
-  void on_transaction(const longfist::types::Transaction &transaction);
+  void on_entrust(const longfist::types::Entrust &entrust) override;
+
+  void on_transaction(const longfist::types::Transaction &transaction) override;
 
 private:
-  int64_t get_next_trading_day_start(int64_t data_time);
-  bool is_new_trading_day(int64_t data_time);
-  void deal_trading_day(int64_t data_time);
-  void clear_book();
   int64_t next_trading_day_start_;
+
+  int64_t get_next_trading_day_start(int64_t data_time);
+
+  bool is_new_trading_day(int64_t data_time);
+
+  void deal_trading_day(int64_t data_time);
+
+  void clear_book();
 };
 
 using DepthOrderbooks = OrderbooksImpl<DepthOrderbook>;

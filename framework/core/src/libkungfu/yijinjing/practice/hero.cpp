@@ -22,6 +22,7 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::yijinjing::nanomsg;
+using namespace kungfu::yijinjing::webserver;
 
 namespace kungfu::yijinjing::practice {
 
@@ -73,6 +74,7 @@ void hero::pre_setup() {
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
+  // could get in rocksdb in live
   if (get_home()->mode != mode::LIVE) {
     for (const auto &l : get_home()->locator->list_locations("*", "*", "*", "*")) {
       add_location(0, l);

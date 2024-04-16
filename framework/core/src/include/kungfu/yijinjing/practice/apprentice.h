@@ -175,9 +175,9 @@ public:
 
 protected:
   cache::bank state_bank_;
-  journal::writer_ptr master_cmd_writer_for_thread_{};
-  journal::writer_ptr public_writer_{};
-  inline static thread_local journal::writer_ptr thread_writer_{};
+  journal::writer_ptr master_cmd_writer_for_thread_ = nullptr;
+  journal::writer_ptr public_writer_ = nullptr;
+  inline static thread_local journal::writer_ptr thread_writer_ = nullptr;
 
   friend void add_location(practice::apprentice &app, const data::location_ptr &location) {
     app.add_location(app.now(), location);

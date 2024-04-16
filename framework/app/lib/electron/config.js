@@ -45,6 +45,17 @@ const appLibPackageJsonPath = path.join(appLibPackageJsonDir, 'package.json');
 const ifZipTargetEnable = (platform) =>
   rootPackageJson?.kungfuCraft?.zipTargetEnable?.[platform] !== false;
 
+const ifNsisTargetEnable =
+  rootPackageJson?.kungfuCraft?.nsisTargetEnable !== false;
+const ifRpmTargetEnable =
+  rootPackageJson?.kungfuCraft?.rpmTargetEnable !== false;
+const ifAppImageTargetEnable =
+  rootPackageJson?.kungfuCraft?.appImageTargetEnable !== false;
+
+console.log('ifNsisTargetEnable', ifNsisTargetEnable);
+console.log('ifRpmTargetEnable', ifRpmTargetEnable);
+console.log('ifAppImageTargetEnable', ifAppImageTargetEnable);
+
 fse.writeJsonSync(appLibPackageJsonPath, {
   ...rootPackageJson,
   ...appLibPackageMergeJson,
@@ -222,10 +233,14 @@ module.exports = {
   win: {
     icon: icoLogoPathResolved,
     target: [
-      {
-        target: 'nsis',
-        arch: ['x64'],
-      },
+      ...(ifNsisTargetEnable
+        ? [
+            {
+              target: 'nsis',
+              arch: ['x64'],
+            },
+          ]
+        : []),
       ...(ifZipTargetEnable('win')
         ? [
             {
@@ -238,7 +253,11 @@ module.exports = {
   },
   linux: {
     icon: icnsLogoPathResolved,
-    target: ['rpm', 'appimage', ...(ifZipTargetEnable('linux') ? ['zip'] : [])],
+    target: [
+      ...(ifRpmTargetEnable ? ['rpm'] : []),
+      ...(ifAppImageTargetEnable ? ['appimage'] : []),
+      ...(ifZipTargetEnable('linux') ? ['zip'] : []),
+    ],
     executableName: 'Kungfu.app',
   },
   nsis: {

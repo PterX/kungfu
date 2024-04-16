@@ -97,6 +97,15 @@ export const getColumns = (
         width: 110,
       },
       {
+        title: t('tdConfig.total_asset'),
+        dataIndex: 'total_asset',
+        align: 'right',
+        sorter: {
+          compare: sorter('total_asset'),
+        },
+        width: 110,
+      },
+      {
         title: t('tdConfig.short_sale_proceeds'),
         dataIndex: 'short_cash',
         align: 'right',

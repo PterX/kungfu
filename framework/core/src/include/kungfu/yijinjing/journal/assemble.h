@@ -12,7 +12,7 @@
 namespace kungfu::yijinjing::journal {
 
 struct assemble_exception : std::runtime_error {
-  explicit assemble_exception(const std::string &msg) : std::runtime_error(msg){};
+  explicit assemble_exception(const std::string &msg) : std::runtime_error(msg) { SPDLOG_CRITICAL(msg); }
 };
 
 class sink {

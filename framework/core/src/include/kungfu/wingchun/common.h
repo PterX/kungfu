@@ -25,11 +25,6 @@
 #define EXCHANGE_CZCE "CZCE"   // 郑商所
 #define EXCHANGE_CFFEX "CFFEX" // 中金所
 #define EXCHANGE_INE "INE"     // 上海能源中心
-#define EXCHANGE_BINANCE "BINANCE"
-#define EXCHANGE_HB "HB"
-#define EXCHANGE_OKX_SPOT "OKX-SPOT"
-#define EXCHANGE_OKX_USD_FUTURE "OKX-USD-FUTURE"
-#define EXCHANGE_OKX_COIN_FUTURE "OKX-COIN-FUTURE"
 
 // 全市场exchange id定义
 #define EXCHANGE_HK "HK" // 港股: 4（香港交易所）
@@ -89,15 +84,23 @@
 #define EPSILON (1e-6)
 #define DOUBLEMAX (1e16) // 一亿亿, 2018年A股总市值不到50万亿
 
+#define EXCHANGE_HB "HB"                            //
+#define EXCHANGE_OKX_SPOT "OKX-SPOT"                //
+#define EXCHANGE_OKX_USD_FUTURE "OKX-UFUT"          //
+#define EXCHANGE_OKX_COIN_FUTURE "OKX-CFUT"         //
+#define EXCHANGE_BINANCE_SPOT "BINANCE-SPOT"        //
+#define EXCHANGE_BINANCE_USD_FUTURE "BINANCE-UFUT"  //
+#define EXCHANGE_BINANCE_COIN_FUTURE "BINANCE-CFUT" //
+
 namespace kungfu::wingchun {
 constexpr double VOLUME_ZERO = 0;
 constexpr uint64_t UINT64_ZERO = 0;
 
 class wingchun_error : public std::runtime_error {
 public:
-  explicit wingchun_error(const std::string &_s) : std::runtime_error(_s) {}
+  explicit wingchun_error(const std::string &_s) : std::runtime_error(_s) { SPDLOG_CRITICAL(_s); }
 
-  explicit wingchun_error(const char *_s) : std::runtime_error(_s) {}
+  explicit wingchun_error(const char *_s) : std::runtime_error(_s) { SPDLOG_CRITICAL(_s); }
 
   ~wingchun_error() noexcept override = default;
 };
@@ -358,13 +361,19 @@ inline longfist::enums::InstrumentType get_instrument_type(const std::string &ex
       return longfist::enums::InstrumentType::Bond;
     }
     return longfist::enums::InstrumentType::Stock;
+  } else if (endswith(exchange_id, "-SPOT")) {
+    return longfist::enums::InstrumentType::Crypto;
+  } else if (endswith(exchange_id, "-CFUT")) {
+    return longfist::enums::InstrumentType::CryptoFuture;
+  } else if (endswith(exchange_id, "-UFUT")) {
+    return longfist::enums::InstrumentType::CryptoUFuture;
   } else if (string_equals(exchange_id, EXCHANGE_BSE)) {
     return longfist::enums::InstrumentType::Stock;
   } else if (string_equals(exchange_id, EXCHANGE_DCE) || string_equals(exchange_id, EXCHANGE_SHFE) ||
              string_equals(exchange_id, EXCHANGE_CFFEX) || string_equals(exchange_id, EXCHANGE_CZCE) ||
              string_equals(exchange_id, EXCHANGE_INE) || string_equals(exchange_id, EXCHANGE_GFEX)) {
     return longfist::enums::InstrumentType::Future;
-  } else if (string_equals(exchange_id, EXCHANGE_BINANCE) || string_equals(exchange_id, EXCHANGE_HB)) {
+  } else if (string_equals(exchange_id, EXCHANGE_HB)) {
     return longfist::enums::InstrumentType::Crypto;
   } else if (string_equals(exchange_id, EXCHANGE_HK) || string_equals(exchange_id, EXCHANGE_SHHK) ||
              string_equals(exchange_id, EXCHANGE_SZHK)) {

@@ -24,7 +24,7 @@ constexpr int MB = KB * KB;
 
 class yijinjing_error : public std::runtime_error {
 public:
-  explicit yijinjing_error(const std::string &message) : runtime_error(message) {}
+  explicit yijinjing_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
 };
 
 class resource {
@@ -32,11 +32,13 @@ public:
   virtual bool is_usable() = 0;
 
   virtual bool setup() = 0;
+
+  virtual ~resource() = default;
 };
 
 class publisher : public resource {
 public:
-  virtual ~publisher() = default;
+  ~publisher() override = default;
 
   virtual int notify() = 0;
 
@@ -47,7 +49,7 @@ DECLARE_PTR(publisher)
 
 class observer : public resource {
 public:
-  virtual ~observer() = default;
+  ~observer() override = default;
 
   virtual bool wait() = 0;
 
@@ -168,10 +170,25 @@ struct location : public std::enable_shared_from_this<location>, public longfist
                                          uint32_t default_seed = KUNGFU_HASH_SEED) {
     return std::make_shared<location>(m, c, g, n, l, default_seed);
   }
+  bool operator==(const location &another) const {
+    return locator->get_root() == another.locator->get_root() and category == another.category and
+           group == another.group and name == another.name and mode == another.mode;
+  }
 };
 } // namespace data
 } // namespace yijinjing
+} // namespace kungfu
 
+namespace std {
+template <> struct hash<kungfu::yijinjing::data::location> {
+  std::size_t operator()(const kungfu::yijinjing::data::location &l) const {
+    return (static_cast<uint64_t>(kungfu::yijinjing::util::hash_str_32(l.locator->get_root())) << 32) ^
+           static_cast<uint32_t>(l.uid);
+  }
+};
+} // namespace std
+
+namespace kungfu {
 namespace hana {
 using namespace boost::hana;
 

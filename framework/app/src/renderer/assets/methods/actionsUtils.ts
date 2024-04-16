@@ -1766,6 +1766,17 @@ export const useActiveInstruments = () => {
     return { price_tick, price_precision };
   };
 
+  const getQuantityUnitAndPrecision = (
+    instrumentId: string,
+    exchangeId: string,
+    defaultUnit = 0,
+  ) => {
+    const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
+    const quantity_unit = instrument?.quantity_unit || defaultUnit;
+    const volume_precision = countDecimalPlaces(quantity_unit || defaultUnit);
+    return { quantity_unit, volume_precision };
+  };
+
   const getInstrumentCurrency = (instrumentId: string, exchangeId: string) => {
     const instrument = getInstrumentByIdsWithWatcher(instrumentId, exchangeId);
     const currency = instrument?.currency || CurrencyEnum.Unknown;
@@ -1793,6 +1804,7 @@ export const useActiveInstruments = () => {
     getPriceTickAndPrecision,
     getInstrumentCurrency,
     getInstrumentName,
+    getQuantityUnitAndPrecision,
   };
 };
 
@@ -2802,6 +2814,9 @@ export const useMakeOrderInfo = (
 
   const currentAvailMoney = computed(() => {
     if (!currentAccountLocation.value) return '--';
+    const precision = getPrecisionByInstrumentType(
+      instrumentResolved.value?.instrumentType,
+    );
     if (isMarginMakeOrder.value) {
       const { side } = formState.value;
       if (side === SideEnum.GuaranteeStockBuy) {
@@ -2809,35 +2824,40 @@ export const useMakeOrderInfo = (
           currentAccountLocation.value,
         ).gage_buy_fund_available;
 
-        return dealKfNumber(avail, ASSET_PRECISION);
+        return dealKfNumber(avail, precision);
       } else if (side === SideEnum.MarginTrade || side === SideEnum.ShortSell) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).credit_buy_fund_available;
 
-        return dealKfNumber(avail, ASSET_PRECISION);
+        return dealKfNumber(avail, precision);
       } else if (side === SideEnum.RepayStock) {
         const avail = getAssetsByKfConfig(
           currentAccountLocation.value,
         ).buyredeliver_fund_available;
 
-        return dealKfNumber(avail, ASSET_PRECISION);
+        return dealKfNumber(avail, precision);
       }
     }
 
     const avail = getAssetsByKfConfig(currentAccountLocation.value).avail;
 
-    return dealKfNumber(avail, ASSET_PRECISION);
+    return dealKfNumber(avail, precision);
   });
 
   const currentAvailPosVolume = computed(() => {
+    const precision = getPrecisionByInstrumentType(
+      instrumentResolved.value?.instrumentType,
+    );
     if (!instrumentResolved.value) return '--';
 
     const { offset } = formState.value;
 
     if (currentPosition.value) {
       if (isMarginMakeOrder.value) {
-        return dealKfNumber(currentPosition.value.closable_volume) + '';
+        return (
+          dealKfNumber(currentPosition.value.closable_volume, precision) + ''
+        );
       }
       return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
@@ -2865,7 +2885,9 @@ export const useMakeOrderInfo = (
 
   const currentTradeAmount = computed(() => {
     const { volume } = formState.value;
-
+    const precision = getPrecisionByInstrumentType(
+      instrumentResolved.value?.instrumentType,
+    );
     if (instrumentResolved.value && currentAccountLocation.value) {
       const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
         ...instrumentResolved.value,
@@ -2886,23 +2908,26 @@ export const useMakeOrderInfo = (
     }
 
     return dealTradeAmount(
-      dealKfDecimalPrecision((currentPrice.value ?? 0) * volume),
+      dealKfDecimalPrecision((currentPrice.value ?? 0) * volume, precision),
     );
   });
 
   const currentResidueMoney = computed(() => {
     const { offset } = formState.value;
+    const precision = getPrecisionByInstrumentType(
+      instrumentResolved.value?.instrumentType,
+    );
     if (currentAvailMoney.value !== '--') {
       if (currentTradeAmount.value !== '--') {
         if (offset === OffsetEnum.Open) {
           return dealKfNumber(
             Number(currentAvailMoney.value) - Number(currentTradeAmount.value),
-            ASSET_PRECISION,
+            precision,
           );
         } else {
           return dealKfNumber(
             Number(currentAvailMoney.value) + Number(currentTradeAmount.value),
-            ASSET_PRECISION,
+            precision,
           );
         }
       } else {
@@ -2915,20 +2940,26 @@ export const useMakeOrderInfo = (
 
   const currentResiduePosVolume = computed(() => {
     const { volume, offset } = formState.value;
+    const precision = getPrecisionByInstrumentType(
+      instrumentResolved.value?.instrumentType,
+    );
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
         if (isMarginMakeOrder.value) {
           return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) - volume,
+            precision,
           );
         }
         if (offset === OffsetEnum.Open) {
           return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) + volume,
+            precision,
           );
         } else {
           return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) - volume,
+            precision,
           );
         }
       } else {
@@ -3137,6 +3168,7 @@ export const useMakeOrderSubscribe = (
             } = (data as KfEvent.TriggerMakeOrder).orderInput;
             const uid = hashInstrumentUKey(instrumentId, exchangeId);
             const quote: KungfuApi.Quote = window.watcher.ledger.Quote[uid];
+            const precision = getPrecisionByInstrumentType(+instrumentType);
 
             let dealPrice: number = price;
             if (quote) {
@@ -3163,8 +3195,11 @@ export const useMakeOrderSubscribe = (
             formState.value.side = isMarginMakeOrder.value
               ? dealMarginSideByTransFormType(+side, 'direction')
               : +side;
-            formState.value.volume = +Number(volume).kfToFixed(0);
-            formState.value.limit_price = +Number(dealPrice).kfToFixed(12);
+            formState.value.volume = dealKfDecimalPrecision(volume, precision);
+            formState.value.limit_price = dealKfDecimalPrecision(
+              dealPrice,
+              precision,
+            );
             formState.value.instrument_type = +instrumentType;
 
             if (accountId) {

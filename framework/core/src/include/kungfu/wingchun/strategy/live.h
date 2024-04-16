@@ -42,7 +42,7 @@ public:
    * Get config from database.
    * @return  config of current location_uid
    */
-  const std::string get_config() const override;
+  std::string get_config() const override;
 
   /**
    * Add one shot timer callback.

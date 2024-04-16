@@ -354,10 +354,6 @@ function setMenu() {
           accelerator: 'CommandOrControl+J',
           click: () => MainWindow && viewAllJournal(MainWindow),
         },
-        // {
-        //   label: t('open_console_tool'),
-        //   click: () => openDevTool(),
-        // },
       ],
     },
     {

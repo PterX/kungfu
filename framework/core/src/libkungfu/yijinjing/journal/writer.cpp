@@ -86,14 +86,6 @@ void writer::close_frame(size_t data_length, int64_t gen_time) {
   frame->set_trigger_frame_uid(journal_.bus_->get_trigger_frame_uid());
   size_to_write_ = 0;
   journal_.page_->set_last_frame_position(frame->address() - journal_.page_->address());
-  boost::hana::for_each(longfist::AllDataTypes, [&](auto it) {
-    using DataType = typename decltype(+boost::hana::second(it))::type;
-    if (frame->msg_type() == DataType::tag) {
-      SPDLOG_TRACE("source: {}, dest: {}, msg_type: {}, data: {}", frame->source(), frame->dest(), frame->msg_type(),
-                   frame->data<DataType>().to_string());
-    }
-  });
-
   journal_.next();
   writer_mtx_.unlock();
   publisher_->notify();

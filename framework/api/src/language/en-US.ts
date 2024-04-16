@@ -515,7 +515,6 @@ export default {
 
     avail_funds: 'Avail Funds',
     avail_margin: 'Avail Margin',
-    cash_debt: 'Cash Debt',
     total_asset: 'Total Asset',
     actions: 'Actions',
 
@@ -870,6 +869,10 @@ export default {
     bypass_trading_data: 'Pure Monitor Mode',
     bypass_trading_data_desc:
       'Only monit processes status, ui costs lowest, restart is required',
+    low_memory: 'Low Memory Mode',
+    low_memory_desc:
+      'Broker Process clear memory every interval, only for special case, restart broker process required',
+
     strategy: 'Strategy',
     use_local_python: 'Use Local Python',
     local_python_desc:

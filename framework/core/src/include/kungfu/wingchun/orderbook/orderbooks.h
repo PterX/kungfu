@@ -19,7 +19,7 @@ struct Level final {
 
   Level(double p, double v, int64_t ut) : price(p), volume(v), data_time(ut) {}
 
-  std::string to_string() const {
+  [[nodiscard]] std::string to_string() const {
     nlohmann::json j;
     j["price"] = price;
     j["volume"] = volume;
@@ -59,9 +59,10 @@ public:
   }
 
 protected:
-  std::string get_key(const std::string &instrument_id, const std::string &exchange_id) const {
+  [[nodiscard]] std::string get_key(const std::string &instrument_id, const std::string &exchange_id) const {
     return instrument_id + exchange_id;
   }
+
   void on_entrust(const longfist::types::Entrust &entrust) override {
     const auto instrument_exchange_id = get_key(entrust.instrument_id, entrust.exchange_id);
     obs_[instrument_exchange_id].on_entrust(entrust);
@@ -91,17 +92,16 @@ public:
 
   virtual ~OrderbookSide() = default;
 
-  longfist::enums::Side get_side() const { return side_; }
+  [[nodiscard]] longfist::enums::Side get_side() const { return side_; }
 
 protected:
-  OrderbookSide(longfist::enums::Side side) : side_(side){};
+  explicit OrderbookSide(longfist::enums::Side side) : side_(side){};
 
 private:
   longfist::enums::Side side_;
 };
 
 template <typename BS, typename AS> class Orderbook {
-
 public:
   using BidSide = BS;
   using AskSide = AS;
@@ -112,13 +112,14 @@ public:
   Orderbook &operator=(const Orderbook &) = delete;
 
   const BS &get_bid_side() { return bid_side_; }
+
   const AS &get_ask_side() { return ask_side_; }
 
-  void on_entrust(const longfist::types::Entrust &entrust){};
+  virtual void on_entrust(const longfist::types::Entrust &entrust) {}
 
-  void on_transaction(const longfist::types::Transaction &transaction){};
+  virtual void on_transaction(const longfist::types::Transaction &transaction) {}
 
-  void on_quote(const longfist::types::Quote &quote){};
+  virtual void on_quote(const longfist::types::Quote &quote) {}
 
 protected:
   BS bid_side_;

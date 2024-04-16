@@ -46,7 +46,7 @@ public:
    * Get config from database.
    * @return  config of current location_uid
    */
-  virtual const std::string get_config() const = 0;
+  virtual std::string get_config() const = 0;
 
   /**
    * Get arguments kfc run -a
@@ -396,9 +396,11 @@ protected:
   const rx::connectable_observable<event_ptr> &events_;
   bool started_ = false;
 
-  virtual void on_start() {}
+  virtual void on_start(){};
 
   virtual void prepare(const event_ptr &event) = 0;
+
+  virtual void post_stop(){};
 
 private:
   bool book_held_ = false;
@@ -408,6 +410,8 @@ private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
+
+  friend void stop(Context &context) { context.post_stop(); }
 };
 } // namespace kungfu::wingchun::strategy
 

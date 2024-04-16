@@ -1036,7 +1036,8 @@ const dealStringToNumber = (tar: string) =>
 let lastPercentSetVolume = 0;
 const handlePercentChange = (target: number) => {
   const { side, offset } = formState.value;
-  const { instrumentId, exchangeId } = instrumentResolved.value || {};
+  const { instrumentId, exchangeId, instrumentType } =
+    instrumentResolved.value || {};
   let quantityUnit = 0;
   if (instrumentId && exchangeId) {
     const { quantity_unit } = getQuantityUnitAndPrecision(
@@ -1066,7 +1067,7 @@ const handlePercentChange = (target: number) => {
 
   formState.value.volume = dealVolumeByInstrumentType(
     targetVolume,
-    instrumentResolved.value?.instrumentType,
+    instrumentType,
     quantityUnit,
   );
   if (formState.value.volume) {

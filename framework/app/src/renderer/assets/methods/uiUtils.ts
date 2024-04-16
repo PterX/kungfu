@@ -2591,3 +2591,18 @@ export const setPreStyle = () => {
     document.documentElement.style.setProperty(key, value);
   }
 };
+
+export const useBrowserWindowFocus = () => {
+  const win = getCurrentWindow();
+  const focus = ref(win.isFocused());
+
+  win.on('focus', () => {
+    focus.value = true;
+  });
+
+  win.on('blur', () => {
+    focus.value = false;
+  });
+
+  return focus;
+};

@@ -1664,17 +1664,20 @@ export const dealOrderInputItem = (
 export const dealVolumeByInstrumentType = (
   volume: number,
   instrumentType: InstrumentTypeEnum,
+  quantityUnit = 0,
 ) => {
   const precision = getPrecisionByInstrumentType(instrumentType);
-  const minOrderVolume = InstrumentMinOrderVolume[instrumentType] || 1;
+  const minOrderVolume =
+    quantityUnit || InstrumentMinOrderVolume[instrumentType] || 1;
   const orderVolume = Math.max(volume, minOrderVolume);
 
   if (instrumentType === InstrumentTypeEnum.techstock) return orderVolume;
-  return (
-    Math.floor(
-      dealKfDecimalPrecision(orderVolume / minOrderVolume, precision),
-    ) * minOrderVolume
-  );
+
+  if (!minOrderVolume) return dealKfDecimalPrecision(orderVolume, precision);
+
+  const multiplier = Math.floor(orderVolume / minOrderVolume);
+  const maxMultipleValue = minOrderVolume * multiplier;
+  return dealKfDecimalPrecision(maxMultipleValue, precision);
 };
 
 export const buildTradingDataHeaders = (

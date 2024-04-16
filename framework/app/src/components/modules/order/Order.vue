@@ -160,14 +160,10 @@ const processTradingData = async (
     canvasRef.value?.setRecords([]);
   }
 };
-let ts = 0,
-  i = 0;
+
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
-      const now = performance.now();
-      console.log('tradingDataSubject', i++, now - ts);
-      ts = now;
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
 

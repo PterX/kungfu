@@ -148,51 +148,49 @@ private:
 DECLARE_PTR(socket)
 
 struct nanomsg_json : event {
-  explicit nanomsg_json(const std::string &msg) : binding_(nlohmann::json::parse(msg)), msg_(msg){};
+  explicit nanomsg_json(const std::string &msg)
+      : binding_(nlohmann::json::parse(msg)), msg_(msg), data_(get_meta<std::string>("data", "")),
+        header_(longfist::types::frame_header(msg.c_str(), msg.length())) {}
 
-  [[nodiscard]] int64_t gen_time() const override { return get_meta<int64_t>("gen_time", 0); }
+  [[nodiscard]] int64_t gen_time() const override { return header_.gen_time; }
 
-  [[nodiscard]] int64_t trigger_time() const override { return get_meta<int64_t>("trigger_time", 0); }
+  [[nodiscard]] int64_t trigger_time() const override { return header_.trigger_time; }
 
-  [[nodiscard]] int32_t msg_type() const override { return get_meta<int32_t>("msg_type", 0); }
+  [[nodiscard]] int32_t msg_type() const override { return header_.msg_type; }
 
-  [[nodiscard]] uint32_t source() const override { return get_meta<uint32_t>("source", 0); }
+  [[nodiscard]] uint32_t source() const override { return header_.source; }
 
-  [[nodiscard]] uint32_t initial_source() const override { return get_meta<uint32_t>("initial_source", 0); }
+  [[nodiscard]] uint32_t initial_source() const override { return header_.initial_source; }
 
-  [[nodiscard]] uint32_t dest() const override { return get_meta<uint32_t>("dest", 0); }
+  [[nodiscard]] uint32_t dest() const override { return header_.dest; }
 
-  [[nodiscard]] uint32_t data_length() const override { return binding_.size(); }
+  [[nodiscard]] uint32_t data_length() const override { return data_.length(); }
 
-  [[nodiscard]] const void *data_address() const override {
-    if (binding_.find("data") == binding_.end()) {
-      SPDLOG_ERROR("nanomsg event has no data {}", msg_);
-      return &binding_;
-    }
-    return &binding_["data"];
-  }
+  [[nodiscard]] const void *data_address() const override { return data_.c_str(); }
 
-  [[nodiscard]] const char *data_as_bytes() const override { return msg_.c_str(); }
+  [[nodiscard]] const char *data_as_bytes() const override { return data_.c_str(); }
 
   [[nodiscard]] std::vector<uint8_t> data_as_byte_array() const override {
     return {data_as_bytes(), data_as_bytes() + data_length()};
   }
 
-  [[nodiscard]] std::string data_as_string() const override { return binding_["data"].dump(); }
+  [[nodiscard]] std::string data_as_string() const override { return data_; }
 
   [[nodiscard]] std::string to_string() const override { return msg_; }
 
-  [[nodiscard]] int8_t data_type() const override { return get_meta<int8_t>("data_type", 0); }
+  [[nodiscard]] int8_t data_type() const override { return int8_t(header_.data_type); }
 
   [[nodiscard]] bool is_json() const override { return data_type() == longfist::enums::FrameDataType::Json; }
 
-  [[nodiscard]] uint64_t frame_uid() const override { return get_meta<uint64_t>("frame_uid", 0); }
+  [[nodiscard]] uint64_t frame_uid() const override { return header_.frame_uid; }
 
-  [[nodiscard]] uint64_t trigger_frame_uid() const override { return get_meta<uint64_t>("trigger_frame_uid", 0); }
+  [[nodiscard]] uint64_t trigger_frame_uid() const override { return header_.trigger_frame_uid; }
 
 private:
   const nlohmann::json binding_;
   const std::string msg_;
+  const longfist::types::frame_header header_;
+  const std::string data_;
 
   template <typename T> [[nodiscard]] T get_meta(const std::string &name, T default_value) const {
     if (binding_.find(name) == binding_.end()) {

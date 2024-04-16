@@ -46,6 +46,23 @@ class Operator(wc.Operator):
         self.ctx.books = {}
         self.__init_operator(ctx.path)
 
+    def __bind_on_func(self, func_name):
+        if not hasattr(self._module, func_name):
+            return
+        func = getattr(self._module, func_name)
+
+        if inspect.iscoroutinefunction(func):
+
+            def proxy_on_func(wc_context, lf_data, location, dest_id):
+                self.__call_proxy(func, self.ctx, lf_data, location, dest_id)
+
+        else:
+
+            def proxy_on_func(wc_context, lf_data, location, dest_id):
+                func(self.ctx, lf_data, location, dest_id)
+
+        setattr(self, func_name, proxy_on_func)
+
     def __init_operator(self, path):
         operator_dir = os.path.dirname(path)
         sys.path.insert(0, operator_dir)
@@ -57,31 +74,6 @@ class Operator(wc.Operator):
         self._pre_stop = getattr(self._module, "pre_stop", lambda ctx: None)
         self._post_stop = getattr(self._module, "post_stop", lambda ctx: None)
 
-        self._on_quote = getattr(
-            self._module, "on_quote", lambda ctx, quote, location, dest_id: None
-        )
-        self._on_entrust = getattr(
-            self._module, "on_entrust", lambda ctx, entrust, location, dest_id: None
-        )
-        self._on_transaction = getattr(
-            self._module,
-            "on_transaction",
-            lambda ctx, transaction, location, dest_id: None,
-        )
-        self._on_tree = getattr(
-            self._module, "on_tree", lambda ctx, tree, location: None
-        )
-        self._on_depth = getattr(
-            self._module, "on_depth", lambda ctx, depth, location: None
-        )
-        self._on_tick = getattr(
-            self._module, "on_tick", lambda ctx, tick, location: None
-        )
-        self._on_synthetic_data = getattr(
-            self._module,
-            "on_synthetic_data",
-            lambda ctx, synthetic_data, location, dest_id: None,
-        )
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
         )
@@ -95,6 +87,17 @@ class Operator(wc.Operator):
             "on_operator_state_change",
             lambda ctx, operator_state_update, location: None,
         )
+
+        for func_name in [
+            "on_quote",
+            "on_entrust",
+            "on_transaction",
+            "on_tree",
+            "on_depth",
+            "on_tick",
+            "on_synthetic_data",
+        ]:
+            self.__bind_on_func(func_name)
 
     def __call_proxy(self, func, *args):
         if inspect.iscoroutinefunction(func):
@@ -144,31 +147,6 @@ class Operator(wc.Operator):
 
     def post_stop(self, wc_context):
         self.__call_proxy(self._post_stop, self.ctx)
-
-    def on_quote(self, wc_context, quote, location, dest_id):
-        self.__call_proxy(self._on_quote, self.ctx, quote, location, dest_id)
-
-    def on_entrust(self, wc_context, entrust, location, dest_id):
-        self.__call_proxy(self._on_entrust, self.ctx, entrust, location, dest_id)
-
-    def on_transaction(self, wc_context, transaction, location, dest_id):
-        self.__call_proxy(
-            self._on_transaction, self.ctx, transaction, location, dest_id
-        )
-
-    def on_tree(self, wc_context, tree, location, dest_id):
-        self.__call_proxy(self._on_tree, self.ctx, tree, location)
-
-    def on_depth(self, wc_context, depth, location, dest_id):
-        self.__call_proxy(self._on_depth, self.ctx, depth, location)
-
-    def on_tick(self, wc_context, tick, location, dest_id):
-        self.__call_proxy(self._on_tick, self.ctx, tick, location)
-
-    def on_synthetic_data(self, wc_context, synthetic_data, location, dest_id):
-        self.__call_proxy(
-            self._on_synthetic_data, self.ctx, synthetic_data, location, dest_id
-        )
 
     def on_deregister(self, wc_context, deregister, location):
         self.__call_proxy(self._on_deregister, self.ctx, deregister, location)

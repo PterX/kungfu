@@ -1,9 +1,12 @@
 import { DirectionEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
-  dealKfPrice,
+  dealKfNumber,
   dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  dealDirection,
+  getPrecisionByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import colors from 'colors';
 import { calcHeaderWidth, colorNum, parseToString } from '../methods/utils';
 import Table from './Table';
@@ -45,17 +48,17 @@ export class PosTable extends Table {
   refresh(positions: KungfuApi.PositionResolved[]) {
     const posListData = positions.map((p: KungfuApi.PositionResolved) => {
       const direction = this.dealDirection(p.direction);
-
+      const precision = getPrecisionByInstrumentType(p.instrument_type);
       return parseToString(
         [
           p.instrument_id_resolved,
           direction,
           p.yesterday_volume,
-          dealKfDecimalPrecision(p.volume - p.yesterday_volume),
+          dealKfDecimalPrecision(p.volume - p.yesterday_volume, precision),
           p.volume,
-          dealKfPrice(p.avg_open_price),
-          dealKfPrice(p.last_price),
-          colorNum(dealKfPrice(p.unrealized_pnl)),
+          dealKfNumber(p.avg_open_price, precision),
+          dealKfNumber(p.last_price, precision),
+          colorNum(dealKfDecimalPrecision(p.unrealized_pnl, precision)),
         ],
         calcHeaderWidth(this.headers, this.columnWidth),
         this.pad,

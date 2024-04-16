@@ -18,11 +18,11 @@ import {
   useQuote,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { StarFilled, PlusOutlined } from '@ant-design/icons-vue';
-import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
-  dealKfPrice,
-  dealKfNumber,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+  transformSearchInstrumentResultToInstrument,
+  getPrecisionByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { dealKfNumber } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   OffsetEnum,
   SideEnum,
@@ -215,13 +215,28 @@ function handleClickRow(row: KungfuApi.InstrumentResolved) {
             </div>
           </template>
           <template v-else-if="column.dataIndex === 'open_price'">
-            {{ dealKfPrice(getQuoteByInstrument(record)?.open_price) }}
+            {{
+              dealKfNumber(
+                getQuoteByInstrument(record)?.open_price,
+                getPrecisionByInstrumentType(record.instrumentType),
+              )
+            }}
           </template>
           <template v-else-if="column.dataIndex === 'low_price'">
-            {{ dealKfPrice(getQuoteByInstrument(record)?.low_price) }}
+            {{
+              dealKfNumber(
+                getQuoteByInstrument(record)?.low_price,
+                getPrecisionByInstrumentType(record.instrumentType),
+              )
+            }}
           </template>
           <template v-else-if="column.dataIndex === 'high_price'">
-            {{ dealKfPrice(getQuoteByInstrument(record)?.high_price) }}
+            {{
+              dealKfNumber(
+                getQuoteByInstrument(record)?.high_price,
+                getPrecisionByInstrumentType(record.instrumentType),
+              )
+            }}
           </template>
 
           <template v-else-if="column.dataIndex === 'lastPrice'">
@@ -229,7 +244,12 @@ function handleClickRow(row: KungfuApi.InstrumentResolved) {
               <div class="price">
                 <KfBlinkNum
                   blink-type="color"
-                  :num="dealKfPrice(getQuoteByInstrument(record)?.last_price)"
+                  :num="
+                    dealKfNumber(
+                      getQuoteByInstrument(record)?.last_price,
+                      getPrecisionByInstrumentType(record.instrumentType),
+                    )
+                  "
                 ></KfBlinkNum>
               </div>
               <div class="percent">
@@ -242,7 +262,12 @@ function handleClickRow(row: KungfuApi.InstrumentResolved) {
             </div>
           </template>
           <template v-else-if="column.dataIndex === 'volume'">
-            {{ dealKfNumber(getQuoteByInstrument(record)?.volume) }}
+            {{
+              dealKfNumber(
+                getQuoteByInstrument(record)?.volume,
+                getPrecisionByInstrumentType(record.instrumentType),
+              )
+            }}
           </template>
           <template v-else-if="column.dataIndex === 'actions'">
             <div class="kf-actions__warp">

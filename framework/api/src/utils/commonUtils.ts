@@ -5,6 +5,11 @@ import path from 'path';
 import { Observable } from 'rxjs';
 import os from 'os';
 
+export const DEFAULT_PRECISION = 9;
+export const CRYPTO_PRECISION = 14;
+export const ASSET_PRECISION = 4;
+export const MAX_PRECISION = 14;
+
 export const booleanProcessEnv = (
   val: string | boolean | undefined,
 ): boolean => {
@@ -28,7 +33,8 @@ export const booleanProcessEnv = (
 export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 
 export const dealKfNumber = (
-  preNumber: bigint | number | undefined | unknown,
+  preNumber: bigint | number | undefined | unknown | null,
+  precision = DEFAULT_PRECISION,
 ): string | number => {
   if (
     preNumber === undefined ||
@@ -41,7 +47,7 @@ export const dealKfNumber = (
   }
 
   if (typeof preNumber === 'number') {
-    return dealKfDecimalPrecision(preNumber);
+    return dealKfDecimalPrecision(preNumber, precision);
   }
 
   return Number(preNumber) || 0;
@@ -49,25 +55,12 @@ export const dealKfNumber = (
 
 export const dealKfDecimalPrecision = (
   originNum: number,
-  precision = 12,
+  precision = DEFAULT_PRECISION,
 ): number => {
   if (originNum.toString().indexOf('e') !== -1) {
     return originNum;
   }
   return parseFloat(Number(originNum).toFixed(precision));
-};
-
-export const dealKfPrice = (
-  originNum: bigint | number | undefined | null | unknown,
-  pricePrecision?: number,
-): string => {
-  const resolvedNum = dealKfNumber(originNum);
-
-  if (resolvedNum === '--') {
-    return resolvedNum;
-  }
-
-  return Number(resolvedNum).kfToFixed(pricePrecision ?? 4);
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {
@@ -221,18 +214,16 @@ export const dealLocationUID = (
 };
 
 export const setTimerPromiseTask = (fn: AnyPromiseFunction, interval = 500) => {
-  let taskTimer: number | undefined = undefined;
+  let taskTimer: NodeJS.Timeout | undefined = undefined;
   let clear = false;
   function timerPromiseTask(fn: AnyPromiseFunction, interval = 500) {
-    if (taskTimer)
-      globalThis.clearTimeout(taskTimer as unknown as NodeJS.Timeout);
+    if (taskTimer) globalThis.clearTimeout(taskTimer);
     fn().finally(() => {
       if (clear) {
-        if (taskTimer)
-          globalThis.clearTimeout(taskTimer as unknown as NodeJS.Timeout);
+        if (taskTimer) globalThis.clearTimeout(taskTimer);
         return;
       }
-      taskTimer = +globalThis.setTimeout(() => {
+      taskTimer = globalThis.setTimeout(() => {
         timerPromiseTask(fn, interval);
       }, interval);
     });
@@ -241,79 +232,97 @@ export const setTimerPromiseTask = (fn: AnyPromiseFunction, interval = 500) => {
   return {
     clearLoop: function () {
       clear = true;
-      if (taskTimer != null)
-        globalThis.clearTimeout(taskTimer as unknown as NodeJS.Timeout);
+      if (taskTimer) globalThis.clearTimeout(taskTimer);
     },
   };
 };
 
+interface DataSliceHandler {
+  onFinish(callback: () => void): void;
+}
 export const dataOperationBySliceInEventLoop = <T>(
   data: T[],
-  doSomethingCallback: (
-    dataItem: T,
-    index: number,
-    sliceIndex: number,
-  ) => Promise<void>,
+  doSomethingCallback: (dataItem: T, index: number, sliceIndex: number) => void,
   sliceLength = 1000,
-) => {
-  return new Promise<void>((resolve, reject) => {
-    let i = 0,
-      sliceIndex = 0;
-    const len = data.length;
-    const bestEventLoopTask =
-      typeof window !== 'undefined'
-        ? window.requestAnimationFrame
-        : setImmediate;
-    const runner = () => {
-      bestEventLoopTask(async () => {
-        for (let j = 0; j < sliceLength && i < len; i++, j++) {
-          try {
-            await doSomethingCallback(data[i], i, sliceIndex);
-          } catch (error) {
-            reject(error);
-          }
-        }
+): DataSliceHandler => {
+  const onFinishCbs: Array<() => void> = [];
+  const onFinish = (cb: () => void) => {
+    onFinishCbs.push(cb);
+  };
 
-        if (i === len) {
-          resolve();
-        } else {
-          sliceIndex++;
-          runner();
+  let i = 0,
+    sliceIndex = 0;
+  const len = data.length;
+  const bestEventLoopTask =
+    typeof window !== 'undefined' ? window.requestAnimationFrame : setImmediate;
+  let timer: NodeJS.Immediate | number | undefined = undefined;
+  const runner = () => {
+    if (timer) {
+      if (window) {
+        window.cancelAnimationFrame(timer as number);
+      } else {
+        clearImmediate(timer as NodeJS.Immediate);
+      }
+    }
+    timer = bestEventLoopTask(() => {
+      for (let j = 0; j < sliceLength && i < len; i++, j++) {
+        try {
+          doSomethingCallback(data[i], i, sliceIndex);
+        } catch (error) {
+          console.error(error);
+          return;
         }
-      });
-    };
+      }
 
-    runner();
-  });
+      if (i === len) {
+        if (onFinishCbs.length) {
+          onFinishCbs.forEach((cb) => cb());
+        }
+      } else {
+        sliceIndex++;
+
+        runner();
+      }
+    });
+  };
+
+  runner();
+
+  return {
+    onFinish,
+  };
 };
 
 export const doSomethingWithDataSliced = <T>(
   data: T[],
-  doSomethingCallback: (dataSliced: T[], sliceIndex: number) => Promise<void>,
+  doSomethingCallback: (dataSliced: T[], sliceIndex: number) => void,
   sliceLength = 1000,
-) => {
-  if (data.length === 0) return Promise.resolve();
-  const dataSliced: T[] = [];
-  return new Promise<void>((resolve, reject) => {
-    dataOperationBySliceInEventLoop(
-      data,
-      async (dataItem, index, sliceIndex) => {
-        dataSliced.push(dataItem);
-
-        if (dataSliced.length === sliceLength || index === data.length - 1) {
-          try {
-            await doSomethingCallback(dataSliced, sliceIndex);
-            dataSliced.length = 0;
-          } catch (error) {
-            reject(error);
-          }
-        }
-
-        if (index === data.length - 1) resolve();
+): DataSliceHandler => {
+  if (data.length === 0)
+    return {
+      onFinish: (cb) => {
+        cb();
       },
-      sliceLength,
-    );
-  });
+    };
+
+  const dataSliced: T[] = [];
+  return dataOperationBySliceInEventLoop(
+    data,
+    (dataItem, index, sliceIndex) => {
+      dataSliced.push(dataItem);
+
+      if (dataSliced.length === sliceLength || index === data.length - 1) {
+        try {
+          doSomethingCallback(dataSliced, sliceIndex);
+          dataSliced.length = 0;
+        } catch (error) {
+          console.error(error);
+          return;
+        }
+      }
+    },
+    sliceLength,
+  );
 };
 
 export const getResultUntilValuable = <T>(
@@ -378,16 +387,11 @@ export function getHourMinuteSecond(delimiter = ':') {
   return `${hour}${delimiter}${minute}${delimiter}${second}`;
 }
 
-export function roundToDecimalPlaces(num: number, precision: number) {
-  const multiplier = Math.pow(10, precision);
-  return Math.round(num * multiplier) / multiplier;
-}
-
 export function countDecimalPlaces(num: number) {
   if (String(num).indexOf('e-') !== -1) {
     return parseInt(String(num).split('e-')[1], 10);
   }
-  const normalNum = Number(num).kfToFixed(10);
+  const normalNum = Number(num).kfToFixed(DEFAULT_PRECISION);
   const numStr = String(normalNum)
     .replace(/(\.\d*?[1-9])0+$/, '$1')
     .replace(/\.0+$/, '');

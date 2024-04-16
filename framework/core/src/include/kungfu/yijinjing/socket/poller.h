@@ -50,7 +50,7 @@ namespace yijinjing {
 namespace socket {
 typedef std::shared_ptr<poller> poller_ptr;
 }
-}; // namespace yijinjing
+} // namespace yijinjing
 } // namespace kungfu
 
 #endif // KUNGFU_POLLER_H

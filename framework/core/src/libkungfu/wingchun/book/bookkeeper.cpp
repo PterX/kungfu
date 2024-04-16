@@ -298,20 +298,22 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
   auto new_book = get_book_replica(position_end.holder_uid);
 
   auto position_compare = [](const PositionMap &source_map, Book_ptr &target_book) {
-    return std::any_of(source_map.begin(), source_map.end(), [&](const auto &source_pair) {
-      const auto &source_position = source_pair.second;
-      auto &target_position = target_book->get_position(source_position.source_id, source_position.direction,
-                                                        source_position.exchange_id, source_position.instrument_id);
-      return source_position.volume != target_position.volume ||                   // 数量
-             source_position.open_volume != target_position.open_volume ||         // 今开
-             source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
-    });
+    bool changed = false;
+    for (auto &source_pair : source_map) {
+      auto &source_position = source_pair.second;
+      const auto &target_position =
+          target_book->get_position(source_position.source_id, source_position.direction, source_position.exchange_id,
+                                    source_position.instrument_id);
+      changed |= source_position.volume != target_position.volume ||                   // 数量
+                 source_position.open_volume != target_position.open_volume ||         // 今开
+                 source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
+    }
+    return changed;
   };
 
   bool position_changed =
-      position_compare(new_book->long_positions, old_book) || position_compare(new_book->short_positions, old_book) ||
-      position_compare(old_book->long_positions, new_book) || position_compare(old_book->short_positions, new_book);
-
+      position_compare(new_book->long_positions, old_book) | position_compare(new_book->short_positions, old_book) |
+      position_compare(old_book->long_positions, new_book) | position_compare(old_book->short_positions, new_book);
   if (position_changed) {
     for (auto &book_listener : book_listeners_) {
       book_listener->on_position_sync_reset(*old_book, *new_book);

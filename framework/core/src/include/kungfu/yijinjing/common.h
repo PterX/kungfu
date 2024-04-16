@@ -24,7 +24,7 @@ constexpr int MB = KB * KB;
 
 class yijinjing_error : public std::runtime_error {
 public:
-  explicit yijinjing_error(const std::string &message) : runtime_error(message) {}
+  explicit yijinjing_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
 };
 
 class resource {

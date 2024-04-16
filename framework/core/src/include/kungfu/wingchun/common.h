@@ -98,9 +98,9 @@ constexpr uint64_t UINT64_ZERO = 0;
 
 class wingchun_error : public std::runtime_error {
 public:
-  explicit wingchun_error(const std::string &_s) : std::runtime_error(_s) {}
+  explicit wingchun_error(const std::string &_s) : std::runtime_error(_s) { SPDLOG_CRITICAL(_s); }
 
-  [[maybe_unused]] explicit wingchun_error(const char *_s) : std::runtime_error(_s) {}
+  explicit wingchun_error(const char *_s) : std::runtime_error(_s) { SPDLOG_CRITICAL(_s); }
 
   ~wingchun_error() noexcept override = default;
 };

@@ -1547,6 +1547,10 @@ export const useQuote = (): {
       return '--';
     }
 
+    if (percent === Number.MAX_VALUE || percent === Number.MIN_VALUE) {
+      return '--';
+    }
+
     return Number(percent * 100).kfToFixed(2) + '%';
   };
 
@@ -1560,7 +1564,7 @@ export const useQuote = (): {
     }
 
     const { pre_close_price } = quote;
-    return pre_close_price.kfToFixed(2);
+    return dealKfNumber(pre_close_price, 2);
   };
 
   const isInstrumentUpLimit = (instrument: KungfuApi.InstrumentResolved) => {
@@ -2855,19 +2859,13 @@ export const useMakeOrderInfo = (
 
     if (currentPosition.value) {
       if (isMarginMakeOrder.value) {
-        return (
-          dealKfNumber(currentPosition.value.closable_volume, precision) + ''
-        );
+        return dealKfNumber(currentPosition.value.closable_volume, precision);
       }
       return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
 
     return '0';
   });
-
-  function dealTradeAmount(preNumber: number | null) {
-    return !Number(preNumber) ? '--' : dealKfNumber(preNumber);
-  }
 
   const currentPrice = computed(() => {
     const { price_type, limit_price } = formState.value;
@@ -2876,11 +2874,11 @@ export const useMakeOrderInfo = (
       return limit_price as number;
     } else if (price_type === PriceTypeEnum.Market) {
       if (currentPosition.value) {
-        return getPositionLastPrice(currentPosition.value) || null;
+        return getPositionLastPrice(currentPosition.value);
       }
     }
 
-    return limit_price;
+    return limit_price as number;
   });
 
   const currentTradeAmount = computed(() => {
@@ -2891,7 +2889,7 @@ export const useMakeOrderInfo = (
     if (instrumentResolved.value && currentAccountLocation.value) {
       const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
         ...instrumentResolved.value,
-        price: currentPrice.value ?? 0,
+        price: currentPrice.value,
         volume: volume,
         direction: currentFormDirection.value || DirectionEnum.Long,
         accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
@@ -2899,7 +2897,7 @@ export const useMakeOrderInfo = (
         ),
       };
       if (instrumentResolved.value.instrumentType in TradeAccountingUsageMap) {
-        return dealTradeAmount(
+        return dealKfNumber(
           TradeAccountingUsageMap[
             instrumentResolved.value.instrumentType as InstrumentTypeEnum
           ].getTradeAmount(window.watcher, instrumentForAccounting),
@@ -2907,8 +2905,8 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return dealTradeAmount(
-      dealKfDecimalPrecision((currentPrice.value ?? 0) * volume, precision),
+    return dealKfNumber(
+      dealKfDecimalPrecision(currentPrice.value * volume, precision),
     );
   });
 

@@ -115,11 +115,11 @@ const priceVolumeStats = computed(() => {
       return {
         id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        mean: dealKfNumber(Number(priceSum / volumeSum)) + '',
+        mean: dealKfNumber(Number(priceSum / volumeSum)),
         side: +side,
         offset: +offset,
-        min: dealKfNumber(range[0]) + '',
-        max: dealKfNumber(range[1]) + '',
+        min: dealKfNumber(range[0]),
+        max: dealKfNumber(range[1]),
         volume: volumeSum.toString(),
       };
     })

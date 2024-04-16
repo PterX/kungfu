@@ -50,6 +50,7 @@ import {
   getResultUntilValuable,
   dealKfDecimalPrecision,
   DEFAULT_PRECISION,
+  countDecimalPlaces,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -1141,6 +1142,9 @@ export const getOrderResolved = (
     avg_price: number;
   } | null,
 ): KungfuApi.OrderResolved => {
+  const ukey = hashInstrumentUKey(order.instrument_id, order.exchange_id);
+  const instrument = watcher.ledger.Instrument[ukey];
+  const tickPrecision = countDecimalPlaces(instrument?.price_tick || 0);
   const precision = getPrecisionByInstrumentType(order.instrument_type);
   const latencyData = getOrderStatResolve(orderStats, precision);
   const destResolvedData = resolveClientId(watcher, order.dest);
@@ -1166,7 +1170,7 @@ export const getOrderResolved = (
     frozen_price: dealKfDecimalPrecision(order.frozen_price, precision),
     avg_price_resolved:
       'avg_price' in latencyData
-        ? dealKfNumber(latencyData.avg_price, precision)
+        ? dealKfNumber(latencyData.avg_price, tickPrecision || precision)
         : orderStatResolved?.avg_price || '--',
     status_resolved: {
       name: statusData.name,
@@ -1346,6 +1350,8 @@ export const dealPosition = (
   );
   const closable_volume = getPosClosableVolume(pos);
   const ukey = hashInstrumentUKey(pos.instrument_id, pos.exchange_id);
+  const instrument = watcher.ledger.Instrument[ukey];
+  const tickPrecision = countDecimalPlaces(instrument?.price_tick || 0);
   const currency =
     ((watcher.ledger.Instrument[ukey] as KungfuApi.Instrument) || null)
       ?.currency || CurrencyEnum.Unknown;
@@ -1358,15 +1364,14 @@ export const dealPosition = (
     instrument_id_resolved: `${pos.instrument_id} ${instrumentName} ${
       ExchangeIds[pos.exchange_id]?.name ?? ''
     }`,
-    last_price_resolved: dealKfDecimalPrecision(pos.last_price, precision),
+    last_price_resolved: dealKfNumber(pos.last_price, precision),
+    unrealized_pnl_resolved: pos.avg_open_price
+      ? dealKfNumber(pos.unrealized_pnl, tickPrecision || precision)
+      : '--',
     avg_open_price_resolved: dealKfDecimalPrecision(
       pos.avg_open_price,
-      precision,
+      tickPrecision || precision,
     ),
-    unrealized_pnl_resolved: pos.avg_open_price
-      ? dealKfDecimalPrecision(pos.unrealized_pnl, precision)
-      : '--',
-    avg_open_price: dealKfDecimalPrecision(pos.avg_open_price, precision),
     close_pnl: dealKfDecimalPrecision(pos.close_pnl, precision),
     position_cost_price: dealKfDecimalPrecision(
       pos.position_cost_price,

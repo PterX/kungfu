@@ -356,11 +356,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
-Tick
-Depth
 SubscribeDataType
 Stock
 Future

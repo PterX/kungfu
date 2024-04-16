@@ -61,7 +61,7 @@ export const dealKfDecimalPrecision = (
   if (originNum.toString().indexOf('e') !== -1) {
     return originNum;
   }
-  return parseFloat(Number(originNum).toFixed(precision));
+  return parseFloat(Number(originNum).kfToFixed(precision));
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {

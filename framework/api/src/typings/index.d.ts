@@ -1774,7 +1774,6 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  import { session } from 'electron';
 
   export interface CodeInfo {
     code_id: string;

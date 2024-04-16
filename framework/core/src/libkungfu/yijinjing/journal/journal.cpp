@@ -56,17 +56,12 @@ void journal::next() {
 }
 
 void journal::seek_to_time(int64_t nanotime) {
-
   uint32_t page_id = page::find_page_id(location_, dest_id_, nanotime);
-
   load_page(page_id);
-
   while (page_->is_full() && page_->end_time() <= nanotime) {
     load_next_page();
   }
-
   try_load_next_extra_page();
-
   while (frame_->has_data() && frame_->gen_time() <= nanotime) {
     next();
   }

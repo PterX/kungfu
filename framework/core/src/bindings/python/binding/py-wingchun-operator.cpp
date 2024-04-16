@@ -90,7 +90,8 @@ public:
 
 void bind_operator(pybind11::module &m) {
 
-  py::class_<op::Runner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<op::Runner>>(m, "OpRunner")
+  py::class_<op::Runner, PyOpRunner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<op::Runner>>(m,
+                                                                                                           "OpRunner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool, const std::string &>())
       .def_property_readonly("context", &op::Runner::get_context)

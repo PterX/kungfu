@@ -692,7 +692,7 @@ export function useKeyboardControlContainerStyle(
   );
 
   function focusOutHandler() {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (
         container &&
         document.activeElement &&
@@ -700,6 +700,7 @@ export function useKeyboardControlContainerStyle(
       ) {
         removeStyle(element);
       }
+      clearTimeout(timer);
     });
   }
 
@@ -979,16 +980,30 @@ export const useWritableTableSearchKeyword = <T>(
     () => ({ keyword: searchKeyword.value, list: targetList.value }),
     (newValue) => {
       const { keyword, list } = newValue;
-      tableData.value = searchByKeyword(
-        keyword,
-        list?.map((item, index) => ({
-          data: toRaw(item),
-          index,
-          id: generateItemId(item as unknown as object),
-        })),
-        keys,
-        transform,
-      );
+      tableData.value =
+        list
+          ?.map((item, index) => ({
+            data: toRaw(item),
+            index,
+            id: generateItemId(item as unknown as object),
+          }))
+          .filter((item: { data: T; index: number }) => {
+            const combinedValue = keys
+              .map((key: string) => {
+                let keyWord = (item.data as Record<string, unknown>)[key] as
+                  | string
+                  | number;
+
+                if (transform && transform[key]) {
+                  keyWord = transform[key](keyWord);
+                }
+
+                return keyWord ? keyWord.toString() : '';
+              })
+              .join('_');
+            const escapedKeyword = escapeSpecialChar(keyword);
+            return new RegExp(escapedKeyword, 'ig').test(combinedValue);
+          }) || [];
     },
     {
       deep: true,
@@ -2575,4 +2590,19 @@ export const setPreStyle = () => {
     const value = styleMap[key];
     document.documentElement.style.setProperty(key, value);
   }
+};
+
+export const useBrowserWindowFocus = () => {
+  const win = getCurrentWindow();
+  const focus = ref(win.isFocused());
+
+  win.on('focus', () => {
+    focus.value = true;
+  });
+
+  win.on('blur', () => {
+    focus.value = false;
+  });
+
+  return focus;
 };

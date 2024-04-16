@@ -111,6 +111,12 @@ service_command_context = kfc.pass_context("low_latency")
     help="log frame message source->dest:msg_type:frame_uid  ",
 )
 @click.option(
+    "-ENV-low-memory",
+    is_flag=True,
+    required=False,
+    help="clear orders in broker memory every interval ",
+)
+@click.option(
     "-ARG-max-pre-create-size",
     type=str,
     required=False,
@@ -143,6 +149,7 @@ def run(
     env_bypass_sync_asset,
     env_bypass_sync_position,
     env_log_frame,
+    env_low_memory,
     arg_max_pre_create_size,
 ):
     ctx.mode = mode

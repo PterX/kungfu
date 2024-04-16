@@ -49,6 +49,8 @@ import {
 import {
   getIdByKfLocation,
   getPrimaryKeys,
+  MAX_PRECISION,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealPriceType,
@@ -295,8 +297,9 @@ watch(
                   break;
                 case 'float':
                 case 'percent':
-                  formState.value[key] = Number(newVal[key]).kfRound(
-                    numberKeys.value[key].precision ?? 4,
+                  formState.value[key] = dealKfDecimalPrecision(
+                    formState.value[key],
+                    numberKeys.value[key].precision ?? MAX_PRECISION,
                   );
                   break;
               }
@@ -1411,16 +1414,16 @@ defineExpose({
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
-          :precision="item.precision ?? 4"
-          :step="item.step ?? 0.0001"
+          :step="item.step ?? 1"
           :disabled="
             (changeType === 'update' && item.primary && !isPrimaryDisabled) ||
             item.disabled
           "
+          :precision="item.precision === null ? undefined : item.precision"
           @focus="numbersTyping[item.key] = true"
           @blur="
             () => {
-              formState[item.key] = Number(formState[item.key]); // change value '' to 0.0000
+              formState[item.key] = Number(formState[item.key]);
               numbersTyping[item.key] = false;
             }
           "

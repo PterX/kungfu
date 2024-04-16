@@ -1,9 +1,6 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import {
-  sorter,
-  dealKfPrice,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { sorter } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
@@ -133,10 +130,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
       textAlign: 'right',
     },
     fieldFormat: (args) => {
-      return dealKfPrice(
-        getPositionLastPrice(args, 'last_price_resolved'),
-        args.price_precision,
-      );
+      return getPositionLastPrice(args, 'last_price_resolved');
     },
     sort: sorter,
   },
@@ -147,7 +141,9 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     style: {
       textAlign: 'right',
       color: (args) => {
-        return args.dataValue > 0
+        if (!Number(args.dataValue)) return defaultColorMap['text'];
+
+        return +args.dataValue > 0
           ? defaultColorMap['red']
           : defaultColorMap['green'];
       },

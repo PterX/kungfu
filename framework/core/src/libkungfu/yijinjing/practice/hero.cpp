@@ -22,6 +22,7 @@ using namespace kungfu::yijinjing::cache;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::yijinjing::nanomsg;
+using namespace kungfu::yijinjing::webserver;
 
 namespace kungfu::yijinjing::practice {
 
@@ -42,12 +43,16 @@ hero::hero(io_device_ptr io_device)
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
   reader_ = io_device_->open_reader_to_subscribe();
+
   ensure_master_rocksdb();
   read_location_from_rocksdb();
+
   add_location(0, get_io_device()->get_live_home());
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
+
+  // counld get in rocksdb in live
   if (get_home()->mode != mode::LIVE) {
     for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {
       add_location(0, l);
@@ -491,6 +496,10 @@ void hero::disjoin_channel(uint32_t location_uid, uint32_t dest_id) {
   disjoin_channels_.insert({location_uid, dest_id});
 }
 
+void hero::disjoin_channel(const data::location_ptr &location, uint32_t dest_id) {
+  disjoin_location_channels_.emplace(location, dest_id);
+}
+
 void hero::cleanup_reader_disjoin() {
   /**
    * Invoking reader_->disjoin within the events_ stream is forbidden due to several critical reasons:
@@ -509,8 +518,12 @@ void hero::cleanup_reader_disjoin() {
       reader_->disjoin(get_location(pair.first), pair.second);
     }
   }
+  for (const auto &[location, dest_id] : disjoin_location_channels_) {
+    reader_->disjoin(location, dest_id);
+  }
   disjoin_uids_.clear();
   disjoin_channels_.clear();
+  disjoin_location_channels_.clear();
 }
 
 rocksdb::DB *hero::get_master_rocksdb() const {

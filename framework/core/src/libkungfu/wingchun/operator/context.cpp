@@ -18,7 +18,11 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 
+using namespace kungfu::wingchun::orderbook;
+
 namespace kungfu::wingchun::op {
 Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {}
+
+void Context::attach_orderbooks(Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
 } // namespace kungfu::wingchun::op

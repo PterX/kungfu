@@ -14,8 +14,8 @@
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
+#include <kungfu/wingchun/factor/crosssection.h>
 
-using namespace kungfu::wingchun::orderbook;
 namespace kungfu::wingchun::strategy {
 
 class Context : public std::enable_shared_from_this<Context> {
@@ -389,7 +389,13 @@ public:
    * attach the orderbooks to market data received.
    * @param orderbooks
    */
-  void attach_orderbooks(Orderbooks &orderbooks);
+  void attach_orderbooks(orderbook::Orderbooks &orderbooks);
+
+  /**
+   * attach the factor generator to market data received.
+   * @param factor_generator
+   */
+  void attach_factor_generator(factor::MultiCrossSectionalFactor &factor_generator);
 
 protected:
   yijinjing::practice::apprentice &app_;

@@ -119,6 +119,7 @@ void bind_operator(pybind11::module &m) {
       .def("publish_synthetic_data", &op::Context::publish_synthetic_data)
       .def("update_operator_state", &op::Context::update_operator_state)
       .def("set_resume_policy", &op::Context::set_resume_policy)
+      .def("attach_orderbooks", &op::Context::attach_orderbooks)
       .def("req_deregister", &op::Context::req_deregister);
 
   py::class_<op::Operator, PyOperator, op::Operator_ptr>(m, "Operator")

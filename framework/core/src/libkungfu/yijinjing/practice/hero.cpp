@@ -43,7 +43,7 @@ hero::hero(io_device_ptr io_device)
   os::handle_os_signals(this);
   util::set_error_log_dir(get_locator()->layout_dir(get_home(), layout::LOG));
   reader_ = io_device_->open_reader_to_subscribe();
-  
+
   ensure_master_rocksdb();
   read_location_from_rocksdb();
 
@@ -51,7 +51,7 @@ hero::hero(io_device_ptr io_device)
   add_location(0, master_home_location_);
   add_location(0, master_cmd_location_);
   add_location(0, ledger_home_location_);
-  
+
   // counld get in rocksdb in live
   if (get_home()->mode != mode::LIVE) {
     for (const auto &l : get_live_home()->locator->list_locations("*", "*", "*", "*")) {

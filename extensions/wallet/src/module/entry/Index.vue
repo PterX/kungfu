@@ -3,9 +3,10 @@
     <WalletOutlined />
     <span style="margin-left: 4px">
       {{
-        `${t('awsWallet.balance')}: ${
-          dealKfNumber(walletStore.currentBalance, 2)
-        }${t('awsWallet.unit')}`
+        `${t('awsWallet.balance')}: ${dealKfNumber(
+          walletStore.currentBalance,
+          2,
+        )}${t('awsWallet.unit')}`
       }}
     </span>
   </div>

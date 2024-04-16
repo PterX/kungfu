@@ -54,7 +54,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 50,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[

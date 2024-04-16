@@ -1547,6 +1547,10 @@ export const useQuote = (): {
       return '--';
     }
 
+    if (percent === Number.MAX_VALUE) {
+      return '--';
+    }
+
     return Number(percent * 100).kfToFixed(2) + '%';
   };
 
@@ -1560,7 +1564,7 @@ export const useQuote = (): {
     }
 
     const { pre_close_price } = quote;
-    return pre_close_price.kfToFixed(2);
+    return dealKfNumber(pre_close_price, 2);
   };
 
   const isInstrumentUpLimit = (instrument: KungfuApi.InstrumentResolved) => {
@@ -2855,9 +2859,7 @@ export const useMakeOrderInfo = (
 
     if (currentPosition.value) {
       if (isMarginMakeOrder.value) {
-        return (
-          dealKfNumber(currentPosition.value.closable_volume, precision) + ''
-        );
+        return dealKfNumber(currentPosition.value.closable_volume, precision);
       }
       return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }

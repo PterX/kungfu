@@ -193,7 +193,6 @@ onActivated(() => {
   });
 
   onDeactivated(() => {
-    console.log('onDeactivated');
     subscription?.unsubscribe();
     needProcessTradingData.value = true;
   });

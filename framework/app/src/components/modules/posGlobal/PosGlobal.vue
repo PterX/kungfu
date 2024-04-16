@@ -233,7 +233,7 @@ function buildGlobalPositions(
       );
       posStat[id].static_yesterday = dealKfDecimalPrecision(
         static_yesterday + pos.static_yesterday,
-        price_precision || precision,
+        precision,
       );
       posStat[id].open_volume = dealKfDecimalPrecision(
         open_volume + pos.open_volume,

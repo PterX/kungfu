@@ -136,8 +136,6 @@ export const useAllPresetExtension = () => {
   const extManagerStore = useExtManagerStore();
   const { allPresetExtensions } = storeToRefs(extManagerStore);
 
-  extManagerStore.setAllExtensions();
-
   const dealExtConfigsForShow = (
     extConfigs: KungfuApi.KfExtConfig[],
   ): ExtConfigForShowList => {

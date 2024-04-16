@@ -177,9 +177,9 @@ const priceVolumeStats = computed(() => {
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
         side: +side,
         offset: +offset,
-        mean: dealKfNumber(priceSum / volumeSum) + '',
-        min: dealKfNumber(range[0]) + '',
-        max: dealKfNumber(range[1]) + '',
+        mean: dealKfNumber(priceSum / volumeSum),
+        min: dealKfNumber(range[0]),
+        max: dealKfNumber(range[1]),
         volume: `${volumeTradedSum} / ${volumeSum}`,
       };
     })

@@ -261,6 +261,13 @@ declare namespace KungfuApi {
       'en-US': Record<string, string>;
       [langName: string]: Record<string, string>;
     };
+    binary: {
+      host: string;
+      module_name: string;
+      module_path: string;
+      package_name: string;
+      remote_path: string;
+    };
   }
 
   export interface KfExtOriginBrokerConfig

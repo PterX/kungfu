@@ -1284,6 +1284,14 @@ watch(
         .ant-form-item-extra {
           min-height: unset;
         }
+
+        .ant-input-number {
+          width: 100%;
+
+          .ant-input-number-input {
+            width: 100%;
+          }
+        }
       }
 
       .percent-group__wrap {

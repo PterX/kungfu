@@ -1163,12 +1163,13 @@ export const getOrderResolved = (
     uid_key: order.uid_key,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
+    states_uname: statusData.name,
     limit_price_resolved: dealKfNumber(order.limit_price, precision),
     limit_price: dealKfDecimalPrecision(order.limit_price, precision),
     frozen_price: dealKfDecimalPrecision(order.frozen_price, precision),
     avg_price_resolved: latencyData
       ? dealKfNumber(latencyData.avg_price, tickPrecision || precision)
-      : orderStatResolved?.avg_price || '--',
+      : orderStatResolved?.avg_price ?? '--',
     status_resolved: {
       name: statusData.name,
       color: statusData.color || 'default',

@@ -60,6 +60,10 @@ onActivated(() => {
   });
 });
 
+const precision = computed(() => {
+  return getPrecisionByInstrumentType(currentInstrument.value?.instrumentType);
+});
+
 const askPrices = computed(() => {
   if (!quoteData.value) {
     return [];
@@ -184,7 +188,7 @@ function toLedgalPriceVolume(num: number | bigint) {
     return 0;
   }
 
-  if (num > Number.MAX_SAFE_INTEGER) {
+  if (num >= Number.MAX_SAFE_INTEGER) {
     return 0;
   }
 
@@ -203,10 +207,7 @@ function toLedgalPriceVolume(num: number | bigint) {
         <div class="price">
           {{
             limitPrices[0] !== 0 && limitPrices[0] !== undefined
-              ? dealKfNumber(
-                  toLedgalPriceVolume(limitPrices[0]),
-                  getPrecisionByInstrumentType(quoteData?.instrument_type),
-                )
+              ? dealKfNumber(toLedgalPriceVolume(limitPrices[0]), precision)
               : '--'
           }}
         </div>
@@ -225,7 +226,9 @@ function toLedgalPriceVolume(num: number | bigint) {
           "
         ></div>
         <div class="price">
-          {{ dealKfNumber(toLedgalPriceVolume(askPrices[9 - index])) }}
+          {{
+            dealKfNumber(toLedgalPriceVolume(askPrices[9 - index]), precision)
+          }}
         </div>
         <div
           class="sell volume"
@@ -236,7 +239,9 @@ function toLedgalPriceVolume(num: number | bigint) {
             )
           "
         >
-          {{ dealKfNumber(toLedgalPriceVolume(askVolume[9 - index])) }}
+          {{
+            dealKfNumber(toLedgalPriceVolume(askVolume[9 - index]), precision)
+          }}
         </div>
       </div>
     </div>
@@ -264,7 +269,7 @@ function toLedgalPriceVolume(num: number | bigint) {
           {{
             dealKfNumber(
               getQuoteByInstrument(currentInstrument)?.last_price,
-              getPrecisionByInstrumentType(quoteData?.instrument_type),
+              precision,
             )
           }}
         </div>
@@ -290,10 +295,10 @@ function toLedgalPriceVolume(num: number | bigint) {
             )
           "
         >
-          {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
+          {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index]), precision) }}
         </div>
         <div class="price">
-          {{ dealKfNumber(toLedgalPriceVolume(bidPrices[index])) }}
+          {{ dealKfNumber(toLedgalPriceVolume(bidPrices[index]), precision) }}
         </div>
         <div
           class="sell volume"
@@ -310,10 +315,7 @@ function toLedgalPriceVolume(num: number | bigint) {
         <div class="price">
           {{
             limitPrices[1] !== 0 && limitPrices[1] !== undefined
-              ? dealKfNumber(
-                  toLedgalPriceVolume(limitPrices[1]),
-                  getPrecisionByInstrumentType(quoteData?.instrument_type),
-                )
+              ? dealKfNumber(toLedgalPriceVolume(limitPrices[1]), precision)
               : '--'
           }}
         </div>
@@ -359,11 +361,13 @@ function toLedgalPriceVolume(num: number | bigint) {
 
       .price {
         flex: 1.5;
+        min-width: 120px;
       }
 
       .volume {
         color: #fff;
         cursor: pointer;
+        min-width: 120px;
 
         &.buy {
           background: @red-base;
@@ -388,6 +392,7 @@ function toLedgalPriceVolume(num: number | bigint) {
     display: flex;
     align-items: center;
     padding: 8px 0px;
+    min-width: 360px;
 
     .info-item {
       flex: 1;

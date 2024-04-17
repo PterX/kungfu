@@ -276,6 +276,7 @@ export enum KfExtTypeEnum {
   Matcher = 'matcher',
   Indexer = 'indexer',
   Example = 'example',
+  Factor = 'factor',
 }
 
 export enum KfCategoryEnum {

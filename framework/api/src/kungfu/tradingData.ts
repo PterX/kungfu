@@ -1,33 +1,33 @@
 import { Subject } from 'rxjs';
 import { watcher, startWatcher } from './watcher';
 import {
-  setTimerPromiseTask,
+  setNodeTimerPromiseTask,
   doSomethingWithDataSliced,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   getOrderResolved,
   getTradeResolved,
+  DEFAULT_LIST_LENGTH,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-import { hashSingleUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import BTree from 'sorted-btree';
-export class DynamicTradingDataIndexedMap<K extends string | number, V> {
+export class DynamicTradingDataIndexedMap<V> {
   private tradingDataType: 'order' | 'trade';
-  private keyValuesMap: { [key in K]?: V };
   private commonList: V[];
   private unfinishedList: V[];
-  private maxListLength = 50000;
+  private maxListLength = DEFAULT_LIST_LENGTH;
   private commonTree: BTree<unknown, V>;
   private unfinishedTree: BTree<unknown, V>;
   private sortStr1 = '';
   private sortStr2 = '';
+  private commonMinKey: unknown;
 
-  constructor(type: 'order' | 'trade', maxListLength = 50000) {
+  constructor(type: 'order' | 'trade', maxListLength = DEFAULT_LIST_LENGTH) {
     this.tradingDataType = type;
-    this.keyValuesMap = {};
     this.commonList = [];
     this.unfinishedList = [];
     this.maxListLength = maxListLength;
+    this.commonMinKey = null;
 
     if (this.tradingDataType === 'order') {
       this.sortStr1 = 'insert_time';
@@ -56,17 +56,22 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     });
   }
 
-  insertKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
-    this.keyValuesMap[key] = value;
-
-    this.commonTree.set(
-      {
-        [this.sortStr1]: value[this.sortStr1],
-        [this.sortStr2]: value[this.sortStr2],
-      },
-      value,
-      true,
-    );
+  insertKeyWithValue(value: V, type: string, isFinished = true): void {
+    if (
+      !this.commonMinKey ||
+      !(this.commonMinKey as Record<string, bigint>)[this.sortStr1] ||
+      (this.commonMinKey as Record<string, bigint>)[this.sortStr1] <=
+        value[this.sortStr1]
+    ) {
+      this.commonTree.set(
+        {
+          [this.sortStr1]: value[this.sortStr1],
+          [this.sortStr2]: value[this.sortStr2],
+        },
+        value,
+        true,
+      );
+    }
 
     if (type === 'order' && !isFinished) {
       this.unfinishedTree.set(
@@ -79,9 +84,8 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
       );
     }
   }
-  updateKeyWithValue(key: K, value: V, type: string, isFinished = true): void {
-    this.keyValuesMap[key] = value;
 
+  updateKeyWithValue(value: V, type: string, isFinished = true): void {
     this.commonTree.changeIfPresent(
       {
         [this.sortStr1]: value[this.sortStr1],
@@ -110,12 +114,14 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
     }
   }
 
-  hasKey(key: K): boolean {
-    return this.keyValuesMap[key] !== undefined;
-  }
-
-  getValueForKey(key: K): V | undefined {
-    return this.keyValuesMap[key];
+  getValue(key1: unknown, key2: unknown): V | undefined {
+    return (
+      this.commonTree.get({
+        [this.sortStr1]: key1,
+        [this.sortStr2]: key2,
+      }) ||
+      this.unfinishedTree.get({ [this.sortStr1]: key1, [this.sortStr2]: key2 })
+    );
   }
 
   getCommonList(): V[] {
@@ -134,14 +140,13 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
       const lo = redundantKeys[0];
       const high = redundantKeys[redundantKeys.length - 1];
       this.commonTree.deleteRange(lo, high, true);
+      this.commonMinKey = this.commonTree.maxKey(); //插入时间最小的Key
     }
     this.commonList = this.commonTree.valuesArray();
   }
 
   sortUnfinishedList(): void {
-    this.unfinishedList = this.unfinishedTree
-      .valuesArray()
-      .slice(0, this.maxListLength);
+    this.unfinishedList = this.unfinishedTree.valuesArray();
   }
 
   getAllUnfinishedList(): V[] {
@@ -149,7 +154,8 @@ export class DynamicTradingDataIndexedMap<K extends string | number, V> {
   }
 
   getAllList(): V[] {
-    return Object.values(this.keyValuesMap);
+    //TODO: fullList
+    return this.commonTree.valuesArray();
   }
 }
 
@@ -177,13 +183,11 @@ type ProcessingData = {
   type: 'order' | 'trade';
   category: string;
   key: number | string;
-  orderUKey: string;
   dataResolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved;
 };
 
 type OrderStatsMap = {
   order: Record<string, KungfuApi.OrderStat>;
-  trade: Record<string, KungfuApi.OrderStat>;
 };
 
 type AfterSync = (
@@ -192,8 +196,8 @@ type AfterSync = (
   update: boolean,
 ) => void;
 
-const DEFAULT_SPLIT_LENGTH = 100;
-const DEFAULT_TRADING_DATA_LENGTH = 50000;
+const DEFAULT_SPLIT_LENGTH = 50;
+const DEFAULT_TRADING_DATA_LENGTH = DEFAULT_LIST_LENGTH;
 
 const bestEventLoopTask =
   typeof window !== 'undefined'
@@ -295,7 +299,6 @@ export function useWatcher() {
   const sortDataMap = new Map<
     string,
     KungfuApi.KfDynamicTradingDataIndexedMap<
-      string,
       KungfuApi.OrderResolved | KungfuApi.TradeResolved
     >
   >();
@@ -303,33 +306,37 @@ export function useWatcher() {
 
   //添加或更新数据
   function tradingDataProcessing(data: ProcessingData) {
-    const { type, category, key, orderUKey, dataResolved } = data;
+    const { type, category, key, dataResolved } = data;
 
     if (!tradingDataKeeper[type][category][key]) {
-      tradingDataKeeper[type][category][key] = new DynamicTradingDataIndexedMap<
-        string,
-        KungfuApi.OrderResolved
-      >(type, DEFAULT_TRADING_DATA_LENGTH);
+      tradingDataKeeper[type][category][key] =
+        new DynamicTradingDataIndexedMap<KungfuApi.OrderResolved>(
+          type,
+          DEFAULT_TRADING_DATA_LENGTH,
+        );
     }
 
     const target = tradingDataKeeper[type][category][key];
     sortDataMap.set(`${type}_${category}_${key}`, target);
-    const isFinished =
-      type !== 'trade'
-        ? !UnfinishedOrderStatus.includes(
-            (dataResolved as KungfuApi.OrderResolved).status,
-          )
-        : true;
 
-    if (target.hasKey(orderUKey)) {
-      target.updateKeyWithValue(orderUKey, dataResolved, type, isFinished);
+    if (type === 'trade') {
+      target.insertKeyWithValue(dataResolved, type);
     } else {
-      target.insertKeyWithValue(orderUKey, dataResolved, type, isFinished);
+      const key1 = (dataResolved as KungfuApi.OrderResolved).insert_time;
+      const key2 = dataResolved.order_id;
+      const isFinished = !UnfinishedOrderStatus.includes(
+        (dataResolved as KungfuApi.OrderResolved).status,
+      );
+      if (target.getValue(key1, key2)) {
+        target.updateKeyWithValue(dataResolved, type, isFinished);
+      } else {
+        target.insertKeyWithValue(dataResolved, type, isFinished);
+      }
     }
   }
 
   //根据watcher同步数据,并将数据推入队列
-  const drainStatesBySync = async () => {
+  const drainStatesBySync = () => {
     if (watcher === null) return;
     watcher.sync();
     const orderStatList = Object.values(watcher.ledger.OrderStat);
@@ -346,8 +353,8 @@ export function useWatcher() {
   const startWatcherSyncTask = (interval = 1000, callBack?: AfterSync) => {
     if (watcher === null) return;
 
-    setTimerPromiseTask(async () => {
-      await drainStatesBySync();
+    setNodeTimerPromiseTask(async () => {
+      drainStatesBySync();
       callBack &&
         callBack(watcher as KungfuApi.Watcher, tradingDataKeeper, update);
       callBack && processQueue();
@@ -383,7 +390,6 @@ export function useWatcher() {
           );
           const sortDataMapValues = Array.from(sortDataMap.values());
           const sortPromises: Promise<void>[] = [];
-
           for (let i = 0, len = sortDataMapValues.length; i < len; i++) {
             sortPromises.push(
               Promise.resolve(sortDataMapValues[i].sortCommonList(compare)),
@@ -414,134 +420,108 @@ export function useWatcher() {
   function extractOrderStats(
     orderStatList: KungfuApi.OrderStat[],
   ): OrderStatsMap {
-    const orderStatsMap = { order: {}, trade: {} };
+    const orderStatsMap = { order: {} };
     orderStatList.forEach((stat) => {
       orderStatsMap.order[stat.uid_key] = stat;
-      orderStatsMap.trade[stat.uid_key] = stat;
     });
     return orderStatsMap;
   }
 
-  async function processOrderList(
+  function processOrderList(
     orderList: KungfuApi.Order[],
     orderStatsMap: OrderStatsMap,
   ) {
-    await doSomethingWithDataSliced(
-      orderList,
-      async (slicedOrderList) => {
-        const tasks: Promise<void>[] = [];
-        for (let i = 0; i < slicedOrderList.length; i++) {
-          const order = slicedOrderList[i];
-          if (!order || !watcher) continue;
+    return new Promise<void>((resolve) => {
+      const handler = doSomethingWithDataSliced(
+        orderList,
+        (slicedOrderList) => {
+          for (let i = 0; i < slicedOrderList.length; i++) {
+            const order = slicedOrderList[i];
+            if (!order || !watcher) continue;
 
-          const { source, dest, uid_key: orderUKey } = order;
-          const orderIndexMap = tradingDataKeeper.order.td[source];
+            const {
+              order_id,
+              insert_time,
+              source,
+              dest,
+              uid_key: orderUKey,
+            } = order;
+            const orderIndexMap = tradingDataKeeper.order.td[source];
+            const OldOrderResolved = orderIndexMap
+              ? orderIndexMap.getValue(insert_time, order_id) || null
+              : null;
+            const orderStatResolved = OldOrderResolved
+              ? {
+                  latency_system: OldOrderResolved.latency_system,
+                  latency_network: OldOrderResolved.latency_network,
+                  avg_price: OldOrderResolved.avg_price,
+                }
+              : null;
+            const orderResolved = getOrderResolved(
+              watcher,
+              order,
+              orderStatsMap.order[orderUKey] ||
+                unMatchedOrderStatMap[orderUKey] ||
+                null,
+              orderStatResolved,
+            );
 
-          const OldOrderResolved = orderIndexMap
-            ? orderIndexMap.getValueForKey(orderUKey) || null
-            : null;
-
-          const orderResolved = getOrderResolved(
-            watcher,
-            OldOrderResolved,
-            order,
-            orderStatsMap.order[orderUKey] ||
-              unMatchedOrderStatMap[orderUKey] ||
-              null,
-          );
-
-          delete orderStatsMap.order[orderUKey];
-
-          tasks.push(
-            Promise.resolve(
-              tradingDataProcessing({
-                type: 'order',
-                category: 'td',
-                key: source,
-                orderUKey,
-                dataResolved: orderResolved,
-              }),
-            ),
-          );
-
-          tasks.push(
-            Promise.resolve(
-              tradingDataProcessing({
-                type: 'order',
-                category: 'strategy',
-                key: dest,
-                orderUKey,
-                dataResolved: orderResolved,
-              }),
-            ),
-          );
-        }
-
-        await Promise.all(tasks);
-      },
-      DEFAULT_SPLIT_LENGTH,
-    );
+            delete orderStatsMap.order[orderUKey];
+            tradingDataProcessing({
+              type: 'order',
+              category: 'td',
+              key: source,
+              dataResolved: orderResolved,
+            });
+            tradingDataProcessing({
+              type: 'order',
+              category: 'strategy',
+              key: dest,
+              dataResolved: orderResolved,
+            });
+          }
+        },
+        DEFAULT_SPLIT_LENGTH,
+      );
+      handler.onFinish(() => {
+        resolve();
+      });
+    });
   }
 
-  async function processTradeList(
-    tradeList: KungfuApi.Trade[],
-    orderStatsMap: OrderStatsMap,
-  ) {
-    await doSomethingWithDataSliced(
-      tradeList,
-      async (slicedTradeList) => {
-        const tasks: Promise<void>[] = [];
-        for (let i = 0; i < slicedTradeList.length; i++) {
-          const trade = slicedTradeList[i];
-          if (!trade || !watcher) continue;
-          const { source, dest } = trade;
-          const orderUKey = hashSingleUKey(trade.order_id);
+  function processTradeList(tradeList: KungfuApi.Trade[]) {
+    return new Promise<void>((resolve) => {
+      const handler = doSomethingWithDataSliced(
+        tradeList,
+        (slicedTradeList) => {
+          for (let i = 0; i < slicedTradeList.length; i++) {
+            const trade = slicedTradeList[i];
+            if (!trade || !watcher) continue;
+            const { source, dest } = trade;
 
-          const indexMap = tradingDataKeeper.trade.td[source];
-          const oldTradeResolved = indexMap
-            ? indexMap.getValueForKey(orderUKey) || null
-            : null;
+            const tradeResolved = getTradeResolved(watcher, trade);
 
-          const tradeResolved = getTradeResolved(
-            watcher,
-            oldTradeResolved,
-            trade,
-            orderStatsMap.trade[orderUKey] ||
-              unMatchedOrderStatMap[orderUKey] ||
-              null,
-          );
+            tradingDataProcessing({
+              type: 'trade',
+              category: 'td',
+              key: source,
+              dataResolved: tradeResolved,
+            });
 
-          delete orderStatsMap.trade[orderUKey];
-
-          tasks.push(
-            Promise.resolve(
-              tradingDataProcessing({
-                type: 'trade',
-                category: 'td',
-                key: source,
-                orderUKey,
-                dataResolved: tradeResolved,
-              }),
-            ),
-          );
-
-          tasks.push(
-            Promise.resolve(
-              tradingDataProcessing({
-                type: 'trade',
-                category: 'strategy',
-                key: dest,
-                orderUKey,
-                dataResolved: tradeResolved,
-              }),
-            ),
-          );
-        }
-
-        await Promise.all(tasks);
-      },
-      DEFAULT_SPLIT_LENGTH,
-    );
+            tradingDataProcessing({
+              type: 'trade',
+              category: 'strategy',
+              key: dest,
+              dataResolved: tradeResolved,
+            });
+          }
+        },
+        DEFAULT_SPLIT_LENGTH,
+      );
+      handler.onFinish(() => {
+        resolve();
+      });
+    });
   }
 
   //匹配order更新orderStat
@@ -560,7 +540,10 @@ export function useWatcher() {
         const source = tdKeys[j];
         const indexMap = tradingDataKeeper.order.td[source];
         if (!indexMap) continue;
-        const order = indexMap.getValueForKey(key);
+        const order = indexMap.getValue(
+          orderStat.insert_time,
+          orderStat.order_id,
+        );
 
         if (!order) {
           unMatchedOrderStatMap[key] = orderStat;
@@ -569,7 +552,6 @@ export function useWatcher() {
 
         const orderResolved = getOrderResolved(
           watcher as KungfuApi.Watcher,
-          null,
           order,
           orderStat,
         );
@@ -578,7 +560,7 @@ export function useWatcher() {
         const isFinished = !UnfinishedOrderStatus.includes(
           orderResolved.status,
         );
-        indexMap.updateKeyWithValue(key, orderResolved, 'order', isFinished);
+        indexMap.updateKeyWithValue(orderResolved, 'order', isFinished);
       }
 
       for (let k = 0; k < strategyKeys.length; k++) {
@@ -588,7 +570,10 @@ export function useWatcher() {
         const indexMap = tradingDataKeeper.order.strategy[dest];
         if (!indexMap) continue;
 
-        const order = indexMap.getValueForKey(key);
+        const order = indexMap.getValue(
+          orderStat.insert_time,
+          orderStat.order_id,
+        );
         if (!order) {
           unMatchedOrderStatMap[key] = orderStat;
           continue;
@@ -596,7 +581,6 @@ export function useWatcher() {
 
         const orderResolved = getOrderResolved(
           watcher as KungfuApi.Watcher,
-          null,
           order,
           orderStat,
         );
@@ -606,65 +590,7 @@ export function useWatcher() {
           orderResolved.status,
         );
 
-        indexMap.updateKeyWithValue(key, orderResolved, 'order', isFinished);
-      }
-    }
-  }
-
-  //匹配trade更新orderStat
-  function updateRemainingTradeStats(orderStatsMap: OrderStatsMap) {
-    const orderStatOfTradeKeys = Object.keys(orderStatsMap.trade);
-
-    if (orderStatOfTradeKeys.length > 0) {
-      for (let i = 0; i < orderStatOfTradeKeys.length; i++) {
-        const key = orderStatOfTradeKeys[i];
-        const orderStat = orderStatsMap.trade[key];
-        if (!orderStat || !orderStat.trade_time) continue;
-        const tdKeys = Object.keys(tradingDataKeeper.trade.td);
-        for (let j = 0; j < tdKeys.length; j++) {
-          const source = tdKeys[j];
-          const indexMap = tradingDataKeeper.trade.td[source];
-          if (!indexMap) continue;
-          const trade = indexMap.getValueForKey(key);
-          if (!trade) {
-            unMatchedOrderStatMap[key] = orderStat;
-            continue;
-          }
-          const tradeResolved = getTradeResolved(
-            watcher as KungfuApi.Watcher,
-            null,
-            trade,
-            orderStat,
-          );
-
-          sortDataMap.set(`${'trade'}_${'td'}_${source}`, indexMap);
-          indexMap.updateKeyWithValue(key, tradeResolved, 'trade');
-        }
-
-        const strategyKeys = Object.keys(tradingDataKeeper.trade.strategy);
-        for (let k = 0; k < strategyKeys.length; k++) {
-          const dest = strategyKeys[k];
-          const orderStat = orderStatsMap.trade[key];
-          if (!orderStat || !orderStat.trade_time) continue;
-          const indexMap = tradingDataKeeper.trade.strategy[dest];
-          if (!indexMap) continue;
-
-          const trade = indexMap.getValueForKey(key);
-          if (!trade) {
-            unMatchedOrderStatMap[key] = orderStat;
-            continue;
-          }
-
-          const tradeResolved = getTradeResolved(
-            watcher as KungfuApi.Watcher,
-            null,
-            trade,
-            orderStat,
-          );
-
-          sortDataMap.set(`${'trade'}_${'strategy'}_${dest}`, indexMap);
-          indexMap.updateKeyWithValue(key, tradeResolved, 'trade');
-        }
+        indexMap.updateKeyWithValue(orderResolved, 'order', isFinished);
       }
     }
   }
@@ -675,12 +601,11 @@ export function useWatcher() {
     orderStatList: KungfuApi.OrderStat[],
   ) {
     const orderStatsMap = extractOrderStats(orderStatList);
-
-    await processOrderList(orderList, orderStatsMap);
-    await processTradeList(tradeList, orderStatsMap);
-
+    await Promise.all([
+      processOrderList(orderList, orderStatsMap),
+      processTradeList(tradeList),
+    ]);
     await updateRemainingOrderStats(orderStatsMap);
-    await updateRemainingTradeStats(orderStatsMap);
   }
 
   return {

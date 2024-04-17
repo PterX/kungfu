@@ -46,6 +46,9 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   static_data_.on_start(events);
   restore(app_.get_state_bank());
 
+  events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
+  events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
+  events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
   events | is_own<Quote>(broker_client_) | $$(try_update_book(event, event->data<Quote>()));
   events | is(InstrumentKey::tag) | $$(update_book(event, event->data<InstrumentKey>()));
   events | is(OrderInput::tag) |
@@ -55,10 +58,7 @@ void Bookkeeper::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(AlgoOrderInput::tag) |
       $$(on_algo_order_input(event->gen_time(), event->source(), event->dest(), event->data<AlgoOrderInput>()));
   events | is(AlgoOrder::tag) | $$(update_book<AlgoOrder>(event));
-  events | fork<Asset>(location::SYNC, &Bookkeeper::try_sync_asset, &Bookkeeper::try_update_asset);
   events | is(Asset::tag) | $$(update_book(event, event->data<Asset>()));
-  events | fork<Position>(location::SYNC, &Bookkeeper::try_sync_position, &Bookkeeper::try_update_position);
-  events | fork<PositionEnd>(location::SYNC, &Bookkeeper::try_sync_position_end, &Bookkeeper::try_update_position_end);
   events | is(ResetBookRequest::tag) | $$(drop_book(event->source()));
   events | is(OutputKey::tag) | $$(on_output_key(event));
   events | is(BrokerStateUpdate::tag) | $$(on_broker_state(event->data<BrokerStateUpdate>()));
@@ -302,20 +302,22 @@ void Bookkeeper::try_sync_position_end(const PositionEnd &position_end) {
   auto new_book = get_book_replica(position_end.holder_uid);
 
   auto position_compare = [](const PositionMap &source_map, Book_ptr &target_book) {
-    return std::any_of(source_map.begin(), source_map.end(), [&](const auto &source_pair) {
-      const auto &source_position = source_pair.second;
-      auto &target_position = target_book->get_position(source_position.source_id, source_position.direction,
-                                                        source_position.exchange_id, source_position.instrument_id);
-      return source_position.volume != target_position.volume ||                   // 数量
-             source_position.open_volume != target_position.open_volume ||         // 今开
-             source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
-    });
+    bool changed = false;
+    for (auto &source_pair : source_map) {
+      auto &source_position = source_pair.second;
+      const auto &target_position =
+          target_book->get_position(source_position.source_id, source_position.direction, source_position.exchange_id,
+                                    source_position.instrument_id);
+      changed |= source_position.volume != target_position.volume ||                   // 数量
+                 source_position.open_volume != target_position.open_volume ||         // 今开
+                 source_position.yesterday_volume != target_position.yesterday_volume; // 昨仓数量
+    }
+    return changed;
   };
 
   bool position_changed =
-      position_compare(new_book->long_positions, old_book) || position_compare(new_book->short_positions, old_book) ||
-      position_compare(old_book->long_positions, new_book) || position_compare(old_book->short_positions, new_book);
-
+      position_compare(new_book->long_positions, old_book) | position_compare(new_book->short_positions, old_book) |
+      position_compare(old_book->long_positions, new_book) | position_compare(old_book->short_positions, new_book);
   if (position_changed) {
     for (auto &book_listener : book_listeners_) {
       book_listener->on_position_sync_reset(*old_book, *new_book);

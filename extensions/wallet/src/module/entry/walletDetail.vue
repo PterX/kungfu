@@ -21,7 +21,7 @@
       <div class="detail-content-title">
         <a-statistic
           :title="$t('awsWallet.balance')"
-          :value="dealKfPrice(walletStore.currentBalance, 2) ?? '--'"
+          :value="dealKfNumber(walletStore.currentBalance, 2)"
           :suffix="$t('awsWallet.unit')"
         />
         <a-button
@@ -121,7 +121,7 @@ import localeData from 'dayjs/plugin/localeData';
 import * as echarts from 'echarts';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { dealKfNumber } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealKungfuColorToClassname,
   messagePrompt,

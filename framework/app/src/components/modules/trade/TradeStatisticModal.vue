@@ -11,14 +11,12 @@ import {
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
 import {
-  dealKfPrice,
+  dealKfNumber,
   dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { statisColums } from './config';
 import { Dayjs } from 'dayjs';
 
-const { getPriceTickAndPrecision } = useActiveInstruments();
 const props = withDefaults(
   defineProps<{
     visible: boolean;
@@ -106,10 +104,6 @@ const priceVolumeStats = computed(() => {
   }> = Object.keys(priceVolumeData)
     .map((id) => {
       const [instrumentId, exchangeId, side, offset] = id.split('_');
-      const { price_precision } = getPriceTickAndPrecision(
-        instrumentId,
-        exchangeId,
-      );
       const priceStats = new Stats().push(...priceVolumeData[id].price);
       const priceSum = dealKfDecimalPrecision(
         priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
@@ -121,11 +115,11 @@ const priceVolumeStats = computed(() => {
       return {
         id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        mean: dealKfPrice(Number(priceSum / volumeSum), price_precision),
+        mean: dealKfNumber(Number(priceSum / volumeSum)),
         side: +side,
         offset: +offset,
-        min: dealKfPrice(range[0], price_precision),
-        max: dealKfPrice(range[1], price_precision),
+        min: dealKfNumber(range[0]),
+        max: dealKfNumber(range[1]),
         volume: volumeSum.toString(),
       };
     })

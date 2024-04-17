@@ -1,9 +1,6 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import {
-  sorter,
-  dealKfPrice,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { vTableSorter } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
@@ -21,7 +18,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     field: 'instrument_id',
     title: t('posGlobalConfig.instrument_id'),
     width: 190,
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'direction',
@@ -48,7 +45,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'open_volume',
@@ -60,7 +57,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'close_volume',
@@ -72,7 +69,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'yesterday_volume',
@@ -84,7 +81,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'today_volume',
@@ -96,7 +93,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'volume',
@@ -108,7 +105,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     title: t('posGlobalConfig.avg_open_price'),
@@ -120,7 +117,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'last_price_resolved',
@@ -133,12 +130,9 @@ export const getColumns = (): VTable.ColumnDefine[] => [
       textAlign: 'right',
     },
     fieldFormat: (args) => {
-      return dealKfPrice(
-        getPositionLastPrice(args, 'last_price_resolved'),
-        args.price_precision,
-      );
+      return getPositionLastPrice(args, 'last_price_resolved');
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
   {
     field: 'unrealized_pnl_resolved',
@@ -157,7 +151,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
     headerStyle: {
       textAlign: 'right',
     },
-    sort: sorter,
+    sort: vTableSorter,
   },
 ];
 

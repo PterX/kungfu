@@ -232,7 +232,6 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { useAuthingCredential } from '@kungfu-trader/kfx-ui-login-authing/src/utils/externalUtils';
 import { LoginAuthingKeys } from '@kungfu-trader/kfx-ui-login-authing/src/configs';
 
-// import { useManagerDriver } from '../../utils/managerDriver';
 import { useExtManagerStore } from '../../store';
 import {
   extSubMenusConfigs,
@@ -266,7 +265,6 @@ const { searchKeyword, tableData } = useTableSearchKeyword(allPresetExtList, [
 ]);
 
 const app = getCurrentInstance();
-// const { managerDriver } = useManagerDriver();
 const openExtensionKeys = ref<string[]>([
   'installed',
   ...Object.keys(extCategoryData),
@@ -341,17 +339,6 @@ const getExtWantUseText = (ext: ExtConfigForShow) => {
       return null;
   }
 };
-
-watch(currentExtension, (newVal) => {
-  if (newVal?.needLogin) {
-    // const credential = getCurrentCredential(false);
-    // if (!credential) {
-    //   setTimeout(() => {
-    //     managerDriver.drive();
-    //   }, 1500);
-    // }
-  }
-});
 
 const breadcrumb = computed(() => {
   return [

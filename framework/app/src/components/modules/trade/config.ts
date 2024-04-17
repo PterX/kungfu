@@ -1,7 +1,7 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import {
   isTdStrategyCategory,
-  sorter,
+  vTableSorter,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
@@ -11,8 +11,8 @@ import {
   getAccountIdStyle,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
+import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+const { t } = useLanguage();
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
@@ -25,18 +25,9 @@ export const getColumns = (
         field: 'trade_time',
         title: t('tradeConfig.trade_time_resolved'),
         width: isHistory ? 160 : 120,
-        sort: sorter,
+        sort: vTableSorter,
         fieldFormat: (args) => {
           return dealKfTime(args.trade_time, isHistory);
-        },
-      },
-      {
-        field: 'kf_time',
-        title: t('tradeConfig.kf_time_resolved'),
-        width: isHistory ? 160 : 120,
-        sort: sorter,
-        fieldFormat: (args) => {
-          return args.kf_time ? dealKfTime(args.kf_time, isHistory) : '--';
         },
       },
       {
@@ -82,7 +73,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'volume',
@@ -94,19 +85,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
-      },
-      {
-        field: 'latency_trade',
-        title: t('tradeConfig.latency_trade'),
-        width: 160,
-        style: {
-          textAlign: 'right',
-        },
-        headerStyle: {
-          textAlign: 'right',
-        },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',
@@ -117,9 +96,7 @@ export const getColumns = (
         width: 300,
         style: {
           color: (args) => {
-            return defaultColorMap[
-              getAccountIdStyle(args.dataValue) || 'default'
-            ];
+            return getAccountIdStyle(args.dataValue);
           },
         },
       },
@@ -132,9 +109,7 @@ export const getColumns = (
               width: 300,
               style: {
                 color: (args) => {
-                  return defaultColorMap[
-                    getAccountIdStyle(args.dataValue) || 'default'
-                  ];
+                  return getAccountIdStyle(args.dataValue);
                 },
               },
             },

@@ -154,6 +154,7 @@ export const getKfExtConfigList = async (): Promise<
             extPath,
             readmePath: path.join(extPath, 'README.md'),
             releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
+            binary: jsonConfig.binary,
           });
         }
 
@@ -168,6 +169,7 @@ export const getKfExtConfigList = async (): Promise<
             extPath,
             readmePath: path.join(extPath, 'README.md'),
             releaseNotePath: path.join(extPath, 'RELEASENOTE.md'),
+            binary: jsonConfig.binary,
           });
         }
         return curConfigList;

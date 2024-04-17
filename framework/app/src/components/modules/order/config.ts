@@ -3,7 +3,7 @@ import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradi
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   isTdStrategyCategory,
-  sorter,
+  vTableSorter,
   dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
@@ -28,7 +28,7 @@ export const getColumns = (
         field: 'insert_time',
         title: t('orderConfig.order_time'),
         width: isHistory ? 160 : 120,
-        sort: sorter,
+        sort: vTableSorter,
         fieldFormat: (args) => {
           return dealKfTime(args.insert_time, isHistory);
         },
@@ -76,7 +76,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'avg_price_resolved',
@@ -89,7 +89,7 @@ export const getColumns = (
           textAlign: 'right',
         },
 
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'volume_left',
@@ -101,7 +101,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
         fieldFormat: (args) => {
           const precision = getPrecisionByInstrumentType(args.instrument_type);
           return `${dealKfDecimalPrecision(
@@ -145,13 +145,13 @@ export const getColumns = (
         field: 'latency_system',
         title: t('orderConfig.latency_system'),
         width: 160,
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
         width: 160,
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',

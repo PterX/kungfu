@@ -1396,7 +1396,6 @@ defineExpose({
         ></a-input-password>
         <a-input-number
           v-else-if="item.type === 'int'"
-          class="kf-input-number"
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
@@ -1412,7 +1411,6 @@ defineExpose({
         ></a-input-number>
         <a-input-number
           v-else-if="item.type === 'float'"
-          class="kf-input-number"
           v-model:value="formState[item.key]"
           :max="item.max ?? Infinity"
           :min="item.min ?? -Infinity"
@@ -2434,10 +2432,6 @@ export default defineComponent({
   .kf-form-item_icon__warp {
     display: flex;
     align-items: center;
-
-    .kf-input-number {
-      width: 100%;
-    }
   }
   .kf-form-item__warp {
     &.file {

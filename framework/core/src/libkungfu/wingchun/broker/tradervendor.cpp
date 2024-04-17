@@ -140,8 +140,6 @@ void TraderVendor::on_start() {
   service_->on_risk_setting(service_->get_risk_setting());
   service_->recover();
   on_recover();
-  service_->clean_orders(); // clean orders by recover;
-  service_->clean_trades(); // clean trades by recover;
   service_->on_start();
 
   // after recover done, which take some time, then start to try req account

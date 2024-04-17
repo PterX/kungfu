@@ -807,6 +807,7 @@ declare namespace KungfuApi {
     dest_uname: string;
     status_uname: string;
     status_color: AntInKungfuColorTypes;
+    status_resolved: KungfuApi.KfTradeValueCommonData;
     update_time_resolved: string;
     limit_price_resolved: string;
   }
@@ -1345,6 +1346,8 @@ declare namespace KungfuApi {
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率
     replace_balance: number; // 替代金额
+    keep_single_side: boolean; // 保留单边
+    close_today_first: boolean; // 优先平今
   }
 
   export interface BasketInstrumentResolved

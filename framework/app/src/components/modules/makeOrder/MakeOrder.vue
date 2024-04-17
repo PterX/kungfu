@@ -1279,10 +1279,9 @@ watch(
 
     .make-order-position {
       display: flex;
-      line-height: 1;
       font-size: 12px;
       color: @text-color;
-      margin: 10px 0px;
+      padding-top: 4px;
 
       .position-label {
         padding-right: 8px;

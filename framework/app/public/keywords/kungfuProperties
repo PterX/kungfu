@@ -254,6 +254,8 @@ etf_type
 rate
 replace_flag
 cash_premium_ratio
+replace_balance
+keep_single_side
 dest_id
 base_time
 duration
@@ -346,9 +348,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
 SubscribeDataType
 Stock
 Future

@@ -58,9 +58,6 @@ export const dealKfDecimalPrecision = (
   originNum: number,
   precision = DEFAULT_PRECISION,
 ): number => {
-  if (originNum.toString().indexOf('e') !== -1) {
-    return originNum;
-  }
   return parseFloat(Number(originNum).kfToFixed(precision));
 };
 

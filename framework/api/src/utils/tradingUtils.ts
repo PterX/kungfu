@@ -1472,7 +1472,7 @@ export const dealOrderStatus = (
   status: OrderStatusEnum | number,
   errorMsg?: string,
 ): KungfuApi.KfTradeValueCommonData => {
-  const data = OrderStatus[+status as OrderStatusEnum];
+  const data = { ...OrderStatus[+status as OrderStatusEnum] };
 
   if (!data.color) data.color = 'default';
   if (+status === OrderStatusEnum.Error && errorMsg) data.name = errorMsg;

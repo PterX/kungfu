@@ -332,14 +332,22 @@ class FutureAccountingUsage extends BaseAccountingUsage {
     const { contract_multiplier } = instrument || {};
 
     const marginRatio =
-      (direction === DirectionEnum.Long
+      direction === DirectionEnum.Long
         ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio')
-        : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio')) *
-      getInstrumentDefaultValue(exchange_rate, 'exchange_rate') *
-      getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier');
+        : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio');
+
+    const exchangeRate = getInstrumentDefaultValue(
+      exchange_rate,
+      'exchange_rate',
+    );
+
+    const contractMultiplier = getInstrumentDefaultValue(
+      contract_multiplier,
+      'contract_multiplier',
+    );
 
     return dealKfDecimalPrecision(
-      availAsset / (price * marginRatio),
+      availAsset / (price * marginRatio * exchangeRate * contractMultiplier),
       precision,
     );
   }

@@ -373,6 +373,12 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
   }
 }
 
+function handleDblClickCell(args: VTable.MousePointerCellEvent) {
+  if (!isFinishedOrderStatus(args.originData.status)) {
+    handleCancelOrder(args.originData);
+  }
+}
+
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
   const { originData } = args;
   if (!originData) return;
@@ -679,8 +685,9 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         <KfCanvasTradingDataTable
           ref="canvasRef"
           :columns="columns"
-          :hasData="hasData"
+          :has-data="hasData"
           @click-cell="handleClickCell"
+          @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"
         />
       </div>

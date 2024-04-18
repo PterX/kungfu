@@ -2970,6 +2970,8 @@ export const useMakeOrderInfo = (
   });
 
   return {
+    currentAccountLocation,
+    currentFormDirection,
     showAmountOrPosition,
     isAccountOrInstrumentConfirmed,
     instrumentResolved,

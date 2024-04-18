@@ -27,7 +27,6 @@ import globalBus from '@kungfu-trader/kungfu-js-api/utils/globalBus';
 import { Subscription } from 'rxjs';
 import { useBoards } from '../store/board';
 import { deepClone } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useShortcutFocusContainer } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 
 export default defineComponent({
   name: 'Index',
@@ -40,8 +39,6 @@ export default defineComponent({
   setup() {
     const { setCurrentGlobalKfLocation, setDefaultCurrentGlobalKfLocation } =
       useGlobalStore();
-    const { registerKeyDown } = useShortcutFocusContainer();
-    registerKeyDown();
 
     const dealDefaultBoardsHook =
       globalThis.HookKeeper.getHooks().dealBoardsMap;

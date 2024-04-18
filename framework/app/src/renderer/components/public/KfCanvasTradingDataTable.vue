@@ -35,7 +35,7 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
 let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
-let font: string = '';
+let font = '';
 const ColumnCustomMap = ref<
   Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
 >({});

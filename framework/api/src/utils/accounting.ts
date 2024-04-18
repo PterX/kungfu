@@ -23,6 +23,11 @@ interface AccountingUsage {
     instrumentId: string,
     exchangeId: string,
   ) => KungfuApi.Instrument | null;
+  getMaxAvailableTradeVolume: (
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset: number,
+  ) => number | null;
 }
 
 export const AccountingInstrumentDefaultValue = {
@@ -70,6 +75,24 @@ abstract class BaseAccountingUsage implements AccountingUsage {
     return watcher.ledger.InstrumentFactor[
       ukey
     ] as KungfuApi.InstrumentFactor | null;
+  }
+
+  getMaxAvailableTradeVolume(
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset: number = 0,
+  ) {
+    const { instrumentId, exchangeId, price } = instrumentForAccounting;
+
+    const instrument = this.getInstrumentInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+    );
+
+    const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
+
+    return dealKfDecimalPrecision(availAsset / price, precision);
   }
 }
 
@@ -253,6 +276,47 @@ class FutureAccountingUsage extends BaseAccountingUsage {
 
     return null;
   }
+
+  getMaxAvailableTradeVolume(
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset: number = 0,
+  ) {
+    const { instrumentId, exchangeId, accountUID, price } =
+      instrumentForAccounting;
+
+    const instrument = this.getInstrumentInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+    );
+
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+      accountUID,
+    );
+
+    const { long_margin_ratio, short_margin_ratio, exchange_rate } =
+      instrumentFactor || {};
+
+    const { direction } = instrumentForAccounting;
+    const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
+    const { contract_multiplier } = instrument || {};
+
+    const marginRatio =
+      (direction === DirectionEnum.Long
+        ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio')
+        : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio')) *
+      getInstrumentDefaultValue(exchange_rate, 'exchange_rate') *
+      getInstrumentDefaultValue(contract_multiplier, 'contract_multiplier');
+
+    return dealKfDecimalPrecision(
+      availAsset / (price * marginRatio),
+      precision,
+    );
+  }
 }
 
 class RepoAccountingUsage extends BaseAccountingUsage {
@@ -285,6 +349,42 @@ class RepoAccountingUsage extends BaseAccountingUsage {
     const { exchange_rate } = instrumentFactor || {};
     return dealKfDecimalPrecision(
       volume * getInstrumentDefaultValue(exchange_rate, 'exchange_rate'),
+      precision,
+    );
+  }
+
+  getMaxAvailableTradeVolume(
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset: number = 0,
+  ) {
+    const { instrumentId, exchangeId, accountUID, price } =
+      instrumentForAccounting;
+
+    const instrument = this.getInstrumentInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+    );
+
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+      accountUID,
+    );
+
+    const { exchange_rate } = instrumentFactor || {};
+
+    const marginRatio = getInstrumentDefaultValue(
+      exchange_rate,
+      'exchange_rate',
+    );
+
+    const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
+
+    return dealKfDecimalPrecision(
+      availAsset / (price * marginRatio),
       precision,
     );
   }

@@ -2911,6 +2911,40 @@ export const useMakeOrderInfo = (
     );
   });
 
+  const getMaxAvailableTradeVolumeByRate = (rate: number) => {
+    const { volume } = formState.value;
+    const precision = getPrecisionByInstrumentType(
+      instrumentResolved.value?.instrumentType,
+    );
+    if (instrumentResolved.value && currentAccountLocation.value) {
+      const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
+        ...instrumentResolved.value,
+        price: currentPrice.value,
+        volume: volume,
+        direction: currentFormDirection.value || DirectionEnum.Long,
+        accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
+          currentAccountLocation.value,
+        ),
+      };
+      if (instrumentResolved.value.instrumentType in TradeAccountingUsageMap) {
+        return dealKfDecimalPrecision(
+          Number(
+            TradeAccountingUsageMap[
+              instrumentResolved.value.instrumentType as InstrumentTypeEnum
+            ].getMaxAvailableTradeVolume(
+              window.watcher,
+              instrumentForAccounting,
+              Number(currentAvailMoney.value) * rate,
+            ),
+          ),
+          precision,
+        );
+      }
+    }
+
+    return 0;
+  };
+
   const currentResidueMoney = computed(() => {
     const { offset } = formState.value;
     const precision = getPrecisionByInstrumentType(
@@ -2982,6 +3016,7 @@ export const useMakeOrderInfo = (
     currentTradeAmount,
     currentResidueMoney,
     currentResiduePosVolume,
+    getMaxAvailableTradeVolumeByRate,
   };
 };
 

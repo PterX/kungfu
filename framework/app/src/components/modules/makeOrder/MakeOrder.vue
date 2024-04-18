@@ -138,11 +138,11 @@ const {
   currentPosition,
   currentResidueMoney,
   currentResiduePosVolume,
-  currentPrice,
   currentTradeAmount,
   currentAvailMoney,
   currentAvailPosVolume,
   isAccountOrInstrumentConfirmed,
+  getMaxAvailableTradeVolumeByRate,
 } = useMakeOrderInfo(formState, isMarginMakeOrderSupport);
 useMakeOrderSubscribe(formState);
 
@@ -1055,9 +1055,7 @@ const handlePercentChange = (target: number) => {
 
   let targetVolume;
   if (curOffset === OffsetEnum.Open) {
-    const availMoney = dealStringToNumber(currentAvailMoney.value + '');
-    const allVolume = currentPrice.value ? availMoney / currentPrice.value : 0;
-    targetVolume = allVolume * targetPercent;
+    targetVolume = getMaxAvailableTradeVolumeByRate(targetPercent);
   } else {
     const availPosVolume = dealStringToNumber(currentAvailPosVolume.value);
     targetVolume = availPosVolume * targetPercent;

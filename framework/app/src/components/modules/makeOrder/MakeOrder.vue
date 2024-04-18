@@ -46,7 +46,7 @@ import {
   useInstruments,
   useProcessStatusDetailData,
   useTradeLimit,
-  useMarginSupport,
+  useBrokerBehaviorManager,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   initFormStateByConfig,
@@ -111,17 +111,15 @@ const formState = ref(
     getConfigSettings({
       location: currentGlobalKfLocation.value,
       instrumentType: InstrumentTypeEnum.future,
-      isMarginMakeOrder: false,
-      isSpecifyContract: false,
+      isMarginMakeOrderSupport: false,
+      isSpecifyContractSupport: false,
     }),
     {},
   ),
 );
 
-const { isMarginMakeOrder, isSpecifyContract } = useMarginSupport(
-  currentGlobalKfLocation,
-  formState,
-);
+const { isMarginMakeOrderSupport, isSpecifyContractSupport, isCryptoSupport } =
+  useBrokerBehaviorManager(currentGlobalKfLocation, formState);
 
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
 const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
@@ -145,7 +143,7 @@ const {
   currentAvailMoney,
   currentAvailPosVolume,
   isAccountOrInstrumentConfirmed,
-} = useMakeOrderInfo(formState, isMarginMakeOrder);
+} = useMakeOrderInfo(formState, isMarginMakeOrderSupport);
 useMakeOrderSubscribe(formState);
 
 const availablePosOrAmount = computed(() => {
@@ -202,8 +200,8 @@ const configSettings = computed(() => {
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
-    isMarginMakeOrder: isMarginMakeOrder.value,
-    isSpecifyContract: isSpecifyContract.value,
+    isMarginMakeOrderSupport: isMarginMakeOrderSupport.value,
+    isSpecifyContractSupport: isSpecifyContractSupport.value,
     side,
     priceType: +formState.value.price_type,
     pricePrecision: pricePrecision || null,
@@ -280,12 +278,12 @@ const getResolvedOffset = (
   side: SideEnum,
   instrumentType: InstrumentTypeEnum,
 ) => {
-  if (isShotable(instrumentType) || isMarginMakeOrder.value) {
+  if (isShotable(instrumentType) || isMarginMakeOrderSupport.value) {
     if (offset !== undefined) {
       return offset;
     }
   }
-  if (isMarginMakeOrder.value) {
+  if (isMarginMakeOrderSupport.value) {
     if (
       [
         SideEnum.GuaranteeStockBuy,
@@ -356,7 +354,7 @@ watch(
       }
 
       if (
-        !isMarginMakeOrder.value &&
+        !isMarginMakeOrderSupport.value &&
         'side' in formState.value &&
         !sideList.value.includes(formState.value.side + '')
       ) {
@@ -383,7 +381,7 @@ watch(
 );
 
 watch(
-  () => isMarginMakeOrder.value,
+  () => isMarginMakeOrderSupport.value,
   (newVal) => {
     if (newVal) {
       if (!MarginSideStatus.includes(formState.value.side)) {
@@ -403,7 +401,7 @@ watch(
 watch(
   () => formState.value.side,
   (newSide) => {
-    if (isMarginMakeOrder.value) {
+    if (isMarginMakeOrderSupport.value) {
       [
         SideEnum.GuaranteeStockBuy,
         SideEnum.MarginTrade,
@@ -419,7 +417,7 @@ watch(
       }
 
       if (
-        !isSpecifyContract.value &&
+        !isSpecifyContractSupport.value &&
         formState.value.side === SideEnum.RepayMargin
       ) {
         formState.value.contract_id = '';
@@ -1036,7 +1034,8 @@ const dealStringToNumber = (tar: string) =>
 let lastPercentSetVolume = 0;
 const handlePercentChange = (target: number) => {
   const { side, offset } = formState.value;
-  const { instrumentId, exchangeId } = instrumentResolved.value || {};
+  const { instrumentId, exchangeId, instrumentType } =
+    instrumentResolved.value || {};
   let quantityUnit = 0;
   if (instrumentId && exchangeId) {
     const { quantity_unit } = getQuantityUnitAndPrecision(
@@ -1066,7 +1065,7 @@ const handlePercentChange = (target: number) => {
 
   formState.value.volume = dealVolumeByInstrumentType(
     targetVolume,
-    instrumentResolved.value?.instrumentType,
+    instrumentType,
     quantityUnit,
   );
   if (formState.value.volume) {
@@ -1151,7 +1150,7 @@ watch(
                 </a-button>
               </a-col>
             </div>
-            <template v-if="isAccountOrInstrumentConfirmed">
+            <template v-if="isAccountOrInstrumentConfirmed && !isCryptoSupport">
               <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL - 2"></a-col>
                 <a-col :span="WRAPPER_COL">
@@ -1172,7 +1171,7 @@ watch(
                 <a-col :span="WRAPPER_COL">
                   <span class="position-label">
                     {{
-                      isMarginMakeOrder
+                      isMarginMakeOrderSupport
                         ? $t('交易金额')
                         : isShotable(instrumentResolved?.instrumentType)
                         ? formState.offset === OffsetEnum.Open
@@ -1283,6 +1282,14 @@ watch(
         .ant-form-item-extra {
           min-height: unset;
         }
+
+        .ant-input-number {
+          width: 100%;
+
+          .ant-input-number-input {
+            width: 100%;
+          }
+        }
       }
 
       .percent-group__wrap {
@@ -1312,10 +1319,9 @@ watch(
 
     .make-order-position {
       display: flex;
-      line-height: 1;
       font-size: 12px;
       color: @text-color;
-      margin: 10px 0px;
+      padding-top: 4px;
 
       .position-label {
         padding-right: 8px;

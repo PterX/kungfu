@@ -1,7 +1,8 @@
 // 此文件内只放 不依赖外部逻辑 的 纯函数
-import dayjs from 'dayjs';
-import fse from 'fs-extra';
 import path from 'path';
+import NodeTimer from 'timers';
+import fse from 'fs-extra';
+import dayjs from 'dayjs';
 import { Observable } from 'rxjs';
 import os from 'os';
 
@@ -35,7 +36,7 @@ export const ifKfDev = () => booleanProcessEnv(process.env.IS_KF_DEV);
 export const dealKfNumber = (
   preNumber: bigint | number | undefined | unknown,
   precision = DEFAULT_PRECISION,
-): string | number => {
+): string => {
   if (
     preNumber === undefined ||
     preNumber === null ||
@@ -46,21 +47,18 @@ export const dealKfNumber = (
     return '--';
   }
 
-  if (typeof preNumber === 'number') {
-    return dealKfDecimalPrecision(preNumber, precision);
+  if (preNumber === Number.MAX_VALUE || preNumber === Number.MIN_VALUE) {
+    return '--';
   }
 
-  return Number(preNumber) || 0;
+  return `${dealKfDecimalPrecision(Number(preNumber), precision)}`;
 };
 
 export const dealKfDecimalPrecision = (
   originNum: number,
   precision = DEFAULT_PRECISION,
 ): number => {
-  if (originNum.toString().indexOf('e') !== -1) {
-    return originNum;
-  }
-  return parseFloat(Number(originNum).toFixed(precision));
+  return parseFloat(Number(originNum).kfToFixed(precision));
 };
 
 export const getIdByKfLocation = (kfLocation: KungfuApi.KfLocation): string => {
@@ -213,29 +211,38 @@ export const dealLocationUID = (
   return getIdByKfLocation(kfLocation);
 };
 
-export const setTimerPromiseTask = (fn: AnyPromiseFunction, interval = 500) => {
-  let taskTimer: NodeJS.Timeout | undefined = undefined;
-  let clear = false;
-  function timerPromiseTask(fn: AnyPromiseFunction, interval = 500) {
-    if (taskTimer) globalThis.clearTimeout(taskTimer);
-    fn().finally(() => {
-      if (clear) {
-        if (taskTimer) globalThis.clearTimeout(taskTimer);
-        return;
-      }
-      taskTimer = globalThis.setTimeout(() => {
-        timerPromiseTask(fn, interval);
-      }, interval);
-    });
-  }
-  timerPromiseTask(fn, interval);
-  return {
-    clearLoop: function () {
-      clear = true;
-      if (taskTimer) globalThis.clearTimeout(taskTimer);
-    },
+const createTimerPromiseTaskSetter = (timers: {
+  clearTimeout: typeof clearTimeout;
+  setTimeout: typeof setTimeout;
+}) => {
+  return (fn: AnyPromiseFunction, interval = 500) => {
+    let taskTimer: NodeJS.Timeout | undefined = undefined;
+    let clear = false;
+    function timerPromiseTask(fn: AnyPromiseFunction, interval = 500) {
+      if (taskTimer) timers.clearTimeout(taskTimer);
+      fn().finally(() => {
+        if (clear) {
+          if (taskTimer) timers.clearTimeout(taskTimer);
+          return;
+        }
+        taskTimer = timers.setTimeout(() => {
+          timerPromiseTask(fn, interval);
+        }, interval);
+      });
+    }
+    timerPromiseTask(fn, interval);
+    return {
+      clearLoop: function () {
+        clear = true;
+        if (taskTimer) timers.clearTimeout(taskTimer);
+      },
+    };
   };
 };
+
+export const setTimerPromiseTask = createTimerPromiseTaskSetter(globalThis);
+
+export const setNodeTimerPromiseTask = createTimerPromiseTaskSetter(NodeTimer);
 
 interface DataSliceHandler {
   onFinish(callback: () => void): void;
@@ -1149,7 +1156,7 @@ export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
       return result;
     }, {});
 };
-export const sorter = (
+export const vTableSorter = (
   a: string | number,
   b: string | number,
   sorterOrder: 'asc' | 'desc' | 'normal',

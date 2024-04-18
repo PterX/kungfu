@@ -397,11 +397,7 @@ private:
 
   void deal_read_frame();
 
-  void clean_orders();
-
   void clean_finished_orders();
-
-  void clean_trades();
 
   [[nodiscard]] OrderService &get_order_service();
 

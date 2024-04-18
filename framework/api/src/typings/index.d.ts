@@ -800,6 +800,7 @@ declare namespace KungfuApi {
     dest_uname: string;
     status_uname: string;
     status_color: AntInKungfuColorTypes;
+    status_resolved: KungfuApi.KfTradeValueCommonData;
     update_time_resolved: string;
     limit_price_resolved: string;
   }
@@ -1338,6 +1339,8 @@ declare namespace KungfuApi {
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率
     replace_balance: number; // 替代金额
+    keep_single_side: boolean; // 保留单边
+    close_today_first: boolean; // 优先平今
   }
 
   export interface BasketInstrumentResolved
@@ -1774,10 +1777,6 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  import { session } from 'electron';
-  import path from 'path';
-  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
-  import { kf } from '../kungfu/index';
 
   export interface CodeInfo {
     code_id: string;

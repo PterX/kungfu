@@ -1,7 +1,7 @@
 import { Subject } from 'rxjs';
 import { watcher, startWatcher } from './watcher';
 import {
-  setTimerPromiseTask,
+  setNodeTimerPromiseTask,
   doSomethingWithDataSliced,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -353,7 +353,7 @@ export function useWatcher() {
   const startWatcherSyncTask = (interval = 1000, callBack?: AfterSync) => {
     if (watcher === null) return;
 
-    setTimerPromiseTask(async () => {
+    setNodeTimerPromiseTask(async () => {
       drainStatesBySync();
       callBack &&
         callBack(watcher as KungfuApi.Watcher, tradingDataKeeper, update);

@@ -219,7 +219,7 @@ FORWARD_DECLARE_CLASS_PTR(webclient)
 
 class stream_manage {
 public:
-  stream_manage() = default;
+  stream_manage() { streams_.reserve(100); };
 
   virtual ~stream_manage() = default;
 

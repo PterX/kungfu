@@ -53,27 +53,27 @@ abstract class AbstractAccountingUsage implements AccountingUsage {
   }
 
   abstract getTradeAmount(
-    watcher: KungfuApi.Watcher,
-    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    _watcher: KungfuApi.Watcher,
+    _instrumentForAccounting: KungfuApi.InstrumentForAccounting,
   ): number | null;
 
   abstract getInstrumentInWatcher(
-    watcher: KungfuApi.Watcher,
-    instrumentId: string,
-    exchangeId: string,
+    _watcher: KungfuApi.Watcher,
+    _instrumentId: string,
+    _exchangeId: string,
   ): KungfuApi.Instrument | null;
 
   abstract getInstrumentFactorInWatcher(
-    watcher: KungfuApi.Watcher,
-    instrumentId: string,
-    exchangeId: string,
-    accountUID: number,
+    _watcher: KungfuApi.Watcher,
+    _instrumentId: string,
+    _exchangeId: string,
+    _accountUID: number,
   ): KungfuApi.InstrumentFactor | null;
 
   abstract getMaxAvailableTradeVolume(
-    watcher: KungfuApi.Watcher,
-    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-    availAsset: number,
+    _watcher: KungfuApi.Watcher,
+    _instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    _availAsset: number,
   ): number;
 }
 

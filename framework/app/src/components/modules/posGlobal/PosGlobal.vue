@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   searchByKeyword,
-  useBrowserWindowFocus,
+  useBrowserWindowMinimize,
   useDashboardBodySize,
   useTriggerMakeOrder,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -65,7 +65,7 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
 const canvasRef = ref();
 
 const app = getCurrentInstance();
-const windowFocus = useBrowserWindowFocus();
+const windowMinimized = useBrowserWindowMinimize();
 const pos = ref<KungfuApi.PositionResolved[]>([]);
 const { handleBodySizeChange } = useDashboardBodySize();
 const searchKeyword = ref('');
@@ -159,7 +159,7 @@ onActivated(() => {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
 
-      if (!windowFocus.value) return;
+      if (windowMinimized.value) return;
 
       const positions = watcher.ledger.Position.nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)

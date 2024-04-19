@@ -10,7 +10,7 @@ import {
   useDashboardBodySize,
   confirmModal,
   searchByKeyword,
-  useBrowserWindowFocus,
+  useBrowserWindowMinimize,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -68,7 +68,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
-const windowFocus = useBrowserWindowFocus();
+const windowMinimized = useBrowserWindowMinimize();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
@@ -167,7 +167,7 @@ onActivated(() => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
 
-      if (!windowFocus.value) {
+      if (windowMinimized.value) {
         needProcessTradingData.value = true;
         return;
       }

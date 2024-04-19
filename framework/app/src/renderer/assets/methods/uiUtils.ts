@@ -2606,3 +2606,18 @@ export const useBrowserWindowFocus = () => {
 
   return focus;
 };
+
+export const useBrowserWindowMinimize = () => {
+  const win = getCurrentWindow();
+  const minimized = ref(win.isMinimized());
+
+  win.on('minimize', () => {
+    minimized.value = true;
+  });
+
+  win.on('restore', () => {
+    minimized.value = false;
+  });
+
+  return minimized;
+};

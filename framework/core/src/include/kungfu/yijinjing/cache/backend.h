@@ -161,7 +161,7 @@ private:
 
   template <typename DataType>
   void restore(const yijinjing::journal::writer_ptr &writer, uint32_t dest, StateStoragePtr &storage) {
-    for (auto &data : time_spec<DataType>::get_all(storage, yijinjing::time::today_start(), INT64_MAX)) {
+    for (auto &data : time_spec<DataType>::get_all(storage, yijinjing::time::trading_day_start(), INT64_MAX)) {
       writer->write_as(0, data, location_->uid, dest);
     }
   }

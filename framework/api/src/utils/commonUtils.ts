@@ -260,16 +260,11 @@ export const dataOperationBySliceInEventLoop = <T>(
   let i = 0,
     sliceIndex = 0;
   const len = data.length;
-  const bestEventLoopTask =
-    typeof window !== 'undefined' ? window.requestAnimationFrame : setImmediate;
+  const bestEventLoopTask = NodeTimer.setImmediate;
   let timer: NodeJS.Immediate | number | undefined = undefined;
   const runner = () => {
     if (timer) {
-      if (window) {
-        window.cancelAnimationFrame(timer as number);
-      } else {
-        clearImmediate(timer as NodeJS.Immediate);
-      }
+      clearImmediate(timer as NodeJS.Immediate);
     }
     timer = bestEventLoopTask(() => {
       for (let j = 0; j < sliceLength && i < len; i++, j++) {

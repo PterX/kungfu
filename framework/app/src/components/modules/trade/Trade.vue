@@ -140,7 +140,10 @@ onActivated(() => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
 
-      if (!windowFocus.value) return;
+      if (!windowFocus.value) {
+        needProcessTradingData.value = true;
+        return;
+      }
 
       if (historyDate.value) {
         return;

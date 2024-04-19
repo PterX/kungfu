@@ -4,21 +4,35 @@
 #ifndef WINGCHUN_FACTOR_CROSSSECTION_H
 #define WINGCHUN_FACTOR_CROSSSECTION_H
 
+#include <cstdint>
 #include <kungfu/longfist/enums.h>
 #include <kungfu/longfist/types.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
+#include <kungfu/yijinjing/time.h>
 #include <unordered_map>
 
 namespace kungfu::wingchun::factor {
 
-class CrossSection {
-public:
+inline std::string to_instrument_key(const std::string &instrument_id, const std::string &exchange_id) {
+  return instrument_id + "@" + exchange_id;
+}
+
+inline std::pair<std::string, std::string> from_instrument_key(const std::string &instrument_key) {
+  auto pos = instrument_key.find('@');
+  if (pos == std::string::npos) {
+    return {instrument_key, ""};
+  }
+  return {instrument_key.substr(0, pos), instrument_key.substr(pos + 1)};
+}
+
+struct CrossSection {
   CrossSection() = default;
-  CrossSection(std::unordered_map<std::string, float> cross_sectional_factor,
-               std::unordered_map<std::string, float> cross_sectional_price)
-      : cross_sectional_factor_(std::move(cross_sectional_factor)),
-        cross_sectional_price_(std::move(cross_sectional_price)) {}
+  CrossSection(std::unordered_map<std::string, double> cross_sectional_factor,
+               std::unordered_map<std::string, double> cross_sectional_price, int64_t gen_time)
+      : factors(std::move(cross_sectional_factor)),
+        prices(std::move(cross_sectional_price)),
+        gen_time(gen_time) {}
 
   std::string to_string() const;
 
@@ -28,10 +42,9 @@ public:
 
   static std::string dumps(const CrossSection &cross_section);
 
-private:
-  std::unordered_map<std::string, float> cross_sectional_factor_;
-  std::unordered_map<std::string, float> cross_sectional_price_;
-  double gen_time_;
+  std::unordered_map<std::string, double> factors;
+  std::unordered_map<std::string, double> prices;
+  int64_t gen_time;
 };
 
 class MultiCrossSectionalFactor {
@@ -46,34 +59,43 @@ public:
 
   void update_price(double price, const std::string &instrument_id, const std::string &exchange_id);
 
-  void update_factor(std::string factor_name, double price, const std::string &instrument_id,
+  void update_factor(std::string factor_name, double value, const std::string &instrument_id,
                      const std::string &exchange_id);
 
   std::map<std::string, CrossSection> generate_cross_sectional_factor(bool clear_price_cache, bool clear_factor_cache);
 
-protected:
   virtual void on_start(const rx::connectable_observable<event_ptr> &events);
 
-  virtual void on_tick(const longfist::types::Tick &tick);
+protected:
+  virtual void on_tick(const longfist::types::Tick &tick) {};
 
   virtual void on_quote(const longfist::types::Quote &quote);
 
-  virtual void on_entrust(const longfist::types::Entrust &entrust);
+  virtual void on_entrust(const longfist::types::Entrust &entrust) {};
 
-  virtual void on_transaction(const longfist::types::Transaction &transaction);
+  virtual void on_transaction(const longfist::types::Transaction &transaction) {};
 
-  virtual void on_tree(const longfist::types::Tree &tree);
+  virtual void on_tree(const longfist::types::Tree &tree) {};
 
-  virtual void on_depth(const longfist::types::Depth &depth);
+  virtual void on_depth(const longfist::types::Depth &depth) {};
+
+  int64_t now() const {
+    if (not app_) 
+      SPDLOG_ERROR("MultiCrossSectionalFactor had not been attached.");
+    return app_->now();
+  }
 
 private:
   struct TimeStampPrice {
     int64_t time;
     double price;
   };
-  std::map<std::string, std::unordered_map<std::string, float>> multi_cross_sectional_factor_cache_;
+  friend void set_runner(MultiCrossSectionalFactor &factor_generator, yijinjing::practice::apprentice *runner);
+
+  yijinjing::practice::apprentice *app_;
+  std::map<std::string, std::unordered_map<std::string, double>> multi_cross_sectional_factor_cache_;
   std::unordered_map<std::string, TimeStampPrice> price_cache_;
-  int64_t now_;
+
 };
 
 } // namespace kungfu::wingchun::factor

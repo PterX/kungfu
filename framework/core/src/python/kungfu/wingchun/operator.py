@@ -138,6 +138,7 @@ class Operator(wc.Operator):
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.is_started = wc_context.is_started
         self.ctx.attach_orderbooks = wc_context.attach_orderbooks
+        self.ctx.attach_factor_generator = wc_context.attach_factor_generator
         self.ctx.static_data = wc_context.bookkeeper.static_data
         self.__call_proxy(self._pre_start, self.ctx)
 

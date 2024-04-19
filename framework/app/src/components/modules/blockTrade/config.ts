@@ -76,9 +76,15 @@ export const getConfigSettings = (
     },
   ].filter((item) => !!item) as KungfuApi.KfConfigItem[];
 
-export const getBlockTradeOrderTrans = (): Record<string, string> => {
+export const getBlockTradeOrderTrans = (
+  transformMap?: Record<string, string>,
+): Record<string, string> => {
   return getConfigSettings('td').reduce((pre, cur) => {
-    pre[cur.key] = cur.name;
+    if (transformMap && transformMap[cur.key]) {
+      pre[cur.key] = transformMap[cur.key] || cur.name;
+    } else {
+      pre[cur.key] = cur.name;
+    }
     return pre;
   }, {});
 };

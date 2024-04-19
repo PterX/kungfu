@@ -140,7 +140,10 @@ onActivated(() => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
 
-      if (windowMinimized.value) return;
+      if (windowMinimized.value) {
+        needProcessTradingData.value = true;
+        return;
+      }
 
       if (historyDate.value) {
         return;

@@ -367,11 +367,11 @@ export function useShortcutFocusContainer() {
               ? containerRef.value.$el
               : containerRef.value
             : null;
-          if (!globalThis.KeyShortMap[curKeyShort]) {
+          if (!globalThis.KeyShortMap?.[curKeyShort]) {
             globalThis.KeyShortMap[curKeyShort] = new LinkedList<HTMLElement>();
             globalThis.KeyShortMap[curKeyShort].prepend(key, container);
           } else {
-            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
+            globalThis.KeyShortMap?.[curKeyShort].prepend(key, container);
           }
           keyShort = curKeyShort;
           clean();
@@ -382,7 +382,7 @@ export function useShortcutFocusContainer() {
   };
 
   const cleanupShortcut = () => {
-    if (keyShort && globalThis.KeyShortMap[keyShort]) {
+    if (keyShort && globalThis.KeyShortMap?.[keyShort]) {
       globalThis.KeyShortMap[keyShort].remove(key);
     }
   };
@@ -429,7 +429,7 @@ export function useShortcutFocusContainer() {
   };
 
   const setPos = () => {
-    if (globalThis.KeyShortMap[keyShort]) {
+    if (globalThis.KeyShortMap?.[keyShort]) {
       globalThis.KeyShortMap[keyShort].setPos(key);
     }
   };

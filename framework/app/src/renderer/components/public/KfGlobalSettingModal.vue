@@ -90,10 +90,10 @@ onUnmounted(() => {
   });
 
   setKfGlobalSettingsValue(globalSettingsFromStates).then(() => {
+    store.setKfGlobalSetting();
     globalBus.next({
       tag: 'saved:globalSetting',
     });
-    store.setKfGlobalSetting();
   });
 
   setKfCommission(window.watcher, commissions.value);

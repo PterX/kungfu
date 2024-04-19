@@ -58,8 +58,19 @@ export const useJournalStore = defineStore('journal', {
         .sort((a, b) => Number(b.begin_time) - Number(a.begin_time))
         .map((item) => dealSession(item));
 
-      if (this.sessions.length !== 0 && this.currentSession === null) {
-        this.setCurrentSession(this.sessions[0]);
+      if (this.sessions.length !== 0) {
+        if (this.currentSession === null) {
+          this.setCurrentSession(this.sessions[0]);
+        } else {
+          const findNewCurrentSession = this.sessions.find(
+            (item) => item.begin_time === this.currentSession?.begin_time,
+          );
+          if (findNewCurrentSession) {
+            this.setCurrentSession(findNewCurrentSession);
+          } else {
+            this.setCurrentSession(this.sessions[0]);
+          }
+        }
       }
     },
 

@@ -3,9 +3,11 @@ import {
   InstrumentTypeEnum,
   OffsetEnum,
   SideEnum,
+  PriceTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { storeToRefs } from 'pinia';
 import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { DEFAULT_PRECISION } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
@@ -48,6 +50,10 @@ export function dealOrderPlaceVNode(
 ): VNode {
   const orderData: KungfuApi.MakeOrderInput = dealStockOffset(makeOrderInput);
   const { getPriceTickAndPrecision } = useActiveInstruments();
+  const priceType = makeOrderInput?.price_type;
+  if (priceType === PriceTypeEnum.Market) {
+    orderInputTrans['limit_price'] = t('tradingConfig.protect_price');
+  }
 
   const currentOrderInputTrans = {
     ...orderInputTrans,
@@ -59,7 +65,7 @@ export function dealOrderPlaceVNode(
     orderData.exchange_id,
   );
   const orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
-    dealOrderInputItem(orderData, price_precision ?? 4);
+    dealOrderInputItem(orderData, price_precision ?? DEFAULT_PRECISION);
 
   return createOrderPlaceVNode(
     orderInputResolved,

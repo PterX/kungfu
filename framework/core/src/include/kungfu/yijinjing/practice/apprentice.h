@@ -157,7 +157,8 @@ public:
     request["initial_source"] = get_live_home_uid();
     request["source"] = source;
     request["dest"] = dest;
-    request["data"] = nlohmann::json::parse(data.to_string());
+    request["data"] = data.to_string();
+    SPDLOG_DEBUG("make_nano_msg:{}", request.dump());
     return request.dump();
   }
 
@@ -173,9 +174,9 @@ public:
 
 protected:
   cache::bank state_bank_;
-  journal::writer_ptr master_cmd_writer_for_thread_{};
-  journal::writer_ptr public_writer_{};
-  inline static thread_local journal::writer_ptr thread_writer_{};
+  journal::writer_ptr master_cmd_writer_for_thread_ = nullptr;
+  journal::writer_ptr public_writer_ = nullptr;
+  inline static thread_local journal::writer_ptr thread_writer_ = nullptr;
 
   friend void add_location(practice::apprentice &app, const data::location_ptr &location) {
     app.add_location(app.now(), location);

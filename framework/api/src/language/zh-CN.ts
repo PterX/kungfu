@@ -510,7 +510,6 @@ export default {
 
     avail_funds: '可用资金',
     avail_margin: '可用保证金',
-    cash_debt: '融资负债',
     total_asset: '总资产',
     actions: '操作',
 
@@ -872,6 +871,10 @@ export default {
     bypass_trading_data: '纯监控模式',
     bypass_trading_data_desc:
       '该模式下仅可监控进程运行状态, UI 进行性能占用达到最低, 重启后生效',
+    low_memory: '低内存模式',
+    low_memory_desc:
+      '柜台进程定期清理维护的交易信息缓存, 以减少内存占用, 应对特殊场景, 可能造成前端展示信息错误, 除非明确知道风险, 请勿打开, 开启后重启柜台进程生效',
+
     strategy: '策略',
     use_local_python: '使用本地 Python',
     local_python_desc:

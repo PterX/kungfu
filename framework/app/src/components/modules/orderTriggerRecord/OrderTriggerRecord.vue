@@ -130,7 +130,7 @@ watch(
 );
 
 onActivated(() => {
-  if (app?.proxy && 0) {
+  if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
       if (!currentGlobalKfLocation.value) return;
@@ -148,7 +148,7 @@ onActivated(() => {
         .list();
 
       tableDataResolved.value = orderTriggerData.map((item, index) => {
-        return dealOrderTrigger(window.watcher, item, false, 4, index);
+        return dealOrderTrigger(window.watcher, item, false, index);
       });
     });
 

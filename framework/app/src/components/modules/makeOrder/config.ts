@@ -23,14 +23,16 @@ export const WRAPPER_COL = 14;
 export const getConfigSettings = ({
   location,
   instrumentType,
-  isMarginMakeOrder,
-  isSpecifyContract,
+  isMarginMakeOrderSupport,
+  isSpecifyContractSupport,
   side,
   priceType,
   pricePrecision,
-  step,
+  priceStep,
   sideList,
   offsetList,
+  volumePrecision,
+  volumeStep,
 }: {
   location?:
     | KungfuApi.KfLocation
@@ -38,14 +40,16 @@ export const getConfigSettings = ({
     | KungfuApi.KfConfig
     | null;
   instrumentType?: InstrumentTypeEnum;
-  isMarginMakeOrder?: boolean;
-  isSpecifyContract?: boolean;
+  isMarginMakeOrderSupport?: boolean;
+  isSpecifyContractSupport?: boolean;
   side?: SideEnum;
   priceType?: PriceTypeEnum;
-  pricePrecision?: number;
-  step?: number;
+  pricePrecision?: null | number;
+  priceStep?: number;
   sideList?: string[];
   offsetList?: string[];
+  volumePrecision?: number;
+  volumeStep?: number;
 }): KungfuApi.KfConfigItem[] => {
   const defaultSettings: KungfuApi.KfConfigItem[] = [
     location?.category === 'td'
@@ -64,7 +68,7 @@ export const getConfigSettings = ({
     },
 
     ...[
-      isMarginMakeOrder
+      isMarginMakeOrderSupport
         ? {
             key: 'side',
             name: t('tradingConfig.side'),
@@ -83,7 +87,7 @@ export const getConfigSettings = ({
           },
     ],
     ...[
-      isMarginMakeOrder &&
+      isMarginMakeOrderSupport &&
       (side === SideEnum.RepayStock || side === SideEnum.RepayMargin)
         ? {
             key: 'contract_id',
@@ -91,13 +95,13 @@ export const getConfigSettings = ({
             type: 'contract',
             placeholder: t('tradingConfig.specfy_contract_placeholder'),
             disabled:
-              side === SideEnum.RepayMargin ? !isSpecifyContract : false,
+              side === SideEnum.RepayMargin ? !isSpecifyContractSupport : false,
           }
         : null,
     ],
 
     ...(isShotable(instrumentType || InstrumentTypeEnum.unknown) &&
-    !isMarginMakeOrder
+    !isMarginMakeOrderSupport
       ? ([
           instrumentType === InstrumentTypeEnum.stockoption &&
           side === SideEnum.Exec
@@ -137,15 +141,17 @@ export const getConfigSettings = ({
           : t('tradingConfig.protect_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 4,
-      step: step || 1,
+      precision: pricePrecision ?? null,
+      step: priceStep || 1,
       required: priceType !== PriceTypeEnum.Market ? true : false,
     },
     {
       key: 'volume',
       name: t('tradingConfig.volume'),
-      type: 'int',
+      type: volumePrecision ? 'float' : 'int',
+      precision: volumePrecision ?? null,
       min: 0,
+      step: volumeStep || 1,
       required: true,
     },
   ].filter((item) => !!item) as KungfuApi.KfConfigItem[];

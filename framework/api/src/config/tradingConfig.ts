@@ -28,11 +28,15 @@ import {
   FundTransEnum,
   OrderTriggerFlag,
 } from '../typings/enums';
+import {
+  DEFAULT_PRECISION,
+  CRYPTO_PRECISION,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
 
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-const { t } = VueI18n.global;
+import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+const { t } = useLanguage();
 
 export const Pm2ProcessStatus: Record<
   Pm2ProcessStatusTypes,
@@ -390,29 +394,6 @@ export const MarginSideStatus = [
   SideEnum.RepayStock,
   SideEnum.RepayMargin,
 ];
-
-export const getOrderStatusStyle = (name: string) => {
-  switch (name) {
-    case t('tradingConfig.unknown'):
-    case t('tradingConfig.submitted'):
-    case t('tradingConfig.pending'):
-    case t('tradingConfig.cancelling'):
-    case t('tradingConfig.cancelled'):
-      return 'default';
-    case t('tradingConfig.error'):
-      return 'red';
-    case t('tradingConfig.filled'):
-    case t('tradingConfig.partial_filled_not_active'):
-      return 'green';
-    case t('tradingConfig.partial_filled_active'):
-    case t('tradingConfig.lost'):
-    case t('tradingConfig.pause'):
-    case t('tradingConfig.pending_settlement'):
-      return 'default';
-    default:
-      return 'red';
-  }
-};
 
 export const UnfinishedOrderStatus = [
   OrderStatusEnum.Submitted,
@@ -1049,11 +1030,11 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.OKX_SPOT'),
     color: InstrumentType[InstrumentTypeEnum.crypto].color,
   },
-  'OKX-USD-FUTURE': {
+  'OKX-UFUT': {
     name: t('tradingConfig.OKX_USD_FUTURE'),
     color: InstrumentType[InstrumentTypeEnum.cryptoufuture].color,
   },
-  'OKX-COIN-FUTURE': {
+  'OKX-CFUT': {
     name: t('tradingConfig.OKX_COIN_FUTURE'),
     color: InstrumentType[InstrumentTypeEnum.cryptofuture].color,
   },
@@ -1199,4 +1180,26 @@ export const sideOffsetMap = {
     [OffsetEnum.Unknown]: '--',
   },
   [SideEnum.Unknown]: '--',
+};
+
+export const CryptoInstrumentTypes = [
+  InstrumentTypeEnum.crypto,
+  InstrumentTypeEnum.cryptofuture,
+  InstrumentTypeEnum.cryptoufuture,
+];
+
+export const InstrumentPrecision: Record<InstrumentTypeEnum, number> = {
+  [InstrumentTypeEnum.unknown]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.stockoption]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.techstock]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.future]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.bond]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.fund]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.index]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.repo]: DEFAULT_PRECISION,
+  [InstrumentTypeEnum.crypto]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptofuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.cryptoufuture]: CRYPTO_PRECISION,
+  [InstrumentTypeEnum.multi]: DEFAULT_PRECISION,
 };

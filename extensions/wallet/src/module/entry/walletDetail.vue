@@ -21,7 +21,7 @@
       <div class="detail-content-title">
         <a-statistic
           :title="$t('awsWallet.balance')"
-          :value="dealKfPrice(walletStore.currentBalance, 2) ?? '--'"
+          :value="dealKfNumber(walletStore.currentBalance, 2)"
           :suffix="$t('awsWallet.unit')"
         />
         <a-button
@@ -112,7 +112,6 @@
 
 <script lang="ts" setup>
 import { ref, getCurrentInstance, computed, watch } from 'vue';
-import { useEventListener } from '@vueuse/core';
 import { DownOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import dayjs, { Dayjs } from 'dayjs';
 import DayjsZhCN from 'dayjs/locale/zh-cn';
@@ -121,10 +120,14 @@ import localeData from 'dayjs/plugin/localeData';
 import * as echarts from 'echarts';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { dealKfPrice } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfNumber,
+  dealKfDecimalPrecision,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealKungfuColorToClassname,
   messagePrompt,
+  onClickOutside,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfTradingCharts from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfTradingCharts.vue';
 import AuthAccessMask from '@kungfu-trader/kfx-ui-login-authing/src/components/AuthAccessMask.vue';
@@ -167,16 +170,17 @@ const getDefaultDateRange = () => {
   }
 
   const days = Object.keys(byDay).sort((a, b) => +a - +b);
+
   const startTs = +days[0];
   const endTs = +days[days.length - 1];
-  const todayTs = dayjs().valueOf();
+  const today = dayjs();
+  const todayTs = today.valueOf();
   const endResolved = Math.max(endTs, todayTs);
-  const delta = Math.abs(dayjs(startTs).diff(dayjs(endResolved), 'day'));
-  if (delta < 30) {
-    return [dayjs().subtract(delta, 'day').startOf('day'), dayjs()];
-  }
 
-  return [dayjs().subtract(30, 'day').startOf('day'), dayjs()];
+  const delta = Math.abs(dayjs(startTs).diff(dayjs(endResolved), 'day'));
+  const deltaResolved = Math.min(delta, 30);
+
+  return [dayjs().subtract(deltaResolved, 'day').startOf('day'), today];
 };
 
 watch(
@@ -213,7 +217,9 @@ const allTransByDayForChart = computed(() => {
 
   const daysAmount = days.map((day) => {
     if (walletStore.currentWallet) {
-      return walletStore.currentWallet.transactions.byDay[day]?.outbound ?? 0;
+      const amount =
+        walletStore.currentWallet.transactions.byDay[day]?.outbound ?? 0;
+      return dealKfDecimalPrecision(amount);
     }
 
     return 0;
@@ -269,48 +275,6 @@ watch(
     visible.value = newVal;
   },
 );
-
-const onClickOutside = (
-  el: string | Element,
-  callback: (e: MouseEvent) => void,
-) => {
-  let element: Element | null = null;
-  const cleanups: Array<() => void> = [];
-
-  const getElement = () => {
-    if (!element) {
-      if (typeof el === 'string') {
-        element = document.querySelector(el);
-      } else {
-        element = el;
-      }
-    }
-
-    return element;
-  };
-
-  setTimeout(() => {
-    cleanups.push(
-      useEventListener(document, 'click', (e) => {
-        const el = getElement();
-        if (el) {
-          const x = e.clientX;
-          const y = e.clientY;
-          const { left, right, top, bottom } = el.getBoundingClientRect();
-          if (!(x >= left && x <= right && y >= top && y <= bottom)) {
-            callback(e);
-          }
-        }
-      }),
-    );
-  });
-
-  function deregister() {
-    cleanups.forEach((cleanup) => cleanup());
-  }
-
-  return deregister;
-};
 
 watch(
   () => visible.value,

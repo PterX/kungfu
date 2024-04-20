@@ -12,6 +12,7 @@
 #include <kungfu/wingchun/tool/report.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
+#include <unordered_map>
 
 namespace kungfu::wingchun::strategy {
 class BacktestContext : public Context {
@@ -20,11 +21,13 @@ public:
                            Matcher_ptr matcher, tool::SliceIndexer_ptr from_indexer, tool::SliceIndexer_ptr to_indexer,
                            tool::Report_ptr report, int64_t time_interval, std::string backtest_config);
 
+  ~BacktestContext() = default;
+
   /**
    * checked_ is strated started.
    * @return current time in nano seconds
    */
-  virtual bool is_started() const override;
+  bool is_started() const override;
 
   /**
    * Get location_uid of current process
@@ -36,7 +39,7 @@ public:
    * Get config from database.
    * @return  config of current location_uid
    */
-  const std::string get_config() const override;
+  std::string get_config() const override;
 
   /**
    * Get current time in nano seconds.
@@ -75,7 +78,7 @@ public:
    * Subscribe market data.
    * @param source MD group
    * @param instrument_ids instrument IDs
-   * @param exchange_ids exchange IDs
+   * @param exchange_id exchange IDs
    */
   void subscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
                  const std::string &exchange_id) override;
@@ -86,8 +89,8 @@ public:
    * @param instrument_ids instrument IDs
    * @param exchange_id exchange ID
    */
-  virtual void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
-                           const std::string &exchange_id) override;
+  void unsubscribe(const std::string &source, const std::vector<std::string> &instrument_ids,
+                   const std::string &exchange_id) override;
 
   /**
    * Subscribe all from given MD
@@ -101,19 +104,19 @@ public:
    * @param group OPERATOR group
    * @param name OPERATOR name
    */
-  virtual void subscribe_operator(const std::string &group, const std::string &name) override;
+  void subscribe_operator(const std::string &group, const std::string &name) override;
 
   /**
    * Get broker client.
    * @return broker client reference
    */
-  virtual broker::Client &get_broker_client() override;
+  broker::Client &get_broker_client() override;
 
   /**
    * Get bookkeeper.
    * @return bookkeeper reference
    */
-  virtual book::Bookkeeper &get_bookkeeper() override;
+  book::Bookkeeper &get_bookkeeper() override;
 
   /**
    * Insert Block Message
@@ -122,9 +125,8 @@ public:
    * @param value
    * @return
    */
-  virtual uint64_t insert_block_message(const std::string &source, const std::string &account,
-                                        const std::string &opponent_seat, uint64_t match_number,
-                                        bool is_specific = false) override;
+  uint64_t insert_block_message(const std::string &source, const std::string &account, const std::string &opponent_seat,
+                                uint64_t match_number, bool is_specific = false) override;
 
   /**
    *
@@ -202,7 +204,7 @@ public:
    * @param is_swaps
    * @return
    */
-  virtual std::vector<uint64_t>
+  std::vector<uint64_t>
   insert_batch_orders(const std::string &source, const std::string &account,
                       const std::vector<std::string> &instrument_ids, const std::vector<std::string> &exchange_ids,
                       std::vector<double> limit_prices, std::vector<double> volumes,
@@ -217,8 +219,8 @@ public:
    * @param order_inputs
    * @return
    */
-  virtual std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
-                                                    std::vector<longfist::types::OrderInput> &order_inputs) override;
+  std::vector<uint64_t> insert_array_orders(const std::string &source, const std::string &account,
+                                            std::vector<longfist::types::OrderInput> &order_inputs) override;
 
   /**
    * @param instrument_id instrument ID
@@ -238,14 +240,14 @@ public:
    * @param basket_uid basket uid
    * @return order_id
    */
-  virtual uint64_t insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
-                                     const std::string &source, const std::string &account, int64_t begin_time,
-                                     int64_t end_time, double volume, longfist::enums::PriceType type,
-                                     longfist::enums::Side side, longfist::enums::Offset offset,
-                                     const std::string &algo_type_id, const std::string &algo_id,
-                                     const std::string &args, bool is_local = false, uint32_t basket_uid = 0,
-                                     longfist::enums::PriceLevel price_level = longfist::enums::PriceLevel::Last,
-                                     double price_offset = 0) override;
+  uint64_t insert_algo_order(const std::string &instrument_id, const std::string &exchange_id,
+                             const std::string &source, const std::string &account, int64_t begin_time,
+                             int64_t end_time, double volume, longfist::enums::PriceType type,
+                             longfist::enums::Side side, longfist::enums::Offset offset,
+                             const std::string &algo_type_id, const std::string &algo_id, const std::string &args,
+                             bool is_local = false, uint32_t basket_uid = 0,
+                             longfist::enums::PriceLevel price_level = longfist::enums::PriceLevel::Last,
+                             double price_offset = 0) override;
 
   /**
    * @param origin_order_id origin order id to update
@@ -254,8 +256,8 @@ public:
    * @param volume trade volume
    * @return order_id
    */
-  virtual uint64_t update_algo_order_volume(uint64_t origin_order_id, const std::string &source,
-                                            const std::string &account, double volume) override;
+  uint64_t update_algo_order_volume(uint64_t origin_order_id, const std::string &source, const std::string &account,
+                                    double volume) override;
 
   /**
    * Cancel order.
@@ -285,8 +287,8 @@ public:
    * @param algo_order_id
    * @return algo order action ID
    */
-  virtual uint64_t toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
-                                                                 longfist::enums::AlgoOrderActionFlag::Start) override;
+  uint64_t toggle_algo_order(uint64_t algo_order_id, longfist::enums::AlgoOrderActionFlag action_flag =
+                                                         longfist::enums::AlgoOrderActionFlag::Start) override;
 
   /**
    * query history order
@@ -314,9 +316,9 @@ public:
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
 protected:
-  virtual void on_start() override;
-
-  virtual void prepare(const event_ptr &event) override;
+  void on_start() override;
+  void prepare(const event_ptr &event) override;
+  void post_stop() override;
 
   yijinjing::data::location_ptr find_td_location(const std::string &source, const std::string &account,
                                                  bool check_exist = true) const;
@@ -354,9 +356,19 @@ protected:
 private:
   struct TimerTask {
     int32_t timer_id;
+    int64_t nanotime;
     std::function<void(event_ptr)> call_back;
-    TimerTask(int32_t id, std::function<void(event_ptr)> cb) : timer_id(id), call_back(std::move(cb)){};
+    TimerTask(int32_t id, int64_t nanotime, std::function<void(event_ptr)> cb)
+        : timer_id(id), nanotime(nanotime), call_back(std::move(cb)){};
+    bool operator<(const TimerTask &other) const { return other.nanotime < this->nanotime; }
   };
+
+  enum class SliceState { Idle, Acquiring, Acquired, Releasing, Released };
+  struct SliceReferenceState {
+    SliceState state;
+    int reference_count;
+  };
+
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;
@@ -367,14 +379,19 @@ private:
   const std::string backtest_config_{"{}"};
   int32_t timer_usage_count_{0};
   int32_t protected_timer_id_;
-  std::multimap<int64_t, TimerTask> pre_timer_callbacks_{};
-  std::multimap<int64_t, TimerTask> timer_callbacks_{};
-  std::map<int64_t, std::vector<yijinjing::data::location_ptr>> lease_locations_{};
 
+  std::vector<TimerTask> timer_tasks_{};
   void on_timer_check();
-  void lease_expired_check();
   int32_t add_timer_interval_helper(int64_t duration, int32_t timer_id, const std::function<void(event_ptr)> &callback);
+  int32_t add_timer_helper(int64_t nanotime, int32_t timer_id, const std::function<void(event_ptr)> &callback);
   void init_time_events();
+
+  std::unordered_map<yijinjing::data::location, SliceReferenceState> slice_reference_states_;
+  void subscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
+  void unsubscribe_slice(const yijinjing::data::location_ptr &slice_location, int64_t nanotime, int64_t offset);
+  void subscribe_helper(int64_t begin_time, const std::string &source, const std::string &instrument_id,
+                        const std::string &exchange_id, int32_t data_tag);
+  void subscribe_operator_helper(int64_t nanotime, const std::string &group, const std::string &name);
 };
 
 DECLARE_PTR(BacktestContext)

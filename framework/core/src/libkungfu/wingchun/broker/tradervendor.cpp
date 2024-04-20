@@ -12,6 +12,14 @@ using namespace kungfu::yijinjing::journal;
 
 namespace kungfu::wingchun::broker {
 
+static const bool get_low_memory_mode() {
+  bool is_low_memory_mode = std::getenv("KF_LOW_MEMORY") != nullptr;
+  return is_low_memory_mode;
+}
+
+constexpr uint32_t SYNC_ASSET_INTERVAL = 7;
+constexpr uint32_t ORDER_CLEAN_INTERVAL = 10;
+
 // ====================== BaseService start ======================
 
 Trader &BaseService::get_service() { return dynamic_cast<Trader &>(*vendor_.get_service()); }
@@ -25,27 +33,27 @@ TraderWriterHook::TraderWriterHook(TraderVendor &vendor) : vendor_(vendor) {}
 void TraderWriterHook::on_open_frame(int64_t trigger_time, frame_ptr frame) {}
 
 void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
+  auto now = time::now_in_nano();
   switch (frame->msg_type()) {
   case Order::tag: {
     auto &order = guard_update_time<Order>(frame->data<Order>());
-    get_algo_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
-    get_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
+    get_algo_order_service().on_order(now, frame->source(), frame->dest(), order);
+    get_order_service().on_order(now, frame->source(), frame->dest(), order);
     break;
   }
   case Trade::tag: {
     const Trade &trade = frame->data<Trade>();
-    get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
-    get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
+    get_algo_order_service().on_trade(now, frame->source(), frame->dest(), trade);
     break;
   }
   case OrderTrigger::tag: {
     auto &order_trigger = guard_update_time<OrderTrigger>(frame->data<OrderTrigger>());
-    get_order_trigger_service().on_order_trigger(frame->gen_time(), frame->source(), frame->dest(), order_trigger);
+    get_order_trigger_service().on_order_trigger(now, frame->source(), frame->dest(), order_trigger);
     break;
   }
   case AlgoOrder::tag: {
     auto &algo_order = guard_update_time<AlgoOrder>(frame->data<AlgoOrder>());
-    get_algo_order_service().on_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
+    get_algo_order_service().on_algo_order(now, frame->source(), frame->dest(), algo_order);
     break;
   }
   case Position::tag: {
@@ -135,7 +143,14 @@ void TraderVendor::on_start() {
   service_->on_start();
 
   // after recover done, which take some time, then start to try req account
-  add_time_interval(7 * time_unit::NANOSECONDS_PER_SECOND, [&](auto e) { service_->try_req_account(); });
+  add_time_interval(SYNC_ASSET_INTERVAL * time_unit::NANOSECONDS_PER_SECOND,
+                    [&](auto e) { service_->try_req_account(); });
+
+  if (get_low_memory_mode()) {
+    SPDLOG_WARN("Low memory mode, clear finished order every {}s", ORDER_CLEAN_INTERVAL);
+    add_time_interval(ORDER_CLEAN_INTERVAL * time_unit::NANOSECONDS_PER_SECOND,
+                      [&](auto e) { service_->clean_finished_orders(); });
+  }
 }
 
 void TraderVendor::on_write_to(const event_ptr &event) {

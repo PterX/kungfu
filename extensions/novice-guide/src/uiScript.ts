@@ -41,7 +41,7 @@ export default {
         };
       },
     );
-
+    kfLogger.info('noviceGuideCache', myDriver.hasRan);
     if (myDriver.hasRan) return;
     myDriver.setHasRan(true);
 

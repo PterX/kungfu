@@ -35,7 +35,7 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
 let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
-let font: string = '';
+let font = '';
 const ColumnCustomMap = ref<
   Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
 >({});
@@ -180,6 +180,7 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   select: {
     disableSelect: true,
   },
+  maintainedDataCount: 100,
   defaultRowHeight: 30,
   columnResizeMode,
   widthMode,
@@ -366,7 +367,7 @@ const getListTable = () => {
 const setRecords = (records: tableDataItem[]) => {
   nextTick(() => {
     if (listTable) {
-      listTable.setRecords(records);
+      listTable?.setRecords(records);
     }
   });
 };

@@ -81,9 +81,13 @@ public:
 
   void on_block_message(const longfist::types::BlockMessage &block_message);
 
-  void clean_orders(bool bypass_recover = false);
+  void lost_orders(bool bypass_recover = false);
 
-  void clean_orders(uint32_t source, const longfist::types::OrderInput &order_input, bool bypass_recover = false);
+  void lost_orders(uint32_t source, const longfist::types::OrderInput &order_input, bool bypass_recover = false);
+
+  void clean_finished_orders(uint64_t now = INT64_MAX);
+
+  void clean_trades();
 
   [[nodiscard]] const OrderMap &get_orders() const;
 
@@ -392,6 +396,8 @@ private:
   void deal_write_frame();
 
   void deal_read_frame();
+
+  void clean_finished_orders();
 
   [[nodiscard]] OrderService &get_order_service();
 

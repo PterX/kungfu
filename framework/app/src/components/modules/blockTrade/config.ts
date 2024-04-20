@@ -8,7 +8,7 @@ const { t } = VueI18n.global;
 
 export const getConfigSettings = (
   category?: KfCategoryTypes,
-  pricePrecision?: number,
+  pricePrecision?: number | null,
   step?: number,
 ): KungfuApi.KfConfigItem[] =>
   [
@@ -45,7 +45,7 @@ export const getConfigSettings = (
       name: t('blockTradeConfig.limit_price'),
       type: 'float',
       min: 0,
-      precision: pricePrecision ?? 4,
+      precision: pricePrecision ?? null,
       step: step || 1,
       required: true,
     },
@@ -76,9 +76,15 @@ export const getConfigSettings = (
     },
   ].filter((item) => !!item) as KungfuApi.KfConfigItem[];
 
-export const getBlockTradeOrderTrans = (): Record<string, string> => {
+export const getBlockTradeOrderTrans = (
+  transformMap?: Record<string, string>,
+): Record<string, string> => {
   return getConfigSettings('td').reduce((pre, cur) => {
-    pre[cur.key] = cur.name;
+    if (transformMap && transformMap[cur.key]) {
+      pre[cur.key] = transformMap[cur.key] || cur.name;
+    } else {
+      pre[cur.key] = cur.name;
+    }
     return pre;
   }, {});
 };

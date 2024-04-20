@@ -153,9 +153,9 @@ private:
   book::StaticData static_data_;
   const bool bypass_quote_;
   QuoteStateMap quotes_;
+  const bool bypass_replace_trading_data_;
 
   const longfist::enums::AccountingMethodType account_method_type_;
-  const bool bypass_replace_trading_data_;
   std::mutex update_book_mutex_;
   bool positions_guarded_ = false;
   BookMap books_ = {};

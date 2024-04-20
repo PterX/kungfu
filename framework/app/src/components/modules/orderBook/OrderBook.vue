@@ -2,7 +2,6 @@
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   dealKfNumber,
-  dealKfPrice,
   dealKfDecimalPrecision,
   countDecimalPlaces,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
@@ -22,6 +21,7 @@ import {
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import { getPrecisionByInstrumentType } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
@@ -58,6 +58,10 @@ onActivated(() => {
   onDeactivated(() => {
     subscription?.unsubscribe();
   });
+});
+
+const precision = computed(() => {
+  return getPrecisionByInstrumentType(currentInstrument.value?.instrumentType);
 });
 
 const askPrices = computed(() => {
@@ -184,7 +188,7 @@ function toLedgalPriceVolume(num: number | bigint) {
     return 0;
   }
 
-  if (num > Number.MAX_SAFE_INTEGER) {
+  if (num >= Number.MAX_SAFE_INTEGER) {
     return 0;
   }
 
@@ -198,47 +202,7 @@ function toLedgalPriceVolume(num: number | bigint) {
 <template>
   <div class="kf-order-book__warp">
     <div class="level-book">
-      <div class="level-row">
-        <div class="left_warp"></div>
-        <div class="price">
-          {{
-            limitPrices[0] !== 0 && limitPrices[0] !== undefined
-              ? dealKfPrice(toLedgalPriceVolume(limitPrices[0]))
-              : '--'
-          }}
-        </div>
-        <div class="limit_price_name">
-          {{ t('tradingConfig.up_limit_price') }}
-        </div>
-      </div>
-      <div v-for="(_item, index) in Array(10)" :key="index" class="level-row">
-        <div
-          class="buy volume"
-          @click="
-            handleTriggerBuyOrderBookPriceVolume(
-              toLedgalPriceVolume(askPrices[9 - index]),
-              0,
-            )
-          "
-        ></div>
-        <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(askPrices[9 - index])) }}
-        </div>
-        <div
-          class="sell volume"
-          @click="
-            handleTriggerSellOrderBookPriceVolume(
-              toLedgalPriceVolume(askPrices[9 - index]),
-              toLedgalPriceVolume(askVolume[9 - index]),
-            )
-          "
-        >
-          {{ dealKfNumber(toLedgalPriceVolume(askVolume[9 - index])) }}
-        </div>
-      </div>
-    </div>
-    <div class="instrument-info">
-      <div class="info info-item">
+      <div class="instrument-info left">
         <div class="main">
           {{
             currentInstrument?.instrumentName ||
@@ -256,22 +220,43 @@ function toLedgalPriceVolume(num: number | bigint) {
           </span>
         </div>
       </div>
-      <div class="price info-item">
+      <div class="instrument-info right">
         <div class="main">
-          {{ dealKfPrice(getQuoteByInstrument(currentInstrument)?.last_price) }}
+          {{
+            dealKfNumber(
+              getQuoteByInstrument(currentInstrument)?.last_price,
+              precision,
+            )
+          }}
         </div>
         <div class="sub">
           <KfBlinkNum
             blink-type="color"
             mode="compare-zero"
-            :num="getLastPricePercent(currentInstrument)"
+            :num="
+              currentInstrument ? getLastPricePercent(currentInstrument) : 0
+            "
           ></KfBlinkNum>
         </div>
       </div>
-    </div>
-    <div class="level-book">
-      <div v-for="(_item, index) in Array(10)" :key="index" class="level-row">
+
+      <div class="level-col">
+        <div class="left_warp"></div>
         <div
+          v-for="(_item, index) in Array(10)"
+          :key="index"
+          class="buy volume"
+          @click="
+            handleTriggerBuyOrderBookPriceVolume(
+              toLedgalPriceVolume(askPrices[9 - index]),
+              0,
+            )
+          "
+        ></div>
+        <div class="info-item"></div>
+        <div
+          v-for="(_item, index) in Array(10)"
+          :key="index"
           class="buy volume"
           @click="
             handleTriggerBuyOrderBookPriceVolume(
@@ -280,12 +265,58 @@ function toLedgalPriceVolume(num: number | bigint) {
             )
           "
         >
-          {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index])) }}
+          {{ dealKfNumber(toLedgalPriceVolume(bidVolume[index]), precision) }}
+        </div>
+        <div class="left_warp"></div>
+      </div>
+      <div class="level-col center">
+        <div class="price">
+          {{
+            limitPrices[0] !== 0 && limitPrices[0] !== undefined
+              ? dealKfNumber(toLedgalPriceVolume(limitPrices[0]), precision)
+              : '--'
+          }}
+        </div>
+        <div v-for="(_item, index) in Array(10)" :key="index" class="price">
+          {{
+            dealKfNumber(toLedgalPriceVolume(askPrices[9 - index]), precision)
+          }}
+        </div>
+        <div class="info-item"></div>
+        <div v-for="(_item, index) in Array(10)" :key="index" class="price">
+          {{ dealKfNumber(toLedgalPriceVolume(bidPrices[index]), precision) }}
         </div>
         <div class="price">
-          {{ dealKfPrice(toLedgalPriceVolume(bidPrices[index])) }}
+          {{
+            limitPrices[1] !== 0 && limitPrices[1] !== undefined
+              ? dealKfNumber(toLedgalPriceVolume(limitPrices[1]), precision)
+              : '--'
+          }}
+        </div>
+      </div>
+      <div class="level-col">
+        <div class="limit_price_name">
+          {{ t('tradingConfig.up_limit_price') }}
         </div>
         <div
+          v-for="(_item, index) in Array(10)"
+          :key="index"
+          class="sell volume"
+          @click="
+            handleTriggerSellOrderBookPriceVolume(
+              toLedgalPriceVolume(askPrices[9 - index]),
+              toLedgalPriceVolume(askVolume[9 - index]),
+            )
+          "
+        >
+          {{
+            dealKfNumber(toLedgalPriceVolume(askVolume[9 - index]), precision)
+          }}
+        </div>
+        <div class="info-item"></div>
+        <div
+          v-for="(_item, index) in Array(10)"
+          :key="index"
           class="sell volume"
           @click="
             handleTriggerSellOrderBookPriceVolume(
@@ -294,16 +325,6 @@ function toLedgalPriceVolume(num: number | bigint) {
             )
           "
         ></div>
-      </div>
-      <div class="level-row">
-        <div class="left_warp"></div>
-        <div class="price">
-          {{
-            limitPrices[1] !== 0 && limitPrices[1] !== undefined
-              ? dealKfPrice(toLedgalPriceVolume(limitPrices[1]))
-              : '--'
-          }}
-        </div>
         <div class="limit_price_name">
           {{ t('tradingConfig.low_limit_price') }}
         </div>
@@ -316,36 +337,76 @@ function toLedgalPriceVolume(num: number | bigint) {
 .kf-order-book__warp {
   height: 100%;
   width: calc(100% - 8px);
-  display: flex;
-  flex-direction: column;
   padding: 8px 8px;
-  overflow-y: overlay;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   .level-book {
-    flex: 1;
     display: flex;
-    flex-direction: column;
+    position: relative;
 
-    .level-row {
+    .instrument-info {
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      word-break: keep-all;
+      position: absolute;
+
+      &.left {
+        top: 220px;
+        left: 8px;
+      }
+
+      &.right {
+        top: 220px;
+        right: 8px;
+      }
+
+      .main {
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .sub {
+        position: relative;
+        font-size: 12px;
+        height: 25px;
+      }
+    }
+
+    .level-col {
       flex: 1;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: stretch;
+      overflow-x: hidden;
+
+      &.center {
+        flex: 1.2;
+      }
+
+      .nowrap {
+        word-break: keep-all;
+      }
 
       .price,
       .volume,
       .left_warp,
       .limit_price_name {
-        flex: 1;
-        padding-right: 8px;
-        align-items: center;
+        overflow-x: hidden;
+        height: 20px;
+        padding: 0 8px;
         font-weight: bold;
         display: flex;
-        justify-content: flex-end;
         align-items: center;
+        justify-content: flex-end;
+        word-break: keep-all;
       }
 
-      .price {
-        flex: 1.5;
+      .info-item {
+        height: 52px;
       }
 
       .volume {
@@ -367,40 +428,6 @@ function toLedgalPriceVolume(num: number | bigint) {
             background: @green-8;
           }
         }
-      }
-    }
-  }
-
-  .instrument-info {
-    display: flex;
-    align-items: center;
-    padding: 8px 0px;
-
-    .info-item {
-      flex: 1;
-      flex-direction: column;
-      justify-content: space-between;
-      display: flex;
-
-      &.info {
-        text-align: left;
-        flex: 1.5;
-      }
-
-      &.price {
-        text-align: right;
-        flex: 1.5;
-      }
-
-      .main {
-        font-size: 16px;
-        font-weight: bold;
-      }
-
-      .sub {
-        position: relative;
-        font-size: 12px;
-        height: 25px;
       }
     }
   }

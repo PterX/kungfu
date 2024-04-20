@@ -11,6 +11,7 @@ import {
   useDashboardBodySize,
   useTriggerMakeOrder,
   searchByKeyword,
+  useBrowserWindowMinimize,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -52,6 +53,7 @@ import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalS
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
+const windowMinimized = useBrowserWindowMinimize();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const pos = ref<KungfuApi.PositionResolved[]>([]);
@@ -150,6 +152,9 @@ onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
+
+      if (windowMinimized.value) return;
+
       if (!currentGlobalKfLocation.value) return;
 
       const positions =

@@ -32,6 +32,7 @@ class BinaryDistribution(Distribution):
     def has_ext_modules(self):
         return True
 
+
 setup(
     name=package.name,
     version=build_info["version"],

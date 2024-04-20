@@ -10,7 +10,7 @@ import {
   useDashboardBodySize,
   confirmModal,
   searchByKeyword,
-  useBrowserWindowFocus,
+  useBrowserWindowMinimize,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -68,7 +68,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
-const windowFocus = useBrowserWindowFocus();
+const windowMinimized = useBrowserWindowMinimize();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
@@ -167,7 +167,10 @@ onActivated(() => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
 
-      if (!windowFocus.value) return;
+      if (windowMinimized.value) {
+        needProcessTradingData.value = true;
+        return;
+      }
 
       if (historyDate.value) {
         return;
@@ -369,6 +372,12 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
     });
   }
   if (args.value === t('orderConfig.cancel_order')) {
+    handleCancelOrder(args.originData);
+  }
+}
+
+function handleDblClickCell(args: VTable.MousePointerCellEvent) {
+  if (!isFinishedOrderStatus(args.originData.status)) {
     handleCancelOrder(args.originData);
   }
 }
@@ -679,8 +688,9 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         <KfCanvasTradingDataTable
           ref="canvasRef"
           :columns="columns"
-          :hasData="hasData"
+          :has-data="hasData"
           @click-cell="handleClickCell"
+          @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"
         />
       </div>

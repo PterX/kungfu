@@ -355,7 +355,7 @@ inline void from_xtp(const XTPTickByTickStruct &ori, Entrust &des) {
   }
 
   // xtp（深交所的order_no在xtp接口注释标注为无意义，偶尔为0 seq对应的是真正的订单号 上交所的order_no是订单号）
-  if (des.exchange_id == "SSE") {
+  if (strcmp(des.exchange_id, "SSE")) {
     des.orig_order_no = ori.entrust.order_no;
   } else {
     des.orig_order_no = ori.entrust.seq;

@@ -20,10 +20,13 @@
   "scripts": {
     "postinstall": "patch-package",
     "foreach": "wsrun --serial --exclude-missing --fast-exit",
+    "foreach:extensions": "wsrun --serial --package '@kungfu-trader/kfx-*' --exclude-missing --fast-exit",
     "format": "wsrun --serial --exclude-missing format",
     "prebuild": "node .prebuild.js",
     "build": "yarn foreach build",
+    "build:extensions": "yarn foreach:extensions build",
     "clean": "yarn foreach clean",
+    "clean:extensions": "yarn foreach:extensions clean",
     "package": "yarn foreach package",
     "rebuild": "yarn clean && yarn build",
     "sync": "yarn install --audit --frozen-lockfile",

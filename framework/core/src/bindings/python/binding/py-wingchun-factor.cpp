@@ -18,14 +18,13 @@ namespace py = pybind11;
 namespace kungfu::wingchun::pybind {
 
 void bind_factor(pybind11::module &m) {
-
   py::class_<CrossSection, std::shared_ptr<CrossSection>>(m, "CrossSection")
       .def_static("loads", &CrossSection::loads, py::arg("serialized_cross_section"))
       .def_static("dumps", &CrossSection::dumps, py::arg("cross_section"))
       .def(py::init<>())
-      // .def(py::init<std::unordered_map<std::string, float> , std::unordered_map<std::string, float>, int64_t>(
+      //.def(py::init<std::unordered_map<std::string, double>, std::unordered_map<std::string, double>, int64_t>(
       //      py::arg("factors"), py::arg("prices"), py::arg("gen_time")))
-      .def_readonly("gen_time", &CrossSection::gen_time, py::return_value_policy::reference)
+      .def_readonly("gen_time", &CrossSection::gen_time)
       .def_readonly("factors", &CrossSection::factors, py::return_value_policy::reference)
       .def_readonly("prices", &CrossSection::prices, py::return_value_policy::reference)
       .def("__repr__", &CrossSection::to_string)
@@ -52,14 +51,9 @@ protected:
 
   py::class_<MultiCrossSectionalFactor, PyMultiCrossSectionalFactor, std::shared_ptr<MultiCrossSectionalFactor>>(m, "MultiCrossSectionalFactor")
       .def(py::init<>())
-      // .def("on_quote", &MultiCrossSectionalFactor::on_quote)
-      // .def("on_tree", &MultiCrossSectionalFactor::on_tree)
-      // .def("on_depth", &MultiCrossSectionalFactor::on_depth)
-      // .def("on_tick", &MultiCrossSectionalFactor::on_tick)
-      // .def("on_entrust", &MultiCrossSectionalFactor::on_entrust)
-      // .def("on_transaction", &MultiCrossSectionalFactor::on_transaction)
-      .def("generate_cross_sectional_factor", &MultiCrossSectionalFactor::generate_cross_sectional_factor)
-      .def("update_price", &MultiCrossSectionalFactor::update_price)
-      .def("update_factor", &MultiCrossSectionalFactor::update_factor);
+      .def("generate_cross_sectional_factor", &MultiCrossSectionalFactor::generate_cross_sectional_factor, py::arg("clear_price_cache")=true, py::arg("clear_factor_cache")=true)
+      .def("update_price", &MultiCrossSectionalFactor::update_price, py::arg("instrument_id"), py::arg("exchange_id"), py::arg("price"))
+      .def("get_factor", &MultiCrossSectionalFactor::get_factor, py::arg("factor_name"), py::arg("instrument_id"), py::arg("exchange_id"), py::arg("default_value"))
+      .def("update_factor", &MultiCrossSectionalFactor::update_factor, py::arg("factor_name"), py::arg("instrument_id"), py::arg("exchange_id"), py::arg("value"));
 }
 } // namespace kungfu::wingchun::pybind

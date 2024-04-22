@@ -25,7 +25,7 @@ Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &e
 
 void Context::attach_orderbooks(Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
-void Context::attach_factor_generator(factor::MultiCrossSectionalFactor &factor_generator) {
+void Context::attach_factor_cache(factor::MultiCrossSectionalFactor &factor_generator) {
   set_runner(factor_generator, &app_); 
   factor_generator.on_start(events_);
 }

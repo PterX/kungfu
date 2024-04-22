@@ -161,10 +161,10 @@ public:
 
 
   /**
-   * attach the factor generator to market data received.
+   * attach the factor cacheto market data received.
    * @param factor_generator
    */
-  void attach_factor_generator(factor::MultiCrossSectionalFactor &factor_generator);
+  void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_generator);
 
 
 protected:

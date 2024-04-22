@@ -114,8 +114,8 @@ exports.getWebpackExternals = () => {
     'package.json',
   );
   const currentPackageJSON = fs.pathExistsSync(currentPackageJSONPath)
-  ? fs.readJSONSync(currentPackageJSONPath)
-  : {};
+    ? fs.readJSONSync(currentPackageJSONPath)
+    : {};
 
   const cliPackageJSON = tryGetCliPackageJSON();
   const appPackageJSON = tryGetAppPackageJSON();

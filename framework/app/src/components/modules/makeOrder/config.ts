@@ -23,8 +23,8 @@ export const WRAPPER_COL = 14;
 export const getConfigSettings = ({
   location,
   instrumentType,
-  isMarginMakeOrder,
-  isSpecifyContract,
+  isMarginMakeOrderSupport,
+  isSpecifyContractSupport,
   side,
   priceType,
   pricePrecision,
@@ -40,8 +40,8 @@ export const getConfigSettings = ({
     | KungfuApi.KfConfig
     | null;
   instrumentType?: InstrumentTypeEnum;
-  isMarginMakeOrder?: boolean;
-  isSpecifyContract?: boolean;
+  isMarginMakeOrderSupport?: boolean;
+  isSpecifyContractSupport?: boolean;
   side?: SideEnum;
   priceType?: PriceTypeEnum;
   pricePrecision?: null | number;
@@ -68,7 +68,7 @@ export const getConfigSettings = ({
     },
 
     ...[
-      isMarginMakeOrder
+      isMarginMakeOrderSupport
         ? {
             key: 'side',
             name: t('tradingConfig.side'),
@@ -87,7 +87,7 @@ export const getConfigSettings = ({
           },
     ],
     ...[
-      isMarginMakeOrder &&
+      isMarginMakeOrderSupport &&
       (side === SideEnum.RepayStock || side === SideEnum.RepayMargin)
         ? {
             key: 'contract_id',
@@ -95,13 +95,13 @@ export const getConfigSettings = ({
             type: 'contract',
             placeholder: t('tradingConfig.specfy_contract_placeholder'),
             disabled:
-              side === SideEnum.RepayMargin ? !isSpecifyContract : false,
+              side === SideEnum.RepayMargin ? !isSpecifyContractSupport : false,
           }
         : null,
     ],
 
     ...(isShotable(instrumentType || InstrumentTypeEnum.unknown) &&
-    !isMarginMakeOrder
+    !isMarginMakeOrderSupport
       ? ([
           instrumentType === InstrumentTypeEnum.stockoption &&
           side === SideEnum.Exec

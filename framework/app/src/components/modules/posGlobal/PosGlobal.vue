@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   searchByKeyword,
-  useBrowserWindowFocus,
+  useBrowserWindowMinimize,
   useDashboardBodySize,
   useTriggerMakeOrder,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -65,7 +65,7 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
 const canvasRef = ref();
 
 const app = getCurrentInstance();
-const windowFocus = useBrowserWindowFocus();
+const windowMinimized = useBrowserWindowMinimize();
 const pos = ref<KungfuApi.PositionResolved[]>([]);
 const { handleBodySizeChange } = useDashboardBodySize();
 const searchKeyword = ref('');
@@ -76,8 +76,12 @@ const { setCurrentGlobalKfLocation } = useCurrentGlobalKfLocation(
 const { instruments } = useInstruments();
 const { getPositionLastPrice } = useQuote();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
-const { getInstrumentCurrencyByIds, getInstrumentCurrency, getInstrumentName } =
-  useActiveInstruments();
+const {
+  getInstrumentCurrencyByIds,
+  getInstrumentCurrency,
+  getInstrumentName,
+  getPriceTickAndPrecision,
+} = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -155,7 +159,7 @@ onActivated(() => {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
 
-      if (!windowFocus.value) return;
+      if (windowMinimized.value) return;
 
       const positions = watcher.ledger.Position.nofilter('volume', 0)
         .filter('ledger_category', LedgerCategoryEnum.td)
@@ -202,6 +206,10 @@ function buildGlobalPositions(
   const posStatData: PosStat = positions.reduce((posStat, pos) => {
     const precision = getPrecisionByInstrumentType(pos.instrument_type);
     const id = `${pos.instrument_id}_${pos.exchange_id}_${pos.direction}`;
+    const { price_precision } = getPriceTickAndPrecision(
+      pos.instrument_id,
+      pos.exchange_id,
+    );
     if (!posStat[id]) {
       posStat[id] = Object.assign({}, pos, { id, uid_key: pos.uid_key });
     } else {
@@ -234,11 +242,11 @@ function buildGlobalPositions(
       posStat[id].avg_open_price = dealKfDecimalPrecision(
         (avg_open_price * volume + pos.avg_open_price * pos.volume) /
           (volume + pos.volume),
-        precision,
+        price_precision || precision,
       );
       posStat[id].unrealized_pnl = dealKfDecimalPrecision(
         unrealized_pnl + pos.unrealized_pnl,
-        precision,
+        price_precision || precision,
       );
       posStat[id].update_time =
         update_time > pos.update_time ? update_time : pos.update_time;

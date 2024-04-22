@@ -1547,6 +1547,10 @@ export const useQuote = (): {
       return '--';
     }
 
+    if (percent === Number.MAX_VALUE || percent === Number.MIN_VALUE) {
+      return '--';
+    }
+
     return Number(percent * 100).kfToFixed(2) + '%';
   };
 
@@ -1560,7 +1564,7 @@ export const useQuote = (): {
     }
 
     const { pre_close_price } = quote;
-    return pre_close_price.kfToFixed(2);
+    return dealKfNumber(pre_close_price, 2);
   };
 
   const isInstrumentUpLimit = (instrument: KungfuApi.InstrumentResolved) => {
@@ -2659,7 +2663,7 @@ export const useCurrentAccountLocation = (
 
 export const useMakeOrderInfo = (
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
-  isMarginMakeOrder: Ref<boolean>,
+  isMarginMakeOrderSupport: Ref<boolean>,
 ) => {
   const { currentGlobalKfLocation } = useCurrentGlobalKfLocation(
     window.watcher,
@@ -2690,7 +2694,7 @@ export const useMakeOrderInfo = (
   );
 
   const isAccountOrInstrumentConfirmed = computed(() => {
-    if (isMarginMakeOrder.value) {
+    if (isMarginMakeOrderSupport.value) {
       return true;
     }
     if (formState.value?.side === SideEnum.Buy) {
@@ -2705,7 +2709,7 @@ export const useMakeOrderInfo = (
 
   const showAmountOrPosition = computed(() => {
     const { offset, side } = formState.value;
-    if (isMarginMakeOrder.value) {
+    if (isMarginMakeOrderSupport.value) {
       return isShowPosition(side) ? 'position' : 'amount';
     }
     return offset === OffsetEnum.Open ? 'amount' : 'position';
@@ -2802,7 +2806,8 @@ export const useMakeOrderInfo = (
   });
 
   const currentPosition = computed(() => {
-    if (isMarginMakeOrder.value) return currentPositionWithLongDirection.value;
+    if (isMarginMakeOrderSupport.value)
+      return currentPositionWithLongDirection.value;
     if (currentFormDirection.value === DirectionEnum.Long) {
       return currentPositionWithLongDirection.value;
     } else if (currentFormDirection.value === DirectionEnum.Short) {
@@ -2817,7 +2822,7 @@ export const useMakeOrderInfo = (
     const precision = getPrecisionByInstrumentType(
       instrumentResolved.value?.instrumentType,
     );
-    if (isMarginMakeOrder.value) {
+    if (isMarginMakeOrderSupport.value) {
       const { side } = formState.value;
       if (side === SideEnum.GuaranteeStockBuy) {
         const avail = getAssetsByKfConfig(
@@ -2854,20 +2859,14 @@ export const useMakeOrderInfo = (
     const { offset } = formState.value;
 
     if (currentPosition.value) {
-      if (isMarginMakeOrder.value) {
-        return (
-          dealKfNumber(currentPosition.value.closable_volume, precision) + ''
-        );
+      if (isMarginMakeOrderSupport.value) {
+        return dealKfNumber(currentPosition.value.closable_volume, precision);
       }
       return getPosClosableVolumeByOffset(currentPosition.value, offset) + '';
     }
 
     return '0';
   });
-
-  function dealTradeAmount(preNumber: number | null) {
-    return !Number(preNumber) ? '--' : dealKfNumber(preNumber);
-  }
 
   const currentPrice = computed(() => {
     const { price_type, limit_price } = formState.value;
@@ -2876,11 +2875,11 @@ export const useMakeOrderInfo = (
       return limit_price as number;
     } else if (price_type === PriceTypeEnum.Market) {
       if (currentPosition.value) {
-        return getPositionLastPrice(currentPosition.value) || null;
+        return getPositionLastPrice(currentPosition.value);
       }
     }
 
-    return limit_price;
+    return limit_price as number;
   });
 
   const currentTradeAmount = computed(() => {
@@ -2891,7 +2890,7 @@ export const useMakeOrderInfo = (
     if (instrumentResolved.value && currentAccountLocation.value) {
       const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
         ...instrumentResolved.value,
-        price: currentPrice.value ?? 0,
+        price: currentPrice.value,
         volume: volume,
         direction: currentFormDirection.value || DirectionEnum.Long,
         accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
@@ -2899,7 +2898,7 @@ export const useMakeOrderInfo = (
         ),
       };
       if (instrumentResolved.value.instrumentType in TradeAccountingUsageMap) {
-        return dealTradeAmount(
+        return dealKfNumber(
           TradeAccountingUsageMap[
             instrumentResolved.value.instrumentType as InstrumentTypeEnum
           ].getTradeAmount(window.watcher, instrumentForAccounting),
@@ -2907,8 +2906,8 @@ export const useMakeOrderInfo = (
       }
     }
 
-    return dealTradeAmount(
-      dealKfDecimalPrecision((currentPrice.value ?? 0) * volume, precision),
+    return dealKfNumber(
+      dealKfDecimalPrecision(currentPrice.value * volume, precision),
     );
   });
 
@@ -2945,7 +2944,7 @@ export const useMakeOrderInfo = (
     );
     if (currentAvailPosVolume.value !== '--') {
       if (volume && volume > 0) {
-        if (isMarginMakeOrder.value) {
+        if (isMarginMakeOrderSupport.value) {
           return dealKfDecimalPrecision(
             Number(currentAvailPosVolume.value) - volume,
             precision,
@@ -2971,6 +2970,8 @@ export const useMakeOrderInfo = (
   });
 
   return {
+    currentAccountLocation,
+    currentFormDirection,
     showAmountOrPosition,
     isAccountOrInstrumentConfirmed,
     instrumentResolved,
@@ -3085,7 +3086,7 @@ export const useTradeLimit = () => {
   };
 };
 
-export const useMarginSupport = (
+export const useBrokerBehaviorManager = (
   currentGlobalKfLocation: Ref<KungfuApi.KfLocation | null>,
   formState: Ref<Record<string, KungfuApi.KfConfigValue>>,
 ) => {
@@ -3094,16 +3095,22 @@ export const useMarginSupport = (
     currentGlobalKfLocation,
     formState,
   );
-  const isMarginMakeOrder = computed(() => {
+  const isMarginMakeOrderSupport = computed(() => {
     const group = currentAccountLocation.value?.group;
     if (!group) return false;
     return extConfigs.value?.td?.[group]?.margin?.marginMakeOrder || false;
   });
 
-  const isSpecifyContract = computed(() => {
+  const isSpecifyContractSupport = computed(() => {
     const group = currentAccountLocation.value?.group;
     if (!group) return false;
     return extConfigs.value?.td?.[group]?.margin?.specifyContract || false;
+  });
+
+  const isCryptoSupport = computed(() => {
+    const group = currentAccountLocation.value?.group;
+    if (!group) return false;
+    return extConfigs.value?.td?.[group]?.name === 'OKX' || false;
   });
 
   const dealMarginSideByTransFormType = (
@@ -3121,8 +3128,9 @@ export const useMarginSupport = (
   };
 
   return {
-    isMarginMakeOrder,
-    isSpecifyContract,
+    isMarginMakeOrderSupport,
+    isSpecifyContractSupport,
+    isCryptoSupport,
     dealMarginSideByTransFormType,
   };
 };
@@ -3137,10 +3145,8 @@ export const useMakeOrderSubscribe = (
     currentGlobalKfLocation,
     formState,
   );
-  const { isMarginMakeOrder, dealMarginSideByTransFormType } = useMarginSupport(
-    currentAccountLocation,
-    formState,
-  );
+  const { isMarginMakeOrderSupport, dealMarginSideByTransFormType } =
+    useBrokerBehaviorManager(currentAccountLocation, formState);
   const app = getCurrentInstance();
   function closestNumber(target: number, numbers: number[]): number {
     if (numbers.length === 0) {
@@ -3192,7 +3198,7 @@ export const useMakeOrderSubscribe = (
             );
             formState.value.instrument = instrumentValue;
             formState.value.offset = +offset;
-            formState.value.side = isMarginMakeOrder.value
+            formState.value.side = isMarginMakeOrderSupport.value
               ? dealMarginSideByTransFormType(+side, 'direction')
               : +side;
             formState.value.volume = dealKfDecimalPrecision(volume, precision);
@@ -3225,7 +3231,7 @@ export const useMakeOrderSubscribe = (
               formState.value.limit_price = +price.kfToFixed(12);
             }
             formState.value.volume = +volume.kfToFixed(0);
-            formState.value.side = isMarginMakeOrder.value
+            formState.value.side = isMarginMakeOrderSupport.value
               ? dealMarginSideByTransFormType(+side)
               : +side;
           }

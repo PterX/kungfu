@@ -62,7 +62,7 @@ endif()
 
 if (NOT DEFINED ENV{KUNGFU_BUILD_SKIP_PYKUNGFU} OR NOT $ENV{KUNGFU_BUILD_SKIP_PYKUNGFU})
   message(STATUS "Enabled pykungfu")
-  add_subdirectory(.deps/pybind11-2.9.0)
+  add_subdirectory(.deps/pybind11-2.12.0)
   add_subdirectory(src/bindings/python)
 endif()
 

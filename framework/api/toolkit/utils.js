@@ -100,30 +100,26 @@ const tryGetCliPackageJSON = () => {
 };
 
 exports.getWebpackExternals = () => {
-  // 有些package会作为其他package依赖，需要放在此处处理
+  // 需要通过webpack打包的项目的package会作为其他package依赖，需要放在此处处理
   const apiPackageJSONPath = this.customResolve(
     '@kungfu-trader/kungfu-js-api/package.json',
   );
+  const apiPackageJSON = fs.readJSONSync(apiPackageJSONPath);
   const sdkPackageJSONPath = this.customResolve(
     '@kungfu-trader/kungfu-sdk/package.json',
   );
-  const corePackageJSONPath = this.customResolve(
-    '@kungfu-trader/kungfu-core/package.json',
-  );
-
+  const sdkPackageJSON = fs.readJSONSync(sdkPackageJSONPath);
   const currentPackageJSONPath = path.join(
     process.cwd().toString(),
     'package.json',
   );
-
-  const apiPackageJSON = fs.readJSONSync(apiPackageJSONPath);
-  const cliPackageJSON = tryGetCliPackageJSON();
-  const appPackageJSON = tryGetAppPackageJSON();
-  const sdkPackageJSON = fs.readJSONSync(sdkPackageJSONPath);
-  const corePackageJSON = fs.readJSONSync(corePackageJSONPath);
   const currentPackageJSON = fs.pathExistsSync(currentPackageJSONPath)
     ? fs.readJSONSync(currentPackageJSONPath)
     : {};
+
+  const cliPackageJSON = tryGetCliPackageJSON();
+  const appPackageJSON = tryGetAppPackageJSON();
+
   return Object.keys({
     ...(appPackageJSON.dependencies || {}),
     ...(appPackageJSON.optionalDependencies || {}),
@@ -132,8 +128,9 @@ exports.getWebpackExternals = () => {
     ...(cliPackageJSON.dependencies || {}),
     ...(cliPackageJSON.optionalDependencies || {}),
     ...(sdkPackageJSON.dependencies || {}),
-    ...(corePackageJSON.dependencies || {}),
+    ...(sdkPackageJSON.optionalDependencies || {}),
     ...(currentPackageJSON.dependencies || {}),
+    ...(currentPackageJSON.optionalDependencies || {}),
   }).filter(
     // 以下packages 内js代码我们期望其直接打包进js文件, 不需要通过externals, 但他们的依赖包还是需要通过externals
     (packageName) =>

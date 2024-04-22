@@ -57,10 +57,13 @@ public:
 
   virtual ~MultiCrossSectionalFactor() = default;
 
-  void update_price(double price, const std::string &instrument_id, const std::string &exchange_id);
+  void update_price(const std::string &instrument_id, const std::string &exchange_id, double price);
 
-  void update_factor(std::string factor_name, double value, const std::string &instrument_id,
-                     const std::string &exchange_id);
+  void update_factor(std::string factor_name, const std::string &instrument_id,
+                     const std::string &exchange_id, double value);
+
+  double get_factor(std::string factor_name, const std::string &instrument_id,
+                     const std::string &exchange_id, double default_value);
 
   std::map<std::string, CrossSection> generate_cross_sectional_factor(bool clear_price_cache, bool clear_factor_cache);
 

@@ -44,9 +44,20 @@ void MultiCrossSectionalFactor::on_start(const rx::connectable_observable<event_
   events | is(Tick::tag) | $$(on_tick(event->data<Tick>()););
 }
 
-void MultiCrossSectionalFactor::update_price(double price, const std::string &instrument_id, const std::string &exchange_id) {
+void MultiCrossSectionalFactor::update_price(const std::string &instrument_id, const std::string &exchange_id, double price) {
   const auto instrument_key = to_instrument_key(instrument_id, exchange_id);
   price_cache_.insert_or_assign(instrument_key, TimeStampPrice{now(), price});
+}
+
+double MultiCrossSectionalFactor::get_factor(std::string factor_name, const std::string &instrument_id, const std::string &exchange_id, double default_value) {
+  const auto instrument_key = to_instrument_key(instrument_id, exchange_id);
+  auto & cross_sectional_factor = multi_cross_sectional_factor_cache_[factor_name];
+  auto it = cross_sectional_factor.find(instrument_key);
+  if (it == cross_sectional_factor.end()) {
+    cross_sectional_factor.emplace(instrument_key, default_value);
+    return default_value;
+  }
+  return it->second;
 }
 
 void MultiCrossSectionalFactor::on_quote(const Quote &quote) {
@@ -57,10 +68,10 @@ void MultiCrossSectionalFactor::on_quote(const Quote &quote) {
     return;
   }
   double mid_price = (ask1_price + bid1_price) / 2.0;
-  update_price(mid_price, quote.instrument_id, quote.exchange_id);
+  update_price(quote.instrument_id, quote.exchange_id, mid_price);
 }
 
-void MultiCrossSectionalFactor::update_factor(std::string factor_name, double value, const std::string &instrument_id, const std::string &exchange_id) {
+void MultiCrossSectionalFactor::update_factor(std::string factor_name, const std::string &instrument_id, const std::string &exchange_id, double value) {
   const auto instrument_key = to_instrument_key(instrument_id, exchange_id);
   auto & cross_sectional_factor = multi_cross_sectional_factor_cache_[factor_name];
   cross_sectional_factor.insert_or_assign(instrument_key, value);

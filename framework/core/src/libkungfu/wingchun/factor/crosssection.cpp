@@ -31,8 +31,8 @@ void CrossSection::from_string(const std::string &serialized_cross_section) {
   gen_time = j["gen_time"].get<int64_t>();
 }
 
-void set_runner(MultiCrossSectionalFactor &factor_generator, apprentice *app) {
-  factor_generator.app_ = app;
+void set_runner(MultiCrossSectionalFactor &factor_cache, apprentice *app) {
+  factor_cache.app_ = app;
 }
 
 void MultiCrossSectionalFactor::on_start(const rx::connectable_observable<event_ptr> &events) {

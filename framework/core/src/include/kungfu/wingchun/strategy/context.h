@@ -392,10 +392,10 @@ public:
   void attach_orderbooks(orderbook::Orderbooks &orderbooks);
 
   /**
-   * attach the factor cacheto market data received.
-   * @param factor_generator
+   * attach the factor cache to market data received.
+   * @param factor_cache
    */
-  void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_generator);
+  void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache);
 
 protected:
   yijinjing::practice::apprentice &app_;

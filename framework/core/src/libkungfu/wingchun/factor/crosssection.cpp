@@ -27,7 +27,7 @@ std::string CrossSection::to_string() const {
 void CrossSection::from_string(const std::string &serialized_cross_section) {
   nlohmann::json j = nlohmann::json::parse(serialized_cross_section);
   factors = j["factors"].get<std::unordered_map<std::string, double>>();
-  factors = j["prices"].get<std::unordered_map<std::string, double>>();
+  prices = j["prices"].get<std::unordered_map<std::string, double>>();
   gen_time = j["gen_time"].get<int64_t>();
 }
 

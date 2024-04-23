@@ -81,9 +81,9 @@ class KungfuCoreConan(ConanFile):
         "gtest:disable_pthreads": False,
         # clang has a known issue:
         # https://developercommunity.visualstudio.com/t/msbuild-doesnt-give-delayload-flags-to-linker-when/1595015
-        "vs_toolset": "auto"
-        if "CONAN_VS_TOOLSET" not in environ
-        else environ["CONAN_VS_TOOLSET"],
+        "vs_toolset": (
+            "auto" if "CONAN_VS_TOOLSET" not in environ else environ["CONAN_VS_TOOLSET"]
+        ),
         "with_yarn": False,
     }
     if tools.detected_os() != "Windows":

@@ -115,7 +115,7 @@ function handleTriggerBuyOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Buy,
     price,
-    volume: volume,
+    volume,
   });
 }
 
@@ -130,7 +130,7 @@ function handleTriggerSellOrderBookPriceVolume(
   triggerOrderBookUpdate(currentInstrument.value, {
     side: SideEnum.Sell,
     price,
-    volume: volume,
+    volume,
   });
 }
 

@@ -11,6 +11,7 @@ import {
   confirmModal,
   searchByKeyword,
   useBrowserWindowMinimize,
+  extraConfirmModal,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -280,8 +281,12 @@ watch(historyDate, async (newDate) => {
     });
 });
 
+function isUnfinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
+  return UnfinishedOrderStatus.includes(orderStatus);
+}
+
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
-  return !UnfinishedOrderStatus.includes(orderStatus);
+  return !isUnfinishedOrderStatus(orderStatus);
 }
 
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
@@ -360,6 +365,35 @@ async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   return filterUnfinishedOrders(orderList);
 }
 
+const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {
+  if (isFinishedOrderStatus(order.status)) return;
+
+  const storageKey = 'skipQuickCancelRemind';
+  const flag = localStorage.getItem(storageKey);
+  const promise = flag
+    ? Promise.resolve(true)
+    : extraConfirmModal(
+        t('orderConfig.quick_cancel'),
+        t('orderConfig.quick_cancel_context'),
+        t('confirm'),
+        t('cancel'),
+        [{ text: t('tradingConfig.hide_next_time'), value: 1 }],
+      ).then((flag) => {
+        if (flag === 'ok') {
+          return true;
+        } else if (flag === 1) {
+          localStorage.setItem(storageKey, '1');
+          return true;
+        } else {
+          return false;
+        }
+      });
+
+  promise.then((flag) => {
+    flag && handleCancelOrder(order);
+  });
+};
+
 function handleClickCell(args: VTable.MousePointerCellEvent) {
   if (args.field === 'limit_price_resolved') {
     handleAdjustOrder({
@@ -372,14 +406,12 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
     });
   }
   if (args.value === t('orderConfig.cancel_order')) {
-    handleCancelOrder(args.originData);
+    handleCancelOrderWithRemind(args.originData);
   }
 }
 
 function handleDblClickCell(args: VTable.MousePointerCellEvent) {
-  if (!isFinishedOrderStatus(args.originData.status)) {
-    handleCancelOrder(args.originData);
-  }
+  handleCancelOrderWithRemind(args.originData);
 }
 
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {

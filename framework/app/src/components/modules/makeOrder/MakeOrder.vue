@@ -61,6 +61,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
+  isCryptoInstrument,
   dealOrderInputItem,
   transformSearchInstrumentResultToInstrument,
   dealVolumeByInstrumentType,
@@ -348,12 +349,17 @@ watch(
       }
 
       if (instrumentType === InstrumentTypeEnum.future) {
+        const offsetWithoutCloseByDay = offsetList.value.filter(
+          (item) =>
+            item !== OffsetEnum.CloseToday + '' ||
+            item !== OffsetEnum.CloseYest + '',
+        );
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
-          offsetList.value = offsetList.value.filter(
-            (item) =>
-              item !== OffsetEnum.CloseToday + '' ||
-              item !== OffsetEnum.CloseYest + '',
-          );
+          offsetList.value = offsetWithoutCloseByDay;
+        }
+
+        if (isCryptoInstrument(instrumentType)) {
+          offsetList.value = offsetWithoutCloseByDay;
         }
       }
 
@@ -654,12 +660,12 @@ async function handleApartedConfirm(volumeList: number[]): Promise<void> {
 }
 
 function confirmContinueOrderModal(
-  warnningMessage: string,
+  warningMessage: string,
   okText = t('tradingConfig.Continue'),
   cancelText = t('cancel'),
 ): Promise<boolean | null> {
-  if (warnningMessage !== '') {
-    return confirmModal(t('warning'), warnningMessage, okText, cancelText);
+  if (warningMessage !== '') {
+    return confirmModal(t('warning'), warningMessage, okText, cancelText, true);
   } else {
     return Promise.resolve(null);
   }

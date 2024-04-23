@@ -13,7 +13,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "~3.9"
+python = ">=3.9, <3.12"
 
 #### Compiler #############################################
 black = "~23.3.0"
@@ -32,10 +32,10 @@ tabulate = "~0.8.10"
 wcmatch = "~8.0.0"
 
 #### Numeric ##############################################
-numpy = "~1.24.0"
+numpy = "~1.26.0"
 pandas = "~2.0.0"
-scipy = "~1.8.0"
-statsmodels = "~0.13.5"
+scipy = "~1.12.0"
+statsmodels = "~0.14.0"
 openpyxl = "~3.1.2"
 
 #### Dependencies #########################################
@@ -57,6 +57,8 @@ authing = "~5.1.0"
 urllib3 = "~1.26.16"
 websockets = "~12.0.0"
 boto3 = "~1.34.39"
+keyring = "~24.3.0"
+zstandard = "~0.21.0"
 
 #### Sync Pipfile #########################################
 setuptools = "68.2.2"

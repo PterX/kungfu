@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file */
 import os from 'os';
 import {
   ComputedRef,
@@ -24,12 +25,13 @@ import {
   createApp,
   defineComponent,
   onUnmounted,
+  VNode,
 } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
-import { Button } from 'ant-design-vue';
+import { Button, Checkbox } from 'ant-design-vue';
 import { Locale } from 'ant-design-vue/es/locale-provider';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import {
@@ -1683,6 +1685,55 @@ export const isInTdGroup = (
   return targetGroups[0] || null;
 };
 
+export const buildCustomCheckboxVNode = (
+  defaultChecked: boolean,
+  label: string,
+  onCheckSettled?: (checked: boolean) => void,
+): VNode => {
+  const CustomCheckbox = defineComponent({
+    name: 'CustomCheckbox',
+    props: {
+      defaultChecked: Boolean,
+      label: {
+        type: String,
+        default: '',
+        required: true,
+      },
+    },
+    setup(props) {
+      const isChecked = ref(props.defaultChecked);
+
+      const handleCheckboxChange = (e) => {
+        isChecked.value = e.target.checked;
+      };
+
+      onBeforeUnmount(async () => {
+        onCheckSettled?.(isChecked.value);
+      });
+
+      return () =>
+        h(
+          Checkbox,
+          {
+            style: {
+              position: 'absolute',
+              left: '24px',
+              bottom: '24px',
+            },
+            checked: isChecked.value,
+            onChange: handleCheckboxChange,
+          },
+          { default: () => [props.label] },
+        );
+    },
+  });
+
+  return h(CustomCheckbox, {
+    defaultChecked,
+    label,
+  });
+};
+
 export const confirmModal = (
   title: string,
   content: VueNode | (() => VueNode) | string,
@@ -1811,6 +1862,41 @@ export const confirmModalByCustomArgs = (
       },
     });
   });
+};
+
+export const confirmModalSkippable = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  storageKey: string,
+  args: ModalFuncProps = {},
+): Promise<boolean> => {
+  const flag = localStorage.getItem(storageKey);
+
+  const checkBoxVNode = buildCustomCheckboxVNode(
+    false,
+    t('tradingConfig.hide_next_time'),
+    (checked) => {
+      if (checked) {
+        localStorage.setItem(storageKey, '1');
+      }
+    },
+  );
+  const contentResolved =
+    typeof content === 'function'
+      ? content()
+      : typeof content === 'string'
+      ? h('div', {}, content)
+      : content;
+  const rootBox = h('div', { class: 'root-node' }, [
+    contentResolved,
+    checkBoxVNode,
+  ]);
+  const rootVNode = h('div', { class: 'modal-node' }, rootBox);
+  const promise = flag
+    ? Promise.resolve(true)
+    : confirmModalByCustomArgs(title, rootVNode, args);
+
+  return promise;
 };
 
 const markdown = md('commonmark');

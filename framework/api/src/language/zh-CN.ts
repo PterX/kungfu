@@ -471,8 +471,10 @@ export default {
     cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
     make_order_type: '(预埋)',
 
-    quick_cancel: '快捷撤单',
-    quick_cancel_context: '双击委托记录，即可对委托进行撤单',
+    notice: '撤单确认',
+    quick_cancel_context: '双击委托记录，即可快速撤单',
+    cancel_cancel: '取消撤单',
+    ensure_cancel: '确定撤单',
   },
 
   orderTriggerConfig: {

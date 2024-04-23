@@ -476,8 +476,10 @@ export default {
       'Do you want to cancel the pre embedded cancellation under this commission order',
     make_order_type: '(Embedded order)',
 
-    quick_cancel: 'Quick cancel',
-    quick_cancel_context: 'Double click the order record to cancel it',
+    notice: 'Confirm',
+    quick_cancel_context: 'Double click the order record to quick cancel',
+    cancel_cancel: 'Cancel cancel order',
+    ensure_cancel: 'Ensure cancel order',
   },
 
   orderTriggerConfig: {

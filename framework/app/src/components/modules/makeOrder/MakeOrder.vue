@@ -125,7 +125,8 @@ const { isMarginMakeOrderSupport, isSpecifyContractSupport, isCryptoSupport } =
   useBrokerBehaviorManager(currentGlobalKfLocation, formState);
 
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
-const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+const enableOffset = Object.keys(enableCustomRadioType['offset']);
+const offsetList = ref<string[]>([...enableOffset]);
 
 const autoFillInstrument = ref<boolean>(false);
 
@@ -348,19 +349,21 @@ watch(
         sideList.value = Object.keys(Side).slice(0, 2);
       }
 
+      const offsetWithoutCloseByDay = enableOffset.filter(
+        (item) =>
+          item !== `${OffsetEnum.CloseToday}` &&
+          item !== `${OffsetEnum.CloseYest}`,
+      );
       if (instrumentType === InstrumentTypeEnum.future) {
-        const offsetWithoutCloseByDay = offsetList.value.filter(
-          (item) =>
-            item !== OffsetEnum.CloseToday + '' ||
-            item !== OffsetEnum.CloseYest + '',
-        );
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
           offsetList.value = offsetWithoutCloseByDay;
+        } else {
+          offsetList.value = [...enableOffset];
         }
-
-        if (isCryptoInstrument(instrumentType)) {
-          offsetList.value = offsetWithoutCloseByDay;
-        }
+      } else if (isCryptoInstrument(instrumentType)) {
+        offsetList.value = offsetWithoutCloseByDay;
+      } else {
+        offsetList.value = [...enableOffset];
       }
 
       if (

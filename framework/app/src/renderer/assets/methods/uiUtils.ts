@@ -1688,13 +1688,15 @@ export const confirmModal = (
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
+  closable = false,
 ): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
-      title: title,
-      content: content,
-      okText: okText,
-      cancelText: cancelText,
+      title,
+      content,
+      okText,
+      cancelText,
+      closable,
       onOk: () => {
         resolve(true);
       },
@@ -1712,14 +1714,15 @@ export const extraConfirmModal = (
   cancelText = t('cancel'),
   extraTextList?: {
     text: string;
+    value: number;
   }[],
-): Promise<'ok' | 'cancel' | string> => {
+): Promise<'ok' | 'cancel' | number> => {
   return new Promise((resolve) => {
     const Comp = defineComponent({
       setup() {
         const visible = ref(true);
 
-        const close = (result: 'ok' | 'cancel' | string) => {
+        const close = (result: 'ok' | 'cancel' | number) => {
           resolve(result);
           visible.value = false;
         };
@@ -1756,7 +1759,7 @@ export const extraConfirmModal = (
                 h(
                   Button,
                   {
-                    onClick: () => this.close(item.text),
+                    onClick: () => this.close(item.value),
                   },
                   () => item.text,
                 ),

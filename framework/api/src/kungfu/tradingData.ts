@@ -226,22 +226,22 @@ export function useWatcher() {
         type = 'all',
         filterFunc?: (order: KungfuApi.OrderResolved) => boolean,
       ): KungfuApi.OrderResolved[] {
-        const getTreeByType = (treeType: string) => {
+        const getTreeByType = (getTreeFunc: string) => {
           return Object.values(this.td).reduce((acc, cur, index) => {
-            const curTree = cur[`get${treeType}Tree`](filterFunc);
+            const curTree = cur[getTreeFunc](filterFunc);
             return index === 0
               ? curTree
               : acc.withPairs([...curTree.entries()], true);
           }, null);
         };
 
-        const trees: { [key: string]: string } = {
-          common: 'Common',
-          unfinished: 'Unfinished',
-          all: 'Full',
+        const treeFuncs: { [key: string]: string } = {
+          common: 'getCommonTree',
+          unfinished: 'getUnfinishedTree',
+          all: 'getFullTree',
         };
 
-        const tree = getTreeByType(trees[type] || 'Full');
+        const tree = getTreeByType(treeFuncs[type] || 'getFullTree');
         return tree ? tree.valuesArray() : [];
       },
       filter: function (
@@ -258,22 +258,22 @@ export function useWatcher() {
         type = 'all',
         filterFunc?: (order: KungfuApi.TradeResolved) => boolean,
       ): KungfuApi.TradeResolved[] {
-        const getTreeByType = (treeType: string) => {
+        const getTreeByType = (getTreeFunc: string) => {
           return Object.values(this.td).reduce((acc, cur, index) => {
-            const curTree = cur[`get${treeType}Tree`](filterFunc);
+            const curTree = cur[getTreeFunc](filterFunc);
             return index === 0
               ? curTree
               : acc.withPairs([...curTree.entries()], true);
           }, null);
         };
 
-        const trees: { [key: string]: string } = {
-          common: 'Common',
-          unfinished: 'Unfinished',
-          all: 'Full',
+        const treeFuncs: { [key: string]: string } = {
+          common: 'getCommonTree',
+          unfinished: 'getUnfinishedTree',
+          all: 'getFullTree',
         };
 
-        const tree = getTreeByType(trees[type] || 'Full');
+        const tree = getTreeByType(treeFuncs[type] || 'getFullTree');
         return tree ? tree.valuesArray() : [];
       },
       filter: function (

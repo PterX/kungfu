@@ -71,6 +71,7 @@ import { T0T1Config } from '../typings/global';
 
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import { buildMasterLocation } from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
+import BTree from 'sorted-btree';
 
 const { t } = VueI18n.global;
 
@@ -1033,7 +1034,6 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
   tradingDataKeeper,
   currentGlobalKfLocation,
   isGetUnfinishedOrder = false,
-  isGetAllUnfinishedOrder = false,
   type = 'order',
 }: {
   watcher: KungfuApi.Watcher | null;
@@ -1044,39 +1044,28 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
     | KungfuApi.KfConfig
     | null;
   isGetUnfinishedOrder?: boolean;
-  isGetAllUnfinishedOrder?: boolean;
   type?: 'order' | 'trade';
 }) => {
   let list: (KungfuApi.OrderResolved | KungfuApi.TradeResolved)[] = [];
   let locationId = '';
   let tdChildrenLocationIdList: number[] = [];
-  const listGetterType: 'common' | 'unfinished' = isGetUnfinishedOrder
-    ? 'unfinished'
-    : 'common';
-  let addResolved: (
-    resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-  ) => boolean;
 
   if (!currentGlobalKfLocation) return [];
 
   switch (currentGlobalKfLocation?.category) {
     case 'globalPos':
       locationId = getIdByKfLocation(currentGlobalKfLocation);
-      addResolved = (
-        resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-      ) => {
-        const instrumentId = `${resolved.exchange_id}_${resolved.instrument_id}`;
-        if (instrumentId === locationId) {
-          list.push(resolved);
-        }
-        return true;
-      };
-      await tradingDataKeeper.sortedForEach(
-        addResolved,
-        type,
-        'td',
-        listGetterType,
-      );
+      if (isGetUnfinishedOrder && type === 'order') {
+        list = tradingDataKeeper[type].filter((item) => {
+          const instrumentId = `${item.exchange_id}_${item.instrument_id}`;
+          return instrumentId === locationId;
+        }, 'unfinished');
+      } else {
+        list = tradingDataKeeper[type].filter((item) => {
+          const instrumentId = `${item.exchange_id}_${item.instrument_id}`;
+          return instrumentId === locationId;
+        }, 'common');
+      }
       break;
     case 'td':
     case 'strategy':
@@ -1084,9 +1073,7 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
       const indexMap =
         tradingDataKeeper[type][currentGlobalKfLocation.category][locationId];
       if (indexMap) {
-        if (isGetAllUnfinishedOrder && type === 'order') {
-          list = indexMap.getAllUnfinishedList();
-        } else if (isGetUnfinishedOrder && type === 'order') {
+        if (isGetUnfinishedOrder && type === 'order') {
           list = indexMap.getUnfinishedList();
         } else {
           list = indexMap.getCommonList();
@@ -1108,20 +1095,29 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
           }
         });
       }
-      addResolved = (
-        resolved: KungfuApi.OrderResolved | KungfuApi.TradeResolved,
-      ) => {
-        if (list.length >= DEFAULT_LIST_LENGTH) return false;
-        list.push(resolved);
-        return true;
-      };
-      await tradingDataKeeper.sortedForEach(
-        addResolved,
-        type,
-        'td',
-        listGetterType,
-        tdChildrenLocationIdList,
+      const tree = tdChildrenLocationIdList.reduce(
+        (prev, locationId, index) => {
+          const indexMap = tradingDataKeeper[type].td[locationId];
+          if (indexMap) {
+            if (isGetUnfinishedOrder && type === 'order') {
+              const curTree = indexMap.getUnfinishedTree();
+              const entries = [...curTree.entries()];
+              return index === 0 ? curTree : prev.withPairs(entries, true);
+            } else {
+              const curTree = indexMap.getCommonTree();
+              const entries = [...curTree.entries()];
+              return index === 0 ? curTree : prev.withPairs(entries, true);
+            }
+          }
+          return prev;
+        },
+        new BTree<unknown, KungfuApi.OrderResolved | KungfuApi.TradeResolved>(),
       );
+      list =
+        isGetUnfinishedOrder && type === 'order'
+          ? tree.valuesArray()?.slice(0, DEFAULT_LIST_LENGTH) || []
+          : tree.valuesArray() || [];
+
       break;
   }
 

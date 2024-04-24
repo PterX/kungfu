@@ -39,10 +39,9 @@ public:
       // 此处仅计算结算价，但需要根据实时行情变化
       if (is_valid_price(quote.settlement_price)) {
         auto margin_pre = position.margin;
+        position.settlement_price = quote.settlement_price;
         position.margin = future_i_a.contract_multiplier * position.settlement_price * future_i_a.exchange_rate *
                           position.volume * future_i_a.margin_ratio;
-
-        position.settlement_price = quote.settlement_price;
         book->asset.avail -= (position.direction == Direction::Long ? 1 : -1) * (position.margin - margin_pre);
       }
 

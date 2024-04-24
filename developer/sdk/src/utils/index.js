@@ -86,7 +86,6 @@ const getKfcCmdArgs = () => {
   return cmdMap[getCurrentMode()];
 };
 
-// eslint-disable-next-line no-unused-vars
 const getCmakeCmdArgs = (buildType) => {
   const cmdMap = {
     [ModeMap.IN_CORE]: {
@@ -106,7 +105,6 @@ const getCmakeCmdArgs = (buildType) => {
   return cmdMap[getCurrentMode()];
 };
 
-// eslint-disable-next-line no-unused-vars
 const getCmakeNextCmdArgs = (buildType) => {
   const cmdMap = {
     [ModeMap.IN_CORE]: null,

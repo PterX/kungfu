@@ -17,11 +17,6 @@ module.exports = {
         type: 'boolean',
         desc: 'update project config files',
         defaultValue: !isInProdApp,
-      })
-      .option('build_type', {
-        type: 'string',
-        desc: 'build type',
-        defaultValue: 'Release',
       });
   },
   run: async (argv) => {
@@ -34,6 +29,6 @@ module.exports = {
     }
     await sdk.lib.extension.installBatch(argv.url);
     sdk.lib.extension.configure();
-    sdk.lib.extension.compile(argv['build_type']);
+    sdk.lib.extension.compile();
   },
 };

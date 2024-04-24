@@ -19,13 +19,7 @@ import Icon, {
   HistoryOutlined,
 } from '@ant-design/icons-vue';
 
-import {
-  categoryRegisterConfig,
-  getColumns,
-  getFundTransKey,
-  getAssetDetailShowList,
-  assetMarginDetailShowList,
-} from './config';
+import { categoryRegisterConfig, getColumns, getFundTransKey } from './config';
 import {
   useTableSearchKeyword,
   handleOpenLogview,
@@ -248,17 +242,9 @@ const customRowResolved = (
     return customRow(record);
   }
 
-  const allAssetDetailList = [
-    ...getAssetDetailShowList(),
-    ...assetMarginDetailShowList,
-  ];
-  const assetGetter = () =>
-    allAssetDetailList.reduce((assetDetails, assetInfo) => {
-      assetDetails[assetInfo.key] = dealAssetPrice(
-        getAssetsByKfConfig(record)[assetInfo.key],
-      );
-      return assetDetails;
-    }, {} as Record<string, string>);
+  const assetGetter = () => {
+    return getAssetsByKfConfig(record);
+  };
   return {
     ...customRow(record),
     onMousedown: (event: MouseEvent) => {

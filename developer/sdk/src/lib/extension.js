@@ -352,9 +352,10 @@ exports.configure = () => {
   }
 };
 
-exports.compile = (buildType = 'Release') => {
+exports.compile = () => {
   const packageJson = shell.getPackageJson();
   const extensionName = packageJson.kungfuConfig.key;
+  const buildType = packageJson.kungfuBuild?.build_type || 'Release';
   const outputDir = path.join('dist', extensionName);
   const buildTargetDir = path.join('build/target');
   const buildTargetDirPattern = buildTargetDir.replace(/\\/g, '/');

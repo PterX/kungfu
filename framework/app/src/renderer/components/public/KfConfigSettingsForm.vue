@@ -816,19 +816,7 @@ function handleSelectCsv<T>(
           transformer: buildCsvHeadersTransformer(headers),
         })
           .then(({ resRows, errRows }) => {
-            const newRows = resRows.map((row) => {
-              const newRow: Partial<T> = {};
-              Object.keys(row).forEach((key) => {
-                if (typeof row[key] === 'string') {
-                  newRow[key] = `${row[key]}`.trim();
-                } else {
-                  newRow[key] = row[key];
-                }
-              });
-              return newRow;
-            });
-
-            if (callback) return callback(newRows as T[], errRows, targetKey);
+            if (callback) return callback(resRows, errRows, targetKey);
 
             return Promise.resolve();
           })

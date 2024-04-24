@@ -1019,6 +1019,12 @@ export default {
       'Use the matcher to run in backtest mode, the strategy logic can be modified.',
   },
 
+  open_folder: 'Open Folder',
+  install_app: 'Install App',
+  unzip_tip: 'Please unzip {zipName} to install',
+  open_folder_detail:
+    'Click "Open Folder" to show the location of the zip file',
+
   master_interrupt: 'master interrupted',
   master_desc:
     'The master process is responsible for inter-policy process communication and resource configuration, please restart the application',

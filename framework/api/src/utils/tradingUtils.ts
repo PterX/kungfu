@@ -136,12 +136,19 @@ export const isShowPosition = (side: SideEnum): boolean => {
   return showVolumeSideTypes.includes(side);
 };
 
+export const kfFormatTime = (
+  nano: bigint,
+  format = '%m/%d %H:%M:%S.%N',
+): string => {
+  return kf.formatTime(nano, format);
+};
+
 export const getNanoDateString = (
   nano: bigint,
   i = 6,
   lastSplit = 0,
 ): string => {
-  let formattedTime = kf.formatTime(nano, '%m/%d %H:%M:%S.%N');
+  let formattedTime = kfFormatTime(nano);
 
   formattedTime = formattedTime.slice(i);
 

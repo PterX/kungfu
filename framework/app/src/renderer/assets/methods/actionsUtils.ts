@@ -10,10 +10,10 @@ import {
   dealTradingDataItem,
   kfRequestMarketData,
   getKungfuHistoryData,
-  getNanoDateString,
   isShowPosition,
   isStock,
   getPrecisionByInstrumentType,
+  kfFormatTime,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import {
@@ -62,7 +62,6 @@ import {
   getIdByKfLocation,
   getProcessIdByKfLocation,
   dealKfNumber,
-  getYearMonthDay,
   countDecimalPlaces,
   findTargetFromArray,
   getMdTdKfLocationByProcessId,
@@ -2226,6 +2225,7 @@ export const useReplay = (): {
       }
     | undefined
   >;
+  formatSessionTime: (time: bigint) => string;
   handleOpenReplayConfirmView(
     record: KungfuApi.KfConfig | KungfuApi.KfLocation,
     session?: KungfuApi.Session,
@@ -2288,6 +2288,10 @@ export const useReplay = (): {
     }[]
   >([]);
 
+  const formatSessionTime = (time: bigint) => {
+    return kfFormatTime(time, '%Y-%m-%d %H:%M:%S.%N');
+  };
+
   const handleOpenReplayConfirmView = async (
     record: KungfuApi.KfConfig,
     curSession?: KungfuApi.Session,
@@ -2303,9 +2307,9 @@ export const useReplay = (): {
     let currentSession: KungfuApi.Session | null = curSession || null;
     let sessionInfo = '';
     if (currentSession) {
-      const beginTimeStr = getNanoDateString(currentSession.begin_time);
+      const beginTimeStr = formatSessionTime(currentSession.begin_time);
       const endTimeStr = currentSession.end_time
-        ? getNanoDateString(currentSession.end_time)
+        ? formatSessionTime(currentSession.end_time)
         : 'now';
       sessionInfo = `${beginTimeStr}--${endTimeStr}`;
       sessionOptions.value.push({
@@ -2327,9 +2331,9 @@ export const useReplay = (): {
         ) {
           currentSession ||= item;
 
-          const beginTimeStr = getNanoDateString(item.begin_time);
+          const beginTimeStr = formatSessionTime(item.begin_time);
           const endTimeStr = item.end_time
-            ? getNanoDateString(item.end_time)
+            ? formatSessionTime(item.end_time)
             : 'now';
           sessionInfo ||= `${beginTimeStr}--${endTimeStr}`;
           sessionOptions.value.push({
@@ -2347,25 +2351,22 @@ export const useReplay = (): {
     const replaySetting = JSON.parse(
       localStorage.getItem('replaySetting') || '{}',
     );
-    const startTime = getNanoDateString(currentSession.begin_time);
+    const beginTime = formatSessionTime(currentSession.begin_time);
     const endTime =
-      replaySetting.end_time && replaySetting.end_time > startTime
+      replaySetting.end_time && replaySetting.end_time > beginTime
         ? replaySetting.end_time
         : currentSession.end_time
-        ? getNanoDateString(currentSession.end_time)
-        : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+        ? formatSessionTime(currentSession.end_time)
+        : formatSessionTime(BigInt(new Date().getTime()) * 1000000n);
     const logLevel = replaySetting.log_level || '-l info';
     const params = record.value ? JSON.parse(record.value) : {};
-    const date = getYearMonthDay();
-    const beginTime = `${date} ${startTime}`;
-    const endTimeStr = `${date} ${endTime}`;
 
     replayConfig.value = {
       session_info: sessionInfo,
       group: record.group,
       category: record.category,
       begin_time: beginTime,
-      end_time: endTimeStr,
+      end_time: endTime,
       log_level: logLevel,
       session_name: currentSession.name,
       file_path: isOperator ? filePath : params.file_path,
@@ -2391,20 +2392,17 @@ export const useReplay = (): {
       return;
     }
     const mode = data.enableMatcher ? 'backtest' : 'replay';
-    const startTime = data.beginTime;
+    const beginTime = data.beginTime;
     const endTime =
       data.endTime ||
-      getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+      formatSessionTime(BigInt(new Date().getTime()) * 1000000n);
     const replaySetting = {
-      begin_time: startTime,
+      begin_time: beginTime,
       end_time: endTime,
       log_level: data.logLevel,
     };
     localStorage.setItem('replaySetting', JSON.stringify(replaySetting));
     setReplayModalVisible.value = false;
-    const date = getYearMonthDay();
-    const beginTime = `${date} ${startTime}`;
-    const endTimeStr = `${date} ${endTime}`;
     const processId = getProcessIdByKfLocation({
       category: currentLocation.value.category,
       group: currentLocation.value.group,
@@ -2412,7 +2410,7 @@ export const useReplay = (): {
       mode: mode,
     });
     replayConfig.value.begin_time = beginTime;
-    replayConfig.value.end_time = endTimeStr;
+    replayConfig.value.end_time = endTime;
     replayConfig.value.log_level = data.logLevel;
     replayConfig.value.enable_matcher = data.enableMatcher;
     const params = {
@@ -2442,7 +2440,7 @@ export const useReplay = (): {
     } else {
       await handleOpenReplayView(
         currentLocation.value,
-        startTime,
+        beginTime,
         endTime,
         data.logLevel,
         processId,
@@ -2468,6 +2466,7 @@ export const useReplay = (): {
     currentLocation,
     replayConfig,
     setReplayModalVisible,
+    formatSessionTime,
     journalReplayflag,
     sessionOptions,
     replayProcessParams,

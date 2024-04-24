@@ -100,12 +100,8 @@ def on_trade(context, trade, location, dest):
         )
 
 
-def on_register(context, location):
-    context.log.warn(f"on_register: {location}")
-
-
-def on_deregister(context, location):
-    context.log.warn(f"on_deregister: {location}")
+def on_deregister(context, deregister, location):
+    context.log.warn(f"on_deregister: {deregister} at {location}")
 
 
 def on_broker_state_change(context, state, location):

@@ -171,14 +171,14 @@ void bind(pybind11::module &&m) {
       .export_values();
 
   auto event_class = py::class_<event, PyEvent, std::shared_ptr<event>>(m, "event");
-  event_class.def_property_readonly("gen_time", &event::gen_time)
-      .def_property_readonly("trigger_time", &event::trigger_time)
-      .def_property_readonly("source", &event::source)
-      .def_property_readonly("dest", &event::dest)
-      .def_property_readonly("msg_type", &event::msg_type)
-      .def_property_readonly("data_length", &event::data_length)
-      .def_property_readonly("data_as_bytes", &event::data_as_bytes)
-      .def_property_readonly("data_as_string", &event::data_as_string)
+  event_class.def_property_readonly("gen_time", &event::gen_time, py::return_value_policy::reference)
+      .def_property_readonly("trigger_time", &event::trigger_time, py::return_value_policy::reference)
+      .def_property_readonly("source", &event::source, py::return_value_policy::reference)
+      .def_property_readonly("dest", &event::dest, py::return_value_policy::reference)
+      .def_property_readonly("msg_type", &event::msg_type, py::return_value_policy::reference)
+      .def_property_readonly("data_length", &event::data_length, py::return_value_policy::reference)
+      .def_property_readonly("data_as_bytes", &event::data_as_bytes, py::return_value_policy::reference)
+      .def_property_readonly("data_as_string", &event::data_as_string, py::return_value_policy::reference)
       .def("to_string", &event::to_string);
   boost::hana::for_each(AllDataTypes, [&](auto pair) {
     using DataType = typename decltype(+boost::hana::second(pair))::type;
@@ -186,16 +186,16 @@ void bind(pybind11::module &&m) {
   });
 
   py::class_<frame, event, frame_ptr>(m, "frame")
-      .def_property_readonly("frame_length", &frame::frame_length)
+      .def_property_readonly("frame_length", &frame::frame_length, py::return_value_policy::reference)
       .def("has_data", &frame::has_data);
 
   auto location_class = py::class_<location, location_ptr>(m, "location");
   location_class.def(py::init<mode, category, const std::string &, const std::string &, locator_ptr>())
-      .def_readonly("mode", &location::mode)
-      .def_readonly("category", &location::category)
-      .def_readonly("group", &location::group)
-      .def_readonly("name", &location::name)
-      .def_readonly("uname", &location::uname)
+      .def_readonly("mode", &location::mode, py::return_value_policy::reference)
+      .def_readonly("category", &location::category, py::return_value_policy::reference)
+      .def_readonly("group", &location::group, py::return_value_policy::reference)
+      .def_readonly("name", &location::name, py::return_value_policy::reference)
+      .def_readonly("uname", &location::uname, py::return_value_policy::reference)
       .def_readonly("uid", &location::uid)
       .def_readonly("locator", &location::locator)
       .def("__repr__", [&](location &target) { return target.uname; });
@@ -275,8 +275,8 @@ void bind(pybind11::module &&m) {
 
   py::class_<sink, PySink, sink_ptr>(m, "sink")
       .def(py::init())
-      .def_property_readonly("publisher", &sink::get_publisher)
-      .def_property_readonly("bus", &sink::get_bus)
+      .def_property_readonly("publisher", &sink::get_publisher, py::return_value_policy::reference)
+      .def_property_readonly("bus", &sink::get_bus, py::return_value_policy::reference)
       .def("put", &sink::put)
       .def("find_page_size", &sink::find_page_size)
       .def("close", &sink::close);
@@ -321,11 +321,11 @@ void bind(pybind11::module &&m) {
   py::class_<io_device, io_device_ptr>(m, "io_device")
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
            py::arg("lazy") = true)
-      .def_property_readonly("publisher", &io_device::get_publisher)
-      .def_property_readonly("bus", &io_device::get_bus)
-      .def_property_readonly("observer", &io_device::get_observer)
-      .def_property_readonly("home", &io_device::get_home)
-      .def_property_readonly("live_home", &io_device::get_live_home)
+      .def_property_readonly("publisher", &io_device::get_publisher, py::return_value_policy::reference)
+      .def_property_readonly("bus", &io_device::get_bus, py::return_value_policy::reference)
+      .def_property_readonly("observer", &io_device::get_observer, py::return_value_policy::reference)
+      .def_property_readonly("home", &io_device::get_home, py::return_value_policy::reference)
+      .def_property_readonly("live_home", &io_device::get_live_home, py::return_value_policy::reference)
       .def("is_usable", &io_device::is_usable)
       .def("setup", &io_device::setup)
       .def("open_reader", &io_device::open_reader)
@@ -367,9 +367,9 @@ void bind(pybind11::module &&m) {
   py::class_<master, PyMaster>(m, "master")
       .def(py::init<location_ptr, bool, bool>(), py::arg("home"), py::arg("low_latency") = false,
            py::arg("bypass_cached") = false)
-      .def_property_readonly("io_device", &master::get_io_device)
-      .def_property_readonly("home", &master::get_home)
-      .def_property_readonly("live", &master::is_live)
+      .def_property_readonly("io_device", &master::get_io_device, py::return_value_policy::reference)
+      .def_property_readonly("home", &master::get_home, py::return_value_policy::reference)
+      .def_property_readonly("live", &master::is_live, py::return_value_policy::reference)
       .def("now", &master::now)
       .def("run", &master::run)
       .def("setup", &master::setup)
@@ -382,9 +382,9 @@ void bind(pybind11::module &&m) {
 
   py::class_<apprentice, PyApprentice, apprentice_ptr>(m, "apprentice")
       .def(py::init<location_ptr, bool>(), py::arg("home"), py::arg("low_latency") = false)
-      .def_property_readonly("io_device", &apprentice::get_io_device)
-      .def_property_readonly("home", &apprentice::get_home)
-      .def_property_readonly("live", &apprentice::is_live)
+      .def_property_readonly("io_device", &apprentice::get_io_device, py::return_value_policy::reference)
+      .def_property_readonly("home", &apprentice::get_home, py::return_value_policy::reference)
+      .def_property_readonly("live", &apprentice::is_live, py::return_value_policy::reference)
       .def("set_begin_time", &apprentice::set_begin_time)
       .def("set_end_time", &apprentice::set_end_time)
       .def("run", &apprentice::run)

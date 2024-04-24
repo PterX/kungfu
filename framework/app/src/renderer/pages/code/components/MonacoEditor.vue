@@ -121,10 +121,6 @@ function bindEvent(
     curWriteFile(editor, curFile);
   });
 
-  editor.onDidDispose(() => {
-    curWriteFile(editor, curFile);
-  });
-
   const win = getCurrentWindow();
   win.once('close', () => {
     curWriteFile(editor, curFile);

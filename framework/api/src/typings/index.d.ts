@@ -1506,12 +1506,12 @@ declare namespace KungfuApi {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
       list: (
-        type: TradingDataKeeperListType,
+        type?: TradingDataKeeperListType,
         filterFunc?: (order: OrderResolved) => boolean,
       ) => KungfuApi.OrderResolved[];
       filter: (
         filterFunc: (order: OrderResolved) => boolean,
-        type: TradingDataKeeperListType,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.OrderResolved[];
     };
     trade: {
@@ -1522,12 +1522,12 @@ declare namespace KungfuApi {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
       list: (
-        type: TradingDataKeeperListType,
+        type?: TradingDataKeeperListType,
         filterFunc?: (order: TradeResolved) => boolean,
       ) => KungfuApi.TradeResolved[];
       filter: (
         filterFunc: (order: TradeResolved) => boolean,
-        type: TradingDataKeeperListType,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.TradeResolved[];
     };
     update: boolean;

@@ -223,22 +223,15 @@ bool server::custom_OnCancelOrder(const char *ptr, uint64_t stream_id) {
 bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
 
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
-  for (auto stream : io_network_->get_stream_manager()->get_all_streams()) {
-    auto &jour = stream.second->get_journal();
-    uint64_t stream_id = stream.first;
-    int count = 0;
-    while (jour.current_frame()->has_data() and count < 100) {
-      const char *data = jour.current_frame()->data_as_bytes();
-      write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id);
-      jour.next();
-      ++count;
-    }
-    //    auto msgs = io_network_->get_stream_manager()->get_notice(stream.first);
-    //    for (auto msg : msgs) {
-    //      uint32_t messageType;
-    //      std::memcpy(&messageType, msg.data(), sizeof(uint32_t));
-    //      write_data(messageType, msg.data(), stream.first);
-    //    }
+  auto manager = io_network_->get_stream_manager();
+  auto &reader = io_network_->get_stream_manager()->get_reader();
+  int count = 0;
+  while (reader->data_available() and count < 100) {
+    uint32_t location_uid = reader->current_journal()->get_location()->location_uid;
+    const char *data = reader->current_frame()->data_as_bytes();
+    write_data(reinterpret_cast<const uint32_t &>(*data), data, manager->get_stream_id(location_uid));
+    reader->next();
+    ++count;
   }
 }
 

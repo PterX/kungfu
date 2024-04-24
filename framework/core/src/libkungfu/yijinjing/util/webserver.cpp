@@ -19,8 +19,6 @@ stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id)
                                     std::make_shared<locator>(mode::LIVE));
   writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
                                      std::make_shared<bus>(false), PAGE_SIZE);
-  reader_ = std::make_shared<reader>(true, true, std::make_shared<bus>(false));
-  reader_->join(location_, location::PUBLIC, time::now_in_nano());
 
   int rv;
   if ((rv = nng_aio_alloc(
@@ -101,7 +99,7 @@ void stream::stream_recv_cb() {
   }
 }
 
-void stream::stream_send(const std::string &data) {
+int stream::stream_send(const std::string &data) {
   nng_iov iov;
   iov.iov_buf = (void *)data.data();
   iov.iov_len = data.size();
@@ -115,6 +113,7 @@ void stream::stream_send(const std::string &data) {
   if (rv != 0) {
     fatal("nng_aio_result", rv);
   }
+  return rv;
 }
 
 int stream::stream_send(const char *data, const int len) {
@@ -134,24 +133,6 @@ int stream::stream_send(const char *data, const int len) {
   return rv;
 }
 
-std::vector<std::string> stream::get_and_clear_data() {
-  //  std::lock_guard<std::mutex> lock(mtx_);
-  //  std::vector<std::string> result = data_received_; // 返回数据的副本
-  //  data_received_.clear();
-  std::vector<std::string> result{};
-  int count = 0;
-  auto &jour = get_journal();
-  while (jour.current_frame()->has_data() and count < 100) {
-    result.push_back(jour.current_frame()->data_as_string());
-    jour.next();
-    ++count;
-    //    SPDLOG_INFO("data_available, count: {}", count);
-  }
-  return result;
-}
-
-journal::reader_ptr &stream::get_reader() { return reader_; }
-
 void stream::cancel() {
   nng_aio_cancel(aio_recv_);
   nng_aio_wait(aio_recv_);
@@ -159,7 +140,7 @@ void stream::cancel() {
   nng_aio_wait(aio_send_);
 }
 
-journal::journal &stream::get_journal() { return reader_->get_journal_ref(location_, location::PUBLIC); }
+const yijinjing::data::location_ptr &stream::get_location() const { return location_; }
 
 webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path,
                      const bool is_text_mode, const size_t max_num_connections)
@@ -226,8 +207,6 @@ void webserver::accept_cb() {
   auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_accept, 0));
   // disable Nagle, send-msg low-latency
   nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
-  //nng_stream_set_ms(s, NNG_OPT_RECVTIMEO, 0);
-  //nng_stream_set_ms(s, NNG_OPT_SENDTIMEO, 0);
 
   try {
     if (max_num_connections_ > 0 && (num_connected_ + 1) >= max_num_connections_) {
@@ -337,8 +316,6 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
   auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_dialer, 0));
   // disable Nagle, send-msg low-latency
   nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
-  //nng_stream_set_ms(s, NNG_OPT_RECVTIMEO, 0);
-  //nng_stream_set_ms(s, NNG_OPT_SENDTIMEO, 0);
 
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   stream_ = temp_stream;
@@ -369,15 +346,6 @@ int stream_manage::publish(uint64_t stream_id, const char *data, const int len) 
   return 0;
 }
 
-std::vector<std::string> stream_manage::get_notice(uint64_t stream_id) {
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
-  return streams_.find(stream_id)->second->get_and_clear_data();
-}
-
-void stream_manage::clear_notice(uint64_t stream_id) {
-  //  streams_.find(stream_id)->second->data_received_.clear();
-}
-
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);
   return streams_.find(stream_id)->second;
@@ -392,20 +360,28 @@ void stream_manage::add_stream(nng_stream *s) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
+  reader_->join(temp_stream->get_location(), location::PUBLIC, time::now_in_nano());
+  location_to_stream_id_.insert_or_assign(temp_stream->get_location()->location_uid, temp_stream->get_stream_id());
 }
 
 void stream_manage::add_stream(const stream_ptr &s) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);
   SPDLOG_DEBUG("add_stream");
   streams_.emplace(s->get_stream_id(), s);
+  reader_->join(s->get_location(), location::PUBLIC, time::now_in_nano());
+  location_to_stream_id_.insert_or_assign(s->get_location()->location_uid, s->get_stream_id());
 }
 
-journal::reader_ptr stream_manage::get_reader(uint64_t stream_id) {
-  auto iter = streams_.find(stream_id);
-  if (iter != streams_.end()) {
-    return iter->second->get_reader();
+journal::reader_ptr &stream_manage::get_reader() { return reader_; }
+
+stream_manage::stream_manage() { reader_ = std::make_shared<reader>(true, true, std::make_shared<bus>(false)); }
+
+uint64_t stream_manage::get_stream_id(uint32_t location_uid) {
+  auto iter = location_to_stream_id_.find(location_uid);
+  if (iter != location_to_stream_id_.end()) {
+    return iter->second;
   }
-  return nullptr;
+  return 0;
 }
 
 /*

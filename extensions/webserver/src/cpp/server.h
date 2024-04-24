@@ -82,6 +82,7 @@ public:
     io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(T2));
     return;
   };
+
   template <typename T1, typename T2> void test_fun_trade(const void *ptr, uint64_t stream_id) {
     auto data = static_cast<T1 *>(const_cast<void *>(ptr));
     T2 data_send;

@@ -90,7 +90,7 @@ public:
 
   void stream_recv_cb();
 
-  void stream_send(const std::string &data);
+  int stream_send(const std::string &data);
 
   int stream_send(const char *data, int len);
 
@@ -98,11 +98,7 @@ public:
 
   uint64_t get_opposite_stream_id();
 
-  std::vector<std::string> get_and_clear_data();
-
-  journal::reader_ptr &get_reader();
-
-  journal::journal &get_journal();
+  const yijinjing::data::location_ptr &get_location() const;
 
 private:
   nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
@@ -114,7 +110,6 @@ private:
   std::mutex mtx_;
   yijinjing::data::location_ptr location_ = nullptr;
   journal::writer_ptr writer_ = nullptr;
-  journal::reader_ptr reader_ = nullptr;
   journal::frame_ptr current_frame_ = nullptr;
   // the first vector is used for callback function receive data, the second vector is used for cache the data have
   // received when call get_data(), will return the
@@ -219,7 +214,7 @@ FORWARD_DECLARE_CLASS_PTR(webclient)
 
 class stream_manage {
 public:
-  stream_manage() { streams_.reserve(100); };
+  explicit stream_manage();
 
   virtual ~stream_manage() = default;
 
@@ -239,10 +234,14 @@ public:
 
   void add_stream(const stream_ptr &s);
 
-  journal::reader_ptr get_reader(uint64_t stream_id);
+  journal::reader_ptr &get_reader();
+
+  uint64_t get_stream_id(uint32_t location_uid);
 
 private:
   std::unordered_map<uint64_t, stream_ptr> streams_;
+  journal::reader_ptr reader_ = nullptr;
+  std::map<uint32_t, uint64_t> location_to_stream_id_;
 };
 
 /*

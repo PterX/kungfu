@@ -156,6 +156,8 @@ public:
 
   [[maybe_unused]] journal &get_journal_ref(const data::location_ptr &location, uint32_t dest_id);
 
+  journal *current_journal() const;
+
   bool data_available();
 
   /** seek journal to time */

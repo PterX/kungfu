@@ -11,7 +11,8 @@ import {
   confirmModal,
   searchByKeyword,
   useBrowserWindowMinimize,
-  extraConfirmModal,
+  messagePrompt,
+  confirmModalSkippable,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -63,7 +64,6 @@ import {
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import StatisticModal from './OrderStatisticModal.vue';
-import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -369,25 +369,16 @@ const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {
   if (isFinishedOrderStatus(order.status)) return;
 
   const storageKey = 'skipQuickCancelRemind';
-  const flag = localStorage.getItem(storageKey);
-  const promise = flag
-    ? Promise.resolve(true)
-    : extraConfirmModal(
-        t('orderConfig.quick_cancel'),
-        t('orderConfig.quick_cancel_context'),
-        t('confirm'),
-        t('cancel'),
-        [{ text: t('tradingConfig.hide_next_time'), value: 1 }],
-      ).then((flag) => {
-        if (flag === 'ok') {
-          return true;
-        } else if (flag === 1) {
-          localStorage.setItem(storageKey, '1');
-          return true;
-        } else {
-          return false;
-        }
-      });
+
+  const promise = confirmModalSkippable(
+    t('orderConfig.notice'),
+    t('orderConfig.quick_cancel_context'),
+    storageKey,
+    {
+      okText: t('orderConfig.ensure_cancel'),
+      cancelText: t('orderConfig.cancel_cancel'),
+    },
+  );
 
   promise.then((flag) => {
     flag && handleCancelOrder(order);

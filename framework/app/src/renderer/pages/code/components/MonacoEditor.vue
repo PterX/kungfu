@@ -29,6 +29,7 @@ import { useCodeStore } from '../store/codeStore';
 import { getFileContent } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import path from 'path';
 import fse from 'fs-extra';
+import { getCurrentWindow } from '@electron/remote';
 import {
   CodeTabSetting,
   CodeSizeSetting,
@@ -78,12 +79,12 @@ watch(fileTree, (newTree, oldTree) => {
       Object.values(newTree),
       'root',
       true,
-    )!.filePath;
+    )?.filePath;
     const oldRootPath = findTargetFromArray<Code.FileData>(
       Object.values(oldTree),
       'root',
       true,
-    )!.filePath;
+    )?.filePath;
     if (newRootPath !== oldRootPath) {
       activeFile.value = null;
       handleEditor.value = null;
@@ -108,21 +109,31 @@ watch(currentFile, async (newFile: Code.FileData) => {
     );
     await nextTick();
     updateSpaceTab(globalSetting.value.code as Code.ICodeSetting);
-    bindBlur(handleEditor.value, activeFile.value);
+    handleEditor.value && bindEvent(handleEditor.value, activeFile.value);
   }
 });
 
-function bindBlur(editor, curFile) {
-  editor !== null &&
-    editor.onDidBlurEditorText(() => {
-      curWriteFile(editor, curFile);
-    });
+function bindEvent(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  curFile: Code.FileData,
+) {
+  editor.onDidBlurEditorText(() => {
+    curWriteFile(editor, curFile);
+  });
+
+  const win = getCurrentWindow();
+  win.once('close', () => {
+    curWriteFile(editor, curFile);
+  });
 }
 
-function curWriteFile(editor, curFile) {
+function curWriteFile(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  curFile: Code.FileData,
+) {
   const value = editor.getValue();
   const curPath: string = path.normalize(curFile.filePath);
-  fse.outputFile(curPath, value);
+  fse.outputFileSync(curPath, value);
 }
 
 // 创建代码编辑器

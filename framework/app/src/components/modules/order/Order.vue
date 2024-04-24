@@ -11,6 +11,8 @@ import {
   confirmModal,
   searchByKeyword,
   useBrowserWindowMinimize,
+  messagePrompt,
+  confirmModalSkippable,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -62,7 +64,6 @@ import {
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import StatisticModal from './OrderStatisticModal.vue';
-import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
@@ -280,8 +281,12 @@ watch(historyDate, async (newDate) => {
     });
 });
 
+function isUnfinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
+  return UnfinishedOrderStatus.includes(orderStatus);
+}
+
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
-  return !UnfinishedOrderStatus.includes(orderStatus);
+  return !isUnfinishedOrderStatus(orderStatus);
 }
 
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
@@ -360,6 +365,26 @@ async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   return filterUnfinishedOrders(orderList);
 }
 
+const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {
+  if (isFinishedOrderStatus(order.status)) return;
+
+  const storageKey = 'skipQuickCancelRemind';
+
+  const promise = confirmModalSkippable(
+    t('orderConfig.notice'),
+    t('orderConfig.quick_cancel_context'),
+    storageKey,
+    {
+      okText: t('orderConfig.ensure_cancel'),
+      cancelText: t('orderConfig.cancel_cancel'),
+    },
+  );
+
+  promise.then((flag) => {
+    flag && handleCancelOrder(order);
+  });
+};
+
 function handleClickCell(args: VTable.MousePointerCellEvent) {
   if (args.field === 'limit_price_resolved') {
     handleAdjustOrder({
@@ -372,14 +397,12 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
     });
   }
   if (args.value === t('orderConfig.cancel_order')) {
-    handleCancelOrder(args.originData);
+    handleCancelOrderWithRemind(args.originData);
   }
 }
 
 function handleDblClickCell(args: VTable.MousePointerCellEvent) {
-  if (!isFinishedOrderStatus(args.originData.status)) {
-    handleCancelOrder(args.originData);
-  }
+  handleCancelOrderWithRemind(args.originData);
 }
 
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {

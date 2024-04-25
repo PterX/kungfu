@@ -51,6 +51,7 @@ import {
   dealKfDecimalPrecision,
   DEFAULT_PRECISION,
   countDecimalPlaces,
+  doSomethingWithDataSliced,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -516,6 +517,8 @@ export const kfCancelOrderUtilFinished = (
   });
 };
 
+export const DEFAULT_SPLIT_CANCEL_ORDER = 5000;
+
 export const kfCancelAllOrders = (
   watcher: KungfuApi.Watcher | null,
   orders: KungfuApi.Order[],
@@ -528,14 +531,37 @@ export const kfCancelAllOrders = (
     return Promise.reject(new Error(`Watcher is not live`));
   }
 
-  const cancelOrderTasks = orders.map(
-    (item: KungfuApi.Order): Promise<bigint> => {
-      return kfCancelOrder(watcher, item, OrderActionFlagEnum.Cancel);
-    },
-  );
+  return new Promise((resolve, reject) => {
+    let completedBatches = 0;
+    const expectedBatches = Math.ceil(
+      orders.length / DEFAULT_SPLIT_CANCEL_ORDER,
+    );
+    const results: bigint[][] = new Array(expectedBatches);
 
-  return Promise.all(cancelOrderTasks);
+    doSomethingWithDataSliced<KungfuApi.Order>(
+      orders,
+      (orderSlice, sliceIndex) => {
+        Promise.all(
+          orderSlice.map((order) =>
+            kfCancelOrder(watcher, order, OrderActionFlagEnum.Cancel),
+          ),
+        )
+          .then((batchResults) => {
+            results[sliceIndex] = batchResults;
+            completedBatches++;
+            if (completedBatches >= expectedBatches) {
+              resolve(results.flat());
+            }
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      },
+      DEFAULT_SPLIT_CANCEL_ORDER,
+    );
+  });
 };
+
 export const kfCancelAllOrdersTrigger = (
   watcher: KungfuApi.Watcher | null,
   orders: KungfuApi.OrderTriggerResolved[],
@@ -1031,7 +1057,7 @@ export const getOrderStatResolved = (
 
 export const DEFAULT_LIST_LENGTH = 10000;
 
-export const getOrderOrTradeListFromTradingDataKeeper = async ({
+export const getOrderOrTradeListFromTradingDataKeeper = ({
   watcher,
   tradingDataKeeper,
   currentGlobalKfLocation,
@@ -1117,8 +1143,8 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
       );
       list =
         isGetUnfinishedOrder && type === 'order'
-          ? tree.valuesArray()?.slice(0, DEFAULT_LIST_LENGTH) || []
-          : tree.valuesArray() || [];
+          ? tree.valuesArray() || []
+          : tree.valuesArray()?.slice(0, DEFAULT_LIST_LENGTH) || [];
 
       break;
   }
@@ -1159,7 +1185,7 @@ export const getOrderResolved = (
     uid_key: order.uid_key,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
-    states_uname: statusData.name,
+    status_uname: statusData.name,
     limit_price_resolved: dealKfNumber(order.limit_price, precision),
     limit_price: dealKfDecimalPrecision(order.limit_price, precision),
     frozen_price: dealKfDecimalPrecision(order.frozen_price, precision),

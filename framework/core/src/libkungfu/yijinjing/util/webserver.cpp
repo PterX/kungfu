@@ -13,7 +13,8 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::yijinjing::webserver {
 constexpr uint64_t PAGE_SIZE = 256;
 
-stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id) {
+stream::stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums)
+    : s_(s), stream_id_(stream_id), aio_nums_(aio_nums) {
   SPDLOG_DEBUG("stream");
   location_ = location::make_shared(mode::LIVE, category::SYSTEM, "webserver", std::to_string(stream_id),
                                     std::make_shared<locator>(mode::LIVE));
@@ -30,9 +31,18 @@ stream::stream(nng_stream *s, uint64_t stream_id) : s_(s), stream_id_(stream_id)
            this)) != 0) {
     fatal("nng_aio_alloc read", rv);
   }
+  aio_send_.reserve(aio_nums_);
+  for (int i = 0; i < aio_nums_; i++) {
+    if ((rv = nng_aio_alloc(&aio_send_[i], nullptr, nullptr)) != 0) {
+      fatal("nng_aio_alloc write", rv);
+    }
+  }
+  cur_index_ = 0;
+  /*
   if ((rv = nng_aio_alloc(&aio_send_, nullptr, nullptr)) != 0) {
     fatal("nng_aio_alloc write", rv);
   }
+  */
   start_recv();
 }
 
@@ -43,7 +53,9 @@ stream::~stream() {
   cancel();
   nng_stream_free(s_);
   nng_aio_free(aio_recv_);
-  nng_aio_free(aio_send_);
+  for (int i = 0; i < aio_nums_; i++) {
+    nng_aio_free(aio_send_[i]);
+  }
 }
 
 uint64_t stream::get_stream_id() const { return stream_id_; }
@@ -79,11 +91,6 @@ void stream::stream_recv_cb() {
   auto len = nng_aio_count(aio_recv_);
   switch (rv) {
   case 0: {
-    //    {
-    //      std::string data((char *)rec_buffer_.data(), len);
-    //      std::lock_guard<std::mutex> lock(mtx_);
-    //      data_received_.emplace_back((char *)rec_buffer_.data(), len);
-    //    }
     start_recv();
     break;
   }
@@ -103,6 +110,15 @@ int stream::stream_send(const std::string &data) {
   nng_iov iov;
   iov.iov_buf = (void *)data.data();
   iov.iov_len = data.size();
+  while (nng_aio_busy(aio_send_[cur_index_])) {
+    cur_index_++;
+  }
+  int rv = nng_aio_set_iov(aio_send_[cur_index_], 1, &iov);
+  if (rv != 0) {
+    fatal("nng_aio_set_iov", rv);
+  }
+  nng_stream_send(s_, aio_send_[cur_index_]);
+  /*
   int rv = nng_aio_set_iov(aio_send_, 1, &iov);
   if (rv != 0) {
     fatal("nng_aio_set_iov", rv);
@@ -114,12 +130,23 @@ int stream::stream_send(const std::string &data) {
     fatal("nng_aio_result", rv);
   }
   return rv;
+  */
 }
 
 int stream::stream_send(const char *data, const int len) {
   nng_iov iov;
   iov.iov_buf = (void *)data;
   iov.iov_len = len;
+  while (nng_aio_busy(aio_send_[cur_index_])) {
+    cur_index_++;
+  }
+  int rv = nng_aio_set_iov(aio_send_[cur_index_], 1, &iov);
+  if (rv != 0) {
+    fatal("nng_aio_set_iov", rv);
+  }
+  nng_stream_send(s_, aio_send_[cur_index_]);
+
+  /*
   int rv = nng_aio_set_iov(aio_send_, 1, &iov);
   if (rv != 0) {
     fatal("nng_aio_set_iov", rv);
@@ -131,13 +158,16 @@ int stream::stream_send(const char *data, const int len) {
     fatal("nng_aio_result", rv);
   }
   return rv;
+  */
 }
 
 void stream::cancel() {
   nng_aio_cancel(aio_recv_);
   nng_aio_wait(aio_recv_);
-  nng_aio_cancel(aio_send_);
-  nng_aio_wait(aio_send_);
+  for (int i = 0; i < aio_nums_; i++) {
+    nng_aio_cancel(aio_send_[i]);
+    nng_aio_wait(aio_send_[i]);
+  }
 }
 
 const yijinjing::data::location_ptr &stream::get_location() const { return location_; }

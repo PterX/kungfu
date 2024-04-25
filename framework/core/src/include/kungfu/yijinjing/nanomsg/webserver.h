@@ -82,7 +82,7 @@ static uint64_t generate_stream_id(nng_stream *s) {
 
 class stream {
 public:
-  stream(nng_stream *s, uint64_t stream_id);
+  stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums = 100);
 
   virtual ~stream();
 
@@ -101,7 +101,7 @@ public:
   const yijinjing::data::location_ptr &get_location() const;
 
 private:
-  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
+  // nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
   nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
   nng_stream *s_;
   std::vector<uint8_t> rec_buffer_;
@@ -111,11 +111,9 @@ private:
   yijinjing::data::location_ptr location_ = nullptr;
   journal::writer_ptr writer_ = nullptr;
   journal::frame_ptr current_frame_ = nullptr;
-  // the first vector is used for callback function receive data, the second vector is used for cache the data have
-  // received when call get_data(), will return the
-  std::vector<std::string> data_received_; // used for receive data
-  // std::vector<std::string> data_received_cache_; // cache data_received, two buffer or just simple lock？
-
+  std::vector<nng_smart_ptr<nng_aio>> aio_send_;
+  uint64_t aio_nums_;
+  uint64_t cur_index_;
   void close_data();
 };
 DECLARE_PTR(stream)

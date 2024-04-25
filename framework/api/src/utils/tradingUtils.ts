@@ -1118,11 +1118,14 @@ export const getOrderOrTradeListFromTradingDataKeeper = ({
           const locationId =
             location.location_uid ||
             (watcher ? watcher.getLocationUID(location) : '');
-          if (locationId) {
+          if (locationId && tradingDataKeeper[type].td[locationId]) {
             tdChildrenLocationIdList.push(locationId);
           }
         });
       }
+
+      if (!tdChildrenLocationIdList.length) return [];
+
       const tree = tdChildrenLocationIdList.reduce(
         (prev, locationId, index) => {
           const indexMap = tradingDataKeeper[type].td[locationId];

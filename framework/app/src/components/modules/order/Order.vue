@@ -381,7 +381,7 @@ const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {
 };
 
 function handleClickCell(args: VTable.MousePointerCellEvent) {
-  if (args.field === 'limit_price_resolved') {
+  if (args.field === 'limit_price_resolved' && !historyDate.value) {
     handleAdjustOrder({
       event: args.event as MouseEvent,
       field: args.field,
@@ -397,6 +397,7 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
 }
 
 function handleDblClickCell(args: VTable.MousePointerCellEvent) {
+  if (historyDate.value) return;
   handleCancelOrderWithRemind(args.originData);
 }
 

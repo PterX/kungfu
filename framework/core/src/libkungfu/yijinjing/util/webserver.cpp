@@ -111,8 +111,11 @@ int stream::stream_send(const std::string &data) {
   iov.iov_buf = (void *)data.data();
   iov.iov_len = data.size();
   while (nng_aio_busy(aio_send_[cur_index_])) {
-    cur_index_++;
+    cur_index_ = (cur_index_+1)%aio_nums_;
   }
+  //aio_nums is set up as 2^n will be better, a%b = a&(b-1).
+  // init aio_nums can round up to 2^n.
+  //cur_index_%=aio_nums_;
   int rv = nng_aio_set_iov(aio_send_[cur_index_], 1, &iov);
   if (rv != 0) {
     fatal("nng_aio_set_iov", rv);
@@ -138,8 +141,13 @@ int stream::stream_send(const char *data, const int len) {
   iov.iov_buf = (void *)data;
   iov.iov_len = len;
   while (nng_aio_busy(aio_send_[cur_index_])) {
-    cur_index_++;
+    cur_index_ = (cur_index_+1)%aio_nums_;
   }
+  
+  //aio_nums is set up as 2^n will be better, a%b = a&(b-1).
+  // init aio_nums can round up to 2^n.
+  //cur_index_%=aio_nums_;
+
   int rv = nng_aio_set_iov(aio_send_[cur_index_], 1, &iov);
   if (rv != 0) {
     fatal("nng_aio_set_iov", rv);

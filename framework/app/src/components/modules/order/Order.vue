@@ -127,13 +127,13 @@ const processTradingData = async (
   if (isRendering.value && !keepProcessing) return;
   currentTradingData.value = tradingDataKeeper;
 
-  const orderList = (await getOrderOrTradeListFromTradingDataKeeper({
+  const orderList = getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
     tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
     currentGlobalKfLocation: currentGlobalKfLocation.value,
     isGetUnfinishedOrder: unfinishedOrder.value,
     type: 'order',
-  })) as KungfuApi.OrderResolved[];
+  }) as KungfuApi.OrderResolved[];
 
   if (orderList.length > 0) {
     const tableData = searchByKeyword(
@@ -349,12 +349,15 @@ async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   ) {
     return [];
   }
-  const locationUID = window.watcher.getLocationUID(
-    currentGlobalKfLocation.value,
-  );
-  const orderList =
-    globalThis.TradingDataKeeper.order.td?.[locationUID]?.getUnfinishedList();
-  return orderList || [];
+  const orderList = getOrderOrTradeListFromTradingDataKeeper({
+    watcher: window.watcher,
+    tradingDataKeeper:
+      globalThis.TradingDataKeeper as KungfuApi.TradingDataKeeper,
+    currentGlobalKfLocation: currentGlobalKfLocation.value,
+    isGetUnfinishedOrder: true,
+    type: 'order',
+  }) as KungfuApi.OrderResolved[];
+  return orderList;
 }
 
 const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {

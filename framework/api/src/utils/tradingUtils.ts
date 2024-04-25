@@ -517,7 +517,7 @@ export const kfCancelOrderUtilFinished = (
   });
 };
 
-export const DEFAULT_SPLIT_CANCEL_ORDER = 2000;
+export const DEFAULT_SPLIT_CANCEL_ORDER = 5000;
 
 export const kfCancelAllOrders = (
   watcher: KungfuApi.Watcher | null,
@@ -532,28 +532,33 @@ export const kfCancelAllOrders = (
   }
 
   return new Promise((resolve, reject) => {
-    const results: bigint[] = [];
-    const dataHandler = doSomethingWithDataSliced<KungfuApi.Order>(
+    let completedBatches = 0;
+    const expectedBatches = Math.ceil(
+      orders.length / DEFAULT_SPLIT_CANCEL_ORDER,
+    );
+    const results: bigint[][] = new Array(expectedBatches);
+
+    doSomethingWithDataSliced<KungfuApi.Order>(
       orders,
-      async (orderSlice, sliceIndex) => {
-        try {
-          const batchResults = await Promise.all(
-            orderSlice.map((order) =>
-              kfCancelOrder(watcher, order, OrderActionFlagEnum.Cancel),
-            ),
-          );
-          results.push(...batchResults);
-        } catch (error) {
-          console.error(`Error processing batch ${sliceIndex}:`, error);
-          reject(error);
-        }
+      (orderSlice, sliceIndex) => {
+        Promise.all(
+          orderSlice.map((order) =>
+            kfCancelOrder(watcher, order, OrderActionFlagEnum.Cancel),
+          ),
+        )
+          .then((batchResults) => {
+            results[sliceIndex] = batchResults;
+            completedBatches++;
+            if (completedBatches >= expectedBatches) {
+              resolve(results.flat());
+            }
+          })
+          .catch((error) => {
+            reject(error);
+          });
       },
       DEFAULT_SPLIT_CANCEL_ORDER,
     );
-
-    dataHandler.onFinish(() => {
-      resolve(results);
-    });
   });
 };
 
@@ -1052,7 +1057,7 @@ export const getOrderStatResolved = (
 
 export const DEFAULT_LIST_LENGTH = 10000;
 
-export const getOrderOrTradeListFromTradingDataKeeper = async ({
+export const getOrderOrTradeListFromTradingDataKeeper = ({
   watcher,
   tradingDataKeeper,
   currentGlobalKfLocation,
@@ -1138,8 +1143,8 @@ export const getOrderOrTradeListFromTradingDataKeeper = async ({
       );
       list =
         isGetUnfinishedOrder && type === 'order'
-          ? tree.valuesArray()?.slice(0, DEFAULT_LIST_LENGTH) || []
-          : tree.valuesArray() || [];
+          ? tree.valuesArray() || []
+          : tree.valuesArray()?.slice(0, DEFAULT_LIST_LENGTH) || [];
 
       break;
   }

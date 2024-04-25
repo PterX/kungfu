@@ -7,6 +7,8 @@ declare const __resources: string;
 type AnyFunction = (...args: unknown[]) => unknown;
 type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
 
+type TradingDataKeeperListType = 'all' | 'common' | 'unfinished';
+
 declare module 'tasklist' {
   function tasklist(options: {
     verbose: boolean;
@@ -1495,8 +1497,10 @@ declare namespace KungfuApi {
     getValue(key1: unknown, key2: unknown): V | undefined;
     getCommonList(): V[];
     getUnfinishedList(): V[];
-    getAllUnfinishedList(): V[];
-    getAllList(): V[];
+    getCommonTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getUnfinishedTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getFullTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getFullList(): V[];
   }
 
   export interface TradingDataKeeper {
@@ -1507,10 +1511,13 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
-      list: () => KungfuApi.OrderResolved[];
+      list: (
+        type?: TradingDataKeeperListType,
+        filterFunc?: (order: OrderResolved) => boolean,
+      ) => KungfuApi.OrderResolved[];
       filter: (
-        key: string | function,
-        value?: unknown,
+        filterFunc: (order: OrderResolved) => boolean,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.OrderResolved[];
     };
     trade: {
@@ -1520,10 +1527,13 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
-      list: () => KungfuApi.TradeResolved[];
+      list: (
+        type?: TradingDataKeeperListType,
+        filterFunc?: (order: TradeResolved) => boolean,
+      ) => KungfuApi.TradeResolved[];
       filter: (
-        key: string | function,
-        value?: unknown,
+        filterFunc: (order: TradeResolved) => boolean,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.TradeResolved[];
     };
     update: boolean;

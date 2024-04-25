@@ -592,6 +592,7 @@ export const useDealExportHistoryTradingData = (): {
       exportEventData.value || ({} as KfEvent.ExportTradingDataEvent);
     const { date, dateType } = formState;
     const dateResolved = dayjs(date).format('YYYYMMDD');
+    exportDataLoading.value = true;
 
     if (tradingDataType === 'all') {
       let historyData: {
@@ -617,7 +618,10 @@ export const useDealExportHistoryTradingData = (): {
         }
       }
 
-      if (!historyData) return;
+      if (!historyData) {
+        exportDataLoading.value = false;
+        return;
+      }
 
       const { tradingData } = historyData;
       const orderSortKey = getTradingDataSortKey('Order');
@@ -634,6 +638,8 @@ export const useDealExportHistoryTradingData = (): {
       const assets = tradingData.Asset.sort(assetSortKey);
       const orderInputSortKey = getTradingDataSortKey('OrderInput');
       const orderInputs = tradingData.OrderInput.sort(orderInputSortKey);
+
+      exportDataLoading.value = false;
 
       const { filePaths } = await dialog.showOpenDialog({
         properties: ['openDirectory'],
@@ -716,7 +722,6 @@ export const useDealExportHistoryTradingData = (): {
       return;
     }
 
-    exportDataLoading.value = true;
     let historyData: {
       tradingData: KungfuApi.TradingData;
     } | null = null;

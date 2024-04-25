@@ -179,7 +179,10 @@ public:
     }
 
     auto multiplier = future_i_a.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
-    auto price_diff = position.last_price - position.avg_open_price;
+    auto pre_settlement_price = position.pre_settlement_price == 0
+                                    ? position.avg_open_price
+                                    : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
+    auto price_diff = position.last_price - pre_settlement_price;    // 最新价 - 昨结算 表示今日的盈亏
     // 浮动盈亏
     position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
   }
@@ -264,7 +267,11 @@ public:
       close_today_volume = trade.volume;
     }
 
-    auto realized_pnl = (trade.price - position.avg_open_price) * trade.volume * contract_multiplier;
+    // 平仓价 - 昨结算 表示今日的平仓盈亏
+    auto pre_settlement_price = position.pre_settlement_price == 0
+                                    ? position.avg_open_price
+                                    : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
+    auto realized_pnl = (trade.price - pre_settlement_price) * trade.volume * contract_multiplier;
     if (position.direction == Direction::Short) {
       realized_pnl = -realized_pnl;
     }

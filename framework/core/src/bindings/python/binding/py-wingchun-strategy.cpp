@@ -161,7 +161,7 @@ void bind_strategy(pybind11::module &m) {
       m, "Runner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool, const std::string &>())
-      .def_property_readonly("context", &strategy::Runner::get_context, py::return_value_policy::reference)
+      .def_property_readonly("context", &strategy::Runner::get_context)
       .def("set_begin_time", &strategy::Runner::set_begin_time)
       .def("set_end_time", &strategy::Runner::set_end_time)
       .def("set_matcher", &strategy::Runner::set_matcher)

@@ -83,7 +83,7 @@ void bind_operator(pybind11::module &m) {
   py::class_<op::Runner, kungfu::yijinjing::practice::apprentice, std::shared_ptr<op::Runner>>(m, "OpRunner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool>())
-      .def_property_readonly("context", &op::Runner::get_context, py::return_value_policy::reference)
+      .def_property_readonly("context", &op::Runner::get_context)
       .def("set_begin_time", &op::Runner::set_begin_time)
       .def("set_end_time", &op::Runner::set_end_time)
       .def("set_from_indexer", &op::Runner::set_from_indexer)

@@ -198,9 +198,9 @@ KF_DEFINE_PACK_TYPE(                                                            
 
     (double, margin),       // 保证金(期货)
     (double, position_pnl), // 持仓盈亏(期货), 最新价 - 昨结算, 表示今日的盈亏, 本地不计算改变
-    (double, close_pnl),    // 平仓盈亏(期货), 平仓价 - 昨结算, 表示今日的平仓盈亏, 本地不计算改变
+    (double, close_pnl), // 平仓盈亏(期货), 平仓价 - 昨结算, 表示今日的平仓盈亏, 本地不计算改变
 
-    (double, realized_pnl),   // 已实现盈亏, 平仓价 - 昨结算, 表示今日的平仓盈亏, 随着交易被本地计算改变
+    (double, realized_pnl), // 已实现盈亏, 平仓价 - 昨结算, 表示今日的平仓盈亏, 随着交易被本地计算改变
     (double, unrealized_pnl), // 未实现盈亏, 最新价 - 昨结算, 表示今日的盈亏, 随着交易被本地计算改变
 
     (uint32_t, source_id),   // 来源账户

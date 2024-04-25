@@ -18,33 +18,90 @@ using namespace kungfu::yijinjing::data;
 namespace kungfu::wingchun::book {
 class CryptoAccountingMethod : public AccountingMethod {
 public:
-  void get_instrument(const Book_ptr &book, const Trade &trade, char *instrument_a, char *instrument_b,
-                      char *instrument_commission, int64_t &volume_a, int64_t &volume_b, int64_t &volume_commission) {
-    auto instrument_hash = hash_instrument(trade.exchange_id, trade.instrument_id);
-    const auto &instrument = book->instruments.at(instrument_hash);
-    strncpy(instrument_a, instrument.instrument_id, strlen(instrument.instrument_id) - instrument.delivery_year);
-    strcpy(instrument_b, &(instrument.instrument_id[strlen(instrument.instrument_id) - instrument.delivery_year]));
-    if (trade.hedge_flag == HedgeFlag::Speculation)
-      strcpy(instrument_commission, "BNB");
-    else if (trade.hedge_flag == HedgeFlag::Arbitrage)
-      strcpy(instrument_commission, instrument_b);
-    else
-      strcpy(instrument_commission, instrument_a);
-    volume_a = trade.volume;
-    volume_b = trade.volume * trade.price;
-    volume_commission = trade.commission;
-  }
-
   CryptoAccountingMethod() = default;
 
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
   virtual void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
+    if (dest == location::SYNC or dest == location::PUBLIC) {
+      return;
+    }
+
+    std::string buy_instrument_id;
+    std::string sell_instrument_id;
+    // 比如交易LTC-BTC， 那么就是买入LTC，卖出BTC
+    parser_instrument_id(input.instrument_id, buy_instrument_id, sell_instrument_id);
+
+    if (!buy_instrument_id.empty()) {
+      auto offset = input.offset;
+
+      auto apply_buy = [&](auto &position) {
+        if (offset != Offset::Open) {
+          position.frozen_total += input.volume;
+        }
+
+        update_position(book, position);
+      };
+
+      auto direction = get_direction(input.instrument_type, input.side, offset);
+      book->apply_position(account_id, direction, input.exchange_id, buy_instrument_id.c_str(), apply_buy);
+    }
+
+    if (!sell_instrument_id.empty()) {
+      auto offset = diff_offset(input.offset);
+      auto apply_sell = [&](auto &position) {
+        if (offset != Offset::Open) {
+          if (input.frozen_price > 0) {
+            // 卖出币种冻结数量：买入币种*价格
+            position.frozen_total += input.frozen_price * input.volume;
+          }
+        }
+        
+        update_position(book, position);
+      };
+
+      auto direction = get_direction(input.instrument_type, diff_side(input.side), offset);
+      book->apply_position(account_id, direction, input.exchange_id, sell_instrument_id.c_str(), apply_sell);
+    }
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
     if (not guard_order_accounting(account_id, dest, book, order)) {
       return;
+    }
+
+    std::string buy_instrument_id;
+    std::string sell_instrument_id;
+    parser_instrument_id(order.instrument_id, buy_instrument_id, sell_instrument_id);
+
+    if (!buy_instrument_id.empty()) {
+      auto offset = order.offset;
+      auto apply_buy = [&](auto &position) {
+        if (offset != Offset::Open) {
+          position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+        }
+
+        update_position(book, position);
+      };
+
+      auto direction = get_direction(order.instrument_type, order.side, offset);
+      book->apply_position(account_id, direction, order.exchange_id, buy_instrument_id.c_str(), apply_buy);
+    }
+
+    if (!sell_instrument_id.empty()) {
+      auto offset = diff_offset(order.offset);
+      auto apply_sell = [&](auto &position) {
+        if (offset != Offset::Open) {
+          if (order.frozen_price > 0)
+            position.frozen_total =
+                std::max(position.frozen_total - order.volume_left * order.frozen_price, VOLUME_ZERO);
+        }
+        
+        update_position(book, position);
+      };
+
+      auto direction = get_direction(order.instrument_type, diff_side(order.side), offset);
+      book->apply_position(account_id, direction, order.exchange_id, sell_instrument_id.c_str(), apply_sell);
     }
   }
 
@@ -52,9 +109,49 @@ public:
     if (not guard_trade_accounting(account_id, dest, book, trade)) {
       return;
     }
+
+    auto is_local = dest != location::PUBLIC and dest != location::SYNC;
+
+    std::string buy_instrument_id;
+    std::string sell_instrument_id;
+    parser_instrument_id(trade.instrument_id, buy_instrument_id, sell_instrument_id);
+
+    if (!buy_instrument_id.empty()) {
+      auto offset = trade.offset;
+      auto apply_buy = [&](auto &position) {
+        if (offset == Offset::Open) {
+          apply_open(book, position, trade, is_local);
+        } else if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
+          apply_close(book, position, trade, is_local);
+        }
+        
+        update_position(book, position);
+      };
+
+      auto direction = get_direction(trade.instrument_type, trade.side, offset);
+      book->apply_position(account_id, direction, trade.exchange_id, buy_instrument_id.c_str(), apply_buy);
+    }
+
+    if (!sell_instrument_id.empty()) {
+      auto offset = diff_offset(trade.offset);
+      auto apply_sell = [&](auto &position) {
+        if (offset == Offset::Open) {
+          apply_open_sell(book, position, trade, is_local);
+        } else if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
+          apply_close_sell(book, position, trade, is_local);
+        }
+
+        update_position(book, position);
+      };
+
+      auto direction = get_direction(trade.instrument_type, diff_side(trade.side), offset);
+      book->apply_position(account_id, direction, trade.exchange_id, sell_instrument_id.c_str(), apply_sell);
+    }
   }
 
-  virtual void update_position(Book_ptr &book, Position &position) override {}
+  void update_position(Book_ptr &book, Position &position) override {
+    position.update_time = time::now_in_nano();
+  }
 
   bool update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
                     Asset &asset, const Position &position) override {
@@ -62,15 +159,64 @@ public:
   }
 
 protected:
-  std::unordered_map<uint64_t, double> commission_map_ = {};
+  void apply_open(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
+    position.volume += trade.volume;
+    position.open_volume += trade.volume;
+  }
 
-  [[maybe_unused]] virtual void apply_buy(Book_ptr &book, const Trade &trade) {}
+  void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
+    position.volume -= trade.volume;
 
-  [[maybe_unused]] virtual void apply_sell(Book_ptr &book, const Trade &trade) {}
+    if (is_local) {
+      position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
+    }
+  }
 
-  [[maybe_unused]] double calculate_commission(const Trade &trade) { return trade.commission; }
+  void apply_open_sell(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
+    position.volume += trade.volume * trade.price;
+    position.open_volume += trade.volume * trade.price;
+  }
 
-  [[maybe_unused]] double calculate_tax(const Trade &trade) { return trade.tax; }
+  void apply_close_sell(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
+    position.volume -= trade.volume * trade.price;
+
+    if (is_local) {
+      position.frozen_total = std::max(position.frozen_total - trade.volume * trade.price, VOLUME_ZERO);
+    }
+  }
+
+  // LTC-USDT，下单现货时是币对，比如买入，计算是LTC数量增加，USDT减少，持仓需要计算两个资产的数量变动
+  void parser_instrument_id(const std::string &instrument_id, std::string &buy_instrument_id,
+                            std::string &sell_instrument_id) {
+    int nPos = instrument_id.find("-");
+
+    if (nPos != std::string::npos) {
+      buy_instrument_id = instrument_id.substr(0, nPos);
+      sell_instrument_id = instrument_id.substr(nPos + 1, instrument_id.length() - nPos - 1);
+    } else {
+      buy_instrument_id = instrument_id;
+    }
+  }
+
+  longfist::enums::Side diff_side(longfist::enums::Side side) {
+    if (side == Side::Buy) {
+      return Side::Sell;
+    } else if (side == Side::Sell) {
+      return Side::Buy;
+    }
+
+    return side;
+  }
+
+  longfist::enums::Offset diff_offset(longfist::enums::Offset offset) {
+    if (offset == Offset::Open) {
+      return Offset::Close;
+    } else if (offset == Offset::Close) {
+      return Offset::Open;
+    }
+
+    return offset;
+  }
 };
 } // namespace kungfu::wingchun::book
 #endif // WINGCHUN_ACCOUNTING_CRYPTO_H

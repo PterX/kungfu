@@ -85,6 +85,7 @@ const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 const searchKeyword = ref<string>('');
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
+const cancelOrderLoading = ref<boolean>(false);
 
 const {
   currentGlobalKfLocation,
@@ -325,7 +326,7 @@ function handleCancelAllOrders(): void {
     if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
       return;
     }
-
+    cancelOrderLoading.value = true;
     const orders = await getTargetCancelOrders();
     return kfCancelAllOrders(window.watcher, orders)
       .then(() => {
@@ -333,14 +334,11 @@ function handleCancelAllOrders(): void {
       })
       .catch((err) => {
         error(err.message);
+      })
+      .finally(() => {
+        cancelOrderLoading.value = false;
       });
   });
-}
-
-function filterUnfinishedOrders(
-  orders: KungfuApi.OrderResolved[],
-): KungfuApi.OrderResolved[] {
-  return orders.filter((item) => UnfinishedOrderStatus.includes(item.status));
 }
 
 async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
@@ -351,18 +349,13 @@ async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   ) {
     return [];
   }
-  const orderList = (await getOrderOrTradeListFromTradingDataKeeper({
-    watcher: window.watcher,
-    tradingDataKeeper: currentTradingData.value,
-    currentGlobalKfLocation: currentGlobalKfLocation.value,
-    isGetAllUnfinishedOrder: true,
-    type: 'order',
-  })) as KungfuApi.OrderResolved[];
-  if (orderList.length <= 0) {
-    return [];
-  }
-
-  return filterUnfinishedOrders(orderList);
+  const locationUID = window.watcher.getLocationUID(
+    currentGlobalKfLocation.value,
+  );
+  const orderList =
+    globalThis.TradingDataKeeper.order.td?.[locationUID]?.getUnfinishedList();
+  console.log(orderList.length);
+  return orderList || [];
 }
 
 const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {
@@ -672,6 +665,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             size="small"
             type="primary"
             danger
+            :loading="cancelOrderLoading"
             @click="handleCancelAllOrders"
           >
             {{ $t('orderConfig.cancel_all') }}

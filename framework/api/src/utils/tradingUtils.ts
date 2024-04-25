@@ -51,6 +51,7 @@ import {
   dealKfDecimalPrecision,
   DEFAULT_PRECISION,
   countDecimalPlaces,
+  doSomethingWithDataSliced,
 } from '../utils/commonUtils';
 import {
   HistoryDateEnum,
@@ -516,6 +517,8 @@ export const kfCancelOrderUtilFinished = (
   });
 };
 
+export const DEFAULT_SPLIT_CANCEL_ORDER = 2000;
+
 export const kfCancelAllOrders = (
   watcher: KungfuApi.Watcher | null,
   orders: KungfuApi.Order[],
@@ -528,14 +531,32 @@ export const kfCancelAllOrders = (
     return Promise.reject(new Error(`Watcher is not live`));
   }
 
-  const cancelOrderTasks = orders.map(
-    (item: KungfuApi.Order): Promise<bigint> => {
-      return kfCancelOrder(watcher, item, OrderActionFlagEnum.Cancel);
-    },
-  );
+  return new Promise((resolve, reject) => {
+    const results: bigint[] = [];
+    const dataHandler = doSomethingWithDataSliced<KungfuApi.Order>(
+      orders,
+      async (orderSlice, sliceIndex) => {
+        try {
+          const batchResults = await Promise.all(
+            orderSlice.map((order) =>
+              kfCancelOrder(watcher, order, OrderActionFlagEnum.Cancel),
+            ),
+          );
+          results.push(...batchResults);
+        } catch (error) {
+          console.error(`Error processing batch ${sliceIndex}:`, error);
+          reject(error);
+        }
+      },
+      DEFAULT_SPLIT_CANCEL_ORDER,
+    );
 
-  return Promise.all(cancelOrderTasks);
+    dataHandler.onFinish(() => {
+      resolve(results);
+    });
+  });
 };
+
 export const kfCancelAllOrdersTrigger = (
   watcher: KungfuApi.Watcher | null,
   orders: KungfuApi.OrderTriggerResolved[],
@@ -1159,7 +1180,7 @@ export const getOrderResolved = (
     uid_key: order.uid_key,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
-    states_uname: statusData.name,
+    status_uname: statusData.name,
     limit_price_resolved: dealKfNumber(order.limit_price, precision),
     limit_price: dealKfDecimalPrecision(order.limit_price, precision),
     frozen_price: dealKfDecimalPrecision(order.frozen_price, precision),

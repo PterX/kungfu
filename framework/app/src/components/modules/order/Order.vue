@@ -354,7 +354,6 @@ async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   );
   const orderList =
     globalThis.TradingDataKeeper.order.td?.[locationUID]?.getUnfinishedList();
-  console.log(orderList.length);
   return orderList || [];
 }
 

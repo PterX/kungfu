@@ -113,6 +113,7 @@ watch(currentFile, async (newFile: Code.FileData) => {
   }
 });
 
+let saveFileCallback: () => void;
 function bindEvent(
   editor: monaco.editor.IStandaloneCodeEditor,
   curFile: Code.FileData,
@@ -121,14 +122,13 @@ function bindEvent(
     curWriteFile(editor, curFile);
   });
 
-  editor.onDidDispose(() => {
-    curWriteFile(editor, curFile);
-  });
-
   const win = getCurrentWindow();
-  win.once('close', () => {
+  if (saveFileCallback) win.removeListener('close', saveFileCallback);
+
+  saveFileCallback = () => {
     curWriteFile(editor, curFile);
-  });
+  };
+  win.once('close', saveFileCallback);
 }
 
 function curWriteFile(

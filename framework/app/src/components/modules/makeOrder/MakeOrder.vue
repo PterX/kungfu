@@ -99,6 +99,9 @@ const makeOrderRef = ref();
 const apartOrderRef = ref();
 const orderTriggerRef = ref();
 
+const volumeStep = ref(1);
+const volumePrecision = ref(0);
+
 useKeyboardControlContainerStyle(
   'MakeOrder',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
@@ -183,23 +186,15 @@ const configSettings = computed(() => {
   }
 
   let priceStep = 1,
-    pricePrecision = 0,
-    volumePrecision = 0,
-    volumeStep = 1;
+    pricePrecision = 0;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
-      instrumentId,
-      exchangeId,
-    );
     const { price_tick, price_precision } = getPriceTickAndPrecision(
       instrumentId,
       exchangeId,
     );
     priceStep = price_tick;
     pricePrecision = price_precision;
-    volumeStep = quantity_unit;
-    volumePrecision = volume_precision;
   }
 
   const { side } = formState.value;
@@ -214,8 +209,8 @@ const configSettings = computed(() => {
     priceStep,
     sideList: sideList.value,
     offsetList: offsetList.value,
-    volumeStep,
-    volumePrecision,
+    volumeStep: volumeStep.value,
+    volumePrecision: volumePrecision.value,
   });
 });
 
@@ -328,7 +323,14 @@ watch(
     const instrumentResolved =
       transformSearchInstrumentResultToInstrument(newInstrument);
     if (instrumentResolved) {
-      const { instrumentType, exchangeId } = instrumentResolved;
+      const { instrumentType, exchangeId, instrumentId } = instrumentResolved;
+      const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
+        instrumentId,
+        exchangeId,
+      );
+
+      volumeStep.value = quantity_unit;
+      volumePrecision.value = volume_precision;
 
       const tdName = newAccountId ? newAccountId.split('_')[0] : '';
 
@@ -1287,6 +1289,8 @@ watch(
       v-model:visible="isShowConfirmModal"
       :curOrderVolume="curOrderVolume"
       :curOrderType="curOrderType"
+      :volumePrecision="volumePrecision"
+      :volumeStep="volumeStep"
       @close="
         () => {
           apartOrderRef && apartOrderRef.focus();

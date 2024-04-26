@@ -120,7 +120,6 @@ void server::thread_read_data(const assemble_ptr &asm_obj, uint64_t stream_id) {
   for (auto data_pair : data_read) {
     frame_header header = data_pair.first;
     int32_t type = header.msg_type;
-    SPDLOG_DEBUG("type:{}",type);
     auto iter = map_event_back.find(type);
     if (iter != map_event_back.end()) {
       iter->second(data_pair.second.data(), stream_id,timestamp);
@@ -131,7 +130,6 @@ void server::thread_read_data(const assemble_ptr &asm_obj, uint64_t stream_id) {
 */
 
 bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
-  SPDLOG_DEBUG("custom_OnInitEvent");
   const auto *account_data = reinterpret_cast<const CICC::types::PackAccountInfo *>(ptr);
   auto &group = account_data->group;
   auto &name = account_data->name;
@@ -161,7 +159,6 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
     // should write error to data;
     SPDLOG_ERROR("td {}_{} not exist!", group, name);
   }
-  SPDLOG_DEBUG("end custom_OnInitEvent");
   return true;
 }
 

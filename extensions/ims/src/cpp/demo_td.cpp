@@ -10,7 +10,7 @@
 #include <iostream>
 #include <pack_types.h>
 #include <spdlog/spdlog.h>
-
+#include <thread>
 using namespace CICC::API;
 using namespace CICC::enums;
 
@@ -154,7 +154,7 @@ int main() {
   api->Initial(config.address.c_str());
   api->SetTradeSPI(spi);
   api->TryLogin(config.group.c_str(), config.name.c_str());
-  Sleep(5000);
+  std::this_thread::sleep_for(std::chrono::seconds(5));
   OrderInput input{};
   input.request_id = 1;
   strcpy(input.instrument_id, "000001");

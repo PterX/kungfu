@@ -16,7 +16,7 @@ from kungfu.serverless.utils import (
     UPLOAD_DIR_SIZE_LIMIT_MB,
     get_dir_size,
     make_tarfile,
-    build_backtest_json
+    build_backtest_json,
 )
 from kungfu.serverless.config import BASE_URL
 from kungfu.serverless.utils import create_logger
@@ -59,12 +59,16 @@ class Backtest:
         file_name, suffix = os.path.splitext(file_basename)
         module_name = f"strategy{file_name}{int(time.time()* 10000)}"
         dirname = os.path.dirname(file_path)
-        
-        self.logger.warning(f"Only submit file endswith {', '.join(UPLOAD_EXT_WHITELIST)}")
+
+        self.logger.warning(
+            f"Only submit file endswith {', '.join(UPLOAD_EXT_WHITELIST)}"
+        )
         dir_size = get_dir_size(dirname)
-        
+
         if dir_size > UPLOAD_DIR_SIZE_LIMIT_MB:
-            raise Exception(f"Folder {os.path.dirname(file_path) }of {file_path} exceeds {UPLOAD_DIR_SIZE_LIMIT_MB}MB")
+            raise Exception(
+                f"Folder {os.path.dirname(file_path) }of {file_path} exceeds {UPLOAD_DIR_SIZE_LIMIT_MB}MB"
+            )
         packagejson = build_backtest_json(file_path, module_name)
         packagejson_path = os.path.join(dirname, "package.json")
         with open(packagejson_path, "w") as pj:
@@ -208,7 +212,7 @@ class Backtest:
 
         self.logger.info(f"Job sumbitted, id: {jobId}")
         return jobId
-    
+
     def __monit_log(
         self, log_group_name, job_id, access_key, secret_key, session_token
     ):

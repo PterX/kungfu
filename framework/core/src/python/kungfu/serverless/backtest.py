@@ -6,12 +6,17 @@ import kungfu
 import requests
 import time
 import signal
-from datetime import datetime
+
 from kungfu.serverless.sso import SSO
 from kungfu.serverless.utils import (
     get_credentials_for_identity,
-    read_file_content,
+    read_zip,
     get_tokens,
+    UPLOAD_EXT_WHITELIST,
+    UPLOAD_DIR_SIZE_LIMIT_MB,
+    get_dir_size,
+    make_tarfile,
+    build_backtest_json
 )
 from kungfu.serverless.config import BASE_URL
 from kungfu.serverless.utils import create_logger
@@ -50,10 +55,29 @@ class Backtest:
     def submit(self, file_path, begin_time, end_time, level="level1"):
         access_key, secret_key, session_token = get_credentials_for_identity(self.stage)
         parameter_map = self.__get_params(access_key, secret_key, session_token)
+        file_basename = os.path.basename(file_path)
+        file_name, suffix = os.path.splitext(file_basename)
+        module_name = f"strategy{file_name}{int(time.time()* 10000)}"
+        dirname = os.path.dirname(file_path)
+        
+        self.logger.warning(f"Only submit file endswith {', '.join(UPLOAD_EXT_WHITELIST)}")
+        dir_size = get_dir_size(dirname)
+        
+        if dir_size > UPLOAD_DIR_SIZE_LIMIT_MB:
+            raise Exception(f"Folder {os.path.dirname(file_path) }of {file_path} exceeds {UPLOAD_DIR_SIZE_LIMIT_MB}MB")
+        packagejson = build_backtest_json(file_path, module_name)
+        packagejson_path = os.path.join(dirname, "package.json")
+        with open(packagejson_path, "w") as pj:
+            json.dump(packagejson, pj)
+
+        zip_file = make_tarfile(module_name, os.path.dirname(file_path))
+        self.logger.info(f"tmp zip file: {zip_file}")
         self.__put_resource(
-            file_path, parameter_map, access_key, secret_key, session_token
+            zip_file, parameter_map, access_key, secret_key, session_token
         )
-        job_id = self.__run_job(file_path, begin_time, end_time, level, parameter_map)
+        self.logger.info(f"remove tmp zip file: {zip_file}")
+        os.remove(zip_file)
+        job_id = self.__run_job(zip_file, begin_time, end_time, level, parameter_map)
         log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]
         self.__monit_log(log_group_name, job_id, access_key, secret_key, session_token)
 
@@ -138,7 +162,6 @@ class Backtest:
         self, file_path, parameter_map, access_key, secret_key, session_token
     ):
         file_basename = os.path.basename(file_path)
-        file_content = read_file_content(file_path)
 
         objectKey = f"{self.user_id}/upload/{file_basename}"
         s3 = boto3.client(
@@ -152,7 +175,7 @@ class Backtest:
         bucket_name = parameter_map[self.S3_BUCKET_PARAM_NAME]
 
         try:
-            s3.put_object(Bucket=bucket_name, Key=objectKey, Body=file_content)
+            s3.upload_file(file_path, bucket_name, objectKey)
         except ClientError as err:
             raise err
 
@@ -167,7 +190,6 @@ class Backtest:
                 "data_categories": "L2" if level == "level1" else "L2,order,tick",
             },
         }
-
         access_token, refresh_token, id_token = get_tokens(self.stage)
         headers = {
             "Content-Type": "application/json",
@@ -186,7 +208,7 @@ class Backtest:
 
         self.logger.info(f"Job sumbitted, id: {jobId}")
         return jobId
-
+    
     def __monit_log(
         self, log_group_name, job_id, access_key, secret_key, session_token
     ):

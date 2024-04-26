@@ -95,12 +95,12 @@ const processTradingData = async (
   if (isRendering.value && !keepProcessing) return;
   currentTradingData.value = tradingDataKeeper;
 
-  const tradeList = (await getOrderOrTradeListFromTradingDataKeeper({
+  const tradeList = getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
     tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
     currentGlobalKfLocation: currentGlobalKfLocation.value,
     type: 'trade',
-  })) as KungfuApi.TradeResolved[];
+  }) as KungfuApi.TradeResolved[];
 
   if (tradeList.length > 0) {
     const tableData = searchByKeyword(

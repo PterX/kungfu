@@ -98,6 +98,8 @@ const {
 } = useCurrentGlobalKfLocation(window.watcher);
 const columns = getColumns();
 
+const cancelOrderTriggerLoading = ref<boolean>(false);
+
 const selectedRowKeys = ref<number[]>([]);
 const selectedRows = ref<KungfuApi.OrderTriggerResolved[]>([]);
 const tableDataResolved = ref<KungfuApi.OrderTriggerResolved[]>([]);
@@ -517,6 +519,8 @@ function handleCancelAllOrderTrigger() {
         return;
       }
 
+      cancelOrderTriggerLoading.value = true;
+
       return kfCancelAllOrdersTrigger(
         window.watcher,
         [...insertOrderTriggers, ...unfinishedOrderTriggers],
@@ -527,6 +531,9 @@ function handleCancelAllOrderTrigger() {
         })
         .catch((err: Error) => {
           error(err.message);
+        })
+        .finally(() => {
+          cancelOrderTriggerLoading.value = false;
         });
     })
     .finally(() => {
@@ -574,6 +581,7 @@ function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {
             size="small"
             type="primary"
             danger
+            :loading="cancelOrderTriggerLoading"
             @click="handleCancelAllOrderTrigger"
           >
             {{ $t('orderTriggerConfig.cancel_all') }}

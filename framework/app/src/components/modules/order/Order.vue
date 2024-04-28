@@ -67,7 +67,7 @@ import StatisticModal from './OrderStatisticModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
-const { success, error } = messagePrompt();
+const { success, error, warn } = messagePrompt();
 const app = getCurrentInstance();
 const windowMinimized = useBrowserWindowMinimize();
 const { getPriceTickAndPrecision } = useActiveInstruments();
@@ -302,7 +302,7 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
 
   kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
-      success();
+      success(t('orderConfig.cancel_order_success'));
     })
     .catch(() => {
       error();
@@ -328,9 +328,16 @@ function handleCancelAllOrders(): void {
     }
     cancelOrderLoading.value = true;
     const orders = await getTargetCancelOrders();
+
+    if (orders.length === 0) {
+      cancelOrderLoading.value = false;
+      warn(t('orderConfig.no_order_to_cancel'));
+      return;
+    }
+
     return kfCancelAllOrders(window.watcher, orders)
       .then(() => {
-        success();
+        success(t('orderConfig.cancel_all_order_success'));
       })
       .catch((err) => {
         error(err.message);

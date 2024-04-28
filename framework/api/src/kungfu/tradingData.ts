@@ -1,7 +1,7 @@
 import { Subject } from 'rxjs';
 import { watcher, startWatcher } from './watcher';
 import {
-  setTimerPromiseTask,
+  setNodeTimerPromiseTask,
   doSomethingWithDataSliced,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
@@ -22,6 +22,16 @@ export class DynamicTradingDataIndexedMap<V> {
   private sortStr2 = '';
   private commonMinKey: unknown;
 
+  compare = (a, b) => {
+    if ((b as V)[this.sortStr1] > (a as V)[this.sortStr1]) return 1;
+    else if ((b as V)[this.sortStr1] < (a as V)[this.sortStr1]) return -1;
+    else {
+      return (b as V)[this.sortStr2]
+        .toString()
+        .localeCompare((a as V)[this.sortStr2].toString());
+    }
+  };
+
   constructor(type: 'order' | 'trade', maxListLength = DEFAULT_LIST_LENGTH) {
     this.tradingDataType = type;
     this.commonList = [];
@@ -36,24 +46,9 @@ export class DynamicTradingDataIndexedMap<V> {
       this.sortStr1 = 'trade_time';
       this.sortStr2 = 'trade_id';
     }
-    this.commonTree = new BTree(undefined, (a, b) => {
-      if ((b as V)[this.sortStr1] > (a as V)[this.sortStr1]) return 1;
-      else if ((b as V)[this.sortStr1] < (a as V)[this.sortStr1]) return -1;
-      else {
-        return (b as V)[this.sortStr2]
-          .toString()
-          .localeCompare((a as V)[this.sortStr2].toString());
-      }
-    });
-    this.unfinishedTree = new BTree(undefined, (a, b) => {
-      if ((b as V)[this.sortStr1] > (a as V)[this.sortStr1]) return 1;
-      else if ((b as V)[this.sortStr1] < (a as V)[this.sortStr1]) return -1;
-      else {
-        return (b as V)[this.sortStr2]
-          .toString()
-          .localeCompare((a as V)[this.sortStr2].toString());
-      }
-    });
+
+    this.commonTree = new BTree(undefined, this.compare);
+    this.unfinishedTree = new BTree(undefined, this.compare);
   }
 
   insertKeyWithValue(value: V, type: string, isFinished = true): void {
@@ -149,13 +144,29 @@ export class DynamicTradingDataIndexedMap<V> {
     this.unfinishedList = this.unfinishedTree.valuesArray();
   }
 
-  getAllUnfinishedList(): V[] {
-    return this.unfinishedTree.valuesArray();
+  getCommonTree(filterFunc?: (item: V) => boolean): BTree<unknown, V> {
+    return filterFunc
+      ? this.commonTree.filter((_k, v) => filterFunc(v))
+      : this.commonTree.clone();
   }
 
-  getAllList(): V[] {
-    //TODO: fullList
-    return this.commonTree.valuesArray();
+  getUnfinishedTree(filterFunc?: (item: V) => boolean): BTree<unknown, V> {
+    return filterFunc
+      ? this.unfinishedTree.filter((_k, v) => filterFunc(v))
+      : this.unfinishedTree.clone();
+  }
+
+  getFullTree(filterFunc?: (item: V) => boolean): BTree<unknown, V> {
+    const mergedTree = this.commonTree.clone();
+    const entries = [...this.unfinishedTree.entries()];
+    return filterFunc
+      ? mergedTree.withPairs(entries, true).filter((_k, v) => filterFunc(v))
+      : mergedTree.withPairs(entries, true);
+  }
+
+  getFullList(): V[] {
+    const mergedTree = this.getFullTree();
+    return mergedTree.valuesArray();
   }
 }
 
@@ -211,33 +222,65 @@ export function useWatcher() {
     order: {
       td: {},
       strategy: {},
-      list: function (): KungfuApi.OrderResolved[] {
-        return Object.values(this.td).reduce((acc, cur) => {
-          return acc.concat(cur.getAllList());
-        }, [] as KungfuApi.OrderResolved[]);
+      list: function (
+        type = 'all',
+        filterFunc?: (order: KungfuApi.OrderResolved) => boolean,
+      ): KungfuApi.OrderResolved[] {
+        const getTreeByType = (getTreeFunc: string) => {
+          return Object.values(this.td).reduce((acc, cur, index) => {
+            const curTree = cur[getTreeFunc](filterFunc);
+            return index === 0
+              ? curTree
+              : acc.withPairs([...curTree.entries()], true);
+          }, null);
+        };
+
+        const treeFuncs: { [key: string]: string } = {
+          common: 'getCommonTree',
+          unfinished: 'getUnfinishedTree',
+          all: 'getFullTree',
+        };
+
+        const tree = getTreeByType(treeFuncs[type] || 'getFullTree');
+        return tree ? tree.valuesArray() : [];
       },
-      filter: function (keyOrCallback, value): KungfuApi.OrderResolved[] {
-        return typeof keyOrCallback === 'function'
-          ? this.list().filter(keyOrCallback)
-          : this.list().filter((order) => {
-              return order[keyOrCallback] === value;
-            });
+      filter: function (
+        filterFunc: (order: KungfuApi.OrderResolved) => boolean,
+        type = 'all',
+      ): KungfuApi.OrderResolved[] {
+        return this.list(type, filterFunc);
       },
     },
     trade: {
       td: {},
       strategy: {},
-      list: function (): KungfuApi.TradeResolved[] {
-        return Object.values(this.td).reduce((acc, cur) => {
-          return acc.concat(cur.getAllList());
-        }, [] as KungfuApi.TradeResolved[]);
+      list: function (
+        type = 'all',
+        filterFunc?: (order: KungfuApi.TradeResolved) => boolean,
+      ): KungfuApi.TradeResolved[] {
+        const getTreeByType = (getTreeFunc: string) => {
+          return Object.values(this.td).reduce((acc, cur, index) => {
+            const curTree = cur[getTreeFunc](filterFunc);
+            return index === 0
+              ? curTree
+              : acc.withPairs([...curTree.entries()], true);
+          }, null);
+        };
+
+        const treeFuncs: { [key: string]: string } = {
+          common: 'getCommonTree',
+          unfinished: 'getUnfinishedTree',
+          all: 'getFullTree',
+        };
+
+        const tree = getTreeByType(treeFuncs[type] || 'getFullTree');
+        return tree ? tree.valuesArray() : [];
       },
-      filter: function (keyOrCallback, value): KungfuApi.TradeResolved[] {
-        return typeof keyOrCallback === 'function'
-          ? this.list().filter(keyOrCallback)
-          : this.list().filter((trade) => {
-              return trade[keyOrCallback] === value;
-            });
+      filter: function (
+        filterFunc: (order: KungfuApi.TradeResolved) => boolean,
+        type = 'all',
+      ): KungfuApi.TradeResolved[] {
+        return this.list(type, filterFunc);
       },
     },
     update: false,
@@ -353,7 +396,7 @@ export function useWatcher() {
   const startWatcherSyncTask = (interval = 1000, callBack?: AfterSync) => {
     if (watcher === null) return;
 
-    setTimerPromiseTask(async () => {
+    setNodeTimerPromiseTask(async () => {
       drainStatesBySync();
       callBack &&
         callBack(watcher as KungfuApi.Watcher, tradingDataKeeper, update);

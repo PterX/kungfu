@@ -35,7 +35,7 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
 let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
-let font: string = '';
+let font = '';
 const ColumnCustomMap = ref<
   Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
 >({});
@@ -114,6 +114,10 @@ defineEmits<{
     e: 'scroll',
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['scroll'],
   ): void;
+  (
+    e: 'checkboxStateChange',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['checkbox_state_change'],
+  ): void;
 }>();
 
 const defaultTheme: VTable.TYPES.ITableThemeDefine = {
@@ -169,6 +173,17 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   scrollStyle: {
     scrollSliderColor: '#555',
     visible: 'focus',
+  },
+  checkboxStyle: {
+    size: 12,
+    spaceBetweenTextAndIcon: 4,
+    defaultFill: 'transparent',
+    defaultStroke: '#444',
+    disableFill: '#444',
+    checkedFill: '#FAAD14',
+    checkedStroke: '#FAAD14',
+    disableCheckedFill: '#FAAD14',
+    disableCheckedStroke: '#FAAD14',
   },
 };
 
@@ -422,6 +437,7 @@ const registerEvent = () => {
     mouseup_cell: 'mouseupCell',
     keydown: 'keydown',
     scroll: 'scroll',
+    checkbox_state_change: 'checkboxStateChange',
   };
 
   Object.entries(eventMap).forEach(([event, emitEvent]) => {

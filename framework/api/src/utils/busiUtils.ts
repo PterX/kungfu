@@ -45,6 +45,7 @@ import {
   HistoryDateEnum,
 } from '../typings/enums';
 import { kfLogger } from '../utils/logUtils';
+import { formatNumberPrecision } from '../utils/decimalFormatter';
 import {
   graceDeleteProcess,
   Pm2ProcessStatusData,
@@ -166,13 +167,13 @@ String.prototype.parseSourceAccountId = function (): SourceAccountId {
   }
 };
 
-Number.prototype.kfRound = function (precision?: number) {
+Number.prototype.kfRound = function (precision = 0) {
   const temp = 10 ** (precision || 0);
   return Math.round(Number(this) * temp) / temp;
 };
 
-Number.prototype.kfToFixed = function (precision?: number) {
-  return this.kfRound(precision).toFixed(precision);
+Number.prototype.kfToFixed = function (precision = 0) {
+  return formatNumberPrecision(Number(this), precision);
 };
 
 Array.prototype.removeRepeat = function () {

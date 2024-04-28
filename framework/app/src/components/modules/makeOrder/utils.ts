@@ -1,8 +1,8 @@
-import { defineComponent, ref, onBeforeUnmount } from 'vue';
 import {
   InstrumentTypeEnum,
   OffsetEnum,
   SideEnum,
+  PriceTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { storeToRefs } from 'pinia';
 import { dealOrderInputItem } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
@@ -23,7 +23,7 @@ import {
 } from './config';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { getFutureArbitrageOrderTrans } from '../futureArbitrage/config';
-import { Checkbox } from 'ant-design-vue';
+import { buildCustomCheckboxVNode } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 const { t } = VueI18n.global;
 
 const { globalSetting } = storeToRefs(useGlobalStore());
@@ -49,6 +49,10 @@ export function dealOrderPlaceVNode(
 ): VNode {
   const orderData: KungfuApi.MakeOrderInput = dealStockOffset(makeOrderInput);
   const { getPriceTickAndPrecision } = useActiveInstruments();
+  const priceType = makeOrderInput?.price_type;
+  if (priceType === PriceTypeEnum.Market) {
+    orderInputTrans['limit_price'] = t('tradingConfig.protect_price');
+  }
 
   const currentOrderInputTrans = {
     ...orderInputTrans,
@@ -69,27 +73,18 @@ export function dealOrderPlaceVNode(
   );
 }
 
-const CustomCheckbox = defineComponent({
-  name: 'CustomCheckbox',
-  props: {
-    defaultChecked: Boolean,
-    label: {
-      type: String,
-      default: '',
-      required: true,
-    },
-  },
-  setup(props) {
-    const isChecked = ref(props.defaultChecked);
-
-    const handleCheckboxChange = (e) => {
-      isChecked.value = e.target.checked;
-    };
-
-    onBeforeUnmount(async () => {
-      if (isChecked.value) {
-        const globalSetting = await getKfGlobalSettingsValue();
-        globalSetting.trade.skipConfirmMakeOrder = isChecked.value;
+export const createOrderPlaceVNode = (
+  orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData>,
+  orderInputTrans: Record<string, string>,
+  orderCount: number,
+) => {
+  const checkBoxVNode = buildCustomCheckboxVNode(
+    !!globalSetting.value?.trade?.skipConfirmMakeOrder,
+    t('tradingConfig.hide_next_time'),
+    async (checked) => {
+      if (checked) {
+        const globalSetting = getKfGlobalSettingsValue();
+        globalSetting.trade.skipConfirmMakeOrder = checked;
 
         try {
           await setKfGlobalSettingsValue(globalSetting);
@@ -101,34 +96,8 @@ const CustomCheckbox = defineComponent({
           console.error('Failed to save global setting:', error);
         }
       }
-    });
-
-    return () =>
-      h(
-        Checkbox,
-        {
-          style: {
-            position: 'absolute',
-            left: '24px',
-            bottom: '24px',
-          },
-          checked: isChecked.value,
-          onChange: handleCheckboxChange,
-        },
-        { default: () => [props.label] },
-      );
-  },
-});
-
-export const createOrderPlaceVNode = (
-  orderInputResolved: Record<string, KungfuApi.KfTradeValueCommonData>,
-  orderInputTrans: Record<string, string>,
-  orderCount: number,
-) => {
-  const checkBoxVNode = h(CustomCheckbox, {
-    defaultChecked: !!globalSetting.value?.trade?.skipConfirmMakeOrder,
-    label: t('tradingConfig.hide_next_time'),
-  });
+    },
+  );
   const vnode = Object.keys(orderInputResolved)
     .filter((key) => {
       if (orderInputResolved[key].name.toString() === '[object Object]') {

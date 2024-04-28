@@ -260,6 +260,8 @@ etf_type
 rate
 replace_flag
 cash_premium_ratio
+replace_balance
+keep_single_side
 from_time
 dest_id
 base_time
@@ -600,8 +602,6 @@ Snapshot
 Entrust
 Transaction
 Tree
-Tick
-Depth
 SubscribeDataType
 Stock
 Future

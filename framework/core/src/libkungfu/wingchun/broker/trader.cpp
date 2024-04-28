@@ -240,10 +240,6 @@ void Trader::clean_finished_orders() {
   }
 }
 
-void Trader::clean_orders() { get_order_service().clean_finished_orders(); }
-
-void Trader::clean_trades() { get_order_service().clean_trades(); }
-
 uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 
 void Trader::disable_recover() { disable_recover_ = true; }

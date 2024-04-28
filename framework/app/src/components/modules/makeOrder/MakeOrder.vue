@@ -22,6 +22,7 @@ import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/ass
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import { dealOrderPlaceVNode, dealStockOffset } from './utils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
+import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/accounting';
 import {
   makeOrderByOrderInput,
   getPosClosableVolume,
@@ -35,6 +36,7 @@ import {
   SideEnum,
   PriceTypeEnum,
   OrderTriggerConfigTypeEnum,
+  DirectionEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import {
   Side,
@@ -46,7 +48,7 @@ import {
   useInstruments,
   useProcessStatusDetailData,
   useTradeLimit,
-  useMarginSupport,
+  useBrokerBehaviorManager,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   initFormStateByConfig,
@@ -59,6 +61,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
+  isCryptoInstrument,
   dealOrderInputItem,
   transformSearchInstrumentResultToInstrument,
   dealVolumeByInstrumentType,
@@ -96,6 +99,9 @@ const makeOrderRef = ref();
 const apartOrderRef = ref();
 const orderTriggerRef = ref();
 
+const volumeStep = ref(1);
+const volumePrecision = ref(0);
+
 useKeyboardControlContainerStyle(
   'MakeOrder',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
@@ -111,20 +117,19 @@ const formState = ref(
     getConfigSettings({
       location: currentGlobalKfLocation.value,
       instrumentType: InstrumentTypeEnum.future,
-      isMarginMakeOrder: false,
-      isSpecifyContract: false,
+      isMarginMakeOrderSupport: false,
+      isSpecifyContractSupport: false,
     }),
     {},
   ),
 );
 
-const { isMarginMakeOrder, isSpecifyContract } = useMarginSupport(
-  currentGlobalKfLocation,
-  formState,
-);
+const { isMarginMakeOrderSupport, isSpecifyContractSupport, isCryptoSupport } =
+  useBrokerBehaviorManager(currentGlobalKfLocation, formState);
 
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
-const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+const enableOffset = Object.keys(enableCustomRadioType['offset']);
+const offsetList = ref<string[]>([...enableOffset]);
 
 const autoFillInstrument = ref<boolean>(false);
 
@@ -133,6 +138,8 @@ const { appStates, processStatusData } = useProcessStatusDetailData();
 
 const { triggerOrderBook } = useTriggerMakeOrder();
 const {
+  currentAccountLocation,
+  currentFormDirection,
   showAmountOrPosition,
   instrumentResolved,
   currentPositionWithLongDirection,
@@ -140,12 +147,12 @@ const {
   currentPosition,
   currentResidueMoney,
   currentResiduePosVolume,
-  currentPrice,
   currentTradeAmount,
   currentAvailMoney,
   currentAvailPosVolume,
   isAccountOrInstrumentConfirmed,
-} = useMakeOrderInfo(formState, isMarginMakeOrder);
+  currentPrice,
+} = useMakeOrderInfo(formState, isMarginMakeOrderSupport);
 useMakeOrderSubscribe(formState);
 
 const availablePosOrAmount = computed(() => {
@@ -179,39 +186,31 @@ const configSettings = computed(() => {
   }
 
   let priceStep = 1,
-    pricePrecision = 0,
-    volumePrecision = 0,
-    volumeStep = 1;
+    pricePrecision = 0;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
-      instrumentId,
-      exchangeId,
-    );
     const { price_tick, price_precision } = getPriceTickAndPrecision(
       instrumentId,
       exchangeId,
     );
     priceStep = price_tick;
     pricePrecision = price_precision;
-    volumeStep = quantity_unit;
-    volumePrecision = volume_precision;
   }
 
   const { side } = formState.value;
   return getConfigSettings({
     location: currentGlobalKfLocation.value,
     instrumentType: makeOrderInstrumentType.value,
-    isMarginMakeOrder: isMarginMakeOrder.value,
-    isSpecifyContract: isSpecifyContract.value,
+    isMarginMakeOrderSupport: isMarginMakeOrderSupport.value,
+    isSpecifyContractSupport: isSpecifyContractSupport.value,
     side,
     priceType: +formState.value.price_type,
     pricePrecision: pricePrecision || null,
     priceStep,
     sideList: sideList.value,
     offsetList: offsetList.value,
-    volumeStep,
-    volumePrecision,
+    volumeStep: volumeStep.value,
+    volumePrecision: volumePrecision.value,
   });
 });
 
@@ -280,12 +279,12 @@ const getResolvedOffset = (
   side: SideEnum,
   instrumentType: InstrumentTypeEnum,
 ) => {
-  if (isShotable(instrumentType) || isMarginMakeOrder.value) {
+  if (isShotable(instrumentType) || isMarginMakeOrderSupport.value) {
     if (offset !== undefined) {
       return offset;
     }
   }
-  if (isMarginMakeOrder.value) {
+  if (isMarginMakeOrderSupport.value) {
     if (
       [
         SideEnum.GuaranteeStockBuy,
@@ -324,7 +323,14 @@ watch(
     const instrumentResolved =
       transformSearchInstrumentResultToInstrument(newInstrument);
     if (instrumentResolved) {
-      const { instrumentType, exchangeId } = instrumentResolved;
+      const { instrumentType, exchangeId, instrumentId } = instrumentResolved;
+      const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
+        instrumentId,
+        exchangeId,
+      );
+
+      volumeStep.value = quantity_unit;
+      volumePrecision.value = volume_precision;
 
       const tdName = newAccountId ? newAccountId.split('_')[0] : '';
 
@@ -345,18 +351,25 @@ watch(
         sideList.value = Object.keys(Side).slice(0, 2);
       }
 
+      const offsetWithoutCloseByDay = enableOffset.filter(
+        (item) =>
+          item !== `${OffsetEnum.CloseToday}` &&
+          item !== `${OffsetEnum.CloseYest}`,
+      );
       if (instrumentType === InstrumentTypeEnum.future) {
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
-          offsetList.value = offsetList.value.filter(
-            (item) =>
-              item !== OffsetEnum.CloseToday + '' ||
-              item !== OffsetEnum.CloseYest + '',
-          );
+          offsetList.value = offsetWithoutCloseByDay;
+        } else {
+          offsetList.value = [...enableOffset];
         }
+      } else if (isCryptoInstrument(instrumentType)) {
+        offsetList.value = offsetWithoutCloseByDay;
+      } else {
+        offsetList.value = [...enableOffset];
       }
 
       if (
-        !isMarginMakeOrder.value &&
+        !isMarginMakeOrderSupport.value &&
         'side' in formState.value &&
         !sideList.value.includes(formState.value.side + '')
       ) {
@@ -383,7 +396,7 @@ watch(
 );
 
 watch(
-  () => isMarginMakeOrder.value,
+  () => isMarginMakeOrderSupport.value,
   (newVal) => {
     if (newVal) {
       if (!MarginSideStatus.includes(formState.value.side)) {
@@ -403,7 +416,7 @@ watch(
 watch(
   () => formState.value.side,
   (newSide) => {
-    if (isMarginMakeOrder.value) {
+    if (isMarginMakeOrderSupport.value) {
       [
         SideEnum.GuaranteeStockBuy,
         SideEnum.MarginTrade,
@@ -419,7 +432,7 @@ watch(
       }
 
       if (
-        !isSpecifyContract.value &&
+        !isSpecifyContractSupport.value &&
         formState.value.side === SideEnum.RepayMargin
       ) {
         formState.value.contract_id = '';
@@ -652,12 +665,12 @@ async function handleApartedConfirm(volumeList: number[]): Promise<void> {
 }
 
 function confirmContinueOrderModal(
-  warnningMessage: string,
+  warningMessage: string,
   okText = t('tradingConfig.Continue'),
   cancelText = t('cancel'),
 ): Promise<boolean | null> {
-  if (warnningMessage !== '') {
-    return confirmModal(t('warning'), warnningMessage, okText, cancelText);
+  if (warningMessage !== '') {
+    return confirmModal(t('warning'), warningMessage, okText, cancelText, true);
   } else {
     return Promise.resolve(null);
   }
@@ -851,6 +864,42 @@ async function handleMakeOrder(): Promise<void> {
   }
 }
 
+const getMaxAvailableTradeVolumeByRate = (rate: number) => {
+  if (!currentPrice.value) return 0;
+  const precision = getPrecisionByInstrumentType(
+    instrumentResolved.value?.instrumentType,
+  );
+  if (instrumentResolved.value && currentAccountLocation.value) {
+    const instrumentForAccounting: KungfuApi.InstrumentForAccounting = {
+      ...instrumentResolved.value,
+      price: currentPrice.value,
+      volume: 0,
+      direction: currentFormDirection.value || DirectionEnum.Long,
+      accountUID: (window.watcher as KungfuApi.Watcher).getLocationUID(
+        currentAccountLocation.value,
+      ),
+    };
+    if (instrumentResolved.value.instrumentType in TradeAccountingUsageMap) {
+      return dealKfDecimalPrecision(
+        Number(
+          TradeAccountingUsageMap[
+            instrumentResolved.value.instrumentType as InstrumentTypeEnum
+          ].getMaxAvailableTradeVolume(
+            window.watcher,
+            instrumentForAccounting,
+            (Number.isNaN(Number(currentAvailMoney.value))
+              ? 0
+              : Number(currentAvailMoney.value)) * rate,
+          ),
+        ),
+        precision,
+      );
+    }
+  }
+
+  return 0;
+};
+
 const isShowOrderTriggerConfirmModal = ref<boolean>(false);
 const orderTriggerInputResolved = ref<
   Record<string, KungfuApi.KfTradeValueCommonData>
@@ -1036,7 +1085,8 @@ const dealStringToNumber = (tar: string) =>
 let lastPercentSetVolume = 0;
 const handlePercentChange = (target: number) => {
   const { side, offset } = formState.value;
-  const { instrumentId, exchangeId } = instrumentResolved.value || {};
+  const { instrumentId, exchangeId, instrumentType } =
+    instrumentResolved.value || {};
   let quantityUnit = 0;
   if (instrumentId && exchangeId) {
     const { quantity_unit } = getQuantityUnitAndPrecision(
@@ -1056,9 +1106,7 @@ const handlePercentChange = (target: number) => {
 
   let targetVolume;
   if (curOffset === OffsetEnum.Open) {
-    const availMoney = dealStringToNumber(currentAvailMoney.value + '');
-    const allVolume = currentPrice.value ? availMoney / currentPrice.value : 0;
-    targetVolume = allVolume * targetPercent;
+    targetVolume = getMaxAvailableTradeVolumeByRate(targetPercent);
   } else {
     const availPosVolume = dealStringToNumber(currentAvailPosVolume.value);
     targetVolume = availPosVolume * targetPercent;
@@ -1066,7 +1114,7 @@ const handlePercentChange = (target: number) => {
 
   formState.value.volume = dealVolumeByInstrumentType(
     targetVolume,
-    instrumentResolved.value?.instrumentType,
+    instrumentType,
     quantityUnit,
   );
   if (formState.value.volume) {
@@ -1151,7 +1199,7 @@ watch(
                 </a-button>
               </a-col>
             </div>
-            <template v-if="isAccountOrInstrumentConfirmed">
+            <template v-if="isAccountOrInstrumentConfirmed && !isCryptoSupport">
               <div class="make-order-position" tabindex="-1">
                 <a-col :span="LABEL_COL - 2"></a-col>
                 <a-col :span="WRAPPER_COL">
@@ -1172,7 +1220,7 @@ watch(
                 <a-col :span="WRAPPER_COL">
                   <span class="position-label">
                     {{
-                      isMarginMakeOrder
+                      isMarginMakeOrderSupport
                         ? $t('交易金额')
                         : isShotable(instrumentResolved?.instrumentType)
                         ? formState.offset === OffsetEnum.Open
@@ -1241,6 +1289,8 @@ watch(
       v-model:visible="isShowConfirmModal"
       :curOrderVolume="curOrderVolume"
       :curOrderType="curOrderType"
+      :volumePrecision="volumePrecision"
+      :volumeStep="volumeStep"
       @close="
         () => {
           apartOrderRef && apartOrderRef.focus();
@@ -1283,6 +1333,14 @@ watch(
         .ant-form-item-extra {
           min-height: unset;
         }
+
+        .ant-input-number {
+          width: 100%;
+
+          .ant-input-number-input {
+            width: 100%;
+          }
+        }
       }
 
       .percent-group__wrap {
@@ -1312,10 +1370,9 @@ watch(
 
     .make-order-position {
       display: flex;
-      line-height: 1;
       font-size: 12px;
       color: @text-color;
-      margin: 10px 0px;
+      padding-top: 4px;
 
       .position-label {
         padding-right: 8px;

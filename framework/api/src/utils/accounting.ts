@@ -23,6 +23,11 @@ interface AccountingUsage {
     instrumentId: string,
     exchangeId: string,
   ) => KungfuApi.Instrument | null;
+  getMaxAvailableTradeVolume: (
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset: number,
+  ) => number;
 }
 
 export const AccountingInstrumentDefaultValue = {
@@ -40,8 +45,9 @@ export const getInstrumentDefaultValue = (
   return value || customDefaultValue || AccountingInstrumentDefaultValue[key];
 };
 
-abstract class BaseAccountingUsage implements AccountingUsage {
+abstract class AbstractAccountingUsage implements AccountingUsage {
   intrumentType: InstrumentTypeEnum;
+
   constructor(intrumentType: InstrumentTypeEnum) {
     this.intrumentType = intrumentType;
   }
@@ -50,6 +56,49 @@ abstract class BaseAccountingUsage implements AccountingUsage {
     _watcher: KungfuApi.Watcher,
     _instrumentForAccounting: KungfuApi.InstrumentForAccounting,
   ): number | null;
+
+  abstract getInstrumentInWatcher(
+    _watcher: KungfuApi.Watcher,
+    _instrumentId: string,
+    _exchangeId: string,
+  ): KungfuApi.Instrument | null;
+
+  abstract getInstrumentFactorInWatcher(
+    _watcher: KungfuApi.Watcher,
+    _instrumentId: string,
+    _exchangeId: string,
+    _accountUID: number,
+  ): KungfuApi.InstrumentFactor | null;
+
+  abstract getMaxAvailableTradeVolume(
+    _watcher: KungfuApi.Watcher,
+    _instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    _availAsset: number,
+  ): number;
+}
+
+class BaseAccountingUsage extends AbstractAccountingUsage {
+  constructor(intrumentType: InstrumentTypeEnum) {
+    super(intrumentType);
+  }
+
+  getTradeAmount(
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+  ) {
+    if (!instrumentForAccounting) return null;
+
+    const { instrumentId, exchangeId } = instrumentForAccounting;
+
+    const instrument = this.getInstrumentInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+    );
+
+    const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
+    return calcTradeAmountWithNoting(instrumentForAccounting, precision);
+  }
 
   getInstrumentInWatcher(
     watcher: KungfuApi.Watcher,
@@ -71,26 +120,15 @@ abstract class BaseAccountingUsage implements AccountingUsage {
       ukey
     ] as KungfuApi.InstrumentFactor | null;
   }
-}
 
-function calcTradeAmountWithNoting(
-  instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-  precision = DEFAULT_PRECISION,
-) {
-  const { price, volume } = instrumentForAccounting;
-  return dealKfDecimalPrecision(price * volume, precision);
-}
-
-class DefaultAccountingUsage extends BaseAccountingUsage {
-  constructor() {
-    super(InstrumentTypeEnum.unknown);
-  }
-
-  getTradeAmount(
+  getMaxAvailableTradeVolume(
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset = 0,
   ) {
-    const { instrumentId, exchangeId } = instrumentForAccounting;
+    if (!instrumentForAccounting) return 0;
+
+    const { instrumentId, exchangeId, price } = instrumentForAccounting;
 
     const instrument = this.getInstrumentInWatcher(
       watcher,
@@ -99,8 +137,17 @@ class DefaultAccountingUsage extends BaseAccountingUsage {
     );
 
     const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
-    return calcTradeAmountWithNoting(instrumentForAccounting, precision);
+
+    return dealKfDecimalPrecision(availAsset / price, precision);
   }
+}
+
+function calcTradeAmountWithNoting(
+  instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+  precision = DEFAULT_PRECISION,
+) {
+  const { price, volume } = instrumentForAccounting;
+  return dealKfDecimalPrecision(price * volume, precision);
 }
 
 function calcTradeAmountForMain(
@@ -253,6 +300,57 @@ class FutureAccountingUsage extends BaseAccountingUsage {
 
     return null;
   }
+
+  getMaxAvailableTradeVolume(
+    watcher: KungfuApi.Watcher,
+    instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset = 0,
+  ) {
+    if (!instrumentForAccounting) return 0;
+
+    const { instrumentId, exchangeId, accountUID, price } =
+      instrumentForAccounting;
+
+    const instrument = this.getInstrumentInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+    );
+
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+      accountUID,
+    );
+
+    const { long_margin_ratio, short_margin_ratio, exchange_rate } =
+      instrumentFactor || {};
+
+    const { direction } = instrumentForAccounting;
+    const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
+    const { contract_multiplier } = instrument || {};
+
+    const marginRatio =
+      direction === DirectionEnum.Long
+        ? getInstrumentDefaultValue(long_margin_ratio, 'long_margin_ratio')
+        : getInstrumentDefaultValue(short_margin_ratio, 'short_margin_ratio');
+
+    const exchangeRate = getInstrumentDefaultValue(
+      exchange_rate,
+      'exchange_rate',
+    );
+
+    const contractMultiplier = getInstrumentDefaultValue(
+      contract_multiplier,
+      'contract_multiplier',
+    );
+
+    return dealKfDecimalPrecision(
+      availAsset / (price * marginRatio * exchangeRate * contractMultiplier),
+      precision,
+    );
+  }
 }
 
 class RepoAccountingUsage extends BaseAccountingUsage {
@@ -288,18 +386,16 @@ class RepoAccountingUsage extends BaseAccountingUsage {
       precision,
     );
   }
-}
 
-class CryptoAccountingUsage extends BaseAccountingUsage {
-  constructor() {
-    super(InstrumentTypeEnum.stock);
-  }
-
-  getTradeAmount(
+  getMaxAvailableTradeVolume(
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
+    availAsset = 0,
   ) {
-    const { instrumentId, exchangeId } = instrumentForAccounting;
+    if (!instrumentForAccounting) return 0;
+
+    const { instrumentId, exchangeId, accountUID, price } =
+      instrumentForAccounting;
 
     const instrument = this.getInstrumentInWatcher(
       watcher,
@@ -307,13 +403,39 @@ class CryptoAccountingUsage extends BaseAccountingUsage {
       exchangeId,
     );
 
+    const instrumentFactor = this.getInstrumentFactorInWatcher(
+      watcher,
+      instrumentId,
+      exchangeId,
+      accountUID,
+    );
+
+    const { exchange_rate } = instrumentFactor || {};
+
+    const marginRatio = getInstrumentDefaultValue(
+      exchange_rate,
+      'exchange_rate',
+    );
+
     const precision = getPrecisionByInstrumentType(instrument?.instrument_type);
-    return calcTradeAmountWithNoting(instrumentForAccounting, precision);
+
+    return dealKfDecimalPrecision(
+      availAsset / (price * marginRatio),
+      precision,
+    );
+  }
+}
+
+class CryptoAccountingUsage extends BaseAccountingUsage {
+  constructor() {
+    super(InstrumentTypeEnum.stock);
   }
 }
 
 const TradeAccountingUsageMap: Record<InstrumentTypeEnum, AccountingUsage> = {
-  [InstrumentTypeEnum.unknown]: new DefaultAccountingUsage(),
+  [InstrumentTypeEnum.unknown]: new BaseAccountingUsage(
+    InstrumentTypeEnum.unknown,
+  ),
   [InstrumentTypeEnum.stock]: new StockAccountingUsage(),
   [InstrumentTypeEnum.future]: new FutureAccountingUsage(),
   [InstrumentTypeEnum.fund]: new StockAccountingUsage(),
@@ -325,6 +447,8 @@ const TradeAccountingUsageMap: Record<InstrumentTypeEnum, AccountingUsage> = {
   [InstrumentTypeEnum.crypto]: new CryptoAccountingUsage(),
   [InstrumentTypeEnum.cryptofuture]: new FutureAccountingUsage(),
   [InstrumentTypeEnum.cryptoufuture]: new FutureAccountingUsage(),
-  [InstrumentTypeEnum.multi]: new DefaultAccountingUsage(),
+  [InstrumentTypeEnum.multi]: new BaseAccountingUsage(
+    InstrumentTypeEnum.unknown,
+  ),
 };
 export { TradeAccountingUsageMap };

@@ -10,7 +10,7 @@ import click
 )
 @kfc.pass_context()
 def login(ctx, account):
-    logger = create_logger("login", ctx.log_level)
+    logger = create_logger("login")
     logger.info(f"Welcome, your phone number is: {account}")
     sso = SSO(ctx.stage)
     sso.send_sms_code(account)

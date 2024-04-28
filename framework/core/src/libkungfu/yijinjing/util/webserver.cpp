@@ -110,8 +110,8 @@ int stream::stream_send(const std::string &data) {
   nng_iov iov;
   iov.iov_buf = (void *)data.data();
   iov.iov_len = data.size();
-  while (nng_aio_busy(aio_send_[cur_index_])) {
-    cur_index_ = (cur_index_ + 1) % aio_nums_;
+  if (nng_aio_busy(aio_send_[cur_index_])) {
+    nng_aio_wait(aio_send_[cur_index_]);
   }
   // aio_nums is set up as 2^n will be better, a%b = a&(b-1).
   //  init aio_nums can round up to 2^n.
@@ -121,6 +121,7 @@ int stream::stream_send(const std::string &data) {
     fatal("nng_aio_set_iov", rv);
   }
   nng_stream_send(s_, aio_send_[cur_index_]);
+  cur_index_ = (cur_index_ + 1) % aio_nums_;
   /*
   int rv = nng_aio_set_iov(aio_send_, 1, &iov);
   if (rv != 0) {
@@ -141,8 +142,8 @@ int stream::stream_send(const char *data, const int len) {
   nng_iov iov;
   iov.iov_buf = (void *)data;
   iov.iov_len = len;
-  while (nng_aio_busy(aio_send_[cur_index_])) {
-    cur_index_ = (cur_index_ + 1) % aio_nums_;
+  if (nng_aio_busy(aio_send_[cur_index_])) {
+    nng_aio_wait(aio_send_[cur_index_]);
   }
 
   // aio_nums is set up as 2^n will be better, a%b = a&(b-1).
@@ -154,6 +155,7 @@ int stream::stream_send(const char *data, const int len) {
     fatal("nng_aio_set_iov", rv);
   }
   nng_stream_send(s_, aio_send_[cur_index_]);
+  cur_index_ = (cur_index_ + 1) % aio_nums_;
   /*
   int rv = nng_aio_set_iov(aio_send_, 1, &iov);
   if (rv != 0) {

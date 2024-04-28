@@ -82,7 +82,7 @@ static uint64_t generate_stream_id(nng_stream *s) {
 
 class stream {
 public:
-  stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums = 100);
+  stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums = 16384);
 
   virtual ~stream();
 

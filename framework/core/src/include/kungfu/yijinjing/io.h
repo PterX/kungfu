@@ -122,7 +122,7 @@ DECLARE_PTR(io_device_console)
 
 class io_device_network : public resource {
 public:
-  io_device_network() { stream_manager_ = std::make_shared<kungfu::yijinjing::webserver::stream_manage>(); }
+  io_device_network(bool is_low_latency):is_low_latency_(is_low_latency) { stream_manager_ = std::make_shared<kungfu::yijinjing::webserver::stream_manage>(); }
 
   ~io_device_network() override = default;
 
@@ -134,13 +134,14 @@ public:
 
 protected:
   kungfu::yijinjing::webserver::stream_manage_ptr stream_manager_;
+  bool is_low_latency_;
 };
 DECLARE_PTR(io_device_network)
 
 class io_device_network_server : public io_device_network {
 public:
-  io_device_network_server(const std::string &address, const std::vector<std::string> &paths, bool is_text_mode = true)
-      : http_server_(std::make_shared<kungfu::yijinjing::webserver::http_server>(address)) {
+  io_device_network_server(const std::string &address, const std::vector<std::string> &paths, bool is_low_latency = true, bool is_text_mode = true)
+      : io_device_network(is_low_latency),http_server_(std::make_shared<kungfu::yijinjing::webserver::http_server>(address)) {
     for (const auto &path : paths) {
       http_server_->add_websocket(stream_manager_, path, is_text_mode);
     }
@@ -155,7 +156,7 @@ DECLARE_PTR(io_device_network_server)
 
 class io_device_network_client : public io_device_network {
 public:
-  io_device_network_client() = default;
+  io_device_network_client(bool is_low_latency = true):io_device_network(is_low_latency){};
 
   ~io_device_network_client() override = default;
 

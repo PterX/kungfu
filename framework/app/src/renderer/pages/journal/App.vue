@@ -127,17 +127,17 @@
               v-show="currentSession && isCurrentMenuItem('event')"
               ref="eventDashBoard"
             />
-            <template v-if="replayPramas.logPath">
+            <template v-if="replayParams.logPath">
               <Replay
                 v-show="
                   currentSession &&
                   isShowReplayAction &&
-                  replayPramas.logPath &&
-                  replayPramas.processId &&
+                  replayParams.logPath &&
+                  replayParams.processId &&
                   isCurrentMenuItem('replay')
                 "
                 ref="replayRef"
-                :params="replayPramas"
+                :params="replayParams"
                 @stop-replay-loading="stopLoadingInterval"
               />
             </template>
@@ -154,9 +154,9 @@
     :can-backtest="canBacktest"
     :session-options="sessionOptions"
     :session-info="replayConfig.session_info"
-    :begin-time="replayConfig.begin_time.split(' ')[1]"
-    :end-time="replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''"
-    :now="getNanoDateString(BigInt(new Date().getTime()) * 1000000n)"
+    :begin-time="replayConfig.begin_time"
+    :end-time="replayConfig.end_time ? replayConfig.end_time : ''"
+    :now="formatSessionTime(BigInt(new Date().getTime()) * 1000000n)"
     :log-level="replayConfig.log_level"
     @close="setReplayModalVisible = false"
     @confirm="
@@ -191,7 +191,6 @@ import {
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 import { dealCategory } from './utils';
 import { Empty } from 'ant-design-vue';
@@ -236,6 +235,7 @@ const {
   replayConfig,
   setReplayModalVisible,
   sessionOptions,
+  formatSessionTime,
   handleOpenReplayConfirmView,
   journalReplayflag,
   replayProcessParams,
@@ -257,7 +257,7 @@ const td = ref<KungfuApi.KfConfig[]>([]);
 const canBacktest = computed(() => {
   return currentSession.value?.category === 'strategy';
 });
-const replayPramas = computed(() => {
+const replayParams = computed(() => {
   const currentSessionValue = currentSession.value;
   const replayConfigValue = replayConfig.value;
   const replayEnabled = testCase.value.replayEnabled;
@@ -275,7 +275,7 @@ const replayPramas = computed(() => {
   const { category, group, name, begin_time, end_time } = currentSessionValue;
   const dateStr = getYearMonthDay();
   const logPath = setReplayModalVisible.value
-    ? replayPramas.value.logPath
+    ? replayParams.value.logPath
     : replayConfigValue.enable_matcher
     ? buildProcessBacktestPath(
         { category, group, name, mode },
@@ -286,12 +286,12 @@ const replayPramas = computed(() => {
         `${name}_${dateStr}`,
       );
   const beginTime =
-    replayConfigValue.begin_time.split(' ')[1] || getNanoDateString(begin_time);
+    replayConfigValue.begin_time || formatSessionTime(begin_time);
   const endTime =
-    replayConfigValue.end_time.split(' ')[1] ||
+    replayConfigValue.end_time ||
     (end_time
-      ? getNanoDateString(end_time)
-      : getNanoDateString(BigInt(new Date().getTime()) * 1000000n));
+      ? formatSessionTime(end_time)
+      : formatSessionTime(BigInt(new Date().getTime()) * 1000000n));
   const processId = getProcessIdByKfLocation({ category, group, name, mode });
   const enableMatcher = replayConfigValue.enable_matcher || false;
 
@@ -398,7 +398,7 @@ const customRow = (record: KungfuApi.SessionResolved) => {
     onClick: async () => {
       setCurrentSession(record);
 
-      if (replayPramas.value.processId) {
+      if (replayParams.value.processId) {
         stopLoadingInterval();
         const config = localStorage.getItem('replaySetting');
         const replaySetting = config ? JSON.parse(config) : {};
@@ -506,7 +506,7 @@ watch(
           .then(() => {
             if (currentWindow) {
               ipcEmit('clear-process', {
-                processId: (replayPramas.value.processId || '') as string,
+                processId: (replayParams.value.processId || '') as string,
               })
                 .then(() => {
                   const pawin =

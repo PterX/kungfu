@@ -124,7 +124,7 @@ class BaseAccountingUsage extends AbstractAccountingUsage {
   getMaxAvailableTradeVolume(
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-    availAsset: number = 0,
+    availAsset = 0,
   ) {
     if (!instrumentForAccounting) return 0;
 
@@ -304,7 +304,7 @@ class FutureAccountingUsage extends BaseAccountingUsage {
   getMaxAvailableTradeVolume(
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-    availAsset: number = 0,
+    availAsset = 0,
   ) {
     if (!instrumentForAccounting) return 0;
 
@@ -390,7 +390,7 @@ class RepoAccountingUsage extends BaseAccountingUsage {
   getMaxAvailableTradeVolume(
     watcher: KungfuApi.Watcher,
     instrumentForAccounting: KungfuApi.InstrumentForAccounting,
-    availAsset: number = 0,
+    availAsset = 0,
   ) {
     if (!instrumentForAccounting) return 0;
 

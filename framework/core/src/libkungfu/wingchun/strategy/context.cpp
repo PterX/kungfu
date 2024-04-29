@@ -37,7 +37,7 @@ bool Context::is_bypass_accounting() const { return bypass_accounting_; }
 void Context::attach_orderbooks(Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
 void Context::attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache) {
-  set_runner(factor_cache, &app_); 
+  set_runner(factor_cache, &app_);
   factor_cache.on_start(events_);
 }
 

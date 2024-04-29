@@ -30,30 +30,37 @@ void bind_factor(pybind11::module &m) {
       .def("__repr__", &CrossSection::to_string)
       .def("__parse__", [&](CrossSection &target, std::string &s) { target.from_string(s); });
 
+  class PyMultiCrossSectionalFactor : public MultiCrossSectionalFactor {
+    using MultiCrossSectionalFactor::MultiCrossSectionalFactor;
 
-class PyMultiCrossSectionalFactor : public MultiCrossSectionalFactor {
-  using MultiCrossSectionalFactor::MultiCrossSectionalFactor;
-protected:
-  void on_quote(const Quote &quote) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_quote, quote); }
+  protected:
+    void on_quote(const Quote &quote) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_quote, quote); }
 
-  void on_tree(const Tree &tree) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_tree, tree); }
+    void on_tree(const Tree &tree) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_tree, tree); }
 
-  void on_depth(const Depth &depth) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_depth, depth); }
+    void on_depth(const Depth &depth) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_depth, depth); }
 
-  void on_tick(const Tick &tick) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_tick, tick); }
+    void on_tick(const Tick &tick) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_tick, tick); }
 
-  void on_entrust(const Entrust &entrust) override { PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_entrust, entrust); }
+    void on_entrust(const Entrust &entrust) override {
+      PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_entrust, entrust);
+    }
 
-  void on_transaction(const Transaction &transaction) override {
-    PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_transaction, transaction);
-  }
-};
+    void on_transaction(const Transaction &transaction) override {
+      PYBIND11_OVERLOAD(void, MultiCrossSectionalFactor, on_transaction, transaction);
+    }
+  };
 
-  py::class_<MultiCrossSectionalFactor, PyMultiCrossSectionalFactor, std::shared_ptr<MultiCrossSectionalFactor>>(m, "MultiCrossSectionalFactor")
+  py::class_<MultiCrossSectionalFactor, PyMultiCrossSectionalFactor, std::shared_ptr<MultiCrossSectionalFactor>>(
+      m, "MultiCrossSectionalFactor")
       .def(py::init<>())
-      .def("generate_cross_sectional_factor", &MultiCrossSectionalFactor::generate_cross_sectional_factor, py::arg("clear_price_cache")=true, py::arg("clear_factor_cache")=true)
-      .def("update_price", &MultiCrossSectionalFactor::update_price, py::arg("instrument_id"), py::arg("exchange_id"), py::arg("price"))
-      .def("get_factor", &MultiCrossSectionalFactor::get_factor, py::arg("factor_name"), py::arg("instrument_id"), py::arg("exchange_id"), py::arg("default_value"))
-      .def("update_factor", &MultiCrossSectionalFactor::update_factor, py::arg("factor_name"), py::arg("instrument_id"), py::arg("exchange_id"), py::arg("value"));
+      .def("generate_cross_sectional_factor", &MultiCrossSectionalFactor::generate_cross_sectional_factor,
+           py::arg("clear_price_cache") = true, py::arg("clear_factor_cache") = true)
+      .def("update_price", &MultiCrossSectionalFactor::update_price, py::arg("instrument_id"), py::arg("exchange_id"),
+           py::arg("price"))
+      .def("get_factor", &MultiCrossSectionalFactor::get_factor, py::arg("factor_name"), py::arg("instrument_id"),
+           py::arg("exchange_id"), py::arg("default_value"))
+      .def("update_factor", &MultiCrossSectionalFactor::update_factor, py::arg("factor_name"), py::arg("instrument_id"),
+           py::arg("exchange_id"), py::arg("value"));
 }
 } // namespace kungfu::wingchun::pybind

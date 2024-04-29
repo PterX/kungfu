@@ -30,9 +30,7 @@ struct CrossSection {
   CrossSection() = default;
   CrossSection(std::unordered_map<std::string, double> cross_sectional_factor,
                std::unordered_map<std::string, double> cross_sectional_price, int64_t gen_time)
-      : factors(std::move(cross_sectional_factor)),
-        prices(std::move(cross_sectional_price)),
-        gen_time(gen_time) {}
+      : factors(std::move(cross_sectional_factor)), prices(std::move(cross_sectional_price)), gen_time(gen_time) {}
 
   std::string to_string() const;
 
@@ -59,31 +57,31 @@ public:
 
   void update_price(const std::string &instrument_id, const std::string &exchange_id, double price);
 
-  void update_factor(std::string factor_name, const std::string &instrument_id,
-                     const std::string &exchange_id, double value);
+  void update_factor(std::string factor_name, const std::string &instrument_id, const std::string &exchange_id,
+                     double value);
 
-  double get_factor(std::string factor_name, const std::string &instrument_id,
-                     const std::string &exchange_id, double default_value);
+  double get_factor(std::string factor_name, const std::string &instrument_id, const std::string &exchange_id,
+                    double default_value);
 
   std::map<std::string, CrossSection> generate_cross_sectional_factor(bool clear_price_cache, bool clear_factor_cache);
 
   virtual void on_start(const rx::connectable_observable<event_ptr> &events);
 
 protected:
-  virtual void on_tick(const longfist::types::Tick &tick) {};
+  virtual void on_tick(const longfist::types::Tick &tick){};
 
   virtual void on_quote(const longfist::types::Quote &quote);
 
-  virtual void on_entrust(const longfist::types::Entrust &entrust) {};
+  virtual void on_entrust(const longfist::types::Entrust &entrust){};
 
-  virtual void on_transaction(const longfist::types::Transaction &transaction) {};
+  virtual void on_transaction(const longfist::types::Transaction &transaction){};
 
-  virtual void on_tree(const longfist::types::Tree &tree) {};
+  virtual void on_tree(const longfist::types::Tree &tree){};
 
-  virtual void on_depth(const longfist::types::Depth &depth) {};
+  virtual void on_depth(const longfist::types::Depth &depth){};
 
   int64_t now() const {
-    if (not app_) 
+    if (not app_)
       SPDLOG_ERROR("MultiCrossSectionalFactor had not been attached.");
     return app_->now();
   }
@@ -98,7 +96,6 @@ private:
   yijinjing::practice::apprentice *app_;
   std::map<std::string, std::unordered_map<std::string, double>> multi_cross_sectional_factor_cache_;
   std::unordered_map<std::string, TimeStampPrice> price_cache_;
-
 };
 
 } // namespace kungfu::wingchun::factor

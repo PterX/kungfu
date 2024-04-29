@@ -7,9 +7,9 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/factor/crosssection.h>
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
-#include <kungfu/wingchun/factor/crosssection.h>
 
 namespace kungfu::wingchun::op {
 class Context : public std::enable_shared_from_this<Context> {
@@ -159,13 +159,11 @@ public:
    */
   void attach_orderbooks(orderbook::Orderbooks &orderbooks);
 
-
   /**
    * attach the factor cache to market data received.
    * @param factor_cache
    */
   void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache);
-
 
 protected:
   yijinjing::practice::apprentice &app_;

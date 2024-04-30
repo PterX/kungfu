@@ -234,6 +234,7 @@ void bind_strategy(pybind11::module &m) {
       .def("set_resume_policy", &strategy::Context::set_resume_policy)
       .def("attach_orderbooks", &strategy::Context::attach_orderbooks)
       .def("batch_streaming", &strategy::Context::batch_streaming)
+      .def("attach_factor_cache", &strategy::Context::attach_factor_cache)
       .def("req_deregister", &strategy::Context::req_deregister);
 
   py::class_<strategy::Matcher, std::shared_ptr<strategy::Matcher>>(m, "Matcher");

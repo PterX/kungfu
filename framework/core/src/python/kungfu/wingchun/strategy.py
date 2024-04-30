@@ -257,6 +257,7 @@ class Strategy(wc.Strategy):
         self.ctx.is_started = wc_context.is_started
         self.ctx.attach_orderbooks = wc_context.attach_orderbooks
         self.ctx.batch_streaming = self._batch_streaming
+        self.ctx.attach_factor_cache = wc_context.attach_factor_cache
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.ctx.static_data = wc_context.bookkeeper.static_data

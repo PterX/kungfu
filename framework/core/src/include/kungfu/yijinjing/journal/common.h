@@ -33,7 +33,7 @@ FORWARD_DECLARE_CLASS_PTR(replay_writer)
 
 class journal_error : public std::runtime_error {
 public:
-  journal_error(const std::string &message) : runtime_error(message) {}
+  explicit journal_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
 };
 } // namespace kungfu::yijinjing::journal
 

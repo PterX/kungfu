@@ -124,7 +124,7 @@ function handleSpaceSize(type: string): string {
 
 function handleClick(type: indent, size: indent) {
   let setting: Record<string, Record<string, KungfuApi.KfConfigValue>>;
-  if (globalSetting.value != {} && globalSetting.value.code) {
+  if (globalSetting.value?.code) {
     setting = deepClone(toRaw(globalSetting.value));
   } else {
     setting = {

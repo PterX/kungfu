@@ -13,12 +13,12 @@
       </KfDashboardItem>
       <KfDashboardItem>
         <div class="replay_title">
-          {{ `${$t('replay.begin_time')}: ${props.params.beginTime}` }}
+          {{ `${$t('replay.begin_time')}: ${timeRange.beginTime}` }}
         </div>
       </KfDashboardItem>
       <KfDashboardItem>
         <div class="replay_title">
-          {{ `${$t('replay.end_time')}: ${props.params.endTime}` }}
+          {{ `${$t('replay.end_time')}: ${timeRange.endTime}` }}
         </div>
       </KfDashboardItem>
     </template>
@@ -46,7 +46,6 @@ import { ipcEmit } from '@kungfu-trader/kungfu-app/src/renderer/ipcMsg/emitter';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import { useRemoveReplayProcess } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { getYearMonthDay } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { LogLevelType } from '@kungfu-trader/kungfu-app/src/typings/enums';
 
 import { listProcessStatus } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
@@ -61,7 +60,6 @@ defineExpose({
 const { error } = messagePrompt();
 const { handleRemoveReplayProcess } = useRemoveReplayProcess();
 
-const DateTimeStr = getYearMonthDay();
 const logViewRef = ref();
 const currentWindow = getCurrentWindow();
 
@@ -104,11 +102,14 @@ const enableMatcher = computed(() => {
   return props.params.enableMatcher === 'true';
 });
 
-const replayLogLevel = ref(
-  LogLevelType[
-    props.params.logLevel ? props.params.logLevel.replace('%20', ' ') : ''
-  ] || '',
+const replayLogLevel = computed(
+  () => LogLevelType[props.params.logLevel ? props.params.logLevel : ''] || '',
 );
+
+const timeRange = computed(() => ({
+  beginTime: props.params.beginTime || '',
+  endTime: props.params.endTime || '',
+}));
 
 const logPath = computed(() => {
   return props.params.logPath || '';
@@ -225,18 +226,16 @@ async function reLoadLog() {
     logLevel,
     sessionName,
   } = props.params;
-  const begintime = `${DateTimeStr} ${beginTime}`;
-  const endtime = `${DateTimeStr} ${endTime}`;
   const rerunFlag =
-    configArgs?.replayConfig?.begin_time === begintime &&
-    configArgs?.replayConfig?.end_time === endtime;
+    configArgs?.replayConfig?.begin_time === beginTime &&
+    configArgs?.replayConfig?.end_time === endTime;
 
   const filePath = paramsFilePath || currentFile;
   const replayConfig = {
     category: configArgs.category,
     group: configArgs.group,
-    begin_time: begintime,
-    end_time: endtime,
+    begin_time: beginTime,
+    end_time: endTime,
     log_level: logLevel ? logLevel.replace('%20', ' ') : '-l info',
     session_name: sessionName,
     file_path: filePath,

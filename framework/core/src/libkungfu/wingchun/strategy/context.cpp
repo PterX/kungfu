@@ -14,6 +14,8 @@ using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
+using namespace kungfu::wingchun::orderbook;
+using namespace kungfu::wingchun::factor;
 
 namespace kungfu::wingchun::strategy {
 Context::Context(apprentice &app, const rx::connectable_observable<event_ptr> &events) : app_(app), events_(events) {
@@ -33,5 +35,10 @@ void Context::bypass_accounting() { bypass_accounting_ = true; }
 bool Context::is_bypass_accounting() const { return bypass_accounting_; }
 
 void Context::attach_orderbooks(wingchun::orderbook::Orderbooks &orderbooks) { orderbooks.on_start(events_); }
+
+void Context::attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache) {
+  set_runner(factor_cache, &app_);
+  factor_cache.on_start(events_);
+}
 
 } // namespace kungfu::wingchun::strategy

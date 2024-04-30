@@ -7,8 +7,11 @@ import {
   SideEnum,
   InstrumentTypeEnum,
   OffsetEnum,
+  PriceTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+const { t } = VueI18n.global;
 
 type OrderInputWithBlockMessage = KungfuApi.MakeOrderInput &
   KungfuApi.BlockMessage;
@@ -46,8 +49,13 @@ export function dealOrderPlaceVNode(
 ): VNode {
   const orderData: OrderInputWithBlockMessage = dealStockOffset(makeOrderInput);
   const { getPriceTickAndPrecision } = useActiveInstruments();
+  const priceType = makeOrderInput?.price_type;
+  const transformMap: Record<string, string> = {};
+  if (priceType === PriceTypeEnum.Market) {
+    transformMap['limit_price'] = t('tradingConfig.protect_price');
+  }
 
-  const currentOrderInputTrans = getBlockTradeOrderTrans();
+  const currentOrderInputTrans = getBlockTradeOrderTrans(transformMap);
 
   const blockMessageResolved: Record<string, KungfuApi.KfTradeValueCommonData> =
     dealBlockMessageItem(orderData);

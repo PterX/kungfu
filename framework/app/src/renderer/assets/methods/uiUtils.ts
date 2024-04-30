@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file */
 import os from 'os';
 import {
   ComputedRef,
@@ -24,12 +25,13 @@ import {
   createApp,
   defineComponent,
   onUnmounted,
+  VNode,
 } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
-import { Button } from 'ant-design-vue';
+import { Button, Checkbox } from 'ant-design-vue';
 import { Locale } from 'ant-design-vue/es/locale-provider';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import {
@@ -367,11 +369,11 @@ export function useShortcutFocusContainer() {
               ? containerRef.value.$el
               : containerRef.value
             : null;
-          if (!globalThis.KeyShortMap[curKeyShort]) {
+          if (!globalThis.KeyShortMap?.[curKeyShort]) {
             globalThis.KeyShortMap[curKeyShort] = new LinkedList<HTMLElement>();
             globalThis.KeyShortMap[curKeyShort].prepend(key, container);
           } else {
-            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
+            globalThis.KeyShortMap?.[curKeyShort].prepend(key, container);
           }
           keyShort = curKeyShort;
           clean();
@@ -382,7 +384,7 @@ export function useShortcutFocusContainer() {
   };
 
   const cleanupShortcut = () => {
-    if (keyShort && globalThis.KeyShortMap[keyShort]) {
+    if (keyShort && globalThis.KeyShortMap?.[keyShort]) {
       globalThis.KeyShortMap[keyShort].remove(key);
     }
   };
@@ -429,7 +431,7 @@ export function useShortcutFocusContainer() {
   };
 
   const setPos = () => {
-    if (globalThis.KeyShortMap[keyShort]) {
+    if (globalThis.KeyShortMap?.[keyShort]) {
       globalThis.KeyShortMap[keyShort].setPos(key);
     }
   };
@@ -1683,18 +1685,69 @@ export const isInTdGroup = (
   return targetGroups[0] || null;
 };
 
+export const buildCustomCheckboxVNode = (
+  defaultChecked: boolean,
+  label: string,
+  onCheckSettled?: (checked: boolean) => void,
+): VNode => {
+  const CustomCheckbox = defineComponent({
+    name: 'CustomCheckbox',
+    props: {
+      defaultChecked: Boolean,
+      label: {
+        type: String,
+        default: '',
+        required: true,
+      },
+    },
+    setup(props) {
+      const isChecked = ref(props.defaultChecked);
+
+      const handleCheckboxChange = (e) => {
+        isChecked.value = e.target.checked;
+      };
+
+      onBeforeUnmount(async () => {
+        onCheckSettled?.(isChecked.value);
+      });
+
+      return () =>
+        h(
+          Checkbox,
+          {
+            style: {
+              position: 'absolute',
+              left: '24px',
+              bottom: '24px',
+            },
+            checked: isChecked.value,
+            onChange: handleCheckboxChange,
+          },
+          { default: () => [props.label] },
+        );
+    },
+  });
+
+  return h(CustomCheckbox, {
+    defaultChecked,
+    label,
+  });
+};
+
 export const confirmModal = (
   title: string,
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
+  closable = false,
 ): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
-      title: title,
-      content: content,
-      okText: okText,
-      cancelText: cancelText,
+      title,
+      content,
+      okText,
+      cancelText,
+      closable,
       onOk: () => {
         resolve(true);
       },
@@ -1712,14 +1765,15 @@ export const extraConfirmModal = (
   cancelText = t('cancel'),
   extraTextList?: {
     text: string;
+    value: number;
   }[],
-): Promise<'ok' | 'cancel' | string> => {
+): Promise<'ok' | 'cancel' | number> => {
   return new Promise((resolve) => {
     const Comp = defineComponent({
       setup() {
         const visible = ref(true);
 
-        const close = (result: 'ok' | 'cancel' | string) => {
+        const close = (result: 'ok' | 'cancel' | number) => {
           resolve(result);
           visible.value = false;
         };
@@ -1756,7 +1810,7 @@ export const extraConfirmModal = (
                 h(
                   Button,
                   {
-                    onClick: () => this.close(item.text),
+                    onClick: () => this.close(item.value),
                   },
                   () => item.text,
                 ),
@@ -1808,6 +1862,41 @@ export const confirmModalByCustomArgs = (
       },
     });
   });
+};
+
+export const confirmModalSkippable = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  storageKey: string,
+  args: ModalFuncProps = {},
+): Promise<boolean> => {
+  const flag = localStorage.getItem(storageKey);
+
+  const checkBoxVNode = buildCustomCheckboxVNode(
+    false,
+    t('tradingConfig.hide_next_time'),
+    (checked) => {
+      if (checked) {
+        localStorage.setItem(storageKey, '1');
+      }
+    },
+  );
+  const contentResolved =
+    typeof content === 'function'
+      ? content()
+      : typeof content === 'string'
+      ? h('div', {}, content)
+      : content;
+  const rootBox = h('div', { class: 'root-node' }, [
+    contentResolved,
+    checkBoxVNode,
+  ]);
+  const rootVNode = h('div', { class: 'modal-node' }, rootBox);
+  const promise = flag
+    ? Promise.resolve(true)
+    : confirmModalByCustomArgs(title, rootVNode, args);
+
+  return promise;
 };
 
 const markdown = md('commonmark');
@@ -2590,4 +2679,34 @@ export const setPreStyle = () => {
     const value = styleMap[key];
     document.documentElement.style.setProperty(key, value);
   }
+};
+
+export const useBrowserWindowFocus = () => {
+  const win = getCurrentWindow();
+  const focus = ref(win.isFocused());
+
+  win.on('focus', () => {
+    focus.value = true;
+  });
+
+  win.on('blur', () => {
+    focus.value = false;
+  });
+
+  return focus;
+};
+
+export const useBrowserWindowMinimize = () => {
+  const win = getCurrentWindow();
+  const minimized = ref(win.isMinimized());
+
+  win.on('minimize', () => {
+    minimized.value = true;
+  });
+
+  win.on('restore', () => {
+    minimized.value = false;
+  });
+
+  return minimized;
 };

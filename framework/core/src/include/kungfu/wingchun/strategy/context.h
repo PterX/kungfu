@@ -11,6 +11,7 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/factor/crosssection.h>
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/wingchun/streamdatabatcher/backteststreamdatabatcher.h>
@@ -391,12 +392,14 @@ public:
    * attach the orderbooks to market data received.
    * @param orderbooks
    */
-  void attach_orderbooks(wingchun::orderbook::Orderbooks &orderbooks);
+  void attach_orderbooks(orderbook::Orderbooks &orderbooks);
 
   /**
-   * Batch processing of data streams
-   * @param streamdatabatcher
+   * attach the factor cache to market data received.
+   * @param factor_cache
    */
+  void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache);
+
   virtual std::shared_ptr<wingchun::streamdatabatcher::StreamDataBatcher> batch_streaming() = 0;
 
 protected:

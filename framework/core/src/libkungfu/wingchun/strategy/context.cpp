@@ -34,8 +34,4 @@ bool Context::is_bypass_accounting() const { return bypass_accounting_; }
 
 void Context::attach_orderbooks(wingchun::orderbook::Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
-void Context::batch_streaming(wingchun::streamdatabatcher::StreamDataBatcher &streamdatabatcher) {
-  // todo 
-}
-
 } // namespace kungfu::wingchun::strategy

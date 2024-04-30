@@ -8,43 +8,101 @@
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
-#include <kungfu/wingchun/orderbook/orderbooks.h>
-
 namespace kungfu::wingchun::streamdatabatcher {
+
+class StreamDataBatcher;
+class LiveStreamDataBatcher;
+class BackTestStreamDataBatcher;
+
+template <typename BufferType> class EventBuffer {
+public:
+  EventBuffer() = default;
+  ~EventBuffer() = default;
+
+  const std::vector<BufferType> &get_events() const { return vec_; }
+
+private:
+  friend class StreamDataBatcher;
+  friend class LiveStreamDataBatcher;
+  friend class BackTestStreamDataBatcher;
+  std::vector<BufferType> vec_;
+};
+
+#define DEFINE_BUFFER(Buffer, Type)                                                                                    \
+  class Buffer {                                                                                                       \
+  public:                                                                                                              \
+    Buffer() = default;                                                                                                \
+    ~Buffer() = default;                                                                                               \
+    const std::vector<Type> &get_events() const { return vec_; }                                                       \
+                                                                                                                       \
+  private:                                                                                                             \
+    friend StreamDataBatcher;                                                                                          \
+    friend LiveStreamDataBatcher;                                                                                      \
+    friend BackTestStreamDataBatcher;                                                                                  \
+    std::vector<Type> vec_;                                                                                            \
+  };
+
+DEFINE_BUFFER(EntrustBuffer, longfist::types::Entrust)
+DEFINE_BUFFER(TransactionBuffer, longfist::types::Transaction)
+DEFINE_BUFFER(QuoteBuffer, longfist::types::Quote)
+DEFINE_BUFFER(TreeBuffer, longfist::types::Tree)
+DEFINE_BUFFER(DepthBuffer, longfist::types::Depth)
+DEFINE_BUFFER(TickBuffer, longfist::types::Tick)
 
 class StreamDataBatcher {
 public:
-  // StreamDataBatcher() = default;
-  StreamDataBatcher() {
-    longfist::types::Entrust entrust1;
-    longfist::types::Entrust entrust2;
-    entrust1.instrument_id = "600000";
-    entrust2.instrument_id = "330059";
-    entrust1.biz_index = 600000;
-    entrust2.biz_index = 300059;
-    entrust1.price = 1.1;
-    entrust2.price = 2.2;
-    entrust1.side = kungfu::longfist::enums::Side::Buy;
-    entrust2.side = kungfu::longfist::enums::Side::Sell;
-    entrust1.instrument_type = kungfu::longfist::enums::InstrumentType::Stock;
-    entrust2.instrument_type = kungfu::longfist::enums::InstrumentType::Future;
-    entrust_vec_.push_back(entrust1);
-    entrust_vec_.push_back(entrust2);
-  }
+  StreamDataBatcher() = default;
+
   virtual ~StreamDataBatcher() = default;
 
-  // todo 构造函数需要接收SliceIndexer 回测模式就用这个去找journal 实盘不用 后面加
+  StreamDataBatcher(const StreamDataBatcher &) = delete;
 
-  // todo pop batched data_from 清空队列的函数？ 暂时没搞清楚使用场景 后面加
+  StreamDataBatcher &operator=(const StreamDataBatcher &) = delete;
 
-  // 接受数据流 按时间窗口将数据流分批输出 todo 暂时写成这样 后面再改
-  // 1 pybind 调用细节
-  // 2 来数据 向缓冲区添加事件 更新map<unique_id, vector> 调用pop_batched(unique_id) 清空map和缓冲区
+  virtual void pop_batched_entrust_until(int64_t until_time, const std::string &instrument_id,
+                                         const std::string &exchange_id) = 0;
+  virtual void pop_batched_transaction_until(int64_t until_time, const std::string &instrument_id,
+                                             const std::string &exchange_id) = 0;
+  virtual void pop_batched_quote_until(int64_t until_time, const std::string &instrument_id,
+                                       const std::string &exchange_id) = 0;
+  virtual void pop_batched_tree_until(int64_t until_time, const std::string &instrument_id,
+                                      const std::string &exchange_id) = 0;
+  virtual void pop_batched_depth_until(int64_t until_time, const std::string &instrument_id,
+                                       const std::string &exchange_id) = 0;
+  virtual void pop_batched_tick_until(int64_t until_time, const std::string &instrument_id,
+                                      const std::string &exchange_id) = 0;
 
-  std::vector<longfist::types::Entrust> &get_entrust_events() { return entrust_vec_; }
+  virtual EventBuffer<longfist::types::Entrust> get_entrust_buffer(const std::string &instrument_id,
+                                                                   const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &instrument_id,
+                                                                           const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Quote> get_quote_buffer(const std::string &instrument_id,
+                                                               const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Tree> get_tree_buffer(const std::string &instrument_id,
+                                                             const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Depth> get_depth_buffer(const std::string &instrument_id,
+                                                               const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Tick> get_tick_buffer(const std::string &instrument_id,
+                                                             const std::string &exchange_id) = 0;
 
-private:
-  std::vector<longfist::types::Entrust> entrust_vec_;
+protected:
+  [[nodiscard]] std::string get_key(const std::string &instrument_id, const std::string &exchange_id) const {
+    return instrument_id + exchange_id;
+  }
+
+  std::unordered_map<std::string, EventBuffer<longfist::types::Entrust>> entrust_map_;
+  std::unordered_map<std::string, EventBuffer<longfist::types::Transaction>> transaction_map_;
+  std::unordered_map<std::string, EventBuffer<longfist::types::Quote>> quote_map_;
+  std::unordered_map<std::string, EventBuffer<longfist::types::Tree>> tree_map_;
+  std::unordered_map<std::string, EventBuffer<longfist::types::Depth>> depth_map_;
+  std::unordered_map<std::string, EventBuffer<longfist::types::Tick>> tick_map_;
+
+  decltype(hana::make_map(hana::make_pair(hana::int_c<longfist::types::Entrust::tag>, entrust_map_),
+                          hana::make_pair(hana::int_c<longfist::types::Transaction::tag>, transaction_map_),
+                          hana::make_pair(hana::int_c<longfist::types::Quote::tag>, quote_map_),
+                          hana::make_pair(hana::int_c<longfist::types::Tree::tag>, tree_map_),
+                          hana::make_pair(hana::int_c<longfist::types::Depth::tag>, depth_map_),
+                          hana::make_pair(hana::int_c<longfist::types::Tick::tag>, tick_map_))) bufferMap;
 };
 
 } // namespace kungfu::wingchun::streamdatabatcher

@@ -5,10 +5,6 @@
 
 #include <kungfu/wingchun/orderbook/depthorderbooks.h>
 #include <kungfu/wingchun/orderbook/orderbooks.h>
-#include <kungfu/wingchun/streamdatabatcher/backteststreamdatabatcher.h>
-#include <kungfu/wingchun/streamdatabatcher/livestreamdatabatcher.h>
-#include <kungfu/wingchun/streamdatabatcher/streamdatabatcher.h>
-#include <pybind11/numpy.h>
 
 using namespace kungfu::longfist;
 using namespace kungfu::longfist::types;
@@ -18,7 +14,6 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::wingchun;
 using namespace kungfu::wingchun::orderbook;
-using namespace kungfu::wingchun::streamdatabatcher;
 
 namespace py = pybind11;
 namespace kungfu::wingchun::pybind {
@@ -49,24 +44,5 @@ void bind_orderbook(pybind11::module &m) {
       .def(py::init<>())
       .def("get_bids", &DepthOrderbooks::get_bids, py::return_value_policy::reference)
       .def("get_asks", &DepthOrderbooks::get_asks, py::return_value_policy::reference);
-
-  py::class_<StreamDataBatcher, std::shared_ptr<StreamDataBatcher>>(m, "StreamDataBatcher", py::buffer_protocol())
-      .def(py::init<>())
-      .def("get_entrust_events", &StreamDataBatcher::get_entrust_events, py::return_value_policy::reference)
-      .def_buffer([](StreamDataBatcher &batcher) -> py::buffer_info {
-        SPDLOG_INFO("测试 调用entrust def_buffer");
-        std::string str_format = "q32s16sbddbbqqqq";
-        return py::buffer_info(batcher.get_entrust_events().data(), sizeof(Entrust), str_format,
-                               1, {batcher.get_entrust_events().size()}, {sizeof(Entrust)});
-      });
-
-  py::class_<BackTestStreamDataBatcher, std::shared_ptr<BackTestStreamDataBatcher>, StreamDataBatcher>(
-      m, "BackTestStreamDataBatcher")
-      .def(py::init<>());
-
-  py::class_<LiveStreamDataBatcher, std::shared_ptr<LiveStreamDataBatcher>, StreamDataBatcher>(m,
-                                                                                               "LiveStreamDataBatcher")
-      .def(py::init<>());
-
 }
 } // namespace kungfu::wingchun::pybind

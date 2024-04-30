@@ -428,6 +428,8 @@ on_broker_state_change
 on_operator_state_change
 get_bids
 get_asks
+get_entrust_events
+get_transaction_events
 set_matcher
 add_strategy
 add_account
@@ -443,6 +445,7 @@ is_bypass_accounting
 bypass_accounting
 update_strategy_state
 attach_orderbooks
+batch_streaming
 on_order
 on_order_trigger
 on_algo_order
@@ -595,6 +598,11 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
+Tick
+Depth
 SubscribeDataType
 Stock
 Future

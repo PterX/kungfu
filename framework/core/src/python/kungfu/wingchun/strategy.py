@@ -7,6 +7,7 @@ import functools
 import kungfu
 import os
 import sys
+from kungfu.wingchun.streamdatabatcher import *
 
 from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
@@ -180,6 +181,9 @@ class Strategy(wc.Strategy):
             locator,
         )
         return location
+    
+    def _batch_streaming(self):
+        return PyStreamDataBatcher(self.ctx.wc_context.batch_streaming())
 
     async def __async_insert_order(
         self,
@@ -252,7 +256,7 @@ class Strategy(wc.Strategy):
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.is_started = wc_context.is_started
         self.ctx.attach_orderbooks = wc_context.attach_orderbooks
-        self.ctx.batch_streaming = wc_context.batch_streaming
+        self.ctx.batch_streaming = self._batch_streaming
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.ctx.static_data = wc_context.bookkeeper.static_data

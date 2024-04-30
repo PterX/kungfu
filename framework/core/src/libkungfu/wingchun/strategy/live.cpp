@@ -19,6 +19,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::journal;
+using namespace kungfu::wingchun::streamdatabatcher;
 
 namespace kungfu::wingchun::strategy {
 
@@ -648,5 +649,11 @@ longfist::enums::ResumePolicy LiveContext::get_resume_policy() { return broker_c
 uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 
 uint32_t LiveContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
+
+std::shared_ptr<StreamDataBatcher> LiveContext::batch_streaming() {
+  auto live_stream_data_batcher = std::make_shared<LiveStreamDataBatcher>();
+  live_stream_data_batcher->on_start(events_);
+  return live_stream_data_batcher;
+}
 
 } // namespace kungfu::wingchun::strategy

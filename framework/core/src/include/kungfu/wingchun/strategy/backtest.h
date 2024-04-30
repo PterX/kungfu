@@ -315,6 +315,8 @@ public:
 
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
+  std::shared_ptr<wingchun::streamdatabatcher::StreamDataBatcher> batch_streaming() override;
+
 protected:
   void on_start() override;
   void prepare(const event_ptr &event) override;

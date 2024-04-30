@@ -17,6 +17,7 @@ using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::wingchun::tool;
 using kungfu::yijinjing::nanomsg::nanomsg_json;
+using namespace kungfu::wingchun::streamdatabatcher;
 
 namespace kungfu::wingchun::strategy {
 
@@ -546,5 +547,9 @@ uint64_t BacktestContext::get_order_id(const writer_ptr &writer, uint32_t dest) 
 }
 
 uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }
+
+std::shared_ptr<wingchun::streamdatabatcher::StreamDataBatcher> BacktestContext::batch_streaming() {
+  return std::make_shared<BackTestStreamDataBatcher>(app_, from_indexer_);
+}
 
 } // namespace kungfu::wingchun::strategy

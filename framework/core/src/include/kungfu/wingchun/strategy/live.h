@@ -307,6 +307,8 @@ public:
 
   longfist::enums::ResumePolicy get_resume_policy() override;
 
+  std::shared_ptr<wingchun::streamdatabatcher::StreamDataBatcher> batch_streaming() override;
+
 protected:
   virtual void on_start() override;
 

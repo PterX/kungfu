@@ -192,11 +192,11 @@ export const useUpdateVersion = () => {
       }),
       t('confirm'),
       t('cancel'),
-      [{ text: t('autoUpdater.skip_version') }],
+      [{ text: t('autoUpdater.skip_version'), value: 1 }],
     ).then((action) => {
       if (action === 'ok') {
         ipcRenderer.send('auto-update-confirm-result', true);
-      } else if (action === t('autoUpdater.skip_version')) {
+      } else if (action === 1) {
         ipcRenderer.send('auto-update-skip-version', newVersion);
       } else {
         ipcRenderer.send('auto-update-confirm-result', false);
@@ -592,6 +592,7 @@ export const useDealExportHistoryTradingData = (): {
       exportEventData.value || ({} as KfEvent.ExportTradingDataEvent);
     const { date, dateType } = formState;
     const dateResolved = dayjs(date).format('YYYYMMDD');
+    exportDataLoading.value = true;
 
     if (tradingDataType === 'all') {
       let historyData: {
@@ -617,7 +618,10 @@ export const useDealExportHistoryTradingData = (): {
         }
       }
 
-      if (!historyData) return;
+      if (!historyData) {
+        exportDataLoading.value = false;
+        return;
+      }
 
       const { tradingData } = historyData;
       const orderSortKey = getTradingDataSortKey('Order');
@@ -634,6 +638,8 @@ export const useDealExportHistoryTradingData = (): {
       const assets = tradingData.Asset.sort(assetSortKey);
       const orderInputSortKey = getTradingDataSortKey('OrderInput');
       const orderInputs = tradingData.OrderInput.sort(orderInputSortKey);
+
+      exportDataLoading.value = false;
 
       const { filePaths } = await dialog.showOpenDialog({
         properties: ['openDirectory'],
@@ -716,7 +722,6 @@ export const useDealExportHistoryTradingData = (): {
       return;
     }
 
-    exportDataLoading.value = true;
     let historyData: {
       tradingData: KungfuApi.TradingData;
     } | null = null;
@@ -3217,6 +3222,7 @@ export const useMakeOrderSubscribe = (
             const { side, price, volume, instrumentType } = (
               data as KfEvent.TriggerOrderBookUpdate
             ).orderInput;
+            const precision = getPrecisionByInstrumentType(+instrumentType);
 
             const instrumentValue = buildInstrumentSelectOptionValue(
               (data as KfEvent.TriggerOrderBookUpdate).orderInput,
@@ -3228,9 +3234,12 @@ export const useMakeOrderSubscribe = (
             }
 
             if (!!price && !Number.isNaN(+price)) {
-              formState.value.limit_price = +price.kfToFixed(12);
+              formState.value.limit_price = dealKfDecimalPrecision(
+                +price,
+                precision,
+              );
             }
-            formState.value.volume = +volume.kfToFixed(0);
+            formState.value.volume = dealKfDecimalPrecision(volume, precision);
             formState.value.side = isMarginMakeOrderSupport.value
               ? dealMarginSideByTransFormType(+side)
               : +side;

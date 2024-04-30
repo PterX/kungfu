@@ -451,6 +451,9 @@ export default {
     cancel_all: 'All cancellations',
     cancel_order: 'Cancel order',
     cancel_order_trigger: 'Embedded cancellation',
+    no_order_to_cancel: 'No order to cancel',
+    cancel_order_success: 'Cancel order success',
+    cancel_all_order_success: 'Cancel all order success',
     date_picker: 'Select a date',
     confirm_cancel_all: 'Confirm cancellation of all orders',
     entrust: 'Entrust',
@@ -479,6 +482,11 @@ export default {
     cancel_order_trigger_context:
       'Do you want to cancel the pre embedded cancellation under this commission order',
     make_order_type: '(Embedded order)',
+
+    notice: 'Confirm',
+    quick_cancel_context: 'Double click the order record to quick cancel',
+    cancel_cancel: 'Cancel cancel order',
+    ensure_cancel: 'Ensure cancel order',
   },
 
   orderTriggerConfig: {
@@ -490,6 +498,9 @@ export default {
     cancel_all: 'All cancellations',
     insert_time: 'Insert time',
     order_finished: 'The delegation has ended and cannot be operated',
+    no_order_to_cancel: 'No order to cancel',
+    cancel_order_success: 'Cancel order success',
+    cancel_all_order_success: 'Cancel all order success',
     order_trigger_request_success: 'Refresh successful',
     make_order_modal_tip:
       'Note: Pre embedded orders only support placing orders during non trading periods and will be triggered when the trading status of the exchange changes.',

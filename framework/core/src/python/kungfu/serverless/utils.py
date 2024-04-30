@@ -6,10 +6,55 @@ import os
 import time
 from urllib.parse import urlparse
 import logging
+import tarfile
 from kungfu.yijinjing.log import LOG_LEVELS
+
+UPLOAD_EXT_WHITELIST = [".csv", ".xlsx", ".json", ".py", ".so"]
+
+MB = 1024 * 1024
+
+UPLOAD_DIR_SIZE_LIMIT_MB = 100
+
+
+def make_tarfile(output_filename, source_dir):
+    output_filename = os.path.join(source_dir, output_filename + ".tar.gz")
+
+    def filter_whitelist(tarinfo):
+        filename = tarinfo.name
+        print(filename)
+        print(is_end_with(filename, UPLOAD_EXT_WHITELIST))
+        if tarinfo.isfile() and not is_end_with(filename, UPLOAD_EXT_WHITELIST):
+            return None
+        return tarinfo
+
+    with tarfile.open(output_filename, "w:gz") as tar:
+        tar.add(
+            source_dir, arcname=os.path.basename(source_dir), filter=filter_whitelist
+        )
+    return output_filename
+
+
+def get_dir_size(dir_path):
+    size = 0
+    for root, dirnames, filenames in os.walk(dir_path):
+        for f in filenames:
+            if not is_end_with(f, UPLOAD_EXT_WHITELIST):
+                continue
+            size += os.path.getsize(os.path.join(root, f))
+    return size / MB
+
+
+def is_end_with(filename, supported_ext=[]):
+    result = False
+    for ext in supported_ext:
+        if filename.endswith(ext):
+            result = True
+            break
+    return result
 
 
 def record_tokens(stage, access_token, refresh_token, id_token, expires_in):
+    ensure_token_json(TOKEN_FILE)
     write_token_json(
         TOKEN_FILE,
         stage,
@@ -86,15 +131,37 @@ def get_credentials_for_identity(stage):
     )
 
 
-def read_file_content(filename):
-    with open(filename, "r") as file:
-        content = file.read()
-    return content
-
-
 def create_logger(name, level="debug"):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler
     logger.addHandler(handler())
     logger.setLevel(LOG_LEVELS[level])
     return logger
+
+
+def read_file_content(filename):
+    with open(filename, "rb") as file:
+        content = file.read()
+    return content
+
+
+def read_zip(filename):
+    with open(filename, "rb") as file:
+        return file
+
+
+def build_backtest_json(file_path, module_name):
+    folder = os.path.dirname(file_path)
+    target_json = os.path.join(folder, "package.json")
+    j = {}
+    if os.path.exists(target_json):
+        with open(target_json, "r") as target_json_file:
+            j = json.load(target_json_file)
+
+    bn = os.path.basename(file_path)
+    j["name"] = module_name
+    j["description"] = j.get("description", "")
+    j["version"] = j.get("version", "0.0.0")
+    j["main"] = os.path.basename(bn)
+    j["binary"] = j.get("binary", {"module_name": module_name})
+    return j

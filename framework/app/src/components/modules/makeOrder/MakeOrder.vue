@@ -61,6 +61,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   isShotable,
+  isCryptoInstrument,
   dealOrderInputItem,
   transformSearchInstrumentResultToInstrument,
   dealVolumeByInstrumentType,
@@ -98,6 +99,9 @@ const makeOrderRef = ref();
 const apartOrderRef = ref();
 const orderTriggerRef = ref();
 
+const volumeStep = ref(1);
+const volumePrecision = ref(0);
+
 useKeyboardControlContainerStyle(
   'MakeOrder',
   '.ant-form-item-control-input:focus-within { background: rgba(67, 67, 67, 0.3); }',
@@ -124,7 +128,8 @@ const { isMarginMakeOrderSupport, isSpecifyContractSupport, isCryptoSupport } =
   useBrokerBehaviorManager(currentGlobalKfLocation, formState);
 
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
-const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+const enableOffset = Object.keys(enableCustomRadioType['offset']);
+const offsetList = ref<string[]>([...enableOffset]);
 
 const autoFillInstrument = ref<boolean>(false);
 
@@ -181,23 +186,15 @@ const configSettings = computed(() => {
   }
 
   let priceStep = 1,
-    pricePrecision = 0,
-    volumePrecision = 0,
-    volumeStep = 1;
+    pricePrecision = 0;
   if (instrumentResolved.value) {
     const { instrumentId, exchangeId } = instrumentResolved.value;
-    const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
-      instrumentId,
-      exchangeId,
-    );
     const { price_tick, price_precision } = getPriceTickAndPrecision(
       instrumentId,
       exchangeId,
     );
     priceStep = price_tick;
     pricePrecision = price_precision;
-    volumeStep = quantity_unit;
-    volumePrecision = volume_precision;
   }
 
   const { side } = formState.value;
@@ -212,8 +209,8 @@ const configSettings = computed(() => {
     priceStep,
     sideList: sideList.value,
     offsetList: offsetList.value,
-    volumeStep,
-    volumePrecision,
+    volumeStep: volumeStep.value,
+    volumePrecision: volumePrecision.value,
   });
 });
 
@@ -326,7 +323,14 @@ watch(
     const instrumentResolved =
       transformSearchInstrumentResultToInstrument(newInstrument);
     if (instrumentResolved) {
-      const { instrumentType, exchangeId } = instrumentResolved;
+      const { instrumentType, exchangeId, instrumentId } = instrumentResolved;
+      const { quantity_unit, volume_precision } = getQuantityUnitAndPrecision(
+        instrumentId,
+        exchangeId,
+      );
+
+      volumeStep.value = quantity_unit;
+      volumePrecision.value = volume_precision;
 
       const tdName = newAccountId ? newAccountId.split('_')[0] : '';
 
@@ -347,14 +351,21 @@ watch(
         sideList.value = Object.keys(Side).slice(0, 2);
       }
 
+      const offsetWithoutCloseByDay = enableOffset.filter(
+        (item) =>
+          item !== `${OffsetEnum.CloseToday}` &&
+          item !== `${OffsetEnum.CloseYest}`,
+      );
       if (instrumentType === InstrumentTypeEnum.future) {
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
-          offsetList.value = offsetList.value.filter(
-            (item) =>
-              item !== OffsetEnum.CloseToday + '' ||
-              item !== OffsetEnum.CloseYest + '',
-          );
+          offsetList.value = offsetWithoutCloseByDay;
+        } else {
+          offsetList.value = [...enableOffset];
         }
+      } else if (isCryptoInstrument(instrumentType)) {
+        offsetList.value = offsetWithoutCloseByDay;
+      } else {
+        offsetList.value = [...enableOffset];
       }
 
       if (
@@ -654,12 +665,12 @@ async function handleApartedConfirm(volumeList: number[]): Promise<void> {
 }
 
 function confirmContinueOrderModal(
-  warnningMessage: string,
+  warningMessage: string,
   okText = t('tradingConfig.Continue'),
   cancelText = t('cancel'),
 ): Promise<boolean | null> {
-  if (warnningMessage !== '') {
-    return confirmModal(t('warning'), warnningMessage, okText, cancelText);
+  if (warningMessage !== '') {
+    return confirmModal(t('warning'), warningMessage, okText, cancelText, true);
   } else {
     return Promise.resolve(null);
   }
@@ -1278,6 +1289,8 @@ watch(
       v-model:visible="isShowConfirmModal"
       :curOrderVolume="curOrderVolume"
       :curOrderType="curOrderType"
+      :volumePrecision="volumePrecision"
+      :volumeStep="volumeStep"
       @close="
         () => {
           apartOrderRef && apartOrderRef.focus();

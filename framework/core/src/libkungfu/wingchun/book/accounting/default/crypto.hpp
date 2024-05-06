@@ -37,7 +37,7 @@ public:
 
       auto apply_buy = [&](auto &position) {
         if (offset != Offset::Open) {
-          position.frozen_total += input.volume;
+          //position.frozen_total += input.volume;
         }
 
         update_position(book, position);
@@ -53,7 +53,7 @@ public:
         if (offset != Offset::Open) {
           if (input.frozen_price > 0) {
             // 卖出币种冻结数量：买入币种*价格
-            position.frozen_total += input.frozen_price * input.volume;
+            //position.frozen_total += input.frozen_price * input.volume;
           }
         }
         
@@ -78,7 +78,7 @@ public:
       auto offset = order.offset;
       auto apply_buy = [&](auto &position) {
         if (offset != Offset::Open) {
-          position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+          //position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
         }
 
         update_position(book, position);
@@ -92,9 +92,9 @@ public:
       auto offset = diff_offset(order.offset);
       auto apply_sell = [&](auto &position) {
         if (offset != Offset::Open) {
-          if (order.frozen_price > 0)
-            position.frozen_total =
-                std::max(position.frozen_total - order.volume_left * order.frozen_price, VOLUME_ZERO);
+          //if (order.frozen_price > 0)
+            //position.frozen_total =
+                //std::max(position.frozen_total - order.volume_left * order.frozen_price, VOLUME_ZERO);
         }
         
         update_position(book, position);
@@ -167,9 +167,9 @@ protected:
   void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     position.volume -= trade.volume;
 
-    if (is_local) {
-      position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
-    }
+    // if (is_local) {
+    //   position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
+    // }
   }
 
   void apply_open_sell(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
@@ -180,9 +180,9 @@ protected:
   void apply_close_sell(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     position.volume -= trade.volume * trade.price;
 
-    if (is_local) {
-      position.frozen_total = std::max(position.frozen_total - trade.volume * trade.price, VOLUME_ZERO);
-    }
+    // if (is_local) {
+    //   position.frozen_total = std::max(position.frozen_total - trade.volume * trade.price, VOLUME_ZERO);
+    // }
   }
 
   // LTC-USDT，下单现货时是币对，比如买入，计算是LTC数量增加，USDT减少，持仓需要计算两个资产的数量变动

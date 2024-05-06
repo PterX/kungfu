@@ -35,7 +35,7 @@ public:
 
     auto apply = [&](auto &position) {
       if (input.offset != Offset::Open) {
-        position.frozen_total += input.volume;
+        //position.frozen_total += input.volume;
       }
 
       update_position(book, position);
@@ -52,7 +52,7 @@ public:
 
     auto apply = [&](auto &position) {
       if (order.offset != Offset::Open) {
-        position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
+        //position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
       }
 
       update_position(book, position);
@@ -115,7 +115,7 @@ private:
     position.last_price = position.last_price > 0 ? position.last_price : trade.price;
 
     if (is_local) {
-      position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
+      //position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
     }
   }
 

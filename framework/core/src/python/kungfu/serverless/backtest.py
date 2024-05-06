@@ -37,7 +37,7 @@ class Backtest:
         self.sso.get_new_access_token_by_refresh_token()
         phone, username, user_id = self.sso.get_profile()
         self.logger.info(
-            f"Backtest init successfully, phone {phone} username {username}"
+            f"Backtest init successfully, phone {phone} username {username} userid {user_id}"
         )
         self.user_id = user_id
 

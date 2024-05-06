@@ -172,7 +172,7 @@ onMounted(() => {
             return toRaw({
               ...dealDataWithCache(
                 item,
-                () => dealOrder(watcher, item, false, price_precision),
+                () => dealOrder(watcher, item, price_precision),
                 { price_precision },
               ),
               ...getOrderLatencyDataByOrderStat(
@@ -200,7 +200,7 @@ onMounted(() => {
             const orderResolved = toRaw({
               ...dealDataWithCache(
                 curOrder,
-                () => dealOrder(watcher, curOrder, false, price_precision),
+                () => dealOrder(watcher, curOrder, price_precision),
                 { price_precision },
               ),
               ...getOrderLatencyDataByOrderStat(
@@ -305,7 +305,7 @@ watch(historyDate, async (newDate) => {
           return toRaw({
             ...dealDataWithCache(
               item,
-              () => dealOrder(window.watcher, item, true, price_precision),
+              () => dealOrder(window.watcher, item, price_precision),
               { price_precision },
             ),
             ...getOrderLatencyDataByOrderStat(

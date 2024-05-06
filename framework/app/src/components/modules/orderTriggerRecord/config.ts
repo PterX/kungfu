@@ -31,7 +31,7 @@ export const getColumns = (): AntTableColumns => [
     sorter: {
       compare: buildSorter('insert_time'),
     },
-    width: 100,
+    width: 140,
   },
   {
     title: t('orderConfig.instrument_id'),

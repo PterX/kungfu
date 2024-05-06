@@ -10,7 +10,7 @@ backtest_command_context = kfc.pass_context("backtest_client", "logger")
 @kfc.group(cls=PrioritizedCommandGroup, help_priority=2)
 @kfc.pass_context()
 def backtest(ctx):
-    ctx.logger = create_logger("backtest_command", ctx.log_level)
+    ctx.logger = create_logger("backtest_command")
     ctx.backtest_client = Backtest(ctx.stage)
     pass
 
@@ -51,7 +51,7 @@ def submit(ctx, file_path, begin_time, end_time, data_level):
 @backtest_command_context
 def datarange(ctx):
     categories = ctx.backtest_client.check_data_range()
-    ("Support Daterange for L2_Quote, L2_Order, L2_Tick: ")
+    ctx.logger.info("Support Daterange for L2_Quote, L2_Order, L2_Tick: ")
     for key in categories.keys():
         ctx.logger.info(f"{key}")
         for item in categories[key]:

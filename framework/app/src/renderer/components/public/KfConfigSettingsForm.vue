@@ -638,8 +638,8 @@ function csvTableCallback(
     targetKey: string,
   ) {
     return new Promise<void>((resolve) => {
-      if (errRows.length) {
-        console.warn('Csv resolve error rows:', errRows);
+      if (errRows.length || !data.length) {
+        errRows.length && console.warn('Csv resolve error rows:', errRows);
         messagePrompt().error(
           `${t('settingsFormConfig.import_failed')}: ${t(
             'settingsFormConfig.csv_format_error',

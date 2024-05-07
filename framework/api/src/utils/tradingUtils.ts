@@ -956,7 +956,6 @@ export const getOrderLatencyDataByOrderStat = (
 export const dealOrder = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,
-  isHistory = false,
   pricePrecision = 4,
 ): KungfuApi.OrderResolvedWithoutStat => {
   const sourceResolvedData = resolveAccountId(
@@ -977,7 +976,7 @@ export const dealOrder = (
     dest_uname: destResolvedData.name,
     status_uname: statusData.name,
     status_color: statusData.color || 'default',
-    update_time_resolved: dealKfTime(order.update_time, isHistory),
+    update_time_resolved: dealKfTime(order.update_time, true),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
   };
@@ -986,7 +985,6 @@ export const dealOrder = (
 export const dealOrderTrigger = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.OrderTrigger,
-  isHistory = false,
   pricePrecision = 4,
   index,
 ): KungfuApi.OrderTriggerResolved => {
@@ -1008,9 +1006,9 @@ export const dealOrderTrigger = (
     dest_uname: destResolvedData.name,
     status_uname: statusData.name || '--',
     status_color: statusData.color || 'default',
-    update_time_resolved: dealKfTime(order.update_time, isHistory),
+    update_time_resolved: dealKfTime(order.update_time, true),
     insert_time_resolved:
-      order.dest === 0 ? '--' : dealKfTime(order.insert_time, isHistory),
+      order.dest === 0 ? '--' : dealKfTime(order.insert_time, true),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
     time_condition_resolved: dealTimeCondition(order.time_condition)
@@ -1025,7 +1023,6 @@ export const dealTrade = (
   watcher: KungfuApi.Watcher,
   trade: KungfuApi.Trade,
   orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
-  isHistory = false,
   pricePrecision = 4,
 ): KungfuApi.TradeResolved => {
   const sourceResolvedData = resolveAccountId(
@@ -1048,8 +1045,8 @@ export const dealTrade = (
     dest_resolved_data: destResolvedData,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
-    trade_time_resolved: dealKfTime(trade.trade_time, isHistory),
-    kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
+    trade_time_resolved: dealKfTime(trade.trade_time, true),
+    kf_time_resovlved: dealKfTime(latencyData.trade_time, true),
     latency_trade: latencyData.latencyTrade,
     price_precision: pricePrecision,
     price_resolved: dealKfPrice(trade.price, pricePrecision),

@@ -27,7 +27,7 @@ export const getColumns = (
         type: 'string',
         name: t('orderConfig.update_time'),
         dataIndex: 'update_time_resolved',
-        width: isHistory ? 160 : 120,
+        width: 160,
         sorter: buildSorter('update_time'),
       },
       {

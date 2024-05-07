@@ -18,7 +18,6 @@ const buildStrSorter =
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
-  isHistory = false,
 ): KfTradingDataTableHeaderConfig[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'trade')
@@ -27,14 +26,14 @@ export const getColumns = (
         type: 'string',
         name: t('tradeConfig.trade_time_resolved'),
         dataIndex: 'trade_time_resolved',
-        width: isHistory ? 160 : 120,
+        width: 160,
         sorter: buildSorter('trade_time'),
       },
       {
         type: 'string',
         name: t('tradeConfig.kf_time_resolved'),
         dataIndex: 'kf_time_resovlved',
-        width: isHistory ? 160 : 120,
+        width: 160,
         sorter: buildSorter('trade_time'),
       },
       {

@@ -148,7 +148,7 @@
   </a-layout>
   <KfReplaySettingModal
     v-if="setReplayModalVisible"
-    :width="520"
+    :width="720"
     v-model:visible="setReplayModalVisible"
     :is-journal="true"
     :can-backtest="canBacktest"

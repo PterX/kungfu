@@ -260,9 +260,7 @@ watch(historyDate, async (newDate) => {
       const tempAllOrders = toRaw(
         orderResolved.map((item) => {
           return toRaw({
-            ...dealDataWithCache(item, () =>
-              dealOrder(window.watcher, item, true),
-            ),
+            ...dealDataWithCache(item, () => dealOrder(window.watcher, item)),
             ...getOrderLatencyDataByOrderStat(item, tradingData.OrderStat),
           });
         }),

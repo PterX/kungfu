@@ -20,9 +20,9 @@ export const getUrlParams = (): Record<string, string> => {
   const params: Record<string, string> = {};
   Object.keys(urlParams).forEach((key) => {
     if (key === 'logPath') {
-      params[key] = decodeURI(urlParams[key]);
+      params[key] = decodeURI(urlParams[key]).replace('%20', ' ');
     } else {
-      params[key] = urlParams[key];
+      params[key] = urlParams[key].replace('%20', ' ');
     }
   });
   return params;

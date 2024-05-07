@@ -16,7 +16,6 @@ const { t } = useLanguage();
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
-  isHistory = false,
 ): VTable.ColumnDefine[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'trade')
@@ -24,10 +23,10 @@ export const getColumns = (
       {
         field: 'trade_time',
         title: t('tradeConfig.trade_time_resolved'),
-        width: isHistory ? 160 : 120,
+        width: 160,
         sort: vTableSorter,
         fieldFormat: (args) => {
-          return dealKfTime(args.trade_time, isHistory);
+          return dealKfTime(args.trade_time, true);
         },
       },
       {

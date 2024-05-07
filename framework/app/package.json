@@ -61,5 +61,10 @@
     "@types/echarts": "^4.9.16",
     "@types/markdown-it": "^12.2.3",
     "webpack-bundle-analyzer": "^4.6.1"
+  },
+  "resolutions": {
+    "@visactor/vrender-core": "0.18.14-alpha.0",
+    "@visactor/vrender-kits": "0.18.14-alpha.0",
+    "@visactor/vrender-components": "0.18.14-alpha.0"
   }
 }

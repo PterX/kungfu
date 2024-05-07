@@ -3150,8 +3150,8 @@ export const useBasket = () => {
     }
   });
 
-  function updateBasketData() {
-    store.setBasketList();
+  async function updateBasketData() {
+    await store.setBasketList();
 
     basketList.value = store.basketList;
     return Promise.resolve();

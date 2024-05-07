@@ -83,18 +83,15 @@ const statisticModalVisible = ref<boolean>(false);
 
 const columns = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getColumns(
-      {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      !!historyDate.value,
-    );
+    return getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: '*',
+    });
   }
 
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
+  return getColumns(currentGlobalKfLocation.value);
 });
 
 onMounted(() => {
@@ -127,7 +124,6 @@ onMounted(() => {
                 watcher,
                 item,
                 watcher.ledger.OrderStat,
-                false,
                 price_precision,
               ),
             );
@@ -195,7 +191,6 @@ watch(historyDate, async (newDate) => {
               window.watcher,
               item,
               tradingData.OrderStat,
-              true,
               price_precision,
             ),
           );

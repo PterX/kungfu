@@ -3195,7 +3195,17 @@
     simplify-geojson "^1.0.4"
     topojson-client "^3.1.0"
 
-"@visactor/vrender-components@0.18.14", "@visactor/vrender-components@0.18.14-alpha.0":
+"@visactor/vrender-components@0.18.14":
+  version "0.18.14"
+  resolved "https://registry.npmmirror.com/@visactor/vrender-components/-/vrender-components-0.18.14.tgz#17bb66e43ee565b3f4c47a4355cf716eea96c94c"
+  integrity sha512-CHvSO0pudKi1124M0zn1PsTzUpB8xQ6Hbge/QFlR/Gp0jOIRACTu8MowPLQWe0CP+vk9xUkv3prDb5/n9uhlOQ==
+  dependencies:
+    "@visactor/vrender-core" "0.18.14"
+    "@visactor/vrender-kits" "0.18.14"
+    "@visactor/vscale" "~0.17.3"
+    "@visactor/vutils" "~0.18.1"
+
+"@visactor/vrender-components@0.18.14-alpha.0":
   version "0.18.14-alpha.0"
   resolved "https://registry.npmmirror.com/@visactor/vrender-components/-/vrender-components-0.18.14-alpha.0.tgz#bf7ce8716f4f1c996657c4d32ba434165863ef7c"
   integrity sha512-PKYdDdJvDmhoNl7Pnnvvy0GixD73xexWdlWNvxpkEvR6ndVhJayqYEA+0jxyyD5O/JWCpRtNQFoQj7zYRcISVg==
@@ -3205,7 +3215,15 @@
     "@visactor/vscale" "~0.17.3"
     "@visactor/vutils" "~0.18.1"
 
-"@visactor/vrender-core@0.18.14", "@visactor/vrender-core@0.18.14-alpha.0":
+"@visactor/vrender-core@0.18.14":
+  version "0.18.14"
+  resolved "https://registry.npmmirror.com/@visactor/vrender-core/-/vrender-core-0.18.14.tgz#275f1357b6aaddebda265d059e3123f9bda2df99"
+  integrity sha512-wW3DzQxG9A3/8Q4YbATUPL47W7UNx90vtQF9gxZIhYDwpO0c5tXqt4+eIw2SmHbgYmJsC2c3Er3qj7ydigh2jw==
+  dependencies:
+    "@visactor/vutils" "~0.18.1"
+    color-convert "2.0.1"
+
+"@visactor/vrender-core@0.18.14-alpha.0":
   version "0.18.14-alpha.0"
   resolved "https://registry.npmmirror.com/@visactor/vrender-core/-/vrender-core-0.18.14-alpha.0.tgz#5437c4201be47c29495475e9e8adaf8d71264bba"
   integrity sha512-9Sqkg0na+W/ddEVaojA5ao6VkmdBr3kKUi3w9az0AtoWXa6RDBJePTXm3cMbH7YZt5tXXRgJGMHd/M2k8+IIgw==
@@ -3213,7 +3231,17 @@
     "@visactor/vutils" "~0.18.1"
     color-convert "2.0.1"
 
-"@visactor/vrender-kits@0.18.14", "@visactor/vrender-kits@0.18.14-alpha.0":
+"@visactor/vrender-kits@0.18.14":
+  version "0.18.14"
+  resolved "https://registry.npmmirror.com/@visactor/vrender-kits/-/vrender-kits-0.18.14.tgz#deb48a39ce33883d8173fb272e6f0670f989d83c"
+  integrity sha512-YpTPo/0bGM91wVeJZEhVL0BK3qTsob3cgtB1IOj235FEBaqXB9WuLXFBFRhs3hhPvQN5WDO755ry8JY3CUfY9g==
+  dependencies:
+    "@resvg/resvg-js" "2.4.1"
+    "@visactor/vrender-core" "0.18.14"
+    "@visactor/vutils" "~0.18.1"
+    roughjs "4.5.2"
+
+"@visactor/vrender-kits@0.18.14-alpha.0":
   version "0.18.14-alpha.0"
   resolved "https://registry.npmmirror.com/@visactor/vrender-kits/-/vrender-kits-0.18.14-alpha.0.tgz#9520ea3be4d72e4a947c718ccb26f3f72160f275"
   integrity sha512-7fxSj3LqOnBMURqRehYWx/rBOw2udDK9EsxAYagQcrIgKADiakP5+lWNqrHGy/Qr1HKYLVz6WLZH8oJSdu/bSg==
@@ -13049,9 +13077,9 @@ ws@^7.0.0, ws@^7.3.1:
   integrity sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==
 
 ws@^8.12.0, ws@^8.13.0:
-  version "8.16.0"
-  resolved "https://registry.npmmirror.com/ws/-/ws-8.16.0.tgz#d1cd774f36fbc07165066a60e40323eab6446fd4"
-  integrity sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==
+  version "8.17.0"
+  resolved "https://registry.npmmirror.com/ws/-/ws-8.17.0.tgz#d145d18eca2ed25aaf791a183903f7be5e295fea"
+  integrity sha512-uJq6108EgZMAl20KagGkzCKfMEjxmKvZHG7Tlq0Z6nOky7YF7aq4mOx6xK8TJ/i1LeK4Qus7INktacctDgY8Ow==
 
 ws@~7.4.0:
   version "7.4.6"

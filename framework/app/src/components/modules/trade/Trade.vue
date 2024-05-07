@@ -69,18 +69,15 @@ const statisticModalVisible = ref<boolean>(false);
 
 const columns = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getColumns(
-      {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      !!historyDate.value,
-    );
+    return getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: '*',
+    });
   }
 
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
+  return getColumns(currentGlobalKfLocation.value);
 });
 
 const needProcessTradingData = ref<boolean>(true);
@@ -220,9 +217,7 @@ watch(historyDate, async (newDate) => {
 
       const tempAllTrades = toRaw(
         tradesResolved.map((item) => {
-          return toRaw(
-            dealTrade(window.watcher, item, tradingData.OrderStat, true),
-          );
+          return toRaw(dealTrade(window.watcher, item, tradingData.OrderStat));
         }),
       );
 

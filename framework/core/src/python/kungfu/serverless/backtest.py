@@ -6,6 +6,7 @@ import kungfu
 import requests
 import time
 import signal
+import sys
 
 from kungfu.serverless.sso import SSO
 from kungfu.serverless.utils import (
@@ -233,17 +234,20 @@ class Backtest:
 
         def try_exit(signum, frame):
             try:
+                self.logger.warning(f"job {job_id} exiting...")
                 batch_client.terminate_job(jobId=job_id, reason="user triggered")
+                self.logger.warning(f"job {job_id} exited successfully")
             except ClientError as err:
                 self.logger.exception(err)
 
-            exit()
+            sys.exit()
 
         signal.signal(signal.SIGINT, try_exit)
         signal.signal(signal.SIGTERM, try_exit)
 
         next_token = ""
         start_time = time.time()
+
         while True:
             try:
                 resp = batch_client.describe_jobs(jobs=[job_id])

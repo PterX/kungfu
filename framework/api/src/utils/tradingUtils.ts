@@ -1243,7 +1243,6 @@ export const getTradeResolved = (
 export const dealOrder = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.Order,
-  isHistory = false,
 ): KungfuApi.OrderResolvedWithoutStat => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -1267,7 +1266,7 @@ export const dealOrder = (
     status_uname: statusData.name,
     status_color: statusData.color || 'default',
     status_resolved: statusData,
-    update_time_resolved: dealKfTime(order.update_time, isHistory),
+    update_time_resolved: dealKfTime(order.update_time, true),
     limit_price_resolved: dealKfNumber(order.limit_price, precision) + '',
     limit_price: dealKfDecimalPrecision(order.limit_price, precision),
     frozen_price: dealKfDecimalPrecision(order.frozen_price, precision),
@@ -1277,7 +1276,6 @@ export const dealOrder = (
 export const dealOrderTrigger = (
   watcher: KungfuApi.Watcher,
   order: KungfuApi.OrderTrigger,
-  isHistory = false,
   index: number,
 ): KungfuApi.OrderTriggerResolved => {
   const precision = getPrecisionByInstrumentType(order.instrument_type);
@@ -1300,9 +1298,9 @@ export const dealOrderTrigger = (
     dest_uname: destResolvedData.name,
     status_uname: statusData.name || '--',
     status_color: statusData.color || 'default',
-    update_time_resolved: dealKfTime(order.update_time, isHistory),
+    update_time_resolved: dealKfTime(order.update_time, true),
     insert_time_resolved:
-      order.dest === 0 ? '--' : dealKfTime(order.insert_time, isHistory),
+      order.dest === 0 ? '--' : dealKfTime(order.insert_time, true),
     limit_price_resolved: dealKfNumber(order.limit_price, precision) + '',
     time_condition_resolved: dealTimeCondition(order.time_condition)
       ? dealTimeCondition(order.time_condition).name
@@ -1316,7 +1314,6 @@ export const dealTrade = (
   watcher: KungfuApi.Watcher,
   trade: KungfuApi.Trade,
   orderStats: KungfuApi.DataTable<KungfuApi.OrderStat>,
-  isHistory = false,
 ): KungfuApi.TradeResolved => {
   const sourceResolvedData = resolveAccountId(
     watcher,
@@ -1340,9 +1337,9 @@ export const dealTrade = (
     dest_resolved_data: destResolvedData,
     source_uname: sourceResolvedData.name,
     dest_uname: destResolvedData.name,
-    trade_time_resolved: dealKfTime(trade.trade_time, isHistory),
+    trade_time_resolved: dealKfTime(trade.trade_time, true),
     kf_time: latencyData.trade_time,
-    kf_time_resovlved: dealKfTime(latencyData.trade_time, isHistory),
+    kf_time_resovlved: dealKfTime(latencyData.trade_time, true),
     latency_trade: latencyData.latencyTrade,
     price_resolved: dealKfNumber(trade.price, precision),
   };

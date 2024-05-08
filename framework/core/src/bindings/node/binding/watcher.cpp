@@ -138,7 +138,7 @@ Watcher::Watcher(const Napi::CallbackInfo &info)
 
   serialize::InitStateMap(info, ledger_ref_, "ledger");
 
-  auto today = time::today_start();
+  auto today = time::trading_day_start();
   auto config_store = ConfigStore::Unwrap(config_ref_.Value());
 
   bool sync_schema = not get_io_device()->is_usable();

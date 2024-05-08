@@ -46,6 +46,8 @@ long_positions
 short_positions
 order_inputs
 algo_order_inputs
+factors
+prices
 price
 volume
 data_time
@@ -356,6 +358,11 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
+Tick
+Depth
 SubscribeDataType
 Stock
 Future

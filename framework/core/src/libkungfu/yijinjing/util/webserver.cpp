@@ -120,9 +120,7 @@ int stream::stream_send(const std::string &data) {
   if (rv != 0) {
     fatal("nng_aio_set_iov", rv);
   }
-  std::cout<<"before send"<<std::endl;
   nng_stream_send(s_, aio_send_[cur_index_]);
-  std::cout<<"after send"<<std::endl;
   cur_index_ = (cur_index_ + 1) % aio_nums_;
   /*
   int rv = nng_aio_set_iov(aio_send_, 1, &iov);
@@ -137,7 +135,6 @@ int stream::stream_send(const std::string &data) {
   }
   return rv;
   */
- 	std::cout<<"stream_send end"<<std::endl;
   return 0;
 }
 
@@ -380,6 +377,11 @@ uint64_t webclient::get_stream_id() { return stream_->get_stream_id(); }
 int webclient::send_msg(const char*data, int data_len){
   return stream_->stream_send(data,data_len);
 }
+
+stream_ptr webclient::get_stream(){
+  return stream_;
+}
+
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);

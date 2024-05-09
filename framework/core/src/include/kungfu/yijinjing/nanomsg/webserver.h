@@ -199,6 +199,7 @@ public:
 
   uint64_t get_stream_id();
   int send_msg(const char*data, int data_len);
+  stream_ptr get_stream();
 private:
   stream_manage_ptr stream_manager_;
   stream_ptr stream_;

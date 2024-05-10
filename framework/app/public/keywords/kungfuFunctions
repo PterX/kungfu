@@ -151,6 +151,8 @@ order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
 today_start
+trading_day_start
+restore_start
 strftime
 strptime
 strfnow

@@ -137,7 +137,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_live_home(), false, true, time::trading_day_start(), time::now_in_nano());
+  tracer trc(get_live_home(), false, true, time::restore_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());

@@ -36,7 +36,7 @@
     "@electron/remote": "^2.0.0",
     "@kungfu-trader/kungfu-js-api": "^3.0.4-alpha.3",
     "@types/mark.js": "^8.11.8",
-    "@visactor/vtable": "0.25.1-alpha.3",
+    "@visactor/vtable": "~0.25.1-alpha.3",
     "@vueuse/core": "^10.4.1",
     "ant-design-vue": "^3.2.20",
     "axios": "^0.28.0",

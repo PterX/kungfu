@@ -2250,7 +2250,7 @@ defineExpose({
               overflowY: 'auto',
             }"
             :items="tablesSearchRelated[item.key].tableData.value"
-            :item-size="calcTableItemHeight(layout, !!item.noDivider)"
+            :item-size="calcTableItemHeight(layout, !!item.noDivider) + 8"
             key-field="id"
             :buffer="calcTableItemHeight(layout, !!item.noDivider)"
           >

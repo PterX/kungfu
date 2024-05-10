@@ -1199,7 +1199,7 @@ function calcTableItemHeight(
 ) {
   const baseHeight = layout === 'vertical' ? 52 : 32;
   const dividerHeight = noDivider ? 8 : 25;
-  return baseHeight + dividerHeight;
+  return baseHeight + dividerHeight + 12;
 }
 
 function getContracData(open) {
@@ -2250,7 +2250,7 @@ defineExpose({
               overflowY: 'auto',
             }"
             :items="tablesSearchRelated[item.key].tableData.value"
-            :item-size="calcTableItemHeight(layout, !!item.noDivider) + 8"
+            :item-size="calcTableItemHeight(layout, !!item.noDivider)"
             key-field="id"
             :buffer="calcTableItemHeight(layout, !!item.noDivider)"
           >

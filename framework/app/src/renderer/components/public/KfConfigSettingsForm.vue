@@ -1199,7 +1199,7 @@ function calcTableItemHeight(
 ) {
   const baseHeight = layout === 'vertical' ? 52 : 32;
   const dividerHeight = noDivider ? 8 : 25;
-  return baseHeight + dividerHeight;
+  return baseHeight + dividerHeight + 12;
 }
 
 function getContracData(open) {

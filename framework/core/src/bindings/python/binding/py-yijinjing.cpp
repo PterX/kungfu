@@ -143,6 +143,10 @@ void bind(pybind11::module &&m) {
 
   // nanosecond-time related
   m.def("now_in_nano", &time::now_in_nano);
+  m.def("nano_hashed", &time::nano_hashed);
+  m.def("next_minute", &time::next_minute);
+  m.def("next_trading_day_end", &time::next_trading_day_end);
+  m.def("calendar_day_start", &time::calendar_day_start);
   m.def("today_start", &time::today_start);
   m.def("trading_day_start", &time::trading_day_start);
   m.def("restore_start", &time::restore_start);

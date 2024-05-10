@@ -20,14 +20,14 @@ SessionStore::~SessionStore() { io_device_.reset(); }
 
 Napi::Value SessionStore::GetAllSessions(const Napi::CallbackInfo &info) {
   auto session_finder = std::make_shared<yijinjing::index::session_finder>(io_device_);
-  auto sessions = session_finder->find_sessions(time::trading_day_start(), INT64_MAX);
+  auto sessions = session_finder->find_sessions(time::restore_start(), INT64_MAX);
   return ParseSessions(info, sessions);
 }
 
 Napi::Value SessionStore::GetSessionsForLocation(const Napi::CallbackInfo &info) {
   auto session_finder = std::make_shared<yijinjing::index::session_finder>(io_device_);
   auto location = IODevice::ExtractLocation(info, 0, io_device_->get_locator());
-  auto sessions = session_finder->find_sessions_for(location, time::trading_day_start(), INT64_MAX);
+  auto sessions = session_finder->find_sessions_for(location, time::restore_start(), INT64_MAX);
   return ParseSessions(info, sessions);
 }
 

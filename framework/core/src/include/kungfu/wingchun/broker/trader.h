@@ -61,7 +61,7 @@ public:
 
   virtual void on_recover() { recover_done_ = true; };
 
-  virtual void on_active() {};
+  virtual void on_active(){};
 
 protected:
   TraderVendor &vendor_;
@@ -371,7 +371,7 @@ public:
 
   void disable_recover();
 
-  virtual void on_recover() {};
+  virtual void on_recover(){};
 
   [[nodiscard]] bool is_sync_account() const { return sync_account_; }
 

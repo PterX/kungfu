@@ -109,8 +109,9 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
 
   auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
+  auto pair = get_all_order_status(order.parent_id);
 
-  if (is_final_status(order.status) && get_all_order_status(order.parent_id).first) {
+  if (is_final_status(order.status) && pair.first) {
     if (has_traded) {
       if (target_algo_order.volume_left <= 0) {
         target_algo_order.status = OrderStatus::Filled;
@@ -118,7 +119,7 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
         target_algo_order.status = OrderStatus::PartialFilledNotActive;
       }
     } else {
-      if (get_all_order_status(order.parent_id).second) {
+      if (pair.second) {
         target_algo_order.status = OrderStatus::Error;
       } else {
         target_algo_order.status = OrderStatus::Cancelled;

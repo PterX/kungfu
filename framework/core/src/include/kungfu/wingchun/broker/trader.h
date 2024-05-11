@@ -39,22 +39,18 @@ typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderAction>> Al
 
 typedef std::unordered_map<uint64_t, longfist::types::BlockMessage> BlockMessages;
 
-inline bool is_all_order_finished(const Orders &orders) {
+inline std::pair<bool, bool> get_status(const Orders &orders) {
+  bool all_finished = true;
+  bool has_error = false;
   for (auto &iter : orders) {
     if (not is_final_status(iter.second.status)) {
-      return false;
+      all_finished = false;
     }
-  }
-  return true;
-}
-
-inline bool is_has_order_error(const Orders &orders) {
-  for (auto &iter : orders) {
     if (iter.second.status == longfist::enums::OrderStatus::Error) {
-      return true;
+      has_error = true;
     }
   }
-  return false;
+  return std::make_pair(all_finished, has_error);
 }
 
 class BaseService {
@@ -65,7 +61,7 @@ public:
 
   virtual void on_recover() { recover_done_ = true; };
 
-  virtual void on_active(){};
+  virtual void on_active() {};
 
 protected:
   TraderVendor &vendor_;
@@ -375,7 +371,7 @@ public:
 
   void disable_recover();
 
-  virtual void on_recover(){};
+  virtual void on_recover() {};
 
   [[nodiscard]] bool is_sync_account() const { return sync_account_; }
 

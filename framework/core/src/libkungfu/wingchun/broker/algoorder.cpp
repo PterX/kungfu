@@ -169,7 +169,7 @@ std::pair<bool, bool> AlgoOrderService::get_all_order_status(uint64_t algo_order
     return std::make_pair(false, false);
   }
   auto &orders = local_sub_orders_.at(algo_order_id);
-  return std::make_pair(is_all_order_finished(orders), is_has_order_error(orders));
+  return get_status(orders);
 }
 
 int64_t AlgoOrderService::get_volume_traded(uint64_t algo_order_id) {

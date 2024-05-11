@@ -48,6 +48,15 @@ inline bool is_all_order_finished(const Orders &orders) {
   return true;
 }
 
+inline bool is_has_order_error(const Orders &orders) {
+  for (auto &iter : orders) {
+    if (iter.second.status == longfist::enums::OrderStatus::Error) {
+      return true;
+    }
+  }
+  return false;
+}
+
 class BaseService {
 public:
   explicit BaseService(TraderVendor &vendor) : vendor_(vendor){};
@@ -187,7 +196,7 @@ private:
 
   void try_update_sub_orders(const longfist::types::Order &order);
 
-  bool check_if_all_order_finished(uint64_t algo_order_id);
+  std::pair<bool, bool> get_all_order_status(uint64_t algo_order_id);
 
   int64_t get_volume_traded(uint64_t algo_order_id);
 };

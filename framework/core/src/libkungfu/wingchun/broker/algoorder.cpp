@@ -109,11 +109,23 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
 
   auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
-  auto algo_order_is_final = is_final_status(target_algo_order.status);
+  auto pair = get_all_order_status(order.parent_id);
 
-  if (target_algo_order.volume_left <= 0) {
-    target_algo_order.status = OrderStatus::Filled;
-  } else if (has_traded && target_algo_order.volume_left > 0 && not algo_order_is_final) {
+  if (is_final_status(order.status) && pair.first) {
+    if (has_traded) {
+      if (target_algo_order.volume_left <= 0) {
+        target_algo_order.status = OrderStatus::Filled;
+      } else {
+        target_algo_order.status = OrderStatus::PartialFilledNotActive;
+      }
+    } else {
+      if (pair.second) {
+        target_algo_order.status = OrderStatus::Error;
+      } else {
+        target_algo_order.status = OrderStatus::Cancelled;
+      }
+    }
+  } else {
     target_algo_order.status = OrderStatus::PartialFilledActive;
   }
 
@@ -151,13 +163,13 @@ void AlgoOrderService::try_update_sub_orders(const Order &order) {
   orders.insert_or_assign(order.order_id, order);
 }
 
-bool AlgoOrderService::check_if_all_order_finished(uint64_t algo_order_id) {
+std::pair<bool, bool> AlgoOrderService::get_all_order_status(uint64_t algo_order_id) {
   if (local_sub_orders_.find(algo_order_id) == local_sub_orders_.end()) {
-    SPDLOG_ERROR("check_if_all_order_finished no {} in local_sub_orders_", algo_order_id);
-    return false;
+    SPDLOG_ERROR("get_all_order_status no {} in local_sub_orders_", algo_order_id);
+    return std::make_pair(false, false);
   }
   auto &orders = local_sub_orders_.at(algo_order_id);
-  return is_all_order_finished(orders);
+  return get_status(orders);
 }
 
 int64_t AlgoOrderService::get_volume_traded(uint64_t algo_order_id) {

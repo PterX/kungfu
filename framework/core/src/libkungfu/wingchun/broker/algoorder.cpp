@@ -199,7 +199,7 @@ void AlgoOrderService::clean_algo_orders(bool bypass_recover) {
     AlgoOrder &algo_order = pair.second.data;
 
     if (not is_final_status(algo_order.status) and
-        (bypass_recover or algo_order.external_order_id.to_string().empty())) {
+        (bypass_recover or (not algo_order.is_local and algo_order.external_order_id.to_string().empty()))) {
       algo_order.status = OrderStatus::Lost;
       algo_order.update_time = time::now_in_nano();
       vendor_.try_write_to(vendor_.now(), algo_order, pair.second.dest);

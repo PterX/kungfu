@@ -74,7 +74,7 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
   SPDLOG_DEBUG("read file from: {}", file_path);
   ServerConfig config = read_config(file_path.generic_string());
   std::vector<std::string> paths = config.paths;
-  io_network_ = std::make_shared<io_device_network_server>(config.address, paths, false);
+  io_network_ = std::make_shared<io_device_network_server>(config.address, paths, true, false);
   threadpool_ = new ThreadPool(config.thread_num);
   threadpool_->init();
 }

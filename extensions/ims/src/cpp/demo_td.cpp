@@ -3,12 +3,11 @@
 
 #pragma warning(disable : 4996)
 
-#include "kf_time.h"
-#include <IMSTradeAPI.h>
+#include <IMSTradeAPI/IMSTradeAPI.h>
+#include <IMSTradeAPI/pack_types.h>
 #include <csignal>
 #include <fstream>
 #include <iostream>
-#include <pack_types.h>
 #include <spdlog/spdlog.h>
 #include <thread>
 using namespace CICC::API;
@@ -96,6 +95,7 @@ bool is_final_status(OrderStatus status) {
 
 class my_spi : public IMSTradeSPI {
   void OnRspNewOrder(OrderInput *input) override {
+    std::cout << "input:" << input->order_id << std::endl;
     OrderInputRecvTime.try_emplace(input->order_id, time::now_in_nano());
     // ServerOrderInputTime.try_emplace(input->order_id, input->parent_id);
     order_request_map.try_emplace(input->order_id, input->request_id);
@@ -110,6 +110,7 @@ class my_spi : public IMSTradeSPI {
       // action->order_id << std::endl;
   };
   void OnNotiOrder(Order *order) override {
+    std::cout << "order:" << order->order_id << std::endl;
     // if(is_final_status(order->status)){
     // OrderRecvTime.try_emplace(order->order_id, time::now_in_nano());
     //}
@@ -121,6 +122,7 @@ class my_spi : public IMSTradeSPI {
     }
   };
   void OnNotiKnock(Trade *trade) override {
+    std::cout << "trade:" << trade->trade_id << std::endl;
     TradeRecvTime.try_emplace(trade->order_id, time::now_in_nano());
     TradeTime.try_emplace(trade->order_id, trade->trade_time);
     ServerTradeTime.try_emplace(trade->order_id, trade->parent_order_id);
@@ -198,7 +200,7 @@ int main() {
       while (time::now_in_nano() < order_end) {
       }
     }
-    auto second_end = second_start + 1e6;
+    auto second_end = second_start + 1e9;
     while (time::now_in_nano() < second_end) {
     }
   }

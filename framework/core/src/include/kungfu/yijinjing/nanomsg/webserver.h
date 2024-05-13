@@ -122,8 +122,8 @@ class webserver {
 public:
   stream_manage_ptr stream_manager_;
   // std::map<int, std::shared_ptr<stream>> streams_;
-  webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path, bool is_text_mode,bool tcp_no_delay,
-            size_t max_num_connections);
+  webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path, bool is_text_mode,
+            bool tcp_no_delay, size_t max_num_connections);
 
   virtual ~webserver();
 
@@ -153,8 +153,8 @@ public:
   std::map<int, std::shared_ptr<webserver>> websockets_;
   explicit http_server(const std::string &address);
   ~http_server();
-  void add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode, bool tcp_no_delay = true,
-                     size_t max_num_connections = 0);
+  void add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode,
+                     bool tcp_no_delay = true, size_t max_num_connections = 0);
   void remove_websocket(int id);
   void start();
   int port();
@@ -193,13 +193,14 @@ public:
             std::function<void(webclient &, const std::string &)> message = nullptr,
             std::function<void(webclient &)> open = nullptr,
             std::function<void(webclient &, const std::string &)> error = nullptr,
-            std::function<void(webclient &)> close = nullptr, bool is_text_mode = true,bool tcp_no_delay =true);
+            std::function<void(webclient &)> close = nullptr, bool is_text_mode = true, bool tcp_no_delay = true);
 
   virtual ~webclient();
 
   uint64_t get_stream_id();
-  int send_msg(const char*data, int data_len);
+  int send_msg(const char *data, int data_len);
   stream_ptr get_stream();
+
 private:
   stream_manage_ptr stream_manager_;
   stream_ptr stream_;

@@ -154,9 +154,7 @@ int stream::stream_send(const char *data, const int len) {
   if (rv != 0) {
     fatal("nng_aio_set_iov", rv);
   }
-  std::cout<<"before send"<<std::endl;
   nng_stream_send(s_, aio_send_[cur_index_]);
-  std::cout<<"after send"<<std::endl;
   cur_index_ = (cur_index_ + 1) % aio_nums_;
   /*
   int rv = nng_aio_set_iov(aio_send_, 1, &iov);
@@ -171,7 +169,6 @@ int stream::stream_send(const char *data, const int len) {
   }
   return rv;
   */
-  std::cout<<"stream_send end"<<std::endl;
   return 0;
 }
 
@@ -187,9 +184,10 @@ void stream::cancel() {
 const yijinjing::data::location_ptr &stream::get_location() const { return location_; }
 
 webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path,
-                     const bool is_text_mode, const bool tcp_no_delay,const size_t max_num_connections)
+                     const bool is_text_mode, const bool tcp_no_delay, const size_t max_num_connections)
     : stream_manager_(std::move(stream_manager)), base_url_(base_url), path_(std::move(path)),
-      is_text_mode_(is_text_mode), tcp_no_delay_(tcp_no_delay), max_num_connections_(max_num_connections), num_connected_(0) {
+      is_text_mode_(is_text_mode), tcp_no_delay_(tcp_no_delay), max_num_connections_(max_num_connections),
+      num_connected_(0) {
   SPDLOG_DEBUG("webserver");
 
   int rv;
@@ -251,7 +249,7 @@ void webserver::accept_cb() {
   auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_accept, 0));
 
   // disable Nagle, send-msg low-latency
-  if(tcp_no_delay_){
+  if (tcp_no_delay_) {
     nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
   }
 
@@ -290,9 +288,10 @@ http_server::~http_server() {
   }
 }
 
-void http_server::add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode, bool tcp_no_delay,
-                                const size_t max_num_connections) {
-  auto websocket = std::make_shared<webserver>(stream_manager, url_, path, is_text_mode, tcp_no_delay, max_num_connections);
+void http_server::add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode,
+                                bool tcp_no_delay, const size_t max_num_connections) {
+  auto websocket =
+      std::make_shared<webserver>(stream_manager, url_, path, is_text_mode, tcp_no_delay, max_num_connections);
   const auto id = websockets_.empty() ? 1 : websockets_.rbegin()->first + 1;
   websockets_.emplace(std::make_pair(id, std::move(websocket)));
 }
@@ -362,7 +361,7 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
   }
   auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_dialer, 0));
   // disable Nagle, send-msg low-latency
-  if(tcp_no_delay){
+  if (tcp_no_delay) {
     nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
   }
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
@@ -374,14 +373,9 @@ webclient::~webclient() { SPDLOG_DEBUG("~webclient"); }
 
 uint64_t webclient::get_stream_id() { return stream_->get_stream_id(); }
 
-int webclient::send_msg(const char*data, int data_len){
-  return stream_->stream_send(data,data_len);
-}
+int webclient::send_msg(const char *data, int data_len) { return stream_->stream_send(data, data_len); }
 
-stream_ptr webclient::get_stream(){
-  return stream_;
-}
-
+stream_ptr webclient::get_stream() { return stream_; }
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
   // std::lock_guard<std::mutex> lock(streams_mtx_);

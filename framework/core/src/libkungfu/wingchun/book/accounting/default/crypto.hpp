@@ -23,86 +23,11 @@ public:
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
   virtual void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
-    if (dest == location::SYNC or dest == location::PUBLIC) {
-      return;
-    }
-
-    std::string buy_instrument_id;
-    std::string sell_instrument_id;
-    // 比如交易LTC-BTC， 那么就是买入LTC，卖出BTC
-    parser_instrument_id(input.instrument_id, buy_instrument_id, sell_instrument_id);
-
-    if (!buy_instrument_id.empty()) {
-      auto offset = input.offset;
-
-      auto apply_buy = [&](auto &position) {
-        if (offset != Offset::Open) {
-          //position.frozen_total += input.volume;
-        }
-
-        update_position(book, position);
-      };
-
-      auto direction = get_direction(input.instrument_type, input.side, offset);
-      book->apply_position(account_id, direction, input.exchange_id, buy_instrument_id.c_str(), apply_buy);
-    }
-
-    if (!sell_instrument_id.empty()) {
-      auto offset = diff_offset(input.offset);
-      auto apply_sell = [&](auto &position) {
-        if (offset != Offset::Open) {
-          if (input.frozen_price > 0) {
-            // 卖出币种冻结数量：买入币种*价格
-            //position.frozen_total += input.frozen_price * input.volume;
-          }
-        }
-        
-        update_position(book, position);
-      };
-
-      auto direction = get_direction(input.instrument_type, diff_side(input.side), offset);
-      book->apply_position(account_id, direction, input.exchange_id, sell_instrument_id.c_str(), apply_sell);
-    }
+    
   }
 
   virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    if (not guard_order_accounting(account_id, dest, book, order)) {
-      return;
-    }
-
-    std::string buy_instrument_id;
-    std::string sell_instrument_id;
-    parser_instrument_id(order.instrument_id, buy_instrument_id, sell_instrument_id);
-
-    if (!buy_instrument_id.empty()) {
-      auto offset = order.offset;
-      auto apply_buy = [&](auto &position) {
-        if (offset != Offset::Open) {
-          //position.frozen_total = std::max(position.frozen_total - order.volume_left, VOLUME_ZERO);
-        }
-
-        update_position(book, position);
-      };
-
-      auto direction = get_direction(order.instrument_type, order.side, offset);
-      book->apply_position(account_id, direction, order.exchange_id, buy_instrument_id.c_str(), apply_buy);
-    }
-
-    if (!sell_instrument_id.empty()) {
-      auto offset = diff_offset(order.offset);
-      auto apply_sell = [&](auto &position) {
-        if (offset != Offset::Open) {
-          //if (order.frozen_price > 0)
-            //position.frozen_total =
-                //std::max(position.frozen_total - order.volume_left * order.frozen_price, VOLUME_ZERO);
-        }
-        
-        update_position(book, position);
-      };
-
-      auto direction = get_direction(order.instrument_type, diff_side(order.side), offset);
-      book->apply_position(account_id, direction, order.exchange_id, sell_instrument_id.c_str(), apply_sell);
-    }
+    
   }
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
@@ -166,10 +91,6 @@ protected:
 
   void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     position.volume -= trade.volume;
-
-    // if (is_local) {
-    //   position.frozen_total = std::max(position.frozen_total - trade.volume, VOLUME_ZERO);
-    // }
   }
 
   void apply_open_sell(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
@@ -179,10 +100,6 @@ protected:
 
   void apply_close_sell(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     position.volume -= trade.volume * trade.price;
-
-    // if (is_local) {
-    //   position.frozen_total = std::max(position.frozen_total - trade.volume * trade.price, VOLUME_ZERO);
-    // }
   }
 
   // LTC-USDT，下单现货时是币对，比如买入，计算是LTC数量增加，USDT减少，持仓需要计算两个资产的数量变动

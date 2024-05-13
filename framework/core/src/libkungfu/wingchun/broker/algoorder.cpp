@@ -103,27 +103,29 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
 
   auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
-  auto pair = get_all_order_status(order.parent_id);
 
-  if (is_final_status(order.status) && pair.first) {
-    if (has_traded) {
-      if (target_algo_order.volume_left <= 0) {
-        target_algo_order.status = OrderStatus::Filled;
-      } else {
-        target_algo_order.status = OrderStatus::PartialFilledNotActive;
-      }
-    } else {
-      if (pair.second) {
-        target_algo_order.status = OrderStatus::Error;
-      } else {
-        target_algo_order.status = OrderStatus::Cancelled;
-      }
-    }
+  if (volume_traded == 0) {
+    target_algo_order.status = OrderStatus::Pending;
   } else {
-    if (volume_traded == 0) {
-      target_algo_order.status = OrderStatus::Pending;
-    } else {
-      target_algo_order.status = OrderStatus::PartialFilledActive;
+    target_algo_order.status = OrderStatus::PartialFilledActive;
+  }
+
+  if (is_final_status(order.status)) {
+    auto pair = get_all_order_status(order.parent_id);
+    if (pair.first) {
+      if (has_traded) {
+        if (target_algo_order.volume_left <= 0) {
+          target_algo_order.status = OrderStatus::Filled;
+        } else {
+          target_algo_order.status = OrderStatus::PartialFilledNotActive;
+        }
+      } else {
+        if (pair.second) {
+          target_algo_order.status = OrderStatus::Error;
+        } else {
+          target_algo_order.status = OrderStatus::Cancelled;
+        }
+      }
     }
   }
   target_algo_order.update_time = time::now_in_nano();

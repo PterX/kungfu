@@ -63,6 +63,8 @@ public:
 
   virtual void on_active(){};
 
+  virtual void on_frame(){};
+
 protected:
   TraderVendor &vendor_;
   bool recover_done_ = false;
@@ -175,7 +177,7 @@ public:
 
   [[nodiscard]] const AlgoOrderActionMap &get_algo_order_actions() const;
 
-  void on_active() override;
+  void on_frame() override;
 
 private:
   AlgoOrderMap local_algo_orders_;
@@ -248,6 +250,8 @@ protected:
   void on_write_to(const event_ptr &event) override;
 
   void on_active() override;
+
+  void on_frame() override;
 
 private:
   Trader_ptr service_{};

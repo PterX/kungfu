@@ -231,7 +231,7 @@ kungfu::state<AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_i
 
 const AlgoOrderActionMap &AlgoOrderService::get_algo_order_actions() const { return algo_order_actions_; }
 
-void AlgoOrderService::on_active() {
+void AlgoOrderService::on_frame() {
   if (waiting_record_local_algo_orders_.empty()) {
     return;
   }
@@ -239,7 +239,7 @@ void AlgoOrderService::on_active() {
   auto iter = waiting_record_local_algo_orders_.begin();
   while (iter != waiting_record_local_algo_orders_.end()) {
     auto &algo_order_state = iter->second;
-    vendor_.write_to(vendor_.now(), algo_order_state.data, algo_order_state.dest);
+    vendor_.try_write_to(vendor_.now(), algo_order_state.data, algo_order_state.dest);
     iter = waiting_record_local_algo_orders_.erase(iter);
   }
 }

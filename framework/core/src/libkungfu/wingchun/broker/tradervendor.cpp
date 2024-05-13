@@ -172,6 +172,12 @@ void TraderVendor::on_active() {
   order_trigger_service_.on_active();
 }
 
+void TraderVendor::on_frame() {
+  order_service_.on_frame();
+  algo_order_service_.on_frame();
+  order_trigger_service_.on_frame();
+}
+
 void TraderVendor::on_recover() {
   algo_order_service_.on_recover();
   service_->on_recover();

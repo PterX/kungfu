@@ -10,6 +10,9 @@ import {
   useDashboardBodySize,
   confirmModal,
   searchByKeyword,
+  useBrowserWindowMinimize,
+  messagePrompt,
+  confirmModalSkippable,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -61,12 +64,12 @@ import {
   useProcessStatusDetailData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import StatisticModal from './OrderStatisticModal.vue';
-import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
-const { success, error } = messagePrompt();
+const { success, error, warn } = messagePrompt();
 const app = getCurrentInstance();
+const windowMinimized = useBrowserWindowMinimize();
 const { getPriceTickAndPrecision } = useActiveInstruments();
 
 const { handleBodySizeChange } = useDashboardBodySize();
@@ -82,6 +85,7 @@ const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 const searchKeyword = ref<string>('');
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
+const cancelOrderLoading = ref<boolean>(false);
 
 const {
   currentGlobalKfLocation,
@@ -123,13 +127,13 @@ const processTradingData = async (
   if (isRendering.value && !keepProcessing) return;
   currentTradingData.value = tradingDataKeeper;
 
-  const orderList = (await getOrderOrTradeListFromTradingDataKeeper({
+  const orderList = getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
     tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
     currentGlobalKfLocation: currentGlobalKfLocation.value,
     isGetUnfinishedOrder: unfinishedOrder.value,
     type: 'order',
-  })) as KungfuApi.OrderResolved[];
+  }) as KungfuApi.OrderResolved[];
 
   if (orderList.length > 0) {
     const tableData = searchByKeyword(
@@ -164,6 +168,12 @@ onActivated(() => {
     async (data) => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
+
+      if (windowMinimized.value) {
+        needProcessTradingData.value = true;
+        return;
+      }
+
       if (historyDate.value) {
         return;
       }
@@ -250,9 +260,7 @@ watch(historyDate, async (newDate) => {
       const tempAllOrders = toRaw(
         orderResolved.map((item) => {
           return toRaw({
-            ...dealDataWithCache(item, () =>
-              dealOrder(window.watcher, item, true),
-            ),
+            ...dealDataWithCache(item, () => dealOrder(window.watcher, item)),
             ...getOrderLatencyDataByOrderStat(item, tradingData.OrderStat),
           });
         }),
@@ -272,8 +280,12 @@ watch(historyDate, async (newDate) => {
     });
 });
 
+function isUnfinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
+  return UnfinishedOrderStatus.includes(orderStatus);
+}
+
 function isFinishedOrderStatus(orderStatus: OrderStatusEnum): boolean {
-  return !UnfinishedOrderStatus.includes(orderStatus);
+  return !isUnfinishedOrderStatus(orderStatus);
 }
 
 function handleCancelOrder(order: KungfuApi.OrderResolved): void {
@@ -288,7 +300,7 @@ function handleCancelOrder(order: KungfuApi.OrderResolved): void {
 
   kfCancelOrder(window.watcher, order, OrderActionFlagEnum.Cancel)
     .then(() => {
-      success();
+      success(t('orderConfig.cancel_order_success'));
     })
     .catch(() => {
       error();
@@ -312,22 +324,26 @@ function handleCancelAllOrders(): void {
     if (!flag || !currentGlobalKfLocation.value || !window.watcher) {
       return;
     }
-
+    cancelOrderLoading.value = true;
     const orders = await getTargetCancelOrders();
+
+    if (orders.length === 0) {
+      cancelOrderLoading.value = false;
+      warn(t('orderConfig.no_order_to_cancel'));
+      return;
+    }
+
     return kfCancelAllOrders(window.watcher, orders)
       .then(() => {
-        success();
+        success(t('orderConfig.cancel_all_order_success'));
       })
       .catch((err) => {
         error(err.message);
+      })
+      .finally(() => {
+        cancelOrderLoading.value = false;
       });
   });
-}
-
-function filterUnfinishedOrders(
-  orders: KungfuApi.OrderResolved[],
-): KungfuApi.OrderResolved[] {
-  return orders.filter((item) => UnfinishedOrderStatus.includes(item.status));
 }
 
 async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
@@ -338,22 +354,39 @@ async function getTargetCancelOrders(): Promise<KungfuApi.OrderResolved[]> {
   ) {
     return [];
   }
-  const orderList = (await getOrderOrTradeListFromTradingDataKeeper({
+  const orderList = getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
-    tradingDataKeeper: currentTradingData.value,
+    tradingDataKeeper:
+      globalThis.TradingDataKeeper as KungfuApi.TradingDataKeeper,
     currentGlobalKfLocation: currentGlobalKfLocation.value,
-    isGetAllUnfinishedOrder: true,
+    isGetUnfinishedOrder: true,
     type: 'order',
-  })) as KungfuApi.OrderResolved[];
-  if (orderList.length <= 0) {
-    return [];
-  }
-
-  return filterUnfinishedOrders(orderList);
+  }) as KungfuApi.OrderResolved[];
+  return orderList;
 }
 
+const handleCancelOrderWithRemind = (order: KungfuApi.OrderResolved) => {
+  if (isFinishedOrderStatus(order.status)) return;
+
+  const storageKey = 'skipQuickCancelRemind';
+
+  const promise = confirmModalSkippable(
+    t('orderConfig.notice'),
+    t('orderConfig.quick_cancel_context'),
+    storageKey,
+    {
+      okText: t('orderConfig.ensure_cancel'),
+      cancelText: t('orderConfig.cancel_cancel'),
+    },
+  );
+
+  promise.then((flag) => {
+    flag && handleCancelOrder(order);
+  });
+};
+
 function handleClickCell(args: VTable.MousePointerCellEvent) {
-  if (args.field === 'limit_price_resolved') {
+  if (args.field === 'limit_price_resolved' && !historyDate.value) {
     handleAdjustOrder({
       event: args.event as MouseEvent,
       field: args.field,
@@ -364,8 +397,13 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
     });
   }
   if (args.value === t('orderConfig.cancel_order')) {
-    handleCancelOrder(args.originData);
+    handleCancelOrderWithRemind(args.originData);
   }
+}
+
+function handleDblClickCell(args: VTable.MousePointerCellEvent) {
+  if (historyDate.value) return;
+  handleCancelOrderWithRemind(args.originData);
 }
 
 function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
@@ -635,6 +673,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
             size="small"
             type="primary"
             danger
+            :loading="cancelOrderLoading"
             @click="handleCancelAllOrders"
           >
             {{ $t('orderConfig.cancel_all') }}
@@ -674,8 +713,9 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         <KfCanvasTradingDataTable
           ref="canvasRef"
           :columns="columns"
-          :hasData="hasData"
+          :has-data="hasData"
           @click-cell="handleClickCell"
+          @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"
         />
       </div>

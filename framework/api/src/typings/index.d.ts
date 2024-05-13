@@ -7,6 +7,8 @@ declare const __resources: string;
 type AnyFunction = (...args: unknown[]) => unknown;
 type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
 
+type TradingDataKeeperListType = 'all' | 'common' | 'unfinished';
+
 declare module 'tasklist' {
   function tasklist(options: {
     verbose: boolean;
@@ -674,7 +676,6 @@ declare namespace KungfuApi {
     long_avail: number; // otc业务可用资金(多)
     short_avail: number; // otc业务可用资金(空）
     market_value: number; //市值(股票)
-    margin: number; //保证金(期货)
     accumulated_fee: number; //累计手续费
     intraday_fee: number; //当日手续费
     frozen_cash: number; //冻结资金(股票: 买入挂单资金), 期货: 冻结保证金+冻结手续费)
@@ -691,9 +692,8 @@ declare namespace KungfuApi {
     avail_margin: number; //可用保证金
     long_margin: number; //融资占用保证金
     short_margin: number; //融券占用保证金
-    margin: number; //总占用保证金
+    margin: number; //保证金占用
 
-    cash_debt: number; //融资欠款 (不含利息和费用)
     short_cash: number; //融券卖出金额
 
     short_market_value: number; //融券卖出证券市值
@@ -802,6 +802,7 @@ declare namespace KungfuApi {
     dest_uname: string;
     status_uname: string;
     status_color: AntInKungfuColorTypes;
+    status_resolved: KungfuApi.KfTradeValueCommonData;
     update_time_resolved: string;
     limit_price_resolved: string;
   }
@@ -1340,6 +1341,8 @@ declare namespace KungfuApi {
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率
     replace_balance: number; // 替代金额
+    keep_single_side: boolean; // 保留单边
+    close_today_first: boolean; // 优先平今
   }
 
   export interface BasketInstrumentResolved
@@ -1488,8 +1491,10 @@ declare namespace KungfuApi {
     getValue(key1: unknown, key2: unknown): V | undefined;
     getCommonList(): V[];
     getUnfinishedList(): V[];
-    getAllUnfinishedList(): V[];
-    getAllList(): V[];
+    getCommonTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getUnfinishedTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getFullTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getFullList(): V[];
   }
 
   export interface TradingDataKeeper {
@@ -1500,10 +1505,13 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
-      list: () => KungfuApi.OrderResolved[];
+      list: (
+        type?: TradingDataKeeperListType,
+        filterFunc?: (order: OrderResolved) => boolean,
+      ) => KungfuApi.OrderResolved[];
       filter: (
-        key: string | function,
-        value?: unknown,
+        filterFunc: (order: OrderResolved) => boolean,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.OrderResolved[];
     };
     trade: {
@@ -1513,10 +1521,13 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
-      list: () => KungfuApi.TradeResolved[];
+      list: (
+        type?: TradingDataKeeperListType,
+        filterFunc?: (order: TradeResolved) => boolean,
+      ) => KungfuApi.TradeResolved[];
       filter: (
-        key: string | function,
-        value?: unknown,
+        filterFunc: (order: TradeResolved) => boolean,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.TradeResolved[];
     };
     update: boolean;
@@ -1776,10 +1787,6 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  import { session } from 'electron';
-  import path from 'path';
-  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
-  import { kf } from '../kungfu/index';
 
   export interface CodeInfo {
     code_id: string;

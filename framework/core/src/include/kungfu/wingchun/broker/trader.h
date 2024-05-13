@@ -39,13 +39,18 @@ typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderAction>> Al
 
 typedef std::unordered_map<uint64_t, longfist::types::BlockMessage> BlockMessages;
 
-inline bool is_all_order_finished(const Orders &orders) {
+inline std::pair<bool, bool> get_status(const Orders &orders) {
+  bool all_finished = true;
+  bool has_error = false;
   for (auto &iter : orders) {
     if (not is_final_status(iter.second.status)) {
-      return false;
+      all_finished = false;
+    }
+    if (iter.second.status == longfist::enums::OrderStatus::Error) {
+      has_error = true;
     }
   }
-  return true;
+  return std::make_pair(all_finished, has_error);
 }
 
 class BaseService {
@@ -187,7 +192,7 @@ private:
 
   void try_update_sub_orders(const longfist::types::Order &order);
 
-  bool check_if_all_order_finished(uint64_t algo_order_id);
+  std::pair<bool, bool> get_all_order_status(uint64_t algo_order_id);
 
   int64_t get_volume_traded(uint64_t algo_order_id);
 };
@@ -397,11 +402,7 @@ private:
 
   void deal_read_frame();
 
-  void clean_orders();
-
   void clean_finished_orders();
-
-  void clean_trades();
 
   [[nodiscard]] OrderService &get_order_service();
 

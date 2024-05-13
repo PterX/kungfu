@@ -21,7 +21,11 @@ import {
   reqCancelAllOrders,
   tradesObservable,
 } from '../assets/actions/tradingData';
-import { dealKfNumber } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import {
+  dealKfNumber,
+  dealKfDecimalPrecision,
+  ASSET_PRECISION,
+} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { setTimerPromiseTask } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { initBusEvent } from '../assets/actions/busEvent';
 
@@ -345,10 +349,14 @@ export class TradingDataDashboard extends Dashboard {
 
     const { market_value, avail, margin, unrealized_pnl } = asset;
 
-    assetForShow.market_value = dealKfNumber(market_value) + '';
-    assetForShow.avail = colorNum(dealKfNumber(avail));
-    assetForShow.margin = dealKfNumber(margin) + '';
-    assetForShow.unrealized_pnl = colorNum(dealKfNumber(unrealized_pnl));
+    assetForShow.market_value = dealKfNumber(market_value, ASSET_PRECISION);
+    assetForShow.avail = colorNum(
+      dealKfDecimalPrecision(avail, ASSET_PRECISION),
+    );
+    assetForShow.margin = dealKfNumber(margin, ASSET_PRECISION);
+    assetForShow.unrealized_pnl = colorNum(
+      dealKfDecimalPrecision(unrealized_pnl, ASSET_PRECISION),
+    );
 
     return Object.entries(assetForShow).map((kvPair: (string | number)[]) => {
       const key = kvPair[0];

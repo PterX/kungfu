@@ -198,14 +198,14 @@ KF_DEFINE_PACK_TYPE(                                                            
     (double, pre_close_price), // 昨收价(股票和债券)
 
     (double, settlement_price),     // 结算价(期货)
-    (double, pre_settlement_price), // 昨结算(期货) ***
+    (double, pre_settlement_price), // 昨结算(期货)
 
     (double, margin),       // 保证金(期货)
-    (double, position_pnl), // 持仓盈亏(期货)
-    (double, close_pnl),    // 平仓盈亏(期货) ***
+    (double, position_pnl), // 持仓盈亏(期货), 最新价 - 昨结算, 表示今日的盈亏, 本地不计算改变
+    (double, close_pnl), // 平仓盈亏(期货), 平仓价 - 昨结算, 表示今日的平仓盈亏, 本地不计算改变
 
-    (double, realized_pnl),   // 已实现盈亏
-    (double, unrealized_pnl), // 未实现盈亏
+    (double, realized_pnl), // 已实现盈亏, 平仓价 - 昨结算, 表示今日的平仓盈亏, 随着交易被本地计算改变
+    (double, unrealized_pnl), // 未实现盈亏, 最新价 - 昨结算, 表示今日的盈亏, 随着交易被本地计算改变
 
     (uint32_t, source_id),   // 来源账户
     (uint64_t, source_op_id) // 来源账户 xor holder_uid
@@ -992,7 +992,9 @@ KF_DEFINE_PACK_TYPE(                                                            
     (double, rate),                                                                   // 比例, volume比例
     (enums::CashReplaceFlag, replace_flag),                                           // 是否可以由现金替代
     (double, cash_premium_ratio),                                                     // 现金替代溢价比率
-    (double, replace_balance)                                                         // 替代金额
+    (double, replace_balance),                                                        // 替代金额
+    (bool, keep_single_side),                                                         // 保留单边
+    (bool, close_today_first)                                                         // 优先平今
 );
 
 KF_DEFINE_PACK_TYPE(                              //

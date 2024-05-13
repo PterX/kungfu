@@ -8,6 +8,7 @@ import {
 import {
   dealOffset,
   dealSide,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
@@ -50,7 +51,8 @@ const cancelRatioMean = computed(() => {
       );
     })
     .map((item) => {
-      return dealKfDecimalPrecision(item.volume_left / item.volume);
+      const precision = getPrecisionByInstrumentType(item.instrument_type);
+      return dealKfDecimalPrecision(item.volume_left / item.volume, precision);
     });
 
   if (!cancelRatioBuckets.length) {
@@ -126,7 +128,8 @@ const priceVolumeStats = computed(() => {
         priceVolumeData: Record<string, PriceVolumeStatItem>,
         order: KungfuApi.OrderResolved,
       ) => {
-        const id = `${order.instrument_id}_${order.exchange_id}_${order.side}_${order.offset}`;
+        const id = `${order.instrument_id}_${order.exchange_id}_${order.instrument_type}_${order.side}_${order.offset}`;
+        const precision = getPrecisionByInstrumentType(order.instrument_type);
         if (!priceVolumeData[id]) {
           priceVolumeData[id] = {
             price: [],
@@ -139,10 +142,10 @@ const priceVolumeStats = computed(() => {
         priceVolumeData[id].price.push(order.limit_price);
         priceVolumeData[id].volume.push(order.volume);
         priceVolumeData[id].volumeTraded.push(
-          dealKfDecimalPrecision(order.volume - order.volume_left),
+          dealKfDecimalPrecision(order.volume - order.volume_left, precision),
         );
         priceVolumeData[id].priceByVolume.push(
-          dealKfDecimalPrecision(order.volume * order.limit_price),
+          dealKfDecimalPrecision(order.volume * order.limit_price, precision),
         );
         return priceVolumeData;
       },
@@ -160,16 +163,20 @@ const priceVolumeStats = computed(() => {
     volume: string;
   }> = Object.keys(priceVolumeData)
     .map((id) => {
-      const [instrumentId, exchangeId, side, offset] = id.split('_');
+      const [instrumentId, exchangeId, InstrumentType, side, offset] =
+        id.split('_');
+      const precision = getPrecisionByInstrumentType(Number(InstrumentType));
       const priceStats = new Stats().push(...priceVolumeData[id].price);
       const priceSum = priceVolumeData[id].priceByVolume.reduce(
         (a, b) => a + b,
       );
       const volumeSum = dealKfDecimalPrecision(
         priceVolumeData[id].volume.reduce((a, b) => a + b),
+        precision,
       );
       const volumeTradedSum = dealKfDecimalPrecision(
         priceVolumeData[id].volumeTraded.reduce((a, b) => a + b),
+        precision,
       );
       const range = priceStats.range();
       return {
@@ -177,9 +184,9 @@ const priceVolumeStats = computed(() => {
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
         side: +side,
         offset: +offset,
-        mean: dealKfNumber(priceSum / volumeSum) + '',
-        min: dealKfNumber(range[0]) + '',
-        max: dealKfNumber(range[1]) + '',
+        mean: dealKfNumber(priceSum / volumeSum, precision),
+        min: dealKfNumber(range[0], precision),
+        max: dealKfNumber(range[1], precision),
         volume: `${volumeTradedSum} / ${volumeSum}`,
       };
     })

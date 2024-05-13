@@ -7,7 +7,11 @@ import { dealKfDecimalPrecision } from '@kungfu-trader/kungfu-js-api/utils/commo
 import { InstrumentTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { ref, toRefs, computed, getCurrentInstance, onMounted } from 'vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { isShotable } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import {
+  isShotable,
+  isCryptoInstrument,
+  getPrecisionByInstrumentType,
+} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 const { t } = VueI18n.global;
 
 const { error } = messagePrompt();
@@ -18,9 +22,13 @@ const props = withDefaults(
     visible: boolean;
     curOrderVolume: number;
     curOrderType: InstrumentTypeEnum;
+    volumePrecision?: number;
+    volumeStep?: number;
   }>(),
   {
     visible: false,
+    volumePrecision: 0,
+    volumeStep: 1,
   },
 );
 
@@ -38,36 +46,60 @@ onMounted(() => {
   }
 });
 
+function isDivisible(dividend: number, divisor: number) {
+  if (divisor === 0) {
+    return false;
+  }
+
+  const result = dividend / divisor;
+
+  const epsilon = 1e-13;
+
+  const difference = Math.abs(result - Math.round(result));
+  return difference < epsilon;
+}
+
 const orderNumber = computed(() => {
   return volume.value
-    ? Math.floor(dealKfDecimalPrecision(curOrderVolume.value / volume.value))
+    ? Math.floor(
+        dealKfDecimalPrecision(curOrderVolume.value / volume.value, precision),
+      )
+    : 0;
+});
+
+const apartOrderNumber = computed(() => {
+  return volume.value
+    ? isDivisible(curOrderVolume.value, volume.value)
+      ? orderNumber.value
+      : orderNumber.value + 1
     : 0;
 });
 
 const { modalVisible, closeModal } = useModalVisible(props.visible);
 const { curOrderType } = props;
-const { curOrderVolume } = toRefs(props);
+const { curOrderVolume, volumePrecision, volumeStep } = toRefs(props);
 
-const defaultVolume = computed(() => {
-  if (isShotable(curOrderType)) {
-    return 1;
-  }
-  return 100;
-});
-
-const volume = ref<number>(defaultVolume.value);
+const defaultVolume = isCryptoInstrument(curOrderType)
+  ? volumeStep.value
+  : isShotable(curOrderType)
+  ? 1
+  : 100;
+const precision = getPrecisionByInstrumentType(curOrderType);
+const volume = ref<number>(defaultVolume);
 
 function handleConfirm() {
   if (volume.value === null) {
     error(t('tradingConfig.no_empty'));
     return;
   }
-  const remainder: number = dealKfDecimalPrecision(
-    curOrderVolume.value % volume.value,
-  ); // 剩余数量
+
   const volumeList: number[] = new Array(+orderNumber.value).fill(volume.value);
 
-  if (remainder !== 0) {
+  if (!isDivisible(curOrderVolume.value, volume.value)) {
+    const remainder: number = dealKfDecimalPrecision(
+      curOrderVolume.value % volume.value,
+      precision,
+    ); // 剩余数量
     volumeList.push(remainder);
   }
 
@@ -97,24 +129,18 @@ function handleConfirm() {
           <a-input-number
             ref="everyVolumeInput"
             class="input-number"
-            :precision="0"
-            step="1"
+            :precision="volumePrecision"
+            :step="volumeStep"
             v-model:value="volume"
             :max="curOrderVolume"
-            :min="1"
+            :min="volumeStep"
           ></a-input-number>
         </a-input-group>
       </a-col>
       <a-col class="apart-result">
         <a-statistic
           class="apart-result-statistic"
-          :value="
-            volume
-              ? curOrderVolume % volume === 0
-                ? orderNumber
-                : orderNumber + 1
-              : '--'
-          "
+          :value="apartOrderNumber || '--'"
           :valueStyle="{ fontSize: '35px' }"
           :title="$t('tradingConfig.make_order_number')"
         />

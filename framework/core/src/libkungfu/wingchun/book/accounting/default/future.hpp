@@ -39,10 +39,9 @@ public:
       // 此处仅计算结算价，但需要根据实时行情变化
       if (is_valid_price(quote.settlement_price)) {
         auto margin_pre = position.margin;
+        position.settlement_price = quote.settlement_price;
         position.margin = future_i_a.contract_multiplier * position.settlement_price * future_i_a.exchange_rate *
                           position.volume * future_i_a.margin_ratio;
-
-        position.settlement_price = quote.settlement_price;
         book->asset.avail -= (position.direction == Direction::Long ? 1 : -1) * (position.margin - margin_pre);
       }
 
@@ -180,7 +179,10 @@ public:
     }
 
     auto multiplier = future_i_a.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
-    auto price_diff = position.last_price - position.avg_open_price;
+    auto pre_settlement_price = position.pre_settlement_price == 0
+                                    ? position.avg_open_price
+                                    : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
+    auto price_diff = position.last_price - pre_settlement_price;    // 最新价 - 昨结算 表示今日的盈亏
     // 浮动盈亏
     position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
   }
@@ -207,7 +209,7 @@ public:
     asset.dynamic_equity += position.margin + position.position_pnl * exchange_rate;
   }
 
-private:
+public:
   void apply_open(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
                                                       trade.instrument_id);
@@ -240,7 +242,7 @@ private:
     book->asset.margin += margin;
   }
 
-  void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
+  virtual void apply_close(Book_ptr &book, Position &position, const Trade &trade, bool is_local) {
     auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction, trade.exchange_id,
                                                       trade.instrument_id);
     auto contract_multiplier = future_i_a.contract_multiplier;
@@ -265,7 +267,11 @@ private:
       close_today_volume = trade.volume;
     }
 
-    auto realized_pnl = (trade.price - position.avg_open_price) * trade.volume * contract_multiplier;
+    // 平仓价 - 昨结算 表示今日的平仓盈亏
+    auto pre_settlement_price = position.pre_settlement_price == 0
+                                    ? position.avg_open_price
+                                    : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
+    auto realized_pnl = (trade.price - pre_settlement_price) * trade.volume * contract_multiplier;
     if (position.direction == Direction::Short) {
       realized_pnl = -realized_pnl;
     }

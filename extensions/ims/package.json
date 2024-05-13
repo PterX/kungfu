@@ -4,7 +4,7 @@
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.4-alpha.14",
+  "version": "2.7.5-alpha.16",
   "description": "Kungfu Extension - ims Demo",
   "license": "Apache-2.0",
   "main": "package.json",
@@ -30,11 +30,11 @@
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^2.7.4-alpha.14",
+    "@kungfu-trader/kungfu-core": "^2.7.5-alpha.16",
     "copyfiles": "^2.4.1"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^2.7.4-alpha.14"
+    "@kungfu-trader/kungfu-sdk": "^2.7.5-alpha.16"
   },
   "kungfuDependencies": {
     "IMS-kf": "v2.7.3"

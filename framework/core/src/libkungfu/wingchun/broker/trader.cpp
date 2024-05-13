@@ -139,7 +139,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_live_home(), false, true, time::trading_day_start(), time::now_in_nano());
+  tracer trc(get_live_home(), false, true, time::restore_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
@@ -239,10 +239,6 @@ void Trader::clean_finished_orders() {
     get_order_service().clean_finished_orders(time::now_in_nano());
   }
 }
-
-void Trader::clean_orders() { get_order_service().clean_finished_orders(); }
-
-void Trader::clean_trades() { get_order_service().clean_trades(); }
 
 uint32_t Trader::get_risk_uid() const { return risk_uid_; }
 

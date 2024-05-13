@@ -446,6 +446,9 @@ export default {
     cancel_all: '全部撤单',
     cancel_order: '撤单',
     cancel_order_trigger: '预撤',
+    no_order_to_cancel: '暂无可撤订单',
+    cancel_order_success: '撤单成功',
+    cancel_all_order_success: '全部撤单成功',
     date_picker: '请选择日期',
     confirm_cancel_all: '确认全部撤单',
     entrust: '委托',
@@ -470,6 +473,11 @@ export default {
     confirm_cancel_order_trigger: '确认撤销预埋单',
     cancel_order_trigger_context: '您是否要取消该委托单下的预埋撤单',
     make_order_type: '(预埋)',
+
+    notice: '撤单确认',
+    quick_cancel_context: '双击委托记录，即可快速撤单',
+    cancel_cancel: '取消撤单',
+    ensure_cancel: '确定撤单',
   },
 
   orderTriggerConfig: {
@@ -481,6 +489,9 @@ export default {
     cancel_all: '全部撤单',
     insert_time: '生成时间',
     order_finished: '该委托已结束, 无法操作',
+    no_order_to_cancel: '暂无可撤订单',
+    cancel_order_success: '撤单成功',
+    cancel_all_order_success: '全部撤单成功',
     order_trigger_request_success: '刷新成功',
     make_order_modal_tip:
       '注: 预埋单仅支持在非交易时间段下单, 会在交易所交易状态变化时触发',
@@ -506,7 +517,6 @@ export default {
 
     avail_funds: '可用资金',
     avail_margin: '可用保证金',
-    cash_debt: '融资负债',
     total_asset: '总资产',
     actions: '操作',
 

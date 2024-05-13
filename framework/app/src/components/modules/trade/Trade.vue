@@ -4,6 +4,7 @@ import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtil
 import {
   messagePrompt,
   searchByKeyword,
+  useBrowserWindowMinimize,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -48,6 +49,7 @@ import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
+const windowMinimized = useBrowserWindowMinimize();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
@@ -67,18 +69,15 @@ const statisticModalVisible = ref<boolean>(false);
 
 const columns = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getColumns(
-      {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      !!historyDate.value,
-    );
+    return getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: '*',
+    });
   }
 
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
+  return getColumns(currentGlobalKfLocation.value);
 });
 
 const needProcessTradingData = ref<boolean>(true);
@@ -93,12 +92,12 @@ const processTradingData = async (
   if (isRendering.value && !keepProcessing) return;
   currentTradingData.value = tradingDataKeeper;
 
-  const tradeList = (await getOrderOrTradeListFromTradingDataKeeper({
+  const tradeList = getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
     tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
     currentGlobalKfLocation: currentGlobalKfLocation.value,
     type: 'trade',
-  })) as KungfuApi.TradeResolved[];
+  }) as KungfuApi.TradeResolved[];
 
   if (tradeList.length > 0) {
     const tableData = searchByKeyword(
@@ -137,6 +136,12 @@ onActivated(() => {
     async (data) => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
+
+      if (windowMinimized.value) {
+        needProcessTradingData.value = true;
+        return;
+      }
+
       if (historyDate.value) {
         return;
       }
@@ -212,9 +217,7 @@ watch(historyDate, async (newDate) => {
 
       const tempAllTrades = toRaw(
         tradesResolved.map((item) => {
-          return toRaw(
-            dealTrade(window.watcher, item, tradingData.OrderStat, true),
-          );
+          return toRaw(dealTrade(window.watcher, item, tradingData.OrderStat));
         }),
       );
 

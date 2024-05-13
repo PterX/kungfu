@@ -388,15 +388,13 @@ onMounted(() => {
     </a-drawer>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
-      :width="520"
+      :width="720"
       v-model:visible="setReplayModalVisible"
       :can-backtest="canBacktest"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
-      :begin-time="replayConfig.begin_time.split(' ')[1]"
-      :end-time="
-        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
-      "
+      :begin-time="replayConfig.begin_time"
+      :end-time="replayConfig.end_time ? replayConfig.end_time : ''"
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"

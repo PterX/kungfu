@@ -4,7 +4,7 @@
     "name": "kungfu-trader",
     "email": "info@kungfu.link"
   },
-  "version": "2.7.4-alpha.14",
+  "version": "2.7.5-alpha.16",
   "description": "Kungfu Extension - SIM",
   "license": "UNLICENSED",
   "main": "package.json",
@@ -30,23 +30,23 @@
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-app": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-core": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-js-api": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-toolchain": "~2.7.0 || ~2.7.4-0"
+    "@kungfu-trader/kungfu-app": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-core": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-js-api": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-toolchain": "^2.7.5-alpha.16"
   },
   "devDependencies": {
-    "@kungfu-trader/kfx-broker-xtp-demo": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-cli": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-sdk": "~2.7.0 || ~2.7.4-0"
+    "@kungfu-trader/kfx-broker-xtp-demo": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-cli": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-sdk": "^2.7.5-alpha.16"
   },
   "resolutions": {
-    "@kungfu-trader/kungfu-core": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-cli": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-sdk": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-app": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-js-api": "~2.7.0 || ~2.7.4-0",
-    "@kungfu-trader/kungfu-toolchain": "~2.7.0 || ~2.7.4-0"
+    "@kungfu-trader/kungfu-core": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-cli": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-sdk": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-app": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-js-api": "^2.7.5-alpha.16",
+    "@kungfu-trader/kungfu-toolchain": "^2.7.5-alpha.16"
   },
   "kungfuBuild": {
     "skipBuildPlatforms": [],

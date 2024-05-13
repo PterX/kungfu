@@ -1,9 +1,6 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import {
-  sorter,
-  dealKfNumber,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { vTableSorter } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
@@ -24,7 +21,7 @@ export const getColumns = (
         field: 'instrument_id_resolved',
         title: t('posGlobalConfig.instrument_id'),
         width: 190,
-        sort: sorter,
+        sort: vTableSorter,
       },
       ...(isTd(kfLocation.category)
         ? []
@@ -33,7 +30,7 @@ export const getColumns = (
               field: 'account_id_resolved',
               title: t('posGlobalConfig.account_id_resolved'),
               width: 120,
-              sort: sorter,
+              sort: vTableSorter,
             },
           ]),
       {
@@ -61,7 +58,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'open_volume',
@@ -73,7 +70,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'close_volume',
@@ -85,7 +82,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'yesterday_volume',
@@ -97,7 +94,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'today_volume',
@@ -109,7 +106,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'volume',
@@ -121,7 +118,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'frozen_total',
@@ -133,7 +130,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'closable_volume',
@@ -145,7 +142,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
 
       {
@@ -158,7 +155,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'last_price_resolved',
@@ -171,11 +168,9 @@ export const getColumns = (
           textAlign: 'right',
         },
         fieldFormat: (args) => {
-          return dealKfNumber(
-            getPositionLastPrice(args, 'last_price_resolved'),
-          );
+          return getPositionLastPrice(args, 'last_price_resolved') ?? '--';
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'unrealized_pnl_resolved',
@@ -194,6 +189,6 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
     ]);

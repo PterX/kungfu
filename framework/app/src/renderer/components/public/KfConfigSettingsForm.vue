@@ -49,6 +49,8 @@ import {
 import {
   getIdByKfLocation,
   getPrimaryKeys,
+  MAX_PRECISION,
+  dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   dealPriceType,
@@ -295,8 +297,9 @@ watch(
                   break;
                 case 'float':
                 case 'percent':
-                  formState.value[key] = Number(newVal[key]).kfRound(
-                    numberKeys.value[key].precision ?? 12,
+                  formState.value[key] = dealKfDecimalPrecision(
+                    formState.value[key],
+                    numberKeys.value[key].precision ?? MAX_PRECISION,
                   );
                   break;
               }
@@ -635,8 +638,8 @@ function csvTableCallback(
     targetKey: string,
   ) {
     return new Promise<void>((resolve) => {
-      if (errRows.length) {
-        console.warn('Csv resolve error rows:', errRows);
+      if (errRows.length || !data.length) {
+        errRows.length && console.warn('Csv resolve error rows:', errRows);
         messagePrompt().error(
           `${t('settingsFormConfig.import_failed')}: ${t(
             'settingsFormConfig.csv_format_error',
@@ -1205,7 +1208,7 @@ function calcTableItemHeight(
 ) {
   const baseHeight = layout === 'vertical' ? 52 : 32;
   const dividerHeight = noDivider ? 8 : 25;
-  return baseHeight + dividerHeight;
+  return baseHeight + dividerHeight + 12;
 }
 
 function getContracData(open) {

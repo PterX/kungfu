@@ -148,6 +148,7 @@ void Trader::recover_from_journal() {
     case Order::tag:
     case Trade::tag:
     case OrderTrigger::tag:
+    case AlgoOrder::tag:
       get_vendor().feed_state_data(frame, state_bank);
       ++count;
       break;

@@ -183,7 +183,6 @@ private:
   AlgoOrderMap local_algo_orders_;
   AlgoOrderMap waiting_record_local_algo_orders_;
   AlgoOrderMap algo_orders_;
-  AlgoOrderInputMap local_algo_order_inputs_;
   SubOrders local_sub_orders_;
   std::unordered_map<uint64_t, uint64_t> order_id_to_algo_order_id_;
   AlgoOrderActionMap algo_order_actions_;

@@ -188,6 +188,7 @@ void TraderVendor::on_active() {
 }
 
 void TraderVendor::on_frame() {
+  apprentice::on_frame();
   order_service_.on_frame();
   algo_order_service_.on_frame();
   order_trigger_service_.on_frame();

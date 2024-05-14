@@ -23,12 +23,10 @@ public:
   virtual void apply_quote(Book_ptr &book, const Quote &quote) override {}
 
   virtual void apply_order_input(uint32_t account_id, uint32_t dest, Book_ptr &book, const OrderInput &input) override {
-    
+
   }
 
-  virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {
-    
-  }
+  virtual void apply_order(uint32_t account_id, uint32_t dest, Book_ptr &book, const Order &order) override {}
 
   virtual void apply_trade(uint32_t account_id, uint32_t dest, Book_ptr &book, const Trade &trade) override {
     if (not guard_trade_accounting(account_id, dest, book, trade)) {
@@ -49,7 +47,7 @@ public:
         } else if (offset == Offset::Close or offset == Offset::CloseToday or offset == Offset::CloseYesterday) {
           apply_close(book, position, trade, is_local);
         }
-        
+
         update_position(book, position);
       };
 
@@ -74,9 +72,7 @@ public:
     }
   }
 
-  void update_position(Book_ptr &book, Position &position) override {
-    position.update_time = time::now_in_nano();
-  }
+  void update_position(Book_ptr &book, Position &position) override { position.update_time = time::now_in_nano(); }
 
   bool update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
                     Asset &asset, const Position &position) override {

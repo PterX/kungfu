@@ -19,8 +19,6 @@ void AlgoOrderService::on_algo_order_input(const event_ptr &event) {
 
   if (algo_order_input.is_local) {
     state<AlgoOrderInput> algo_order_input_state(event->source(), event->dest(), event->gen_time(), algo_order_input);
-    local_algo_order_inputs_.insert_or_assign(algo_order_input.order_id, algo_order_input_state);
-
     if (algo_order_input.origin_order_id == UINT64_ZERO) {
       auto &algo_order = writer->open_data<AlgoOrder>();
       algo_order_from_input(algo_order_input, algo_order);
@@ -92,10 +90,6 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
   // save <order id> to <parent id> pair;
   order_id_to_algo_order_id_.insert_or_assign(order.order_id, order.parent_id);
 
-  if (not recover_done_) {
-    return;
-  }
-
   if (local_algo_orders_.find(order.parent_id) == local_algo_orders_.end()) {
     return;
   }
@@ -109,7 +103,12 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
 
   auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
-  target_algo_order.status = OrderStatus::PartialFilledActive;
+
+  if (volume_traded == 0) {
+    target_algo_order.status = OrderStatus::Pending;
+  } else {
+    target_algo_order.status = OrderStatus::PartialFilledActive;
+  }
 
   if (is_final_status(order.status)) {
     auto pair = get_all_order_status(order.parent_id);
@@ -129,7 +128,7 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
       }
     }
   }
-
+  target_algo_order.update_time = time::now_in_nano();
   waiting_record_local_algo_orders_.insert_or_assign(target_algo_order.order_id, target_algo_order_state);
 }
 
@@ -149,7 +148,7 @@ void AlgoOrderService::on_algo_order(int64_t gen_time, uint32_t source, uint32_t
   state<AlgoOrder> algo_order_state(source, dest, gen_time, algo_order);
   algo_orders_.insert_or_assign(algo_order.order_id, algo_order_state);
 
-  if (local_algo_order_inputs_.find(algo_order.order_id) != local_algo_order_inputs_.end()) {
+  if (algo_order.is_local) {
     local_algo_orders_.insert_or_assign(algo_order.order_id, algo_order_state);
   }
 };
@@ -231,7 +230,7 @@ kungfu::state<AlgoOrder> &AlgoOrderService::get_algo_order(uint64_t algo_order_i
 
 const AlgoOrderActionMap &AlgoOrderService::get_algo_order_actions() const { return algo_order_actions_; }
 
-void AlgoOrderService::on_active() {
+void AlgoOrderService::on_frame() {
   if (waiting_record_local_algo_orders_.empty()) {
     return;
   }
@@ -239,7 +238,7 @@ void AlgoOrderService::on_active() {
   auto iter = waiting_record_local_algo_orders_.begin();
   while (iter != waiting_record_local_algo_orders_.end()) {
     auto &algo_order_state = iter->second;
-    vendor_.write_to(vendor_.now(), algo_order_state.data, algo_order_state.dest);
+    vendor_.try_write_to(vendor_.now(), algo_order_state.data, algo_order_state.dest);
     iter = waiting_record_local_algo_orders_.erase(iter);
   }
 }

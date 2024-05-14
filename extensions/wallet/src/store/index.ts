@@ -54,7 +54,7 @@ export const useWalletStore = defineStore('wallet', () => {
   );
 
   const refreshAll = () => {
-    if (!currentWallet.value) return Promise.resolve();
+    if (!currentWallet.value || !credential.value) return Promise.resolve();
 
     dataSyncing.value = true;
     return currentWallet.value

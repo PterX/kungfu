@@ -192,8 +192,9 @@ void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
   if (tbt_data->type == XTP_TBT_ENTRUST) {
     if (tbt_data->entrust.ord_type == 'D') {
       if (not transaction_band_writer_) {
-        while (not has_band_writer(transaction_band_uid_)) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        if (not has_band_writer(transaction_band_uid_)) {
+          SPDLOG_INFO("band writer for market-data-band-transaction not ready");
+          return;
         }
         transaction_band_writer_ = get_band_writer(transaction_band_uid_);
       }
@@ -202,8 +203,9 @@ void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
       transaction_band_writer_->close_data();
     } else {
       if (not entrust_band_writer_) {
-        while (not has_band_writer(entrust_band_uid_)) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        if (not has_band_writer(entrust_band_uid_)) {
+          SPDLOG_INFO("band writer for market-data-band-entrust not ready");
+          return;
         }
         entrust_band_writer_ = get_band_writer(entrust_band_uid_);
       }
@@ -213,8 +215,9 @@ void MarketDataXTP::OnTickByTick(XTPTBT *tbt_data) {
     }
   } else if (tbt_data->type == XTP_TBT_TRADE) {
     if (not transaction_band_writer_) {
-      while (not has_band_writer(transaction_band_uid_)) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      if (not has_band_writer(transaction_band_uid_)) {
+        SPDLOG_INFO("band writer for market-data-band-transaction not ready");
+        return;
       }
       transaction_band_writer_ = get_band_writer(transaction_band_uid_);
     }

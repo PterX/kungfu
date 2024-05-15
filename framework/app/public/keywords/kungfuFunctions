@@ -66,6 +66,10 @@ req_account
 req_position
 set_service
 get_arguments
+generate_cross_sectional_factor
+update_price
+get_factor
+update_factor
 set_from_indexer
 set_to_indexer
 set_report
@@ -77,6 +81,8 @@ subscribe_operator
 publish_synthetic_data
 update_operator_state
 set_resume_policy
+attach_orderbooks
+attach_factor_cache
 req_deregister
 pre_start
 post_start
@@ -160,7 +166,13 @@ order_trigger_from_input
 order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
+nano_hashed
+next_minute
+next_trading_day_end
+calendar_day_start
 today_start
+trading_day_start
+restore_start
 strftime
 strptime
 strfnow

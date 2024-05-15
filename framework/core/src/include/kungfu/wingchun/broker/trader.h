@@ -39,13 +39,18 @@ typedef std::unordered_map<uint64_t, state<longfist::types::AlgoOrderAction>> Al
 
 typedef std::unordered_map<uint64_t, longfist::types::BlockMessage> BlockMessages;
 
-inline bool is_all_order_finished(const Orders &orders) {
+inline std::pair<bool, bool> get_status(const Orders &orders) {
+  bool all_finished = true;
+  bool has_error = false;
   for (auto &iter : orders) {
     if (not is_final_status(iter.second.status)) {
-      return false;
+      all_finished = false;
+    }
+    if (iter.second.status == longfist::enums::OrderStatus::Error) {
+      has_error = true;
     }
   }
-  return true;
+  return std::make_pair(all_finished, has_error);
 }
 
 class BaseService {
@@ -57,6 +62,8 @@ public:
   virtual void on_recover() { recover_done_ = true; };
 
   virtual void on_active(){};
+
+  virtual void on_frame(){};
 
 protected:
   TraderVendor &vendor_;
@@ -174,20 +181,19 @@ public:
 
   [[nodiscard]] const AlgoOrderActionMap &get_algo_order_actions() const;
 
-  void on_active() override;
+  void on_frame() override;
 
 private:
   AlgoOrderMap local_algo_orders_;
   AlgoOrderMap waiting_record_local_algo_orders_;
   AlgoOrderMap algo_orders_;
-  AlgoOrderInputMap local_algo_order_inputs_;
   SubOrders local_sub_orders_;
   std::unordered_map<uint64_t, uint64_t> order_id_to_algo_order_id_;
   AlgoOrderActionMap algo_order_actions_;
 
   void try_update_sub_orders(const longfist::types::Order &order);
 
-  bool check_if_all_order_finished(uint64_t algo_order_id);
+  std::pair<bool, bool> get_all_order_status(uint64_t algo_order_id);
 
   int64_t get_volume_traded(uint64_t algo_order_id);
 };
@@ -247,6 +253,8 @@ protected:
   void on_write_to(const event_ptr &event) override;
 
   void on_active() override;
+
+  void on_frame() override;
 
 private:
   Trader_ptr service_{};

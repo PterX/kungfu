@@ -139,7 +139,7 @@ void Trader::recover() {
 }
 
 void Trader::recover_from_journal() {
-  tracer trc(get_live_home(), false, true, time::trading_day_start(), time::now_in_nano());
+  tracer trc(get_live_home(), false, true, time::restore_start(), time::now_in_nano());
   SPDLOG_DEBUG("before tracer read");
   int64_t count = 0;
   auto &state_bank = const_cast<cache::bank &>(get_vendor().get_state_bank());
@@ -150,6 +150,7 @@ void Trader::recover_from_journal() {
     case Order::tag:
     case Trade::tag:
     case OrderTrigger::tag:
+    case AlgoOrder::tag:
       cached::feed_state_data(frame, state_bank);
       ++count;
       break;
@@ -162,14 +163,23 @@ void Trader::recover_from_journal() {
 
 void Trader::deal_write_frame() {
   SPDLOG_DEBUG("before state_bank read");
-  int64_t count = 0;
+  uint64_t count = 0;
   auto &state_bank = get_vendor().get_state_bank();
+
+  auto &algo_order_state_map = state_bank[boost::hana::type_c<AlgoOrder>];
+  count += algo_order_state_map.size();
+  std::for_each(algo_order_state_map.begin(), algo_order_state_map.end(), [&](auto &pair) {
+    auto &algo_order_state = pair.second;
+    get_algo_order_service().on_algo_order(algo_order_state.update_time, algo_order_state.source, algo_order_state.dest,
+                                           algo_order_state.data);
+  });
 
   auto &order_state_map = state_bank[boost::hana::type_c<Order>];
   count += order_state_map.size();
   std::for_each(order_state_map.begin(), order_state_map.end(), [&](auto &pair) {
     auto &order_state = pair.second;
     get_order_service().on_order(order_state.update_time, order_state.source, order_state.dest, order_state.data);
+    get_algo_order_service().on_order(order_state.update_time, order_state.source, order_state.dest, order_state.data);
   });
 
   auto &trade_state_map = state_bank[boost::hana::type_c<Trade>];
@@ -185,14 +195,6 @@ void Trader::deal_write_frame() {
     auto &order_trigger_state = pair.second;
     get_order_trigger_service().on_order_trigger(order_trigger_state.update_time, order_trigger_state.source,
                                                  order_trigger_state.dest, order_trigger_state.data);
-  });
-
-  auto &algo_order_state_map = state_bank[boost::hana::type_c<AlgoOrder>];
-  count += algo_order_state_map.size();
-  std::for_each(algo_order_state_map.begin(), algo_order_state_map.end(), [&](auto &pair) {
-    auto &algo_order_state = pair.second;
-    get_algo_order_service().on_algo_order(algo_order_state.update_time, algo_order_state.source, algo_order_state.dest,
-                                           algo_order_state.data);
   });
 
   SPDLOG_DEBUG("after state_bank read, count: {}", count);

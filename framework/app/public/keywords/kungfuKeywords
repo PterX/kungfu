@@ -438,8 +438,6 @@ on_broker_state_change
 on_operator_state_change
 get_bids
 get_asks
-get_entrust_events
-get_transaction_events
 set_matcher
 add_strategy
 add_account
@@ -454,11 +452,7 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
-<<<<<<< HEAD
-attach_orderbooks
 batch_streaming
-=======
->>>>>>> 563ad0f88a4466475bf575f068bfff7393b34a1e
 on_order
 on_order_trigger
 on_algo_order
@@ -473,6 +467,19 @@ on_history_trade
 on_req_history_order_error
 on_req_history_trade_error
 on_custom_data
+get_events
+pop_batched_entrust_until
+pop_batched_transaction_until
+pop_batched_quote_until
+pop_batched_tree_until
+pop_batched_depth_until
+pop_batched_tick_until
+get_entrust_buffer
+get_transaction_buffer
+get_quote_buffer
+get_tree_buffer
+get_depth_buffer
+get_tick_buffer
 get_begin_time
 get_end_time
 get_location

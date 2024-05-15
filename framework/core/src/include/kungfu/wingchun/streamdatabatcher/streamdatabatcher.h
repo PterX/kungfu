@@ -72,18 +72,19 @@ public:
   virtual void pop_batched_tick_until(int64_t until_time, const std::string &instrument_id,
                                       const std::string &exchange_id) = 0;
 
-  virtual EventBuffer<longfist::types::Entrust> get_entrust_buffer(const std::string &instrument_id,
-                                                                   const std::string &exchange_id) = 0;
-  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Entrust>
+  get_entrust_buffer(const std::string &source, const std::string &instrument_id, const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &source,
+                                                                           const std::string &instrument_id,
                                                                            const std::string &exchange_id) = 0;
-  virtual EventBuffer<longfist::types::Quote> get_quote_buffer(const std::string &instrument_id,
-                                                               const std::string &exchange_id) = 0;
-  virtual EventBuffer<longfist::types::Tree> get_tree_buffer(const std::string &instrument_id,
-                                                             const std::string &exchange_id) = 0;
-  virtual EventBuffer<longfist::types::Depth> get_depth_buffer(const std::string &instrument_id,
-                                                               const std::string &exchange_id) = 0;
-  virtual EventBuffer<longfist::types::Tick> get_tick_buffer(const std::string &instrument_id,
-                                                             const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Quote>
+  get_quote_buffer(const std::string &source, const std::string &instrument_id, const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Tree>
+  get_tree_buffer(const std::string &source, const std::string &instrument_id, const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Depth>
+  get_depth_buffer(const std::string &source, const std::string &instrument_id, const std::string &exchange_id) = 0;
+  virtual EventBuffer<longfist::types::Tick>
+  get_tick_buffer(const std::string &source, const std::string &instrument_id, const std::string &exchange_id) = 0;
 
 protected:
   [[nodiscard]] std::string get_key(const std::string &instrument_id, const std::string &exchange_id) const {

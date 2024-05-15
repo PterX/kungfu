@@ -48,32 +48,38 @@ public:
     pop_batched_until<longfist::types::Tick>(until_time, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Entrust> get_entrust_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Entrust> get_entrust_buffer(const std::string &source,
+                                                                   const std::string &instrument_id,
                                                                    const std::string &exchange_id) override {
     return get_buffer<longfist::types::Entrust>(instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &source,
+                                                                           const std::string &instrument_id,
                                                                            const std::string &exchange_id) override {
     return get_buffer<longfist::types::Transaction>(instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Quote> get_quote_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Quote> get_quote_buffer(const std::string &source,
+                                                               const std::string &instrument_id,
                                                                const std::string &exchange_id) override {
     return get_buffer<longfist::types::Quote>(instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Tree> get_tree_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Tree> get_tree_buffer(const std::string &source,
+                                                             const std::string &instrument_id,
                                                              const std::string &exchange_id) override {
     return get_buffer<longfist::types::Tree>(instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Depth> get_depth_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Depth> get_depth_buffer(const std::string &source,
+                                                               const std::string &instrument_id,
                                                                const std::string &exchange_id) override {
     return get_buffer<longfist::types::Depth>(instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Tick> get_tick_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Tick> get_tick_buffer(const std::string &source,
+                                                             const std::string &instrument_id,
                                                              const std::string &exchange_id) override {
     return get_buffer<longfist::types::Tick>(instrument_id, exchange_id);
   }

@@ -204,62 +204,85 @@ tick_column_names = [
     "ask_volume",
 ]
 
-class PyStreamDataBatcher():
+
+class PyStreamDataBatcher:
     def __init__(self, stream_data_batcher: wc.StreamDataBatcher):
         self.stream_data_batcher = stream_data_batcher
-        
-    def get_entrust_df(self, instrument_id, exchange_id):
-        entrust_array = np.asarray(self.stream_data_batcher.get_entrust_buffer(instrument_id, exchange_id))
+
+    def get_entrust_df(self, source, instrument_id, exchange_id):
+        entrust_array = np.asarray(
+            self.stream_data_batcher.get_entrust_buffer(source, instrument_id, exchange_id)
+        )
         entrust_df = pd.DataFrame(entrust_array)
         entrust_df.columns = entrust_column_names
         return entrust_df
-    
-    def get_transaction_df(self, instrument_id, exchange_id):
-        transaction_array = np.asarray(self.stream_data_batcher.get_transaction_buffer(instrument_id, exchange_id))
+
+    def get_transaction_df(self, source, instrument_id, exchange_id):
+        transaction_array = np.asarray(
+            self.stream_data_batcher.get_transaction_buffer(source, instrument_id, exchange_id)
+        )
         transaction_df = pd.DataFrame(transaction_array)
         transaction_df.columns = transaction_column_names
         return transaction_df
-    
-    def get_quote_df(self, instrument_id, exchange_id):
-        quote_array = np.asarray(self.stream_data_batcher.get_quote_buffer(instrument_id, exchange_id))
+
+    def get_quote_df(self, source, instrument_id, exchange_id):
+        quote_array = np.asarray(
+            self.stream_data_batcher.get_quote_buffer(source, instrument_id, exchange_id)
+        )
         quote_df = pd.DataFrame(quote_array)
         quote_df.columns = quote_column_names
         return quote_df
-    
-    def get_tree_df(self, instrument_id, exchange_id):
-        tree_array = np.asarray(self.stream_data_batcher.get_tree_buffer(instrument_id, exchange_id))
+
+    def get_tree_df(self, source, instrument_id, exchange_id):
+        tree_array = np.asarray(
+            self.stream_data_batcher.get_tree_buffer(source, instrument_id, exchange_id)
+        )
         tree_df = pd.DataFrame(tree_array)
         tree_df.columns = tree_column_names
         return tree_df
-    
-    def get_depth_df(self, instrument_id, exchange_id):
-        depth_array = np.asarray(self.stream_data_batcher.get_depth_buffer(instrument_id, exchange_id))
+
+    def get_depth_df(self, source, instrument_id, exchange_id):
+        depth_array = np.asarray(
+            self.stream_data_batcher.get_depth_buffer(source, instrument_id, exchange_id)
+        )
         depth_df = pd.DataFrame(depth_array)
         depth_df.columns = depth_column_names
         return depth_df
-    
-    def get_tick_df(self, instrument_id, exchange_id):
-        tick_array = np.asarray(self.stream_data_batcher.get_tick_buffer(instrument_id, exchange_id))
+
+    def get_tick_df(self, source, instrument_id, exchange_id):
+        tick_array = np.asarray(
+            self.stream_data_batcher.get_tick_buffer(source, instrument_id, exchange_id)
+        )
         tick_df = pd.DataFrame(tick_array)
         tick_df.columns = tick_column_names
         return tick_df
-    
+
     def pop_batched_entrust_until(self, until_time, instrument_id, exchange_id):
-        self.stream_data_batcher.pop_batched_entrust_until(until_time, instrument_id, exchange_id)
-        
+        self.stream_data_batcher.pop_batched_entrust_until(
+            until_time, instrument_id, exchange_id
+        )
+
     def pop_batched_transaction_until(self, until_time, instrument_id, exchange_id):
-        self.stream_data_batcher.pop_batched_transaction_until(until_time, instrument_id, exchange_id)
-    
+        self.stream_data_batcher.pop_batched_transaction_until(
+            until_time, instrument_id, exchange_id
+        )
+
     def pop_batched_quote_until(self, until_time, instrument_id, exchange_id):
-        self.stream_data_batcher.pop_batched_quote_until(until_time, instrument_id, exchange_id)
-        
+        self.stream_data_batcher.pop_batched_quote_until(
+            until_time, instrument_id, exchange_id
+        )
+
     def pop_batched_tree_until(self, until_time, instrument_id, exchange_id):
-        self.stream_data_batcher.pop_batched_tree_until(until_time, instrument_id, exchange_id)
-    
+        self.stream_data_batcher.pop_batched_tree_until(
+            until_time, instrument_id, exchange_id
+        )
+
     def pop_batched_depth_until(self, until_time, instrument_id, exchange_id):
-        self.stream_data_batcher.pop_batched_depth_until(until_time, instrument_id, exchange_id)
-        
+        self.stream_data_batcher.pop_batched_depth_until(
+            until_time, instrument_id, exchange_id
+        )
+
     def pop_batched_tick_until(self, until_time, instrument_id, exchange_id):
-        self.stream_data_batcher.pop_batched_tick_until(until_time, instrument_id, exchange_id)
-    
-    
+        self.stream_data_batcher.pop_batched_tick_until(
+            until_time, instrument_id, exchange_id
+        )

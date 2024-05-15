@@ -51,34 +51,40 @@ public:
     pop_batched_until<longfist::types::Tick>(until_time, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Entrust> get_entrust_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Entrust> get_entrust_buffer(const std::string &source,
+                                                                   const std::string &instrument_id,
                                                                    const std::string &exchange_id) override {
-    return get_buffer<longfist::types::Entrust>(instrument_id, exchange_id);
+    return get_buffer<longfist::types::Entrust>(source, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Transaction> get_transaction_buffer(const std::string &source,
+                                                                           const std::string &instrument_id,
                                                                            const std::string &exchange_id) override {
-    return get_buffer<longfist::types::Transaction>(instrument_id, exchange_id);
+    return get_buffer<longfist::types::Transaction>(source, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Quote> get_quote_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Quote> get_quote_buffer(const std::string &source,
+                                                               const std::string &instrument_id,
                                                                const std::string &exchange_id) override {
-    return get_buffer<longfist::types::Quote>(instrument_id, exchange_id);
+    return get_buffer<longfist::types::Quote>(source, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Tree> get_tree_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Tree> get_tree_buffer(const std::string &source,
+                                                             const std::string &instrument_id,
                                                              const std::string &exchange_id) override {
-    return get_buffer<longfist::types::Tree>(instrument_id, exchange_id);
+    return get_buffer<longfist::types::Tree>(source, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Depth> get_depth_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Depth> get_depth_buffer(const std::string &source,
+                                                               const std::string &instrument_id,
                                                                const std::string &exchange_id) override {
-    return get_buffer<longfist::types::Depth>(instrument_id, exchange_id);
+    return get_buffer<longfist::types::Depth>(source, instrument_id, exchange_id);
   }
 
-  virtual EventBuffer<longfist::types::Tick> get_tick_buffer(const std::string &instrument_id,
+  virtual EventBuffer<longfist::types::Tick> get_tick_buffer(const std::string &source,
+                                                             const std::string &instrument_id,
                                                              const std::string &exchange_id) override {
-    return get_buffer<longfist::types::Tick>(instrument_id, exchange_id);
+    return get_buffer<longfist::types::Tick>(source, instrument_id, exchange_id);
   }
 
   template <typename BufferType>
@@ -102,15 +108,17 @@ public:
   }
 
   template <typename BufferType>
-  EventBuffer<BufferType> &get_buffer(const std::string &instrument_id, const std::string &exchange_id) {
-    deal_data<BufferType>(instrument_id, exchange_id, BufferType::tag);
+  EventBuffer<BufferType> &get_buffer(const std::string &source, const std::string &instrument_id,
+                                      const std::string &exchange_id) {
+    deal_data<BufferType>(source, instrument_id, exchange_id, BufferType::tag);
     return reinterpret_cast<EventBuffer<BufferType> &>(hana::at_key(bufferMap, hana::int_c<BufferType::tag>)
                                                            .try_emplace(get_key(instrument_id, exchange_id))
                                                            .first->second);
   }
 
 protected:
-  std::vector<yijinjing::data::location_ptr> get_locations(int64_t begin_time, const std::string &instrument_id,
+  std::vector<yijinjing::data::location_ptr> get_locations(const std::string &source, int64_t begin_time,
+                                                           const std::string &instrument_id,
                                                            const std::string &exchange_id, int32_t data_tag);
 
   [[nodiscard]] std::string get_instrument_exchange_type_id(const std::string &instrument_id,
@@ -125,10 +133,11 @@ private:
   int64_t get_begin_time(const std::string instrument_exchange_type_id);
 
   template <typename BufferType>
-  void deal_data(const std::string &instrument_id, const std::string &exchange_id, int32_t type_name) {
+  void deal_data(const std::string &source, const std::string &instrument_id, const std::string &exchange_id,
+                 int32_t type_name) {
     int64_t begin_time = get_begin_time(get_instrument_exchange_type_id(instrument_id, exchange_id, type_name));
     const std::vector<kungfu::yijinjing::data::location_ptr> &location_vec =
-        get_locations(begin_time, instrument_id, exchange_id, BufferType::tag);
+        get_locations(source, begin_time, instrument_id, exchange_id, BufferType::tag);
     yijinjing::journal::reader reader(true, true, std::make_shared<yijinjing::journal::bus>(false));
     if (location_vec.empty()) {
       // SPDLOG_WARN("location数组为空");

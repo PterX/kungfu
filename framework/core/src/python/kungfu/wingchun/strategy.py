@@ -181,7 +181,7 @@ class Strategy(wc.Strategy):
             locator,
         )
         return location
-    
+
     def _batch_streaming(self):
         return PyStreamDataBatcher(self.ctx.wc_context.batch_streaming())
 

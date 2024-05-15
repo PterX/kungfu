@@ -1037,6 +1037,11 @@ export const useInstruments = (): {
     }, []);
   };
 
+  const SearchResultsMaxCount = 500;
+  const PriorityInstrumentTypes: InstrumentTypeEnum[] = [
+    InstrumentTypeEnum.stock,
+    InstrumentTypeEnum.future,
+  ];
   const searchInstrumentResult = ref<string | undefined>(undefined);
   const searchInstrumnetOptions = ref<{ value: string; label: string }[]>([]);
 
@@ -1061,7 +1066,12 @@ export const useInstruments = (): {
   ) => {
     return curInstruments
       .filter((item) => filterCondition(keywords, item))
-      .slice(0, 20)
+      .slice(0, SearchResultsMaxCount)
+      .sort((a, b) => {
+        const aPriority = PriorityInstrumentTypes.includes(a.instrumentType);
+        const bPriority = PriorityInstrumentTypes.includes(b.instrumentType);
+        return aPriority ? (bPriority ? 0 : -1) : bPriority ? 1 : 0;
+      })
       .map((item) => ({
         value: buildInstrumentSelectOptionValue(item),
         label: buildInstrumentSelectOptionLabel(item),

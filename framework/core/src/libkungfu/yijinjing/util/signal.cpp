@@ -64,9 +64,10 @@ void kf_os_signal_handler(int signum) {
   case SIGTTOU: // stop process         background write attempted to control terminal
     KF_LOG_CRITICAL("kungfu app stopped by signal {}", signum);
     exit_hero(signum);
+    break;
   case SIGINT: // terminate process    interrupt program
     KF_LOG_INFO("kungfu app interrupted");
-    stop_hero();
+    exit_hero(signum);
     break;
   case SIGTERM: // terminate process    software termination signal
     KF_LOG_INFO("kungfu app terminated");

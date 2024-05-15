@@ -9,13 +9,15 @@ import { kfLoginAuthing } from '../io';
 
 export const useAuthingCredential = () => {
   const app = getCurrentInstance();
-  const { currentAccount, credential } = storeToRefs(useAuthLoginStore());
+  const authLoginStore = useAuthLoginStore();
+  const { currentAccount, credential } = storeToRefs(authLoginStore);
 
-  const checkCredential = (
-    credential: Credential | null,
-    silent = false,
-  ): boolean => {
-    let busEventTag = '';
+  enum CredentialStatus {
+    Valid = 'valid',
+    Expired = 'expired',
+    Invalid = 'invalid',
+  }
+  const checkCredential = (credential: Credential | null): CredentialStatus => {
     if (
       credential &&
       credential.access_token &&
@@ -25,23 +27,40 @@ export const useAuthingCredential = () => {
       const now = Date.now() / 1000;
       const genTime = credential.gen_time;
       const expiresIn = credential.expires_in - 10;
-      if (now - genTime < expiresIn) return true;
-      busEventTag = LoginAuthingKeys.CredentialExpired;
-    } else {
-      busEventTag = LoginAuthingKeys.NotLogin;
+      if (now - genTime < expiresIn) return CredentialStatus.Valid;
+
+      return CredentialStatus.Expired;
     }
 
-    if (!silent) {
-      app?.proxy?.$globalBus.next({
-        tag: busEventTag,
-      });
-    }
-    return false;
+    return CredentialStatus.Invalid;
   };
 
-  const getCurrentCredential = (silent = true): Credential | false =>
-    checkCredential(credential.value, silent) &&
-    (credential.value as Credential);
+  const triggerCredentialStatus = (status: CredentialStatus) => {
+    const busEventTag =
+      status === CredentialStatus.Expired
+        ? LoginAuthingKeys.CredentialExpired
+        : LoginAuthingKeys.NotLogin;
+    app?.proxy?.$globalBus.next({
+      tag: busEventTag,
+    });
+  };
+
+  const getCurrentCredential = (silent = true): Credential | false => {
+    const status = checkCredential(credential.value);
+
+    if (status !== CredentialStatus.Valid) {
+      authLoginStore.setCredentials(null);
+      authLoginStore.setCurrentAccount(null);
+
+      if (!silent) {
+        triggerCredentialStatus(status);
+      }
+
+      return false;
+    }
+
+    return credential.value as Credential;
+  };
 
   const checkAccountAccess = (user: UserDto, targetAccesses: string[]) => {
     return targetAccesses.every((access) => user.customData[access]);
@@ -81,7 +100,9 @@ export const useAuthingCredential = () => {
 
   return {
     currentAccount,
+    CredentialStatus,
     checkCredential,
+    triggerCredentialStatus,
     checkAccountAccess,
     getCurrentCredential,
     checkCredentialAccess,

@@ -21,10 +21,9 @@ def make_tarfile(output_filename, source_dir):
 
     def filter_whitelist(tarinfo):
         filename = tarinfo.name
-        print(filename)
-        print(is_end_with(filename, UPLOAD_EXT_WHITELIST))
         if tarinfo.isfile() and not is_end_with(filename, UPLOAD_EXT_WHITELIST):
             return None
+        print(f" - {filename}")
         return tarinfo
 
     with tarfile.open(output_filename, "w:gz") as tar:

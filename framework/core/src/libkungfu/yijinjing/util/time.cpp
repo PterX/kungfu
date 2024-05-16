@@ -68,6 +68,14 @@ int64_t time::today_start() { return calendar_day_start(time::now_in_nano()); }
 
 int64_t time::trading_day_start() { return next_trading_day_end(time::now_in_nano()) - time_unit::NANOSECONDS_PER_DAY; }
 
+int64_t time::restore_start() {
+  int64_t start = trading_day_start();
+  if (start > today_start()) {
+    start -= time_unit::NANOSECONDS_PER_DAY;
+  }
+  return start;
+}
+
 int64_t time::strptime(const std::string &time_string, const std::string &format) {
   int64_t nano = 0;
   std::string normal_timestr = time_string;

@@ -27,13 +27,14 @@ const authLoginStore = useAuthLoginStore();
 const loginModalShow = ref<boolean>(false);
 const isLoggedIn = ref<boolean>(false);
 const { currentAccount, credential } = storeToRefs(authLoginStore);
-const { checkCredential } = useAuthingCredential();
+const { checkCredential, CredentialStatus, triggerCredentialStatus } =
+  useAuthingCredential();
 
 // 每次打开都检查登录状态
 readCredentials(CURRENT_STAGE).then((res) => {
   if (res?.access_token && res?.id_token && res?.gen_time) {
-    const credential = checkCredential(res);
-    if (credential) {
+    const status = checkCredential(res);
+    if (status === CredentialStatus.Valid) {
       authLoginStore.setCredentials(res);
 
       kfLoginAuthing.getCurrentUserInfo(res).then((user) => {
@@ -41,6 +42,7 @@ readCredentials(CURRENT_STAGE).then((res) => {
         isLoggedIn.value = true;
       });
     } else {
+      triggerCredentialStatus(status);
       loginModalShow.value = true;
     }
   }
@@ -94,7 +96,7 @@ onMounted(() => {
 function logout(byManual = true) {
   return kfLoginAuthing
     .logoutByAccessToken(credential.value?.access_token || '')
-    .then(() => {
+    .finally(() => {
       return clearCredentials(CURRENT_STAGE)
         .then(() => {
           authLoginStore.setCurrentAccount(null);
@@ -103,10 +105,12 @@ function logout(byManual = true) {
         })
         .then(() => {
           byManual && messagePrompt().success();
-          app?.proxy?.$globalBus.next({
-            tag: LoginAuthingKeys.LoggedOut,
-          });
         });
+    })
+    .finally(() => {
+      app?.proxy?.$globalBus.next({
+        tag: LoginAuthingKeys.LoggedOut,
+      });
     });
 }
 

@@ -46,6 +46,8 @@ long_positions
 short_positions
 order_inputs
 algo_order_inputs
+factors
+prices
 price
 volume
 data_time
@@ -156,6 +158,7 @@ time_condition
 block_id
 external_order_id
 insert_time
+restore_time
 volume_left
 tax
 commission
@@ -403,6 +406,10 @@ req_account
 req_position
 set_service
 get_arguments
+generate_cross_sectional_factor
+update_price
+get_factor
+update_factor
 set_from_indexer
 set_to_indexer
 set_report
@@ -414,6 +421,8 @@ subscribe_operator
 publish_synthetic_data
 update_operator_state
 set_resume_policy
+attach_orderbooks
+attach_factor_cache
 req_deregister
 pre_start
 post_start
@@ -445,7 +454,6 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
-attach_orderbooks
 on_order
 on_order_trigger
 on_algo_order
@@ -494,7 +502,13 @@ order_trigger_from_input
 order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
+nano_hashed
+next_minute
+next_trading_day_end
+calendar_day_start
 today_start
+trading_day_start
+restore_start
 strftime
 strptime
 strfnow
@@ -602,6 +616,8 @@ Snapshot
 Entrust
 Transaction
 Tree
+Tick
+Depth
 SubscribeDataType
 Stock
 Future

@@ -37,6 +37,10 @@ Napi::Value Frame::Source(const Napi::CallbackInfo &info) { return Napi::Number:
 
 Napi::Value Frame::Dest(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), frame_->dest()); }
 
+Napi::Value Frame::InitialSource(const Napi::CallbackInfo &info) {
+  return Napi::Number::New(info.Env(), frame_->initial_source());
+}
+
 Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   auto result = Napi::Object::New(info.Env());
   // have to be AllDataTypes, for data size is not 0

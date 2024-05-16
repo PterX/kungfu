@@ -75,10 +75,16 @@ public:
   static int64_t today_start();
 
   /**
-   * Start time of trading day (yesterday 16:00:00) in nano seconds.
-   * @return start time of trading day in nano seconds
+   * Start time of trading day (the last 16:00:00) in nano seconds.   *
+   * @return yesterday 16:00:00 if now earlier than 4.PM, else today  16:00:00 in nano seconds.
    */
   static int64_t trading_day_start();
+
+  /**
+   * Start time of trading day (yesterday 16:00:00) in nano seconds.
+   * @return yesterday 16:00:00 in nano seconds, whenever is now.
+   */
+  static int64_t restore_start();
 
   /**
    * Parse string time to nano time.

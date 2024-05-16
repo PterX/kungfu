@@ -67,6 +67,8 @@ public:
 
   Napi::Value Dest(const Napi::CallbackInfo &info);
 
+  Napi::Value InitialSource(const Napi::CallbackInfo &info);
+
   Napi::Value Data(const Napi::CallbackInfo &info);
 
   Napi::Value DataAsString(const Napi::CallbackInfo &info);

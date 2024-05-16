@@ -340,7 +340,7 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
     ></KfSetByConfigModal>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
-      :width="520"
+      :width="720"
       v-model:visible="setReplayModalVisible"
       :can-backtest="true"
       :session-options="sessionOptions"

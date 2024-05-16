@@ -27,10 +27,10 @@ export const getColumns = (
       {
         field: 'insert_time',
         title: t('orderConfig.order_time'),
-        width: isHistory ? 160 : 120,
+        width: 160,
         sort: vTableSorter,
         fieldFormat: (args) => {
-          return dealKfTime(args.insert_time, isHistory);
+          return dealKfTime(args.insert_time, true);
         },
       },
       {

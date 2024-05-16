@@ -7,7 +7,7 @@ import kungfu
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.yijinjing import journal as kfj
 from kungfu.yijinjing.practice.executor import ExecutorRegistry
-from kungfu.yijinjing.practice.run import run_forever, run_by_step
+from kungfu.yijinjing.practice.run import run_forever
 from kungfu.yijinjing.practice.master import Master
 
 lf = kungfu.__binding__.longfist
@@ -188,11 +188,7 @@ def run(
         ctx.executor = registry[category][group][name](mode, low_latency)
 
     if ctx.executor is not None:
-        if not low_latency and kfj.MODES[ctx.mode] != lf.enums.mode.BACKTEST:
-            ctx.logger.debug("by step mode")
-            run_by_step(ctx, ctx.executor)
-        else:
-            run_forever(ctx, ctx.executor)
+        run_forever(ctx, ctx.executor)
 
 
 @kfc.command(cls=PrioritizedCommandGroup, help_priority=-1)

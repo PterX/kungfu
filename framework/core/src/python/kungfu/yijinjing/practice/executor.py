@@ -251,7 +251,7 @@ class Executor:
         self._executor.on_exit()
 
     def get_home(self):
-        self._executor.get_home()
+        return self._executor.home
 
 
 class MasterExecutor(Executor):

@@ -8,5 +8,5 @@ def run_forever(ctx, executor):
     if executor.get_home().name == "master":
         executor.run(MASTER_STEP_LIMIT)
     else:
-        executor.run()
+        executor.run(STEP_LIMIT)
     executor.post_run()

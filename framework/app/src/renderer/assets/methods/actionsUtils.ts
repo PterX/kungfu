@@ -1070,7 +1070,12 @@ export const useInstruments = (): {
       .sort((a, b) => {
         const aPriority = PriorityInstrumentTypes.includes(a.instrumentType);
         const bPriority = PriorityInstrumentTypes.includes(b.instrumentType);
-        return aPriority ? (bPriority ? 0 : -1) : bPriority ? 1 : 0;
+
+        const aLen = a.exchangeId.length + a.instrumentName.length;
+        const bLen = b.exchangeId.length + b.instrumentName.length;
+        const lenDiff = aLen - bLen < 0 ? -1 : 1;
+
+        return aPriority ? (bPriority ? lenDiff : -1) : bPriority ? 1 : lenDiff;
       })
       .map((item) => ({
         value: buildInstrumentSelectOptionValue(item),
@@ -1082,8 +1087,8 @@ export const useInstruments = (): {
     keywords: string,
     pos: KungfuApi.InstrumentResolved,
   ) => {
-    const regx = new RegExp(`${keywords}`, 'ig');
-    return !!keywords && regx.test(pos.id);
+    const regexp = new RegExp(`${keywords}`, 'ig');
+    return !!keywords && regexp.test(pos.id);
   };
 
   const handleSearchByCustom = (

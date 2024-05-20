@@ -1458,6 +1458,7 @@ declare namespace KungfuApi {
     genTime: () => bigint;
     triggerTime: () => bigint;
     dataAsString: () => string;
+    initialSource: () => number;
     data: () => unknown;
   }
 
@@ -1466,6 +1467,7 @@ declare namespace KungfuApi {
     genTime: bigint;
     triggerTime: bigint;
     dataAsString: string;
+    initialSource: number;
     msgType: number;
     source: number;
     dest: number;
@@ -1478,6 +1480,7 @@ declare namespace KungfuApi {
     id: string;
     msgTypeName: string;
     sourceToDest: string;
+    initialSourceResolved: string;
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;

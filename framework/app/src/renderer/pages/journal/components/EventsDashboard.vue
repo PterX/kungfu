@@ -530,13 +530,10 @@ const loadFrameData = async (
       }
 
       const msgType = frame.msgType();
-      const hasSelectedMsgTypes = selectedMsgTypes.value.length > 0;
-      const isInverseSelected = inverseSelectedMsgType.value;
-      const isMsgTypeSelected = selectedMsgTypesMap.value[msgType];
 
       if (
-        hasSelectedMsgTypes &&
-        (isInverseSelected ? isMsgTypeSelected : !isMsgTypeSelected)
+        selectedMsgTypes.value.length > 0 &&
+        inverseSelectedMsgType.value === selectedMsgTypesMap.value[msgType]
       ) {
         currentTracer.next();
         continue;

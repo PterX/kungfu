@@ -533,7 +533,7 @@ const loadFrameData = async (
 
       if (
         selectedMsgTypes.value.length > 0 &&
-        inverseSelectedMsgType.value === selectedMsgTypesMap.value[msgType]
+        inverseSelectedMsgType.value === !!selectedMsgTypesMap.value[msgType]
       ) {
         currentTracer.next();
         continue;

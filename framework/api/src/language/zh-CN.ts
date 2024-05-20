@@ -672,7 +672,7 @@ export default {
     frame_id: '帧',
     msg_type: '消息类型',
     msg_details: '消息详情',
-    initial_source: '实际源',
+    initial_source: '写入者',
 
     filters: '过滤器',
     apply_filters: '应用过滤',

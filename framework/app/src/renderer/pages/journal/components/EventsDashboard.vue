@@ -276,12 +276,42 @@ const frameHeaderForShow = computed(() => {
 });
 const frameDataForShow = computed(() => {
   if (!currentRowData.value) return [];
-  const data = JSON.parse(
-    currentRowData.value.dataAsString.replace(
-      /(?<=:\s?)(\d*)(?=\s?,|})/g,
-      '"$1"',
-    ), // Avoid losing accuracy by converting large numbers to numbers
-  );
+  const convertNestedJson = (str: string) => {
+    // 使用正则表达式找到嵌套的 JSON 字符串并进行转义
+    return str
+      .replace(/\\(.)/g, '$1')
+      .replace(/"value":"(.*?)"}/, (_match, p1) => {
+        const nestedJson = p1.replace(/"/g, '\\"');
+        return `"value":"${nestedJson}"}`;
+      });
+  };
+
+  const parseWithNumber = (str: string) => {
+    // 先转换嵌套 JSON 的字符串
+    const convertedStr = convertNestedJson(str);
+
+    // 解析外层 JSON 并转换数值部分
+    const outerParsed = JSON.parse(convertedStr, (key, value) => {
+      if (typeof value === 'number') {
+        return `${value}`;
+      }
+      return value;
+    });
+
+    // 解析嵌套的 JSON 字符串并转换数值部分
+    if (outerParsed.value && typeof outerParsed.value === 'string') {
+      outerParsed.value = JSON.parse(outerParsed.value, (key, value) => {
+        if (typeof value === 'number') {
+          return `${value}`;
+        }
+        return value;
+      });
+    }
+
+    return outerParsed;
+  };
+
+  const data = parseWithNumber(currentRowData.value.dataAsString);
   return Object.entries(data).map(([key, value]) => {
     return {
       key,
@@ -500,11 +530,14 @@ const loadFrameData = async (
       }
 
       const msgType = frame.msgType();
+      const hasSelectedMsgTypes = selectedMsgTypes.value.length > 0;
+      const isInverseSelected = inverseSelectedMsgType.value;
+      const isMsgTypeSelected = selectedMsgTypesMap.value[msgType];
+
       if (
-        selectedMsgTypes.value.length > 0 &&
-        ((!inverseSelectedMsgType.value &&
-          !selectedMsgTypesMap.value[msgType]) ||
-          (inverseSelectedMsgType.value && selectedMsgTypesMap.value[msgType]))
+        hasSelectedMsgTypes &&
+        ((!isInverseSelected && !isMsgTypeSelected) ||
+          (isInverseSelected && isMsgTypeSelected))
       ) {
         currentTracer.next();
         continue;

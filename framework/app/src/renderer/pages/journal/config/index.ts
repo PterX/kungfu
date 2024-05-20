@@ -96,10 +96,10 @@ export const getFrameColumns = (
   {
     type: 'string',
     name: t('journalConfig.initial_source'),
-    dataIndex: 'initialSource',
+    dataIndex: 'initialSourceResolved',
     align: 'right',
     textOverflow: 'ellipsis',
-    width: 80,
+    width: 180,
   },
   {
     type: 'string',

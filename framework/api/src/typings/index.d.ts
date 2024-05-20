@@ -1480,6 +1480,7 @@ declare namespace KungfuApi {
     id: string;
     msgTypeName: string;
     sourceToDest: string;
+    initialSourceResolved: string;
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;

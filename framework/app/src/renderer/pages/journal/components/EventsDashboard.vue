@@ -536,8 +536,7 @@ const loadFrameData = async (
 
       if (
         hasSelectedMsgTypes &&
-        ((!isInverseSelected && !isMsgTypeSelected) ||
-          (isInverseSelected && isMsgTypeSelected))
+        (isInverseSelected ? isMsgTypeSelected : !isMsgTypeSelected)
       ) {
         currentTracer.next();
         continue;

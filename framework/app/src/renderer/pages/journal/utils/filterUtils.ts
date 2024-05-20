@@ -121,17 +121,20 @@ export const useFrameFilters = (
   write: boolean,
   selectedChannels: string[],
   selectedMsgTypes: number[],
+  inverseSelectedMsgType: boolean,
 ) => {
   const formState = reactive<{
     write: boolean;
     read: boolean;
     selectedChannels: string[];
     selectedMsgTypes: number[];
+    inverseSelectedMsgType: boolean;
   }>({
     write: true,
     read: true,
     selectedChannels: [],
     selectedMsgTypes: [],
+    inverseSelectedMsgType: false,
   });
 
   const { msgTypesFilterOptions } = initMsgTypeMaps();
@@ -141,6 +144,7 @@ export const useFrameFilters = (
     formState.write = write;
     formState.selectedChannels = selectedChannels;
     formState.selectedMsgTypes = selectedMsgTypes;
+    formState.inverseSelectedMsgType = inverseSelectedMsgType;
   });
 
   return {

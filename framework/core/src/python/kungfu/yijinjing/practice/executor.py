@@ -238,8 +238,8 @@ class Executor:
     def setup(self):
         self._executor.setup()
 
-    def run(self):
-        self._executor.run()
+    def run(self, step_limit=0):
+        self._executor.run(step_limit)
 
     def step(self, count=0):
         self._executor.step(count)
@@ -249,6 +249,9 @@ class Executor:
 
     def on_exit(self):
         self._executor.on_exit()
+
+    def get_home(self):
+        return self._executor.home
 
 
 class MasterExecutor(Executor):

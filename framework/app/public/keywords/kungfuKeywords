@@ -159,6 +159,7 @@ time_condition
 block_id
 external_order_id
 insert_time
+restore_time
 volume_left
 tax
 commission

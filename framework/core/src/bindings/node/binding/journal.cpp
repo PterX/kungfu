@@ -75,14 +75,15 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::Function func = DefineClass(env, "Frame",
                                     {
-                                        InstanceMethod("dataLength", &Frame::DataLength),    //
-                                        InstanceMethod("genTime", &Frame::GenTime),          //
-                                        InstanceMethod("triggerTime", &Frame::TriggerTime),  //
-                                        InstanceMethod("msgType", &Frame::MsgType),          //
-                                        InstanceMethod("source", &Frame::Source),            //
-                                        InstanceMethod("dest", &Frame::Dest),                //
-                                        InstanceMethod("data", &Frame::Data),                //
-                                        InstanceMethod("dataAsString", &Frame::DataAsString) //
+                                        InstanceMethod("dataLength", &Frame::DataLength),       //
+                                        InstanceMethod("genTime", &Frame::GenTime),             //
+                                        InstanceMethod("triggerTime", &Frame::TriggerTime),     //
+                                        InstanceMethod("msgType", &Frame::MsgType),             //
+                                        InstanceMethod("source", &Frame::Source),               //
+                                        InstanceMethod("dest", &Frame::Dest),                   //
+                                        InstanceMethod("initialSource", &Frame::InitialSource), //
+                                        InstanceMethod("data", &Frame::Data),                   //
+                                        InstanceMethod("dataAsString", &Frame::DataAsString)    //
                                     });
 
   constructor = Napi::Persistent(func);

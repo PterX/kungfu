@@ -18,6 +18,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         self._current = None
         self._ctx = ctx
         self._hero = hero
+        self.home = self._hero.home
         asyncio.set_event_loop(self)
 
     def get_debug(self):
@@ -70,7 +71,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         if self._exception is not None:
             raise self._exception
 
-    def run(self):
+    def run(self, step_limit=0):
         self._running = True
         self._ctx.logger.info(
             "[{:08x}] {} running".format(self._hero.home.uid, self._hero.home.uname)

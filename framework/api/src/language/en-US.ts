@@ -683,6 +683,7 @@ export default {
     frame_id: 'FrameId',
     msg_type: 'Msg Type',
     msg_details: 'Message Details',
+    initial_source: 'Initial Source',
 
     export: 'Export',
     export_file_path: 'Export File Path',
@@ -696,6 +697,8 @@ export default {
     undefined_instrument_id: 'Undefined instrument_id',
 
     read_event: 'Read Event',
+
+    inverse_selection: 'Inverse Selection',
 
     write_event: 'Write Event',
 

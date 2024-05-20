@@ -43,6 +43,7 @@
         :write="writeEvent"
         :selected-msg-types="selectedMsgTypes"
         :selected-channels="selectedChannels"
+        :inverse-selected-msg-type="inverseSelectedMsgType"
         @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
@@ -54,7 +55,7 @@
         key-field="id"
         :search-option="{
           enabled: true,
-          keysForSearch: ['msgTypeName', 'dataAsString'],
+          keysForSearch: ['initialSource', 'msgTypeName', 'dataAsString'],
           dynamicTableInSearching: true,
         }"
         :size-dependencies-fields="['dataAsString']"
@@ -221,6 +222,7 @@ let requestBreakLoadingDataWhile = false;
 
 const channels = ref<ChannelRecords>({} as ChannelRecords);
 const selectedChannels = ref<string[]>([]);
+const inverseSelectedMsgType = ref(false);
 const { selectedMsgTypes, selectedMsgTypesMap } = useMsgTypesMap();
 
 const readEvent = ref(true);
@@ -500,7 +502,9 @@ const loadFrameData = async (
       const msgType = frame.msgType();
       if (
         selectedMsgTypes.value.length > 0 &&
-        !selectedMsgTypesMap.value[msgType]
+        ((!inverseSelectedMsgType.value &&
+          !selectedMsgTypesMap.value[msgType]) ||
+          (inverseSelectedMsgType.value && selectedMsgTypesMap.value[msgType]))
       ) {
         currentTracer.next();
         continue;
@@ -514,6 +518,7 @@ const loadFrameData = async (
         dataLength: frame.dataLength(),
         genTime: frame.genTime(),
         triggerTime: frame.triggerTime(),
+        initialSource: frame.initialSource(),
         msgType,
         frameId,
         pageId,
@@ -621,11 +626,13 @@ const onFiltersApply = async (
   write: boolean,
   afterFilterChannels: string[],
   afterFilterMsgTypes: number[],
+  inverseSelection: boolean,
 ) => {
   readEvent.value = read;
   writeEvent.value = write;
   selectedChannels.value = afterFilterChannels;
   selectedMsgTypes.value = afterFilterMsgTypes;
+  inverseSelectedMsgType.value = inverseSelection;
   currentTracer = tracer(
     currentSession.value as KungfuApi.KfLocation,
     readEvent.value,

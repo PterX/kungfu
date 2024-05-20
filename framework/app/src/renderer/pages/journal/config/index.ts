@@ -95,6 +95,14 @@ export const getFrameColumns = (
   },
   {
     type: 'string',
+    name: t('journalConfig.initial_source'),
+    dataIndex: 'initialSource',
+    align: 'right',
+    textOverflow: 'ellipsis',
+    width: 80,
+  },
+  {
+    type: 'string',
     name: t('journalConfig.frame_id'),
     dataIndex: 'frameId',
     align: 'right',

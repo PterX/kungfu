@@ -252,6 +252,7 @@ export interface FrameHeaderForShow {
   DataLength: number;
   GenTime: string;
   TriggerTime: string;
+  InitialSource: number;
   MsgType: string;
   PageId: number;
   FrameId: number;
@@ -266,6 +267,7 @@ export const buildFrameHeaderForShow = (
     GenTime: frame.genTimeResolved,
     TriggerTime: frame.triggerTimeResolved,
     MsgType: frame.msgTypeName,
+    InitialSource: frame.initialSource,
     PageId: frame.pageId,
     FrameId: frame.frameId,
     SourceToDest: frame.sourceToDest || `${frame.source} -> ${frame.dest}`,

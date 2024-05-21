@@ -160,31 +160,23 @@ public:
 
     auto future_i_a = get_future_instrument_attribute(book, position.source_id, position.direction,
                                                       position.exchange_id, position.instrument_id);
-    uint32_t product_key = hash_product(position.exchange_id, get_instrument_product(position.instrument_id).c_str());
-    double cost = 0;
-
-    if (book->commissions.find(product_key) != book->commissions.end()) {
-      const auto &commission = book->commissions.at(product_key);
-      auto close_today_volume = double(position.volume - position.yesterday_volume);
-      if (commission.mode == CommissionRateMode::ByAmount) {
-        cost = (position.last_price * position.yesterday_volume * commission.close_ratio) +
-               (position.last_price * close_today_volume * commission.close_today_ratio);
-
-        cost = cost * future_i_a.contract_multiplier;
-      } else {
-        // by volume calculate
-        cost =
-            (position.yesterday_volume * commission.close_ratio) + (close_today_volume * commission.close_today_ratio);
-      }
-    }
-
     auto multiplier = future_i_a.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
+    // 昨仓部分, 最新价 - 昨结算价
     auto pre_settlement_price = position.pre_settlement_price == 0
                                     ? position.avg_open_price
                                     : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
-    auto price_diff = position.last_price - pre_settlement_price;    // 最新价 - 昨结算 表示今日的盈亏
+    auto price_diff_yesterday = position.last_price - pre_settlement_price; // 最新价 - 昨结算 表示今日的盈亏
+    auto unrealized_pnl_yesterday = (price_diff_yesterday * position.yesterday_volume) * multiplier; // 昨仓部分的盈亏
+
+    // 今仓部分, 最新价 - 今持仓平均价
+    // 平仓时计算realized_pnl_today存在误差, 这里计算计算unrealized_pnl_today也存在误差,
+    // 但是总值realized_pnl_today + unrealized_pnl_today 是正确的
+    auto price_diff_today = position.last_price - position.avg_open_price_today; // 最新价 - 今仓均价, 今仓的差价,
+    auto unrealized_pnl_today =
+        (price_diff_today * (position.volume - position.yesterday_volume)) * multiplier; // 今仓的盈亏
+
     // 浮动盈亏
-    position.unrealized_pnl = (price_diff * position.volume) * multiplier - cost;
+    position.unrealized_pnl = unrealized_pnl_yesterday + unrealized_pnl_today; // ctp盈亏不计算手续费
   }
 
   void update_asset(const map::InstrumentMap &instruments, const map::InstrumentFactorMap &instrument_factors,
@@ -220,6 +212,9 @@ public:
     if (position.volume + trade.volume > 0 && trade.price > 0) { // only calculate when greater than 0
       position.avg_open_price = (position.avg_open_price * position.volume + trade.price * trade.volume) /
                                 double(position.volume + trade.volume);
+      auto today_volume = std::max<int64_t>(position.volume - position.yesterday_volume, 0); // 今仓数量
+      position.avg_open_price_today = (position.avg_open_price_today * today_volume + trade.price * trade.volume) /
+                                      (double(today_volume + trade.volume)); // 今开均价
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
@@ -267,11 +262,18 @@ public:
       close_today_volume = trade.volume;
     }
 
-    // 平仓价 - 昨结算 表示今日的平仓盈亏
+    // 昨仓部分, 平仓价 - 昨结算 表示今日的平仓盈亏
     auto pre_settlement_price = position.pre_settlement_price == 0
                                     ? position.avg_open_price
                                     : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
-    auto realized_pnl = (trade.price - pre_settlement_price) * trade.volume * contract_multiplier;
+    auto realized_pnl_yesterday = (trade.price - pre_settlement_price) * trade.volume * contract_multiplier;
+
+    // 平今仓的时候, 计算盈利会根据先进先出的方式进行平仓, 最后根据剩下的未平的部分再计算今开仓均价,
+    // 由于我们无法获取到今仓的每一笔成交的开仓价格和顺序, 只能使用今仓均价来计算盈亏, 存在一定误差
+    // 今仓部分, 平仓价 - 今仓均价, 存在误差
+    auto realized_pnl_today = (trade.price - position.avg_open_price_today) * close_today_volume;
+    auto realized_pnl = realized_pnl_yesterday + realized_pnl_today;
+
     if (position.direction == Direction::Short) {
       realized_pnl = -realized_pnl;
     }

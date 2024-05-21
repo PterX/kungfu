@@ -55,6 +55,14 @@
         </a-select-option>
       </a-tree-select>
     </a-form-item>
+    <a-form-item>
+      <a-checkbox
+        v-model:checked="formState.inverseSelectedMsgType"
+        @change="handleApplyFilters"
+      >
+        {{ $t('journalConfig.inverse_selection') }}
+      </a-checkbox>
+    </a-form-item>
   </a-form>
 </template>
 
@@ -71,6 +79,7 @@ const props = withDefaults(
     selectedChannels: string[];
     selectedMsgTypes: number[];
     channels: ChannelRecords;
+    inverseSelectedMsgType: boolean;
   }>(),
   {
     write: true,
@@ -78,6 +87,7 @@ const props = withDefaults(
     channels: () => ({} as ChannelRecords),
     selectedChannels: () => [],
     selectedMsgTypes: () => [],
+    inverseSelectedMsgType: false,
   },
 );
 
@@ -88,6 +98,7 @@ const emit = defineEmits<{
     write: boolean,
     selectedChannels: string[],
     selectedMsgTypes: number[],
+    inverseSelectedMsgType: boolean,
   ): void;
 }>();
 
@@ -98,6 +109,7 @@ const { formState, msgTypesFilterOptions } = useFrameFilters(
   props.write,
   props.selectedChannels,
   props.selectedMsgTypes,
+  props.inverseSelectedMsgType,
 );
 
 const applyFilters = () => {
@@ -107,6 +119,7 @@ const applyFilters = () => {
     formState.write,
     formState.selectedChannels,
     formState.selectedMsgTypes,
+    formState.inverseSelectedMsgType,
   );
 };
 
@@ -117,6 +130,7 @@ const resetFilters = () => {
   formState.write = true;
   formState.selectedChannels = [];
   formState.selectedMsgTypes = [];
+  formState.inverseSelectedMsgType = false;
   applyFilters();
 };
 

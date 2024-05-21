@@ -31,6 +31,7 @@
         <div
           :id="`kf-log-item-${item.id}`"
           class="kf-log-line"
+          :style="{ backgroundColor: itemBackgroundColor }"
           v-html="dealLogMessage(itemFormatter(item))"
         ></div>
       </DynamicScrollerItem>
@@ -46,10 +47,12 @@ const props = withDefaults(
   defineProps<{
     logList: KungfuApi.KfLogData[];
     minItemSize?: number;
+    itemBackgroundColor?: string;
     itemFormatter?: (item: KungfuApi.KfLogData) => string;
   }>(),
   {
     minItemSize: 36,
+    itemBackgroundColor: '#000',
     itemFormatter: (item: KungfuApi.KfLogData) => item.message,
   },
 );
@@ -91,7 +94,6 @@ defineExpose({
 
 <style lang="less">
 .kf-log-line {
-  background: #000;
   text-align: left;
   font-size: 14px;
   user-select: text;

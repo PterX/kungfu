@@ -96,6 +96,10 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
 
   try_update_sub_orders(order);
 
+  if (not recover_done_) {
+    return;
+  }
+
   auto &target_algo_order_state = local_algo_orders_.at(order.parent_id);
   auto &target_algo_order = target_algo_order_state.data;
 

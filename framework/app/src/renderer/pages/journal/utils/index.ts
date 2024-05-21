@@ -147,6 +147,8 @@ export const dealFrame = (
     genTimeResolved: dealKfTime(frame.genTime, true),
     triggerTimeResolved: dealKfTime(frame.triggerTime, true),
     msgTypeResolved: dealFrameMsgType(frame.msgType),
+    initialSourceResolved:
+      locationNameMap[frame.initialSource + ''] || frame.initialSource + '',
     sourceToDest: getSourceToDest(
       source,
       dest,
@@ -252,6 +254,7 @@ export interface FrameHeaderForShow {
   DataLength: number;
   GenTime: string;
   TriggerTime: string;
+  InitialSourceResolved: string;
   MsgType: string;
   PageId: number;
   FrameId: number;
@@ -266,6 +269,7 @@ export const buildFrameHeaderForShow = (
     GenTime: frame.genTimeResolved,
     TriggerTime: frame.triggerTimeResolved,
     MsgType: frame.msgTypeName,
+    InitialSourceResolved: frame.initialSourceResolved,
     PageId: frame.pageId,
     FrameId: frame.frameId,
     SourceToDest: frame.sourceToDest || `${frame.source} -> ${frame.dest}`,

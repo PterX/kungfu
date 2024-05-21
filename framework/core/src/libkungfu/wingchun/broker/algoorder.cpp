@@ -105,6 +105,7 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
 
   auto volume_traded = get_volume_traded(order.parent_id);
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
+  target_algo_order.restore_time = std::max<int64_t>(target_algo_order.restore_time, order.restore_time);
 
   auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
 

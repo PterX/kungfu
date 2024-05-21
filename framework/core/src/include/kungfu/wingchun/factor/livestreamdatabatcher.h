@@ -6,11 +6,11 @@
 #include <kungfu/longfist/enums.h>
 #include <kungfu/longfist/types.h>
 #include <kungfu/wingchun/broker/client.h>
-#include <kungfu/wingchun/streamdatabatcher/streamdatabatcher.h>
+#include <kungfu/wingchun/factor/streamdatabatcher.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-namespace kungfu::wingchun::streamdatabatcher {
+namespace kungfu::wingchun::factor {
 
 class LiveStreamDataBatcher : public StreamDataBatcher {
 public:
@@ -126,5 +126,5 @@ protected:
   void on_tick(const longfist::types::Tick &tick);
 };
 
-} // namespace kungfu::wingchun::streamdatabatcher
+} // namespace kungfu::wingchun::factor
 #endif // WINGCHUN_LIVESTREAMDATABATCHER_H

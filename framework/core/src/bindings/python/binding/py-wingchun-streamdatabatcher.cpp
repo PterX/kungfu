@@ -3,9 +3,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
-#include <kungfu/wingchun/streamdatabatcher/backteststreamdatabatcher.h>
-#include <kungfu/wingchun/streamdatabatcher/livestreamdatabatcher.h>
-#include <kungfu/wingchun/streamdatabatcher/streamdatabatcher.h>
+#include <kungfu/wingchun/factor/backteststreamdatabatcher.h>
+#include <kungfu/wingchun/factor/livestreamdatabatcher.h>
+#include <kungfu/wingchun/factor/streamdatabatcher.h>
 #include <pybind11/numpy.h>
 
 using namespace kungfu::longfist;
@@ -15,7 +15,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::wingchun;
-using namespace kungfu::wingchun::streamdatabatcher;
+using namespace kungfu::wingchun::factor;
 
 namespace py = pybind11;
 

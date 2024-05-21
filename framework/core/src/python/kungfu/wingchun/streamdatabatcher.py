@@ -206,12 +206,22 @@ tick_column_names = [
 
 
 class PyStreamDataBatcher:
+    _instance = None
+
     def __init__(self, stream_data_batcher: wc.StreamDataBatcher):
-        self.stream_data_batcher = stream_data_batcher
+        if not PyStreamDataBatcher._instance:
+            PyStreamDataBatcher._instance = self
+            self.stream_data_batcher = stream_data_batcher
+
+    @classmethod
+    def get_instance(cls):
+        return cls._instance
 
     def get_entrust_df(self, source, instrument_id, exchange_id):
         entrust_array = np.asarray(
-            self.stream_data_batcher.get_entrust_buffer(source, instrument_id, exchange_id)
+            self.stream_data_batcher.get_entrust_buffer(
+                source, instrument_id, exchange_id
+            )
         )
         entrust_df = pd.DataFrame(entrust_array)
         entrust_df.columns = entrust_column_names
@@ -219,7 +229,9 @@ class PyStreamDataBatcher:
 
     def get_transaction_df(self, source, instrument_id, exchange_id):
         transaction_array = np.asarray(
-            self.stream_data_batcher.get_transaction_buffer(source, instrument_id, exchange_id)
+            self.stream_data_batcher.get_transaction_buffer(
+                source, instrument_id, exchange_id
+            )
         )
         transaction_df = pd.DataFrame(transaction_array)
         transaction_df.columns = transaction_column_names
@@ -227,7 +239,9 @@ class PyStreamDataBatcher:
 
     def get_quote_df(self, source, instrument_id, exchange_id):
         quote_array = np.asarray(
-            self.stream_data_batcher.get_quote_buffer(source, instrument_id, exchange_id)
+            self.stream_data_batcher.get_quote_buffer(
+                source, instrument_id, exchange_id
+            )
         )
         quote_df = pd.DataFrame(quote_array)
         quote_df.columns = quote_column_names
@@ -243,7 +257,9 @@ class PyStreamDataBatcher:
 
     def get_depth_df(self, source, instrument_id, exchange_id):
         depth_array = np.asarray(
-            self.stream_data_batcher.get_depth_buffer(source, instrument_id, exchange_id)
+            self.stream_data_batcher.get_depth_buffer(
+                source, instrument_id, exchange_id
+            )
         )
         depth_df = pd.DataFrame(depth_array)
         depth_df.columns = depth_column_names

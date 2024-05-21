@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <kungfu/wingchun/streamdatabatcher/livestreamdatabatcher.h>
+#include <kungfu/wingchun/factor/livestreamdatabatcher.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::types;
 
-namespace kungfu::wingchun::streamdatabatcher {
+namespace kungfu::wingchun::factor {
 
 void LiveStreamDataBatcher::on_start(const rx::connectable_observable<event_ptr> &events) {
   events | is(Entrust::tag) | $$(on_entrust(event->data<Entrust>()););
@@ -40,4 +40,4 @@ void LiveStreamDataBatcher::on_tick(const Tick &tick) {
   get_buffer<Tick>(tick.instrument_id, tick.exchange_id).vec_.push_back(tick);
 }
 
-} // namespace kungfu::wingchun::streamdatabatcher
+} // namespace kungfu::wingchun::factor

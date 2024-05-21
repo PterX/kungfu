@@ -8,7 +8,7 @@
 #include <kungfu/wingchun/broker/client.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
-namespace kungfu::wingchun::streamdatabatcher {
+namespace kungfu::wingchun::factor {
 
 class StreamDataBatcher;
 class LiveStreamDataBatcher;
@@ -106,5 +106,5 @@ protected:
                           hana::make_pair(hana::int_c<longfist::types::Tick::tag>, tick_map_))) bufferMap;
 };
 
-} // namespace kungfu::wingchun::streamdatabatcher
+} // namespace kungfu::wingchun::factor
 #endif // WINGCHUN_STREAMDATABATCHER_H

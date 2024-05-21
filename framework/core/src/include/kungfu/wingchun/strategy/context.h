@@ -11,12 +11,12 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/factor/backteststreamdatabatcher.h>
 #include <kungfu/wingchun/factor/crosssection.h>
+#include <kungfu/wingchun/factor/livestreamdatabatcher.h>
+#include <kungfu/wingchun/factor/streamdatabatcher.h>
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
-#include <kungfu/wingchun/streamdatabatcher/backteststreamdatabatcher.h>
-#include <kungfu/wingchun/streamdatabatcher/livestreamdatabatcher.h>
-#include <kungfu/wingchun/streamdatabatcher/streamdatabatcher.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::strategy {
@@ -400,7 +400,7 @@ public:
    */
   void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache);
 
-  virtual std::shared_ptr<wingchun::streamdatabatcher::StreamDataBatcher> batch_streaming() = 0;
+  virtual std::shared_ptr<wingchun::factor::StreamDataBatcher> batch_streaming() = 0;
 
 protected:
   yijinjing::practice::apprentice &app_;

@@ -6,14 +6,14 @@
 #include <kungfu/longfist/enums.h>
 #include <kungfu/longfist/types.h>
 #include <kungfu/wingchun/broker/client.h>
-#include <kungfu/wingchun/streamdatabatcher/streamdatabatcher.h>
+#include <kungfu/wingchun/factor/streamdatabatcher.h>
 #include <kungfu/wingchun/tool/sliceindexer.h>
 #include <kungfu/wingchun/tool/slicetool.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
-namespace kungfu::wingchun::streamdatabatcher {
+namespace kungfu::wingchun::factor {
 
 class BackTestStreamDataBatcher : public StreamDataBatcher {
 public:
@@ -163,5 +163,5 @@ private:
   }
 };
 
-} // namespace kungfu::wingchun::streamdatabatcher
+} // namespace kungfu::wingchun::factor
 #endif // WINGCHUN_BACKTESTSTREAMDATABATCHER_H

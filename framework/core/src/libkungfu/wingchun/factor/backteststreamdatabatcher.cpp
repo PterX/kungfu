@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <kungfu/wingchun/streamdatabatcher/backteststreamdatabatcher.h>
+#include <kungfu/wingchun/factor/backteststreamdatabatcher.h>
 
 using namespace kungfu::rx;
 using namespace kungfu::longfist::types;
 
-namespace kungfu::wingchun::streamdatabatcher {
+namespace kungfu::wingchun::factor {
 std::vector<kungfu::yijinjing::data::location_ptr>
 BackTestStreamDataBatcher::get_locations(const std::string &source, int64_t begin_time,
                                          const std::string &instrument_id, const std::string &exchange_id,
@@ -13,8 +13,8 @@ BackTestStreamDataBatcher::get_locations(const std::string &source, int64_t begi
   int64_t slice_begin_time = begin_time;
   std::vector<kungfu::yijinjing::data::location_ptr> location_vec;
   while (slice_begin_time <= app_.now()) {
-    auto location = from_indexer_->find_md_slice_location(slice_begin_time, source,
-                                                          source, instrument_id, exchange_id, data_tag);
+    auto location =
+        from_indexer_->find_md_slice_location(slice_begin_time, source, source, instrument_id, exchange_id, data_tag);
 
     if (location) {
       auto vector = location->locator->list_location_dest(location);
@@ -24,9 +24,8 @@ BackTestStreamDataBatcher::get_locations(const std::string &source, int64_t begi
         location_vec.push_back(location);
       }
     }
-    slice_begin_time =
-        1 + from_indexer_->get_md_slice_end_time(slice_begin_time, source, source,
-                                                 instrument_id, exchange_id, data_tag);
+    slice_begin_time = 1 + from_indexer_->get_md_slice_end_time(slice_begin_time, source, source, instrument_id,
+                                                                exchange_id, data_tag);
   }
   return location_vec;
 }
@@ -38,4 +37,4 @@ int64_t BackTestStreamDataBatcher::get_begin_time(const std::string instrument_e
     return app_.get_begin_time();
   }
 }
-} // namespace kungfu::wingchun::streamdatabatcher
+} // namespace kungfu::wingchun::factor

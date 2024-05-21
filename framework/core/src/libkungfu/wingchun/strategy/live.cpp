@@ -19,7 +19,7 @@ using namespace kungfu::yijinjing;
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::journal;
-using namespace kungfu::wingchun::streamdatabatcher;
+using namespace kungfu::wingchun::factor;
 
 namespace kungfu::wingchun::strategy {
 

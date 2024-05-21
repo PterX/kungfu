@@ -91,6 +91,7 @@ defineExpose({
 
 <style lang="less">
 .kf-log-line {
+  background: #000;
   text-align: left;
   font-size: 14px;
   user-select: text;

@@ -198,7 +198,12 @@ public:
 
     asset.unrealized_pnl += position.unrealized_pnl * exchange_rate;
     asset.market_value += position_market_value;
-    asset.dynamic_equity += position.margin + position.position_pnl * exchange_rate;
+    // 动态权益 = 初始资金 + 持仓盈亏 + 已实现盈亏 - 手续费
+    // 已实现盈亏已经加在了asset.avail里, Position没有记录手续费, 交易过程中已经统一在avail扣掉了
+    // 初始资金拆成了 可用资金 和 持仓占用保证金, 最终公式为
+    // 动态权益 = asset.avail + position.margin + position.unrealized_pnl
+    // 在外部调用该update_asset函数前, 已经将dynamic_equity设置成了avail, 故只需要统计margin和unrealized_pnl
+    asset.dynamic_equity += (position.margin + position.unrealized_pnl) * exchange_rate;
   }
 
 public:
@@ -214,7 +219,7 @@ public:
                                 double(position.volume + trade.volume);
       auto today_volume = std::max<int64_t>(position.volume - position.yesterday_volume, 0); // 今仓数量
       position.avg_open_price_today = (position.avg_open_price_today * today_volume + trade.price * trade.volume) /
-                                      (double(today_volume + trade.volume)); // 今开均价
+                                      (double(today_volume + trade.volume));                 // 今开均价
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;

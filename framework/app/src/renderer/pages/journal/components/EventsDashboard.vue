@@ -55,7 +55,12 @@
         key-field="id"
         :search-option="{
           enabled: true,
-          keysForSearch: ['initialSource', 'msgTypeName', 'dataAsString'],
+          keysForSearch: [
+            'initialSourceResolved',
+            'initialSource',
+            'msgTypeName',
+            'dataAsString',
+          ],
           dynamicTableInSearching: true,
         }"
         :size-dependencies-fields="['dataAsString']"
@@ -123,7 +128,14 @@
         </a-card>
 
         <a-card title="Frame Data" style="margin: 35px 0">
-          <a-list size="normal" bordered :data-source="frameDataForShow">
+          <a-list
+            size="normal"
+            bordered
+            :data-source="frameDataForShow"
+            :locale="{
+              emptyText: $t('empty_text'),
+            }"
+          >
             <template #renderItem="{ item }">
               <a-list-item>
                 <span class="frame-detail-datalist-key">{{ item.key }}</span>
@@ -277,39 +289,36 @@ const frameHeaderForShow = computed(() => {
 const frameDataForShow = computed(() => {
   if (!currentRowData.value) return [];
   const convertNestedJson = (str: string) => {
-    // 使用正则表达式找到嵌套的 JSON 字符串并进行转义
-    return str
-      .replace(/\\(.)/g, '$1')
-      .replace(/"value":"(.*?)"}/, (_match, p1) => {
-        const nestedJson = p1.replace(/"/g, '\\"');
-        return `"value":"${nestedJson}"}`;
-      });
+    // 找到嵌套的 JSON 字符串并进行转义
+    const regex = /"([^"]+)"\s*:\s*"({[^}]*})"/g;
+    return str.replace(/\\(.)/g, '$1').replace(regex, (_match, p1, p2) => {
+      const escapedValue = p2.replace(/"/g, '\\"');
+      return `"${p1}":"${escapedValue}"`;
+    });
+  };
+
+  const convertNumbersToStrings = (str: string) => {
+    // 将数值转换为字符串
+    const numberRegex = /(:\s*)(-?\d+(\.\d+)?([eE][+-]?\d+)?)(?=[,\s}]|$)/g;
+    return str.replace(numberRegex, '$1"$2"');
   };
 
   const parseWithNumber = (str: string) => {
-    // 先转换嵌套 JSON 的字符串
-    const convertedStr = convertNestedJson(str);
+    const numberConvertedStr = convertNumbersToStrings(str);
 
-    // 解析外层 JSON 并转换数值部分
-    const outerParsed = JSON.parse(convertedStr, (key, value) => {
+    const convertedStr = convertNestedJson(numberConvertedStr);
+
+    const outerParsed = JSON.parse(convertedStr, (_key, value) => {
       if (typeof value === 'number') {
         return `${value}`;
       }
       return value;
     });
 
-    // 解析嵌套的 JSON 字符串并转换数值部分
-    if (outerParsed.value && typeof outerParsed.value === 'string') {
-      outerParsed.value = JSON.parse(outerParsed.value, (key, value) => {
-        if (typeof value === 'number') {
-          return `${value}`;
-        }
-        return value;
-      });
-    }
-
     return outerParsed;
   };
+
+  if (!currentRowData.value.dataAsString) return [];
 
   const data = parseWithNumber(currentRowData.value.dataAsString);
   return Object.entries(data).map(([key, value]) => {

@@ -198,7 +198,12 @@ public:
 
     asset.unrealized_pnl += position.unrealized_pnl * exchange_rate;
     asset.market_value += position_market_value;
-    asset.dynamic_equity += position.margin + position.position_pnl * exchange_rate;
+    // 动态权益 = 初始资金 + 持仓盈亏 + 已实现盈亏 - 手续费
+    // 已实现盈亏已经加在了asset.avail里, Position没有记录手续费, 交易过程中已经统一在avail扣掉了
+    // 初始资金拆成了 可用资金 和 持仓占用保证金, 最终公式为
+    // 动态权益 = asset.avail + position.margin + position.unrealized_pnl
+    // 在外部调用该update_asset函数前, 已经将dynamic_equity设置成了avail, 故只需要统计margin和unrealized_pnl
+    asset.dynamic_equity += (position.margin + position.unrealized_pnl) * exchange_rate;
   }
 
 public:

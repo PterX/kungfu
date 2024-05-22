@@ -219,7 +219,7 @@ public:
                                 double(position.volume + trade.volume);
       auto today_volume = std::max<int64_t>(position.volume - position.yesterday_volume, 0); // 今仓数量
       position.avg_open_price_today = (position.avg_open_price_today * today_volume + trade.price * trade.volume) /
-                                      (double(today_volume + trade.volume));                 // 今开均价
+                                      (double(today_volume + trade.volume)); // 今开均价
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;

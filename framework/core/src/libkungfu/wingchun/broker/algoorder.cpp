@@ -96,11 +96,16 @@ void AlgoOrderService::on_order(int64_t gen_time, uint32_t source, uint32_t dest
 
   try_update_sub_orders(order);
 
+  if (not recover_done_) {
+    return;
+  }
+
   auto &target_algo_order_state = local_algo_orders_.at(order.parent_id);
   auto &target_algo_order = target_algo_order_state.data;
 
   auto volume_traded = get_volume_traded(order.parent_id);
   target_algo_order.volume_left = target_algo_order.volume - volume_traded;
+  target_algo_order.restore_time = std::max<int64_t>(target_algo_order.restore_time, order.restore_time);
 
   auto has_traded = target_algo_order.volume_left != target_algo_order.volume;
 

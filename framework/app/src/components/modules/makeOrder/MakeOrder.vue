@@ -337,7 +337,7 @@ watch(
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
           offsetList.value = enableOffset.filter(
             (item) =>
-              item !== OffsetEnum.CloseToday + '' ||
+              item !== OffsetEnum.CloseToday + '' &&
               item !== OffsetEnum.CloseYest + '',
           );
         } else {

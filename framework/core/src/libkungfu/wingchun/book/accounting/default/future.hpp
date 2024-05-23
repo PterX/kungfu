@@ -219,7 +219,7 @@ public:
                                 double(position.volume + trade.volume);
       auto today_volume = std::max<int64_t>(position.volume - position.yesterday_volume, 0); // 今仓数量
       position.avg_open_price_today = (position.avg_open_price_today * today_volume + trade.price * trade.volume) /
-                                      (double(today_volume + trade.volume)); // 今开均价
+                                      (double(today_volume + trade.volume));                 // 今开均价
     }
     position.volume += trade.volume;
     position.open_volume += trade.volume;
@@ -271,7 +271,8 @@ public:
     auto pre_settlement_price = position.pre_settlement_price == 0
                                     ? position.avg_open_price
                                     : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
-    auto realized_pnl_yesterday = (trade.price - pre_settlement_price) * trade.volume * contract_multiplier;
+    auto realized_pnl_yesterday =
+        (trade.price - pre_settlement_price) * (trade.volume - close_today_volume) * contract_multiplier;
 
     // 平今仓的时候, 计算盈利会根据先进先出的方式进行平仓, 最后根据剩下的未平的部分再计算今开仓均价,
     // 由于我们无法获取到今仓的每一笔成交的开仓价格和顺序, 只能使用今仓均价来计算盈亏, 存在一定误差

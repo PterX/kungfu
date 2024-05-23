@@ -41,4 +41,6 @@ void Context::attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cach
   factor_cache.on_start(events_);
 }
 
+const std::string &Context::get_strategy_dir() { return strategy_dir_; }
+
 } // namespace kungfu::wingchun::strategy

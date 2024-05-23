@@ -277,6 +277,7 @@ function bindFunctionalNode(curFileTree) {
     height: calc(100% - 38px);
     overflow: auto;
     padding-left: 5px;
+    user-select: none;
     &::-webkit-scrollbar {
       display: none;
     }

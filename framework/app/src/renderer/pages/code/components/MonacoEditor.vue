@@ -305,6 +305,11 @@ function pythonProvideCompletionItems(model, position) {
   justify-content: center;
   align-items: center;
   min-width: 0;
+
+  .margin-view-overlays {
+    user-select: none;
+  }
+
   #editor-content {
     height: 100%;
     width: 100%;

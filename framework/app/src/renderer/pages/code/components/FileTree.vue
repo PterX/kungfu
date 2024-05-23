@@ -210,6 +210,7 @@ function bindFunctionalNode(curFileTree) {
   display: flex;
   flex-direction: column;
   background: @component-background;
+  user-select: none;
 
   .open-editor-folder {
     width: 90%;

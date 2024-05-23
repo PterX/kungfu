@@ -140,6 +140,7 @@ class Operator(wc.Operator):
         self.ctx.attach_orderbooks = wc_context.attach_orderbooks
         self.ctx.attach_factor_cache = wc_context.attach_factor_cache
         self.ctx.static_data = wc_context.bookkeeper.static_data
+        self.ctx.operator_dir = wc_context.operator_dir
         self.__call_proxy(self._pre_start, self.ctx)
 
     def post_start(self, wc_context):

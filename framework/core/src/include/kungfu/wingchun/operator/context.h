@@ -165,9 +165,16 @@ public:
    */
   void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache);
 
+  /**
+   * the directory of operator
+   * @return
+   */
+  const std::string &get_operator_dir();
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
+  std::string operator_dir_;
   bool started_ = false;
 
   virtual void on_start(){};
@@ -180,6 +187,10 @@ private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
+
+  friend void make_operator_dir(Context &context, const std::string &operator_dir) {
+    context.operator_dir_ = operator_dir;
+  }
 
   friend void stop(Context &context) { context.post_stop(); }
 };

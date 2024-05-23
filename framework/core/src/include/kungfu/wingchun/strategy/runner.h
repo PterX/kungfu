@@ -43,6 +43,8 @@ public:
 
   bool is_reactable(const event_ptr &event) override;
 
+  void set_strategy_dir(const std::string &strategy_dir);
+
 protected:
   void react() override;
 
@@ -72,6 +74,7 @@ private:
   int64_t time_interval_{yijinjing::time_unit::NANOSECONDS_PER_SECOND};
   std::string backtest_config_;
   bool has_post_started_ = false;
+  std::string strategy_dir_;
 
   void inspect_channel(const event_ptr &event);
 

@@ -306,6 +306,7 @@ function pythonProvideCompletionItems(model, position) {
   justify-content: center;
   align-items: center;
   min-width: 0;
+  word-spacing: 2px;
   #editor-content {
     height: 100%;
     width: 100%;

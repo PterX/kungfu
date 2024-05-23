@@ -406,9 +406,17 @@ exports.compile = () => {
   const cwd = process.cwd().toString(); // 这一步避免在打包中process.cwd()被替换
   const packageJsonPath = path.join(cwd, 'package.json');
   const readmePath = path.join(cwd, 'README.md');
+  const yarnlockcwdPath = path.join(cwd, 'yarn.lock');
+  const yarnlockParentPath = path.join(cwd, '..', '..', 'yarn.lock');
   fse.copySync(packageJsonPath, path.join(outputDir, 'package.json'));
   if (fse.existsSync(readmePath)) {
     fse.copySync(readmePath, path.join(outputDir, 'README.md'));
+  }
+
+  if (fse.existsSync(yarnlockcwdPath)) {
+    fse.copySync(yarnlockcwdPath, path.join(outputDir, 'yarn.lock'));
+  } else if (fse.existsSync(yarnlockParentPath)) {
+    fse.copySync(yarnlockParentPath, path.join(outputDir, 'yarn.lock'));
   }
 
   const copyOutput = (pattern) => {

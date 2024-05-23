@@ -19,6 +19,7 @@ public:
   void pre_start(Context_ptr & context) override {
     SPDLOG_INFO("preparing strategy");
     SPDLOG_INFO("arguments: {}", context->get_arguments());
+    SPDLOG_INFO("strategy_dir: {}", context->get_strategy_dir());
 
     context->add_account("sim", "fill");
     context->subscribe("sim", {"600000"}, {"SSE"});

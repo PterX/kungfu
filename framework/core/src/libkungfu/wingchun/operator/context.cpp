@@ -29,4 +29,6 @@ void Context::attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cach
   set_runner(factor_cache, &app_);
   factor_cache.on_start(events_);
 }
+
+const std::string &Context::get_operator_dir() { return operator_dir_; }
 } // namespace kungfu::wingchun::op

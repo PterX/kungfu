@@ -210,6 +210,7 @@ function bindFunctionalNode(curFileTree) {
   display: flex;
   flex-direction: column;
   background: @component-background;
+  user-select: none;
 
   .open-editor-folder {
     width: 90%;
@@ -277,6 +278,7 @@ function bindFunctionalNode(curFileTree) {
     height: calc(100% - 38px);
     overflow: auto;
     padding-left: 5px;
+    user-select: none;
     &::-webkit-scrollbar {
       display: none;
     }

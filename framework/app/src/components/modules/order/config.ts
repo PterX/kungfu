@@ -25,10 +25,10 @@ export const getColumns = (
     .getColumns<KfTradingDataTableHeaderConfig>([
       {
         type: 'string',
-        name: t('orderConfig.update_time'),
-        dataIndex: 'update_time_resolved',
+        name: t('orderConfig.order_time'),
+        dataIndex: 'insert_time_resolved',
         width: 160,
-        sorter: buildSorter('update_time'),
+        sorter: buildSorter('insert_time'),
       },
       {
         type: 'string',

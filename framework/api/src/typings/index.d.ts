@@ -747,6 +747,7 @@ declare namespace KungfuApi {
     status_uname: string;
     status_color: AntInKungfuColorTypes;
     update_time_resolved: string;
+    insert_time_resolved: string;
     price_precision?: number;
     limit_price_resolved: string;
   }

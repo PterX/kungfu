@@ -977,6 +977,7 @@ export const dealOrder = (
     status_uname: statusData.name,
     status_color: statusData.color || 'default',
     update_time_resolved: dealKfTime(order.update_time, true),
+    insert_time_resolved: dealKfTime(order.insert_time, true),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
   };

@@ -419,6 +419,7 @@ export default {
 
   orderConfig: {
     update_time: '更新时间',
+    order_time: '委托时间',
     instrument_id: '标的',
     limit_price: '委托价',
     order_status: '订单状态',

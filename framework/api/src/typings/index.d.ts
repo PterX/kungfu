@@ -811,7 +811,6 @@ declare namespace KungfuApi {
     status_color: AntInKungfuColorTypes;
     status_resolved: KungfuApi.KfTradeValueCommonData;
     update_time_resolved: string;
-    insert_time_resolved: string;
     limit_price_resolved: string;
   }
 

@@ -423,6 +423,7 @@ export default {
 
   orderConfig: {
     update_time: 'update_time',
+    order_time: 'order_time',
     instrument_id: 'Instrument',
     limit_price: 'limit_price',
     order_status: 'order_status',

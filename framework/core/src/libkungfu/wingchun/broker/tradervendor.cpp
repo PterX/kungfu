@@ -37,17 +37,26 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   switch (frame->msg_type()) {
   case Order::tag: {
     auto &order = guard_update_time<Order>(frame->data<Order>());
+    if (order.restore_time == 0) {
+      order.restore_time = order.insert_time;
+    }
     get_algo_order_service().on_order(now, frame->source(), frame->dest(), order);
     get_order_service().on_order(now, frame->source(), frame->dest(), order);
     break;
   }
   case Trade::tag: {
-    const Trade &trade = frame->data<Trade>();
+    auto &trade = const_cast<Trade &>(frame->data<Trade>());
+    if (trade.restore_time == 0) {
+      trade.restore_time = trade.trade_time;
+    }
     get_algo_order_service().on_trade(now, frame->source(), frame->dest(), trade);
     break;
   }
   case OrderTrigger::tag: {
     auto &order_trigger = guard_update_time<OrderTrigger>(frame->data<OrderTrigger>());
+    if (order_trigger.restore_time == 0) {
+      order_trigger.restore_time = order_trigger.insert_time;
+    }
     get_order_trigger_service().on_order_trigger(now, frame->source(), frame->dest(), order_trigger);
     break;
   }

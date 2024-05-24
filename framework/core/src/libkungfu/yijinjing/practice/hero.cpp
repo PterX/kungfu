@@ -90,9 +90,10 @@ void hero::step(uint32_t step_limit) {
   events_.connect(cs_);
 }
 
-void hero::run() {
+void hero::run(uint32_t step_limit) {
   SPDLOG_INFO("[{:08x}] {} running", get_home_uid(), get_home_uname());
   SPDLOG_DEBUG("from {} until {}", time::strftime(begin_time_), time::strftime(end_time_));
+  step_limit_ = step_limit;
   pre_setup();
   setup();
   SPDLOG_DEBUG("app setup done");

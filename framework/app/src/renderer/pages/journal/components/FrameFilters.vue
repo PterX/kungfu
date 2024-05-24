@@ -26,11 +26,9 @@
         :placeholder="$t('journalConfig.select_channel')"
         :options="Object.keys(channels).map((item) => ({ value: item }))"
         @blur="handleApplyFilters"
-      >
-        >
-      </a-select>
+      ></a-select>
     </a-form-item>
-    <a-form-item>
+    <a-form-item class="kf-msg-type-form-item">
       <a-tree-select
         v-model:value="formState.selectedMsgTypes"
         :tree-data="msgTypesFilterOptions"
@@ -54,6 +52,17 @@
           {{ option.title }}
         </a-select-option>
       </a-tree-select>
+      <a-button
+        type="small"
+        @click="handleInverseSelection"
+        :class="{
+          'not-inverse': !formState.inverseSelectedMsgType,
+          inverse: formState.inverseSelectedMsgType,
+          'inverse-btn': true,
+        }"
+      >
+        {{ $t('journalConfig.inverse_selection') }}
+      </a-button>
     </a-form-item>
   </a-form>
 </template>
@@ -71,6 +80,7 @@ const props = withDefaults(
     selectedChannels: string[];
     selectedMsgTypes: number[];
     channels: ChannelRecords;
+    inverseSelectedMsgType: boolean;
   }>(),
   {
     write: true,
@@ -78,6 +88,7 @@ const props = withDefaults(
     channels: () => ({} as ChannelRecords),
     selectedChannels: () => [],
     selectedMsgTypes: () => [],
+    inverseSelectedMsgType: false,
   },
 );
 
@@ -88,6 +99,7 @@ const emit = defineEmits<{
     write: boolean,
     selectedChannels: string[],
     selectedMsgTypes: number[],
+    inverseSelectedMsgType: boolean,
   ): void;
 }>();
 
@@ -98,6 +110,7 @@ const { formState, msgTypesFilterOptions } = useFrameFilters(
   props.write,
   props.selectedChannels,
   props.selectedMsgTypes,
+  props.inverseSelectedMsgType,
 );
 
 const applyFilters = () => {
@@ -107,6 +120,7 @@ const applyFilters = () => {
     formState.write,
     formState.selectedChannels,
     formState.selectedMsgTypes,
+    formState.inverseSelectedMsgType,
   );
 };
 
@@ -117,6 +131,12 @@ const resetFilters = () => {
   formState.write = true;
   formState.selectedChannels = [];
   formState.selectedMsgTypes = [];
+  formState.inverseSelectedMsgType = false;
+  applyFilters();
+};
+
+const handleInverseSelection = () => {
+  formState.inverseSelectedMsgType = !formState.inverseSelectedMsgType;
   applyFilters();
 };
 
@@ -152,6 +172,46 @@ function handleClearAll(value: number[]) {
       .ant-select {
         min-width: 160px;
         margin-right: 0;
+      }
+    }
+  }
+
+  .ant-select-clear {
+    position: absolute;
+    top: 50%;
+    right: 54px;
+  }
+
+  .kf-msg-type-form-item {
+    position: relative;
+    width: 596px;
+
+    .inverse-btn {
+      position: absolute;
+      right: 1px;
+      top: 1px;
+      height: calc(100% - 2px);
+      width: 50px;
+      color: #ffffff;
+      border-radius: 0;
+    }
+
+    .not-inverse {
+      background-color: transparent;
+      border: 1px solid #333;
+
+      &:hover {
+        background-color: darken(@primary-color, 10%);
+        border: 1px solid darken(@primary-color, 10%);
+      }
+    }
+
+    .inverse {
+      background-color: @primary-color;
+      border: 1px solid @primary-color;
+
+      &:hover {
+        background-color: darken(@primary-color, 10%);
       }
     }
   }

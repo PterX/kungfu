@@ -43,6 +43,7 @@
         :write="writeEvent"
         :selected-msg-types="selectedMsgTypes"
         :selected-channels="selectedChannels"
+        :inverse-selected-msg-type="inverseSelectedMsgType"
         @apply-filters="onFiltersApply"
       ></FrameFilters>
     </div>
@@ -54,7 +55,12 @@
         key-field="id"
         :search-option="{
           enabled: true,
-          keysForSearch: ['msgTypeName', 'dataAsString'],
+          keysForSearch: [
+            'initialSourceResolved',
+            'initialSource',
+            'msgTypeName',
+            'dataAsString',
+          ],
           dynamicTableInSearching: true,
         }"
         :size-dependencies-fields="['dataAsString']"
@@ -122,7 +128,14 @@
         </a-card>
 
         <a-card title="Frame Data" style="margin: 35px 0">
-          <a-list size="normal" bordered :data-source="frameDataForShow">
+          <a-list
+            size="normal"
+            bordered
+            :data-source="frameDataForShow"
+            :locale="{
+              emptyText: $t('empty_text'),
+            }"
+          >
             <template #renderItem="{ item }">
               <a-list-item>
                 <span class="frame-detail-datalist-key">{{ item.key }}</span>
@@ -221,6 +234,7 @@ let requestBreakLoadingDataWhile = false;
 
 const channels = ref<ChannelRecords>({} as ChannelRecords);
 const selectedChannels = ref<string[]>([]);
+const inverseSelectedMsgType = ref(false);
 const { selectedMsgTypes, selectedMsgTypesMap } = useMsgTypesMap();
 
 const readEvent = ref(true);
@@ -274,12 +288,39 @@ const frameHeaderForShow = computed(() => {
 });
 const frameDataForShow = computed(() => {
   if (!currentRowData.value) return [];
-  const data = JSON.parse(
-    currentRowData.value.dataAsString.replace(
-      /(?<=:\s?)(\d*)(?=\s?,|})/g,
-      '"$1"',
-    ), // Avoid losing accuracy by converting large numbers to numbers
-  );
+  const convertNestedJson = (str: string) => {
+    // 找到嵌套的 JSON 字符串并进行转义
+    const regex = /"([^"]+)"\s*:\s*"({[^}]*})"/g;
+    return str.replace(/\\(.)/g, '$1').replace(regex, (_match, p1, p2) => {
+      const escapedValue = p2.replace(/"/g, '\\"');
+      return `"${p1}":"${escapedValue}"`;
+    });
+  };
+
+  const convertNumbersToStrings = (str: string) => {
+    // 将数值转换为字符串
+    const numberRegex = /(:\s*)(-?\d+(\.\d+)?([eE][+-]?\d+)?)(?=[,\s}]|$)/g;
+    return str.replace(numberRegex, '$1"$2"');
+  };
+
+  const parseWithNumber = (str: string) => {
+    const numberConvertedStr = convertNumbersToStrings(str);
+
+    const convertedStr = convertNestedJson(numberConvertedStr);
+
+    const outerParsed = JSON.parse(convertedStr, (_key, value) => {
+      if (typeof value === 'number') {
+        return `${value}`;
+      }
+      return value;
+    });
+
+    return outerParsed;
+  };
+
+  if (!currentRowData.value.dataAsString) return [];
+
+  const data = parseWithNumber(currentRowData.value.dataAsString);
   return Object.entries(data).map(([key, value]) => {
     return {
       key,
@@ -498,9 +539,10 @@ const loadFrameData = async (
       }
 
       const msgType = frame.msgType();
+
       if (
         selectedMsgTypes.value.length > 0 &&
-        !selectedMsgTypesMap.value[msgType]
+        inverseSelectedMsgType.value === !!selectedMsgTypesMap.value[msgType]
       ) {
         currentTracer.next();
         continue;
@@ -514,6 +556,7 @@ const loadFrameData = async (
         dataLength: frame.dataLength(),
         genTime: frame.genTime(),
         triggerTime: frame.triggerTime(),
+        initialSource: frame.initialSource(),
         msgType,
         frameId,
         pageId,
@@ -621,11 +664,13 @@ const onFiltersApply = async (
   write: boolean,
   afterFilterChannels: string[],
   afterFilterMsgTypes: number[],
+  inverseSelection: boolean,
 ) => {
   readEvent.value = read;
   writeEvent.value = write;
   selectedChannels.value = afterFilterChannels;
   selectedMsgTypes.value = afterFilterMsgTypes;
+  inverseSelectedMsgType.value = inverseSelection;
   currentTracer = tracer(
     currentSession.value as KungfuApi.KfLocation,
     readEvent.value,

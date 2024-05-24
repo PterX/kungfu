@@ -162,10 +162,7 @@ public:
                                                       position.exchange_id, position.instrument_id);
     auto multiplier = future_i_a.contract_multiplier * (position.direction == Direction::Long ? 1 : -1);
     // 昨仓部分, 最新价 - 昨结算价
-    auto pre_settlement_price = position.pre_settlement_price == 0
-                                    ? position.avg_open_price
-                                    : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
-    auto price_diff_yesterday = position.last_price - pre_settlement_price; // 最新价 - 昨结算 表示今日的盈亏
+    auto price_diff_yesterday = position.last_price - position.pre_settlement_price; // 最新价 - 昨结算 表示今日的盈亏
     auto unrealized_pnl_yesterday = (price_diff_yesterday * position.yesterday_volume) * multiplier; // 昨仓部分的盈亏
 
     // 今仓部分, 最新价 - 今持仓平均价
@@ -269,11 +266,8 @@ public:
     }
 
     // 昨仓部分, 平仓价 - 昨结算 表示今日的平仓盈亏
-    auto pre_settlement_price = position.pre_settlement_price == 0
-                                    ? position.avg_open_price
-                                    : position.pre_settlement_price; // 对于今天新开仓的标的, 没有昨结算
     auto realized_pnl_yesterday =
-        (trade.price - pre_settlement_price) * (trade.volume - close_today_volume) * contract_multiplier;
+        (trade.price - position.pre_settlement_price) * (trade.volume - close_today_volume) * contract_multiplier;
 
     // 平今仓的时候, 计算盈利会根据先进先出的方式进行平仓, 最后根据剩下的未平的部分再计算今开仓均价,
     // 由于我们无法获取到今仓的每一笔成交的开仓价格和顺序, 只能使用今仓均价来计算盈亏, 存在一定误差

@@ -39,6 +39,8 @@ import {
   SpaceSizeSettingEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
+const FONTFAMILY = `Menlo, Monaco, "Courier New", monospace`;
+
 monaco.editor.defineTheme(
   'monokai',
   themeData as monaco.editor.IStandaloneThemeData,
@@ -164,10 +166,7 @@ function createEditor(
 
       fontSize: 14,
       automaticLayout: true,
-
-      ...(document.body.style.fontFamily
-        ? { fontFamily: document.body.style.fontFamily }
-        : {}),
+      fontFamily: FONTFAMILY,
     },
   );
   return editor;
@@ -306,6 +305,11 @@ function pythonProvideCompletionItems(model, position) {
   justify-content: center;
   align-items: center;
   min-width: 0;
+
+  .margin-view-overlays {
+    user-select: none;
+  }
+
   #editor-content {
     height: 100%;
     width: 100%;

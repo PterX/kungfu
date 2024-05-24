@@ -941,13 +941,13 @@ const updateOption = async (clearSelectedItem = true) => {
   }
 
   option.xAxis.data = xAxisData.value[selectedInstrument.value]
-    .sort((a, b) => Number(a) - Number(b))
+    ?.sort((a, b) => Number(a) - Number(b))
     .map((item) => item.toString());
   option.xAxis.axisLabel.formatter = (value) =>
     getNanoDateString(BigInt(value), 6, 6);
 
   if (quoteXAxisData.value[selectedInstrument.value]) {
-    quoteXAxisData.value[selectedInstrument.value].sort((a, b) => a - b);
+    quoteXAxisData.value[selectedInstrument.value]?.sort((a, b) => a - b);
   }
 
   if (myChart) {

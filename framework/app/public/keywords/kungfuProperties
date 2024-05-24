@@ -18,10 +18,12 @@ algo_orders
 algo_order_actions
 context
 arguments
+operator_dir
 bookkeeper
 side
 io_device
 usable
+strategy_dir
 begin_time
 end_time
 gen_time
@@ -135,6 +137,7 @@ open_volume
 last_price
 avg_open_price
 position_cost_price
+avg_open_price_today
 close_price
 pre_close_price
 settlement_price
@@ -160,6 +163,7 @@ block_id
 external_order_id
 insert_time
 restore_time
+trading_day
 volume_left
 tax
 commission

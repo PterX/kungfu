@@ -39,7 +39,7 @@ import {
   SpaceSizeSettingEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-const FONTFAMILY = `Menlo, Monaco, "Courier New", monospace`;
+const FONTFAMILY = `Font3-Inconsolata-Regular, sans-serif, "Courier New", monospace`;
 
 monaco.editor.defineTheme(
   'monokai',
@@ -164,7 +164,7 @@ function createEditor(
       formatOnPaste: true,
       formatOnType: true,
 
-      fontSize: 14,
+      fontSize: 16,
       automaticLayout: true,
       fontFamily: FONTFAMILY,
     },

@@ -17,8 +17,11 @@ using namespace kungfu::yijinjing::util;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::wingchun::tool;
 using kungfu::yijinjing::nanomsg::nanomsg_json;
+using namespace kungfu::wingchun::factor;
 
 namespace kungfu::wingchun::strategy {
+
+std::shared_ptr<LiveStreamDataBatcher> BacktestContext::backtest_stream_data_batcher_ = nullptr;
 
 BacktestContext::BacktestContext(practice::apprentice &app, const rx::connectable_observable<event_ptr> &events,
                                  Matcher_ptr matcher, SliceIndexer_ptr from_indexer, SliceIndexer_ptr to_indexer,
@@ -546,5 +549,13 @@ uint64_t BacktestContext::get_order_id(const writer_ptr &writer, uint32_t dest) 
 }
 
 uint32_t BacktestContext::get_home_uid() const { return app_.get_home_uid(); }
+
+std::shared_ptr<wingchun::factor::StreamDataBatcher> BacktestContext::batch_streaming() {
+  if (!backtest_stream_data_batcher_) {
+    backtest_stream_data_batcher_ = std::make_shared<LiveStreamDataBatcher>();
+    backtest_stream_data_batcher_->on_start(events_);
+  }
+  return backtest_stream_data_batcher_;
+}
 
 } // namespace kungfu::wingchun::strategy

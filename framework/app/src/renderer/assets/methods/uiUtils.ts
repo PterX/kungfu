@@ -131,20 +131,17 @@ export const getCustomFont = async (): Promise<string> => {
   const fontFiles = await fse.readdir(fontsDir);
   const loadedFonts: string[] = [];
 
-  await Promise.all(
-    fontFiles.map(async (fontFileName) => {
-      const fontName = fontFileName.split('.')[0];
-      const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
-
-      if (fse.existsSync(fontFullPath)) {
-        const fontBuffer = await fsPromise.readFile(fontFullPath);
-        const font = new FontFace(fontName, fontBuffer);
-        await font.load();
-        document.fonts.add(font);
-        loadedFonts.push(fontName);
-      }
-    }),
-  );
+  for (const fontFileName of fontFiles) {
+    const fontName = fontFileName.split('.')[0];
+    const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
+    if (fse.existsSync(fontFullPath)) {
+      const fontBuffer = await fsPromise.readFile(fontFullPath);
+      const font = new FontFace(fontName, fontBuffer);
+      await font.load();
+      document.fonts.add(font);
+      loadedFonts.push(fontName);
+    }
+  }
 
   return loadedFonts.length > 0
     ? `${loadedFonts.join(', ')}, monospace, sans-serif`

@@ -176,11 +176,13 @@ void bind_strategy(pybind11::module &m) {
       .def("set_time_interval", &strategy::Runner::set_time_interval)
       .def("set_report", &strategy::Runner::set_report)
       .def("set_backtest_config", &strategy::Runner::set_backtest_config)
+      .def("set_strategy_dir", &strategy::Runner::set_strategy_dir)
       .def("add_strategy", &strategy::Runner::add_strategy);
 
   py::class_<strategy::Context, std::shared_ptr<strategy::Context>>(m, "Context")
       .def_property_readonly("config", &strategy::Context::get_config, py::return_value_policy::reference)
       .def_property_readonly("arguments", &strategy::Context::get_arguments, py::return_value_policy::reference)
+      .def_property_readonly("strategy_dir", &strategy::Context::get_strategy_dir, py::return_value_policy::reference)
       .def_property_readonly("bookkeeper", &strategy::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &strategy::Context::now)
       .def("is_started", &strategy::Context::is_started)

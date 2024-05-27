@@ -138,17 +138,18 @@ const formatTimeToNanoseconds = (
   boundaries: [string, string],
 ): string => {
   const format = (str: string) => {
-    const regex = /^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})(?:\.([0-9]{1,9}))?$/;
+    const regex =
+      /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?$/;
     const match = str.match(regex);
     if (!match) {
       return boundaries[1];
     }
-    const [, hoursStr, minutesStr, secondsStr, nanosecondsStr] = match;
+    const [, dateStr, hoursStr, minutesStr, secondsStr, nanosecondsStr] = match;
     const hours = hoursStr.padStart(2, '0');
     const minutes = minutesStr.padStart(2, '0');
     const seconds = secondsStr.padStart(2, '0');
     const nanoseconds = (nanosecondsStr || '').padEnd(9, '0');
-    return `${hours}:${minutes}:${seconds}.${nanoseconds}`;
+    return `${dateStr} ${hours}:${minutes}:${seconds}.${nanoseconds}`;
   };
 
   const formattedTime = format(timeStr);

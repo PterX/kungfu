@@ -41,7 +41,7 @@
     "@mapbox/node-pre-gyp": "^1.0.0"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-toolchain": "^2.7.5-alpha.20",
+    "@kungfu-trader/kungfu-toolchain": "^2.7.5-alpha.21",
     "ignore": "^5.3.1",
     "inquirer": "^8.2.4"
   }

@@ -323,6 +323,7 @@ private:
   bool broker_states_requested_{false};
   bool positions_set_{false};
 
+  static std::shared_ptr<wingchun::factor::LiveStreamDataBatcher> live_stream_data_batcher_;
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
 };

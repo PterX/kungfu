@@ -75,47 +75,11 @@ quote_column_names = [
     "total_bid_volume",
     "total_ask_volume",
     "total_trade_num",
-    "bid_price0",
-    "bid_price1",
-    "bid_price2",
-    "bid_price3",
-    "bid_price4",
-    "bid_price5",
-    "bid_price6",
-    "bid_price7",
-    "bid_price8",
-    "bid_price9",
-    "ask_price0",
-    "ask_price1",
-    "ask_price2",
-    "ask_price3",
-    "ask_price4",
-    "ask_price5",
-    "ask_price6",
-    "ask_price7",
-    "ask_price8",
-    "ask_price9",
-    "bid_volume0",
-    "bid_volume1",
-    "bid_volume2",
-    "bid_volume3",
-    "bid_volume4",
-    "bid_volume5",
-    "bid_volume6",
-    "bid_volume7",
-    "bid_volume8",
-    "bid_volume9",
-    "ask_volume0",
-    "ask_volume1",
-    "ask_volume2",
-    "ask_volume3",
-    "ask_volume4",
-    "ask_volume5",
-    "ask_volume6",
-    "ask_volume7",
-    "ask_volume8",
-    "ask_volume9",
     "trading_phase_code",
+    "bid_price",
+    "ask_price",
+    "bid_volume",
+    "ask_volume",
 ]
 
 tree_column_names = [
@@ -140,47 +104,11 @@ tree_column_names = [
     "close_price",
     "bid_depth",
     "ask_depth",
-    "bid_price0",
-    "bid_price1",
-    "bid_price2",
-    "bid_price3",
-    "bid_price4",
-    "bid_price5",
-    "bid_price6",
-    "bid_price7",
-    "bid_price8",
-    "bid_price9",
-    "ask_price0",
-    "ask_price1",
-    "ask_price2",
-    "ask_price3",
-    "ask_price4",
-    "ask_price5",
-    "ask_price6",
-    "ask_price7",
-    "ask_price8",
-    "ask_price9",
-    "bid_volume0",
-    "bid_volume1",
-    "bid_volume2",
-    "bid_volume3",
-    "bid_volume4",
-    "bid_volume5",
-    "bid_volume6",
-    "bid_volume7",
-    "bid_volume8",
-    "bid_volume9",
-    "ask_volume0",
-    "ask_volume1",
-    "ask_volume2",
-    "ask_volume3",
-    "ask_volume4",
-    "ask_volume5",
-    "ask_volume6",
-    "ask_volume7",
-    "ask_volume8",
-    "ask_volume9",
     "trading_phase_code",
+    "bid_price",
+    "ask_price",
+    "bid_volume",
+    "ask_volume",
 ]
 
 depth_column_names = [
@@ -206,16 +134,11 @@ tick_column_names = [
 
 
 class PyStreamDataBatcher:
-    _instance = None
-
     def __init__(self, stream_data_batcher: wc.StreamDataBatcher):
-        if not PyStreamDataBatcher._instance:
-            PyStreamDataBatcher._instance = self
-            self.stream_data_batcher = stream_data_batcher
+        self.stream_data_batcher = stream_data_batcher
 
-    @classmethod
-    def get_instance(cls):
-        return cls._instance
+    def merge_columns(self, row):
+        return row.tolist()
 
     def get_entrust_df(self, source, instrument_id, exchange_id):
         entrust_array = np.asarray(
@@ -244,6 +167,16 @@ class PyStreamDataBatcher:
             )
         )
         quote_df = pd.DataFrame(quote_array)
+
+        for i in range(22, 62, 10):
+            start_col = i
+            end_col = i + 9
+            new_col_name = f"merged_column_{(i-22)//10 + 1}"
+            quote_df[new_col_name] = quote_df.iloc[:, start_col : end_col + 1].apply(
+                merge_columns, axis=1
+            )
+
+        quote_df = quote_df.drop(quote_df.columns[22:62], axis=1)
         quote_df.columns = quote_column_names
         return quote_df
 
@@ -252,6 +185,16 @@ class PyStreamDataBatcher:
             self.stream_data_batcher.get_tree_buffer(source, instrument_id, exchange_id)
         )
         tree_df = pd.DataFrame(tree_array)
+
+        for i in range(21, 61, 10):
+            start_col = i
+            end_col = i + 9
+            new_col_name = f"merged_column_{(i-21)//10 + 1}"
+            tree_df[new_col_name] = tree_df.iloc[:, start_col : end_col + 1].apply(
+                merge_columns, axis=1
+            )
+
+        tree_df = tree_df.drop(tree_df.columns[21:61], axis=1)
         tree_df.columns = tree_column_names
         return tree_df
 

@@ -23,6 +23,8 @@ using namespace kungfu::wingchun::factor;
 
 namespace kungfu::wingchun::strategy {
 
+std::shared_ptr<LiveStreamDataBatcher> LiveContext::live_stream_data_batcher_ = nullptr;
+
 LiveContext::LiveContext(apprentice &app, const rx::connectable_observable<event_ptr> &events)
     : Context(app, events), broker_client_(app_), bookkeeper_(app_, broker_client_) {
   KUNGFU_SETUP_LOGGER(app_.get_home(), app_.get_home()->name);
@@ -651,9 +653,11 @@ uint32_t LiveContext::get_home_uid() const { return app_.get_home_uid(); }
 uint32_t LiveContext::get_live_home_uid() const { return app_.get_live_home_uid(); }
 
 std::shared_ptr<StreamDataBatcher> LiveContext::batch_streaming() {
-  auto live_stream_data_batcher = std::make_shared<LiveStreamDataBatcher>();
-  live_stream_data_batcher->on_start(events_);
-  return live_stream_data_batcher;
+  if (!live_stream_data_batcher_) {
+    live_stream_data_batcher_ = std::make_shared<LiveStreamDataBatcher>();
+    live_stream_data_batcher_->on_start(events_);
+  }
+  return live_stream_data_batcher_;
 }
 
 } // namespace kungfu::wingchun::strategy

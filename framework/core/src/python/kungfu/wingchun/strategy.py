@@ -183,7 +183,7 @@ class Strategy(wc.Strategy):
         return location
 
     def _batch_streaming(self):
-        return PyStreamDataBatcher.get_instance()
+        return PyStreamDataBatcher(self.ctx.wc_context.batch_streaming())
 
     async def __async_insert_order(
         self,
@@ -261,9 +261,6 @@ class Strategy(wc.Strategy):
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.ctx.static_data = wc_context.bookkeeper.static_data
-        self.py_stream_data_batcher_instance = PyStreamDataBatcher(
-            wc_context.batch_streaming()
-        )
         self.__init_book()
         self.__call_proxy(self._pre_start, self.ctx)
 

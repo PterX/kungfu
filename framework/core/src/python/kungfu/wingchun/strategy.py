@@ -256,6 +256,7 @@ class Strategy(wc.Strategy):
         self.ctx.buy = functools.partial(self.__async_insert_order, Side.Buy)
         self.ctx.sell = functools.partial(self.__async_insert_order, Side.Sell)
         self.ctx.static_data = wc_context.bookkeeper.static_data
+        self.ctx.strategy_dir = wc_context.strategy_dir
         self.__init_book()
         self.__call_proxy(self._pre_start, self.ctx)
 

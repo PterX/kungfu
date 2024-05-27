@@ -414,6 +414,7 @@ class StrategyRunner(ExtensionExecutor):
             ctx.strategy_runner.set_end_time(end_time_stamp)
 
         ctx.strategy_runner.add_strategy(ctx.strategy)
+        ctx.strategy_runner.set_strategy_dir(os.path.dirname(ctx.path))
 
         if kfj.MODES[ctx.mode] == lf.enums.mode.LIVE and "is_cpp_module" not in dir(
             ctx
@@ -493,6 +494,7 @@ class OperatorRunner(ExtensionExecutor):
             ctx.op_runner.set_end_time(end_time_stamp)
 
         ctx.op_runner.add_operator(ctx.operator)
+        ctx.op_runner.set_operator_dir(os.path.dirname(ctx.path))
         return ctx.op_runner
 
     def post_run(self):

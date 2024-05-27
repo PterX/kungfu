@@ -83,6 +83,7 @@ void Runner::on_exit() { post_stop(); }
 
 void Runner::react() {
   context_ = make_context();
+  make_strategy_dir(*context_, strategy_dir_);
   context_->get_bookkeeper().add_book_listener(std::make_shared<BookListener>(*this));
   apprentice::react();
 }
@@ -212,6 +213,8 @@ bool Runner::is_reactable(const event_ptr &event) {
   }
   return true;
 }
+
+void Runner::set_strategy_dir(const std::string &strategy_dir) { strategy_dir_ = strategy_dir; }
 
 Runner::BookListener::BookListener(Runner &runner) : runner_(runner) {}
 

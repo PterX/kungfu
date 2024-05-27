@@ -25,6 +25,8 @@ void bind_orderbook(pybind11::module &m);
 
 void bind_factor(pybind11::module &m);
 
+void bind_stream_data_batcher(pybind11::module &m);
+
 void bind_broker(pybind11::module &m);
 
 void bind_service(pybind11::module &m);

@@ -104,10 +104,8 @@ private:
   // nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
   nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
   nng_stream *s_;
-  std::vector<uint8_t> rec_buffer_;
   uint64_t stream_id_;
   void cancel();
-  std::mutex mtx_;
   yijinjing::data::location_ptr location_ = nullptr;
   journal::writer_ptr writer_ = nullptr;
   journal::frame_ptr current_frame_ = nullptr;
@@ -166,27 +164,6 @@ private:
 };
 FORWARD_DECLARE_CLASS_PTR(http_server)
 
-/*
-class webclient {
-public:
-  webclient(const std::string &address, std::function<void(webclient &, const std::string &)> message,
-         std::function<void(webclient &)> open, std::function<void(webclient &, const std::string &)> error,
-         std::function<void(webclient &)> close, const bool is_text_mode);
-  ~webclient();
-  void send(const std::string &data);
-  void recv_cb();
-  void start_recv();
-
-private:
-  nng_smart_ptr<nng_stream_dialer> dialer{nng_stream_dialer_free};
-  nng_smart_ptr<nng_aio> aio_dialer{nng_aio_free};
-  std::function<void(webclient &, const std::string &)> on_message;
-  std::function<void(webclient &)> on_open;
-  std::function<void(webclient &, const std::string &)> on_error;
-  std::function<void(webclient &)> on_close;
-};
-*/
-
 class webclient {
 public:
   webclient(stream_manage_ptr stream_manager, const std::string &address,
@@ -204,8 +181,8 @@ public:
 private:
   stream_manage_ptr stream_manager_;
   stream_ptr stream_;
-  nng_smart_ptr<nng_stream_dialer> dialer{nng_stream_dialer_free};
-  nng_smart_ptr<nng_aio> aio_dialer{nng_aio_free};
+  nng_smart_ptr<nng_stream_dialer> dialer_{nng_stream_dialer_free};
+  nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
   std::function<void(webclient &, const std::string &)> on_message;
   std::function<void(webclient &)> on_open;
   std::function<void(webclient &, const std::string &)> on_error;
@@ -222,10 +199,6 @@ public:
   int publish(uint64_t stream_id, const std::string &msg);
 
   int publish(uint64_t stream_id, const char *data, int len);
-
-  std::vector<std::string> get_notice(uint64_t stream_id);
-
-  void clear_notice(uint64_t stream_id);
 
   stream_ptr get_stream_by_id(uint64_t stream_id);
 

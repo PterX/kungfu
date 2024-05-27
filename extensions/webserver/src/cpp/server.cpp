@@ -95,13 +95,22 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) 
     custom_OnCancelOrder(const_cast<char *>(msg), stream_id);
     break;
   }
+  case CICC::types::ReqType:{
+    auto *round_req = reinterpret_cast<const CICC::types::PackRoundReq *>(msg);
+    uint32_t limit = round_req->limit;
+    stream_limit_map_.emplace(stream_id,limit);
+    submit_read_read_assemble();
+    break;
+  }
   default:
     break;
   }
 }
 
 void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
-  while (reader->data_available()) {
+  int limit = stream_limit_map_.contains(stream_id) ? stream_limit_map_.at(stream_id) : 100;
+  int nums = 0;
+  while (reader->data_available() && nums < limit) {
     auto frame = reader->current_frame();
     auto type = frame->msg_type();
     auto iter = map_event_back.find(type);
@@ -109,55 +118,97 @@ void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
       iter->second(frame->data_address(), stream_id);
     }
     reader->next();
+    nums++;
   }
+  if(nums){
+    SPDLOG_INFO("stream {} pushlish PackReqEnd nums:{}",stream_id,nums);
+  }
+  CICC::types::PackReqEnd data_send;
+  io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(CICC::types::PackReqEnd));
   return;
 }
 
-/*
-void server::thread_read_data(const assemble_ptr &asm_obj, uint64_t stream_id) {
-  auto data_read = asm_obj->read_datas();
-  uint64_t timestamp = time::now_in_nano();
-  for (auto data_pair : data_read) {
-    frame_header header = data_pair.first;
-    int32_t type = header.msg_type;
-    auto iter = map_event_back.find(type);
-    if (iter != map_event_back.end()) {
-      iter->second(data_pair.second.data(), stream_id,timestamp);
+void server::thread_send_data(const location_ptr & td_location, uint64_t stream_id) {
+  SPDLOG_INFO("stream {} thread_send_data",stream_id);
+  auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(
+      true, false, std::make_shared<bus>(false));
+  auto now = time::now_in_nano();
+  reader->join(td_location, get_home_uid(), now);
+  reader->join(get_home(), td_location->location_uid, now);
+  
+  while (1) {
+    if(!reader->data_available())
+      continue;
+    auto frame = reader->current_frame();
+    auto type = frame->msg_type();
+    switch (type)
+    {
+    case OrderInput::tag:{
+      //auto data = const_cast<OrderInput *>(frame->data_address());
+      CICC::types::PackOrderInput data_send;
+      memcpy(&data_send.data, frame->data_address(), sizeof(OrderInput));
+      data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
+      io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send),
+                                             sizeof(CICC::types::PackOrderInput));
+      break;
     }
-  }
-  return;
+    case Order::tag:{
+      //auto data = const_cast<Order *>(frame->data_address());
+      CICC::types::PackOrder data_send;
+      memcpy(&data_send.data, frame->data_address(), sizeof(Order));
+      data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
+      io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send),
+                                             sizeof(CICC::types::PackOrder));
+      break;
+    }
+    case Trade::tag:{
+      //auto data = const_cast<Trade *>(frame->data_address());
+      CICC::types::PackTrade data_send;
+      memcpy(&data_send.data, frame->data_address(), sizeof(Trade));
+      data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
+      io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send),
+                                             sizeof(CICC::types::PackTrade));
+      break;
+    }
+
+    default:
+      break;
+    }
+    //auto iter = map_event_back.find(type);
+    reader->next();
+    }
 }
-*/
 
 bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
   const auto *account_data = reinterpret_cast<const CICC::types::PackAccountInfo *>(ptr);
   auto &group = account_data->group;
   auto &name = account_data->name;
+  auto &method = account_data->method;
   SPDLOG_DEBUG("group:{} name:{}", group, name);
   auto td_location = std::make_shared<location>(mode::LIVE, category::TD, group, name, std::make_shared<locator>());
-  /*
-  auto asm_obj = std::make_shared<assemble>(
-      std::make_shared<kungfu::yijinjing::data::locator>(),
-      get_mode_name(mode::LIVE), get_category_name(category::TD), group, name);
-  asm_obj->join_channel(get_home(), td_location->location_uid, 0);
-*/
 
-  auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
-  auto now = time::now_in_nano();
-  reader->join(td_location, get_home_uid(), now);
-  reader->join(get_home(), td_location->location_uid, now);
-  stream_reader_map.try_emplace(stream_id, reader);
-
-  if (has_writer(td_location->location_uid)) {
-    auto writer = get_writer(td_location->location_uid);
-    stream_writer_map.try_emplace(stream_id, writer);
-    SPDLOG_DEBUG("add writer for stream:{}", stream_id);
-    // maybe need to do something with td
-    // reader_->join(td_location,get_home_uid(),event->gen_time());   no need
-    // join, should use assmble
-  } else {
-    // should write error to data;
+  if(!has_writer(td_location->location_uid)){
     SPDLOG_ERROR("td {}_{} not exist!", group, name);
+    return false;
+  }
+  
+  auto writer = get_writer(td_location->location_uid);
+  stream_writer_map_.try_emplace(stream_id, writer);
+  SPDLOG_DEBUG("add writer for stream:{}", stream_id);
+
+  if(method == CICC::enums::Method::direct){
+    stream_thread_map_.try_emplace(
+      stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_id));
+  }
+  else if(method == CICC::enums::Method::round){
+    auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
+    auto now = time::now_in_nano();
+    reader->join(td_location, get_home_uid(), now);
+    reader->join(get_home(), td_location->location_uid, now);
+    stream_reader_map_.try_emplace(stream_id, reader);
+  }
+  else{
+    return false;
   }
   return true;
 }
@@ -175,18 +226,18 @@ bool server::custom_OnNewOrder(const char *ptr, uint64_t stream_id) {
     return 0;
   }
 
-  if (!stream_writer_map.contains(stream_id)) {
+  if (!stream_writer_map_.contains(stream_id)) {
     SPDLOG_ERROR("do not have writer for steam:{}", stream_id);
     return false;
   }
-  auto writer = stream_writer_map.find(stream_id)->second;
+  auto writer = stream_writer_map_.find(stream_id)->second;
   page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderInput &input = writer->open_data<OrderInput>(time::now_in_nano());
   memcpy(&input, &(remote_data->data), sizeof(OrderInput));
   input.order_id = writer->current_frame_uid();
   input.insert_time = time::now_in_nano();
   writer->close_data();
-  request_order_map.try_emplace(std::make_pair(stream_id, remote_input.request_id), input.order_id);
+  request_order_map_.try_emplace(std::make_pair(stream_id, remote_input.request_id), input.order_id);
   return true;
 }
 
@@ -195,23 +246,23 @@ bool server::custom_OnCancelOrder(const char *ptr, uint64_t stream_id) {
   auto remote_action = remote_data->data;
 
   std::pair<uint64_t, uint64_t> stream_request_pair = std::make_pair(stream_id, remote_action.order_action_id);
-  if (!request_order_map.contains(stream_request_pair)) {
+  if (!request_order_map_.contains(stream_request_pair)) {
     // TODO:should write OrderActionError
     SPDLOG_ERROR("do not have order for stream:{} request:{}", stream_id, remote_action.order_action_id);
     return false;
   }
 
-  if (!stream_writer_map.contains(stream_id)) {
+  if (!stream_writer_map_.contains(stream_id)) {
     // TODO:should write OrderActionError
     SPDLOG_ERROR("do not have writer for stream:{}", stream_id);
     return false;
   }
 
-  auto writer = stream_writer_map.find(stream_id)->second;
+  auto writer = stream_writer_map_.find(stream_id)->second;
   page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderAction &action = writer->open_data<OrderAction>(time::now_in_nano());
   memcpy(&action, &(remote_data->data), sizeof(OrderAction));
-  action.order_id = request_order_map.at(stream_request_pair);
+  action.order_id = request_order_map_.at(stream_request_pair);
   action.insert_time = time::now_in_nano();
   writer->close_data();
   return true;
@@ -233,13 +284,13 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
 }
 
 void server::submit_read_read_assemble() {
-  for (auto &item : stream_reader_map) {
-    auto it = stream_task_map.find(item.first);
-    if (it != stream_task_map.end() && it->second.valid() &&
+  for (auto &item : stream_reader_map_) {
+    auto it = stream_task_map_.find(item.first);
+    if (it != stream_task_map_.end() && it->second.valid() &&
         it->second.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
       continue;
     }
-    stream_task_map[item.first] =
+    stream_task_map_[item.first] =
         threadpool_->submit(std::mem_fn(&server::thread_read_data), this, item.second, item.first);
   }
 }
@@ -248,22 +299,17 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_msg(sb);
   deal_notice(bypass, true, sb);
-  submit_read_read_assemble();
-  // loop_time[loop_num<max_num?loop_num++:max_num-1] = time::now_in_nano();
-  for (std::size_t step_count = 0;                                                             //
-       live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); //
+  for (std::size_t step_count = 0;                                                             
+       live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_);
        step_count++) {
-    // data_time[data_num<max_num?data_num++:max_num-1] = time::now_in_nano();
-    // SPDLOG_DEBUG("time:{}",time::now_in_nano());
     deal_msg(sb);
     deal_notice(io_device_->is_lazy(), false, sb);
-    submit_read_read_assemble();
     const frame_ptr frame = reader_->current_frame();
     io_device_->get_bus()->set_trigger_frame(frame);
     if (frame->gen_time() <= end_time_) {
       int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {
-        now_ = frame_time;
+        now_ = frame_time; 
       }
       if (is_reactable(frame)) {
         sb.on_next(frame);
@@ -282,24 +328,6 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
   }
   return true;
 }
-
-/*
-bool server::drain(const rx::subscriber<event_ptr> &sb) {
-  deal_msg(sb);
-  hero::drain(sb);
-  for (auto &item : stream_reader_map) {
-    auto it = stream_task_map.find(item.first);
-    if (it != stream_task_map.end() && it->second.valid() &&
-        it->second.wait_for(std::chrono::seconds(0)) !=
-            std::future_status::ready) {
-      continue;
-    }
-    stream_task_map[item.first] = threadpool_->submit(
-        std::mem_fn(&server::thread_read_data), this, item.second, item.first);
-  }
-  return true;
-};
-*/
 
 void server::on_exit() { SPDLOG_DEBUG("exit!"); }
 

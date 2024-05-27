@@ -117,5 +117,17 @@ enum class PriceLevel : int8_t {
   Unknown
 };
 
+enum class Method : int8_t {
+    round,
+    direct,
+};
+
+enum class RoundReqType: int8_t{
+    All,
+    OrderInput,
+    Order,
+    Trade,
+};
+
 } // namespace enums
 } // namespace CICC

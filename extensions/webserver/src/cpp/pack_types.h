@@ -13,6 +13,8 @@ constexpr uint32_t AlgoOrderType = 111214;
 constexpr uint32_t AlgoOrderActionType = 111215;
 constexpr uint32_t AlgoOrderActionErrorType = 111216;
 constexpr uint32_t AccountInfoType = 11110701;
+constexpr uint32_t ReqType					= 11110702;
+constexpr uint32_t ReqEndType				= 11110703;
 
 static constexpr int KF_ACCOUNT_NAME_LEN = 32;
 
@@ -66,6 +68,17 @@ struct PackAccountInfo {
   uint64_t stream_id;
   char group[KF_ACCOUNT_NAME_LEN];
   char name[KF_ACCOUNT_NAME_LEN];
+  CICC::enums::Method method;
+};
+
+struct PackReqEnd {
+	uint32_t type = ReqEndType;
+};
+
+struct PackRoundReq {
+	uint32_t type = ReqType;
+	uint32_t req_type;
+	uint32_t limit;
 };
 
 } // namespace types

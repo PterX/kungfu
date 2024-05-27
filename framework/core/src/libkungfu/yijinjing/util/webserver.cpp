@@ -341,25 +341,25 @@ webclient::webclient(stream_manage_ptr stream_manager, const std::string &addres
   if ((rv = nng_url_parse(&url, address.c_str())) != 0) {
     fatal("nng_url_parse", rv);
   }
-  if ((rv = nng_stream_dialer_alloc_url(&dialer, url)) != 0) {
+  if ((rv = nng_stream_dialer_alloc_url(&dialer_, url)) != 0) {
     fatal("nng_stream_dialer_alloc", rv);
   }
-  if ((rv = nng_aio_alloc(&aio_dialer, nullptr, nullptr)) != 0) {
+  if ((rv = nng_aio_alloc(&aio_dialer_, nullptr, nullptr)) != 0) {
     fatal("nng_aio_alloc", rv);
   }
 
   if (is_text_mode) {
-    nng_stream_dialer_set_bool(dialer, NNG_OPT_WS_RECV_TEXT, true);
-    nng_stream_dialer_set_bool(dialer, NNG_OPT_WS_SEND_TEXT, true);
+    nng_stream_dialer_set_bool(dialer_, NNG_OPT_WS_RECV_TEXT, true);
+    nng_stream_dialer_set_bool(dialer_, NNG_OPT_WS_SEND_TEXT, true);
   }
 
-  nng_stream_dialer_dial(dialer, aio_dialer);
-  nng_aio_wait(aio_dialer);
-  rv = nng_aio_result(aio_dialer);
+  nng_stream_dialer_dial(dialer_, aio_dialer_);
+  nng_aio_wait(aio_dialer_);
+  rv = nng_aio_result(aio_dialer_);
   if (rv != 0) {
     fatal("dial", rv);
   }
-  auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_dialer, 0));
+  auto *s = reinterpret_cast<nng_stream *>(nng_aio_get_output(aio_dialer_, 0));
   // disable Nagle, send-msg low-latency
   if (tcp_no_delay) {
     nng_stream_set_bool(s, NNG_OPT_TCP_NODELAY, true);
@@ -434,106 +434,4 @@ uint64_t stream_manage::get_stream_id(uint32_t location_uid) {
   return 0;
 }
 
-/*
-webclient::webclient(const std::string &address, std::function<void(webclient &, const std::string &)> message,
-               std::function<void(webclient &)> open, std::function<void(webclient &, const std::string &)> error,
-               std::function<void(webclient &)> close, const bool is_text_mode)
-    : on_message(message), on_open(open), on_error(error), on_close(close), buffer(32768) {
-  int rv;
-  nng_smart_ptr<nng_url> url{nng_url_free};
-  if ((rv = nng_url_parse(&url, address.c_str())) != 0) {
-    fatal("nng_url_parse", rv);
-  }
-  if ((rv = nng_stream_dialer_alloc_url(&dialer, url)) != 0) {
-    fatal("nng_stream_dialer_alloc", rv);
-  }
-  if ((rv = nng_aio_alloc(&aio_dialer, nullptr, nullptr)) != 0) {
-    fatal("nng_aio_alloc", rv);
-  }
-  if ((rv = nng_aio_alloc(
-           &aio_read, [](void *arg) { ((webclient *)arg)->recv_cb(); }, this)) != 0) {
-    fatal("nng_aio_alloc", rv);
-  }
-  if ((rv = nng_aio_alloc(&aio_write, nullptr, nullptr)) != 0) {
-    fatal("nng_aio_alloc", rv);
-  }
-
-  if (is_text_mode) {
-    nng_stream_dialer_set_bool(dialer, NNG_OPT_WS_RECV_TEXT, true);
-    nng_stream_dialer_set_bool(dialer, NNG_OPT_WS_SEND_TEXT, true);
-  }
-
-  nng_stream_dialer_dial(dialer, aio_dialer);
-  nng_aio_wait(aio_dialer);
-  rv = nng_aio_result(aio_dialer);
-  if (rv != 0) {
-    fatal("dial", rv);
-  }
-  stream = (nng_stream *)nng_aio_get_output(aio_dialer, 0);
-  if (on_open) {
-    on_open(*this);
-  }
-  start_recv();
-}
-
-webclient::~webclient() {
-  nng_aio_cancel(aio_dialer);
-  nng_aio_cancel(aio_read);
-  nng_aio_cancel(aio_write);
-  nng_aio_wait(aio_read);
-  nng_aio_wait(aio_write);
-  nng_stream_dialer_close(dialer);
-}
-
-void webclient::send(const std::string &data) {
-  nng_iov iov{(void *)data.data(), data.size()};
-  nng_aio_set_iov(aio_write, 1, &iov);
-  nng_stream_send(stream, aio_write);
-  nng_aio_wait(aio_write);
-  int rv = nng_aio_result(aio_write);
-  auto send_time = std::chrono::high_resolution_clock::now();
-  // std::cout << "send data:" << data << std::endl;
-  if (rv != 0) {
-    fatal("nng_aio_result", rv);
-  }
-}
-
-void webclient::recv_cb() {
-  int rv = nng_aio_result(aio_read);
-  if (rv != 0) {
-    if (rv == NNG_ECLOSED || rv == NNG_ECANCELED) {
-      if (on_close) {
-        on_close(*this);
-      }
-    } else {
-      if (on_error) {
-        on_error(*this, nng_strerror(rv));
-      }
-    }
-    return;
-  }
-  auto len = nng_aio_count(aio_read);
-  std::string data((const char *)buffer.data(), len);
-  if (on_message) {
-    on_message(*this, data);
-    auto recv_time = std::chrono::high_resolution_clock::now();
-  }
-  start_recv();
-}
-
-void webclient::start_recv() {
-  nng_iov iov{buffer.data(), buffer.size()};
-  nng_aio_set_iov(aio_read, 1, &iov);
-  nng_stream_recv(stream, aio_read);
-}
-
-std::shared_ptr<http_server> create_server(const std::string url) { return std::make_shared<http_server>(url); }
-std::shared_ptr<webclient> connect_server(const std::string &uri,
-                                          std::function<void(webclient &, const std::string &)> on_message,
-                                          std::function<void(webclient &)> on_open,
-                                          std::function<void(webclient &, const std::string &)> on_error,
-                                          std::function<void(webclient &)> on_close, const bool is_text_mode) {
-  return std::make_shared<webclient>(uri, on_message, on_open, on_error, on_close, is_text_mode);
-}
-*/
 } // namespace kungfu::yijinjing::webserver

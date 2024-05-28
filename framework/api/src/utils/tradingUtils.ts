@@ -200,6 +200,9 @@ export const dealTradingDataItem = (
   if ('update_time' in item && !isShowOrigin) {
     itemResolved.update_time = dealKfTime(item.update_time, true);
   }
+  if ('restore_time' in item && !isShowOrigin) {
+    itemResolved.restore_time = dealKfTime(item.restore_time, true);
+  }
   if ('direction' in item) {
     itemResolved.direction = dealDirection(item.direction).name;
   }
@@ -977,6 +980,7 @@ export const dealOrder = (
     status_uname: statusData.name,
     status_color: statusData.color || 'default',
     update_time_resolved: dealKfTime(order.update_time, true),
+    insert_time_resolved: dealKfTime(order.insert_time, true),
     price_precision: pricePrecision,
     limit_price_resolved: dealKfPrice(order.limit_price, pricePrecision),
   };

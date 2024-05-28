@@ -47,7 +47,7 @@ const { locale } = useLocale();
 
 const {
   preStartSystemLoadingData,
-  preStartSystemLoading,
+  showPreStartLoading,
   preQuitSystemLoadingData,
   preQuitSystemLoading,
 } = usePreStartAndQuitApp();
@@ -182,7 +182,7 @@ onBeforeUnmount(() => {
     </div>
     <KfSystemPrepareModal
       :title="$t('system_prompt')"
-      :visible="preStartSystemLoading"
+      :visible="showPreStartLoading"
       :status="[
         {
           key: 'cpusSafeNumChecking',

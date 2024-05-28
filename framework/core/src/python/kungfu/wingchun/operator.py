@@ -122,7 +122,7 @@ class Operator(wc.Operator):
             self.__call_proxy(callback, self.ctx, event)
 
         return self.ctx.wc_context.add_time_interval(duration, wrap_callback)
-    
+
     def _batch_streaming(self):
         return PyStreamDataBatcher(self.ctx.wc_context.batch_streaming())
 

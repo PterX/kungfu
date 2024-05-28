@@ -201,7 +201,6 @@ webserver::webserver(stream_manage_ptr stream_manager, const nng_url *base_url, 
 webserver::~webserver() {
   SPDLOG_DEBUG("~webserver");
 
-  // streams_.clear();
   nng_aio_cancel(aio_accept);
   stop_listening();
 }
@@ -378,45 +377,47 @@ int webclient::send_msg(const char *data, int data_len) { return stream_->stream
 stream_ptr webclient::get_stream() { return stream_; }
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
-  if (!streams_.contains(stream_id)) {
-    SPDLOG_ERROR("publish failed:{}", msg);
+  auto stream_ptr = get_stream_by_id(stream_id);
+  if(stream_ptr == nullptr){
+    SPDLOG_ERROR("Publish Failed");
     return -1;
   }
-  streams_.at(stream_id)->stream_send(msg);
+  stream_ptr->stream_send(msg);
   return 0;
 }
 int stream_manage::publish(uint64_t stream_id, const char *data, const int len) {
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
-  if (!streams_.contains(stream_id)) {
-    SPDLOG_DEBUG("publish failed");
+  auto stream_ptr = get_stream_by_id(stream_id);
+  if(stream_ptr == nullptr){
+    SPDLOG_ERROR("Publish Failed");
     return -1;
   }
-  streams_.at(stream_id)->stream_send(data, len);
+  stream_ptr->stream_send(data, len);
   return 0;
 }
 
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
-  return streams_.find(stream_id)->second;
-}
-std::unordered_map<uint64_t, stream_ptr> &stream_manage::get_all_streams() {
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
-  return streams_;
+  std::lock_guard<std::mutex> lock(mtx_);
+  if (!streams_.contains(stream_id)) [[unlikely]]{
+    SPDLOG_ERROR("do not exist stream_id:{}",stream_id);
+    return nullptr;
+  }
+  else{
+    return streams_.at(stream_id);
+  }
 }
 
 void stream_manage::add_stream(nng_stream *s) {
   SPDLOG_DEBUG("add_stream");
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
+  std::lock_guard<std::mutex> lock(mtx_);
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
   reader_->join(temp_stream->get_location(), location::PUBLIC, time::now_in_nano());
   location_to_stream_id_.insert_or_assign(temp_stream->get_location()->location_uid, temp_stream->get_stream_id());
 }
 
 void stream_manage::add_stream(const stream_ptr &s) {
-  // std::lock_guard<std::mutex> lock(streams_mtx_);
   SPDLOG_DEBUG("add_stream");
+  std::lock_guard<std::mutex> lock(mtx_);
   streams_.emplace(s->get_stream_id(), s);
   reader_->join(s->get_location(), location::PUBLIC, time::now_in_nano());
   location_to_stream_id_.insert_or_assign(s->get_location()->location_uid, s->get_stream_id());
@@ -427,6 +428,7 @@ journal::reader_ptr &stream_manage::get_reader() { return reader_; }
 stream_manage::stream_manage() { reader_ = std::make_shared<reader>(true, true, std::make_shared<bus>(false)); }
 
 uint64_t stream_manage::get_stream_id(uint32_t location_uid) {
+  std::lock_guard<std::mutex> lock(mtx_);
   auto iter = location_to_stream_id_.find(location_uid);
   if (iter != location_to_stream_id_.end()) {
     return iter->second;

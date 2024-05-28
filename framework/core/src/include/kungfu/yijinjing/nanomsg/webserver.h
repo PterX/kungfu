@@ -119,7 +119,6 @@ DECLARE_PTR(stream)
 class webserver {
 public:
   stream_manage_ptr stream_manager_;
-  // std::map<int, std::shared_ptr<stream>> streams_;
   webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path, bool is_text_mode,
             bool tcp_no_delay, size_t max_num_connections);
 
@@ -202,8 +201,6 @@ public:
 
   stream_ptr get_stream_by_id(uint64_t stream_id);
 
-  std::unordered_map<uint64_t, stream_ptr> &get_all_streams();
-
   void add_stream(nng_stream *s);
 
   void add_stream(const stream_ptr &s);
@@ -214,6 +211,7 @@ public:
 
 private:
   std::unordered_map<uint64_t, stream_ptr> streams_;
+  std::mutex mtx_;
   journal::reader_ptr reader_ = nullptr;
   std::map<uint32_t, uint64_t> location_to_stream_id_;
 };

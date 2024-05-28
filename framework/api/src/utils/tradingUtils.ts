@@ -200,6 +200,9 @@ export const dealTradingDataItem = (
   if ('update_time' in item && !isShowOrigin) {
     itemResolved.update_time = dealKfTime(item.update_time, true);
   }
+  if ('restore_time' in item && !isShowOrigin) {
+    itemResolved.restore_time = dealKfTime(item.restore_time, true);
+  }
   if ('direction' in item) {
     itemResolved.direction = dealDirection(item.direction).name;
   }

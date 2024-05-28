@@ -4,7 +4,10 @@ import {
   getProcessIdByKfLocation,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useActiveInstruments,
+  useCoreBindBoardState,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useDashboardBodySize,
@@ -66,6 +69,8 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import StatisticModal from './OrderStatisticModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+useCoreBindBoardState().markSetup();
 
 const { t } = VueI18n.global;
 const { success, error, warn } = messagePrompt();

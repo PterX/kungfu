@@ -44,11 +44,14 @@ import {
   useActiveInstruments,
   showTradingDataDetail,
   getPosClosableVolumeByOffset,
+  useCoreBindBoardState,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from './utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
+
+useCoreBindBoardState().markSetup();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();

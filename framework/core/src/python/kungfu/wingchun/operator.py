@@ -14,6 +14,7 @@ from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
+from kungfu.wingchun.streamdatabatcher import PyStreamDataBatcher
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun
@@ -121,6 +122,9 @@ class Operator(wc.Operator):
             self.__call_proxy(callback, self.ctx, event)
 
         return self.ctx.wc_context.add_time_interval(duration, wrap_callback)
+    
+    def _batch_streaming(self):
+        return PyStreamDataBatcher(self.ctx.wc_context.batch_streaming())
 
     def pre_start(self, wc_context):
         self.ctx.wc_context = wc_context
@@ -138,6 +142,7 @@ class Operator(wc.Operator):
         self.ctx.req_deregister = wc_context.req_deregister
         self.ctx.is_started = wc_context.is_started
         self.ctx.attach_orderbooks = wc_context.attach_orderbooks
+        self.ctx.batch_streaming = self._batch_streaming
         self.ctx.attach_factor_cache = wc_context.attach_factor_cache
         self.ctx.static_data = wc_context.bookkeeper.static_data
         self.ctx.operator_dir = wc_context.operator_dir

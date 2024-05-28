@@ -7,7 +7,7 @@ import functools
 import kungfu
 import os
 import sys
-from kungfu.wingchun.streamdatabatcher import *
+
 
 from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
@@ -15,6 +15,7 @@ from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
+from kungfu.wingchun.streamdatabatcher import PyStreamDataBatcher
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun

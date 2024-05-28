@@ -1156,36 +1156,50 @@ export const useInstruments = (): {
   };
 };
 
+export const useCoreBindBoardState = () => {
+  const globalStore = useGlobalStore();
+  const { hasCoreBindBoardBeganSetup } = storeToRefs(globalStore);
+
+  const markSetup = () => {
+    hasCoreBindBoardBeganSetup.value = true;
+  };
+
+  return {
+    hasCoreBindBoardBeganSetup,
+    markSetup,
+  };
+};
+
 export const usePreStartAndQuitApp = (): {
-  preStartSystemLoadingData: Record<string, 'loading' | 'done'>;
+  preStartSystemLoadingData: Ref<
+    Record<
+      'archive' | 'watcher' | 'extraResourcesLoading' | 'cpusSafeNumChecking',
+      'loading' | 'done'
+    >
+  >;
   preStartSystemLoading: ComputedRef<boolean>;
-  preQuitSystemLoadingData: Record<string, 'loading' | 'done' | undefined>;
+  showPreStartLoading: ComputedRef<boolean>;
+  preQuitSystemLoadingData: Ref<
+    Record<'record' | 'quit', 'loading' | 'done' | undefined>
+  >;
   preQuitSystemLoading: ComputedRef<boolean>;
 } => {
   const app = getCurrentInstance();
-
-  const preStartSystemLoadingData = reactive<
-    Record<string, 'loading' | 'done'>
-  >({
-    archive: 'loading',
-    watcher: 'loading',
-    extraResourcesLoading: 'loading',
-    cpusSafeNumChecking: 'loading',
-  });
-
-  const preQuitSystemLoadingData = reactive<
-    Record<string, 'loading' | 'done' | undefined>
-  >({
-    record: undefined,
-    quit: undefined,
-  });
+  const globalStore = useGlobalStore();
+  const { preStartSystemLoadingData, preQuitSystemLoadingData } =
+    storeToRefs(globalStore);
+  const { hasCoreBindBoardBeganSetup } = useCoreBindBoardState();
 
   const preStartSystemLoading = computed(() => {
     return (
-      Object.values(preStartSystemLoadingData).filter(
+      Object.values(preStartSystemLoadingData.value).filter(
         (item: string) => item !== 'done',
       ).length > 0
     );
+  });
+
+  const showPreStartLoading = computed(() => {
+    return hasCoreBindBoardBeganSetup.value && preStartSystemLoading.value;
   });
 
   const watchStopHandle = watch(
@@ -1200,7 +1214,7 @@ export const usePreStartAndQuitApp = (): {
 
   const preQuitSystemLoading = computed(() => {
     return (
-      Object.values(preQuitSystemLoadingData).filter(
+      Object.values(preQuitSystemLoadingData.value).filter(
         (item: string | undefined) => item !== undefined,
       ).length > 0
     );
@@ -1209,10 +1223,10 @@ export const usePreStartAndQuitApp = (): {
   const startGetWatcherStatus = () => {
     const timer = setInterval(() => {
       if (window.watcher?.isLive()) {
-        preStartSystemLoadingData.watcher = 'done';
+        preStartSystemLoadingData.value.watcher = 'done';
         clearInterval(timer);
       } else {
-        preStartSystemLoadingData.watcher = 'loading';
+        preStartSystemLoadingData.value.watcher = 'loading';
       }
     }, 500);
   };
@@ -1223,8 +1237,8 @@ export const usePreStartAndQuitApp = (): {
     if (booleanProcessEnv(process.env.RELOAD_AFTER_CRASHED)) {
       isAllMainProcessRunning(true).then((flag) => {
         if (flag) {
-          preStartSystemLoadingData.cpusSafeNumChecking = 'done';
-          preStartSystemLoadingData.archive = 'done';
+          preStartSystemLoadingData.value.cpusSafeNumChecking = 'done';
+          preStartSystemLoadingData.value.archive = 'done';
         }
       });
     }
@@ -1234,33 +1248,33 @@ export const usePreStartAndQuitApp = (): {
         (data: KfEvent.KfBusEvent) => {
           if (data.tag === 'preStartCheck') {
             if (data.name === 'cpusNum') {
-              preStartSystemLoadingData.cpusSafeNumChecking = 'done';
+              preStartSystemLoadingData.value.cpusSafeNumChecking = 'done';
             }
           }
 
           if (data.tag === 'processStatus') {
             if (data.name && data.name === 'archive') {
-              preStartSystemLoadingData.archive =
+              preStartSystemLoadingData.value.archive =
                 data.status === 'online' ? 'loading' : 'done';
               startGetWatcherStatus();
             }
 
             if (data.name && data.name === 'extraResourcesLoading') {
-              preStartSystemLoadingData.extraResourcesLoading =
+              preStartSystemLoadingData.value.extraResourcesLoading =
                 data.status === 'online' ? 'done' : 'loading';
             }
 
             if (data.name === 'system' && data.status === 'waiting restart') {
-              preStartSystemLoadingData.archive = 'loading';
-              preStartSystemLoadingData.watcher = 'loading';
-              preStartSystemLoadingData.extraResourcesLoading = 'loading';
+              preStartSystemLoadingData.value.archive = 'loading';
+              preStartSystemLoadingData.value.watcher = 'loading';
+              preStartSystemLoadingData.value.extraResourcesLoading = 'loading';
             }
           }
 
           if (data.tag === 'main') {
             switch (data.name) {
               case 'record-before-quit':
-                preQuitSystemLoadingData.record = 'loading';
+                preQuitSystemLoadingData.value.record = 'loading';
                 preQuitTasks([
                   // removeNoDefaultStrategyFolders(),
                   (
@@ -1268,14 +1282,14 @@ export const usePreStartAndQuitApp = (): {
                   ).trigger(LifeCycleKeys.BeforeStopAllProcesses),
                 ]).finally(() => {
                   ipcRenderer.send('record-before-quit-done');
-                  preQuitSystemLoadingData.record = 'done';
+                  preQuitSystemLoadingData.value.record = 'done';
                 });
                 break;
               case 'clear-process-before-quit-start':
-                preQuitSystemLoadingData.quit = 'loading';
+                preQuitSystemLoadingData.value.quit = 'loading';
                 break;
               case 'clear-process-before-quit-end':
-                preQuitSystemLoadingData.quit = 'done';
+                preQuitSystemLoadingData.value.quit = 'done';
                 break;
             }
           }
@@ -1291,6 +1305,7 @@ export const usePreStartAndQuitApp = (): {
   return {
     preStartSystemLoadingData,
     preStartSystemLoading,
+    showPreStartLoading,
     preQuitSystemLoadingData,
     preQuitSystemLoading,
   };

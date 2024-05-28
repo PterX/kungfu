@@ -31,11 +31,14 @@ import {
   handleSwitchProcessStatusGenerator,
   useAddUpdateRemoveKfConfig,
   useAllKfConfigData,
+  useCoreBindBoardState,
   useExtConfigsRelated,
   useProcessStatusDetailData,
   useSwitchAllConfig,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+useCoreBindBoardState().markSetup();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();

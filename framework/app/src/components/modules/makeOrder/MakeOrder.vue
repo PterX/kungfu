@@ -18,7 +18,10 @@ import {
   messagePrompt,
   useKeyboardControlContainerStyle,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useActiveInstruments,
+  useCoreBindBoardState,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import { dealOrderPlaceVNode, dealStockOffset } from './utils';
 import { hashInstrumentUKey } from '@kungfu-trader/kungfu-js-api/kungfu';
@@ -77,6 +80,8 @@ import {
   useMakeOrderSubscribe,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+
+useCoreBindBoardState().markSetup();
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();

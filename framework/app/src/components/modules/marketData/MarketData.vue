@@ -12,6 +12,7 @@ import { getColumns } from './config';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import {
   useActiveInstruments,
+  useCoreBindBoardState,
   useExtConfigsRelated,
   useInstruments,
   useProcessStatusDetailData,
@@ -34,6 +35,8 @@ import {
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+useCoreBindBoardState().markSetup();
 
 const { t } = VueI18n.global;
 const { success, error, warn } = messagePrompt();

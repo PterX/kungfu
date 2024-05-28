@@ -142,12 +142,23 @@ const handleGetColumns = () => {
     boardResizeConfig: boardResizeConfig.value || null,
   });
 
+  if (!posTableColumnsOptions || !selectedOptions) {
+    columns.value = columnsConfig;
+  } else {
+    const notSelectedOptions = posTableColumnsOptions.filter((item) => {
+      return !selectedOptions.includes(item as string);
+    });
+    columns.value = columnsConfig.filter((item) => {
+      return !notSelectedOptions.includes(item.field as string);
+    });
+  }
+
   if (!boardResizeConfig.value) {
     boardResizeConfig.value = {
       fields: [],
       columnsWidth: {},
     };
-    columnsConfig.forEach((item) => {
+    columns.value.forEach((item) => {
       if (item.field && item.width) {
         (boardResizeConfig.value as ColumnsSetting).fields.push(
           item.field as string,
@@ -158,17 +169,6 @@ const handleGetColumns = () => {
       }
     });
   }
-
-  if (!posTableColumnsOptions || !selectedOptions) {
-    columns.value = columnsConfig;
-    return;
-  }
-  const notSelectedOptions = posTableColumnsOptions.filter((item) => {
-    return !selectedOptions.includes(item as string);
-  });
-  columns.value = columnsConfig.filter((item) => {
-    return !notSelectedOptions.includes(item.field as string);
-  });
 };
 
 const hasData = computed(() => pos.value.length > 0);

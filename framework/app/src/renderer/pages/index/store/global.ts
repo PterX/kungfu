@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia';
 import { toRaw } from 'vue';
 import {
-  KfLayoutDirection,
-  KfLayoutTargetDirectionClassName,
-} from '@kungfu-trader/kungfu-app/src/typings/enums';
-import {
   getKfUIExtensionConfig,
   getKfExtensionConfig,
 } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
@@ -37,9 +33,6 @@ import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/gl
 
 interface GlobalState {
   currentBoardsStoreId: string;
-  boardsMap: KfLayout.BoardsMap;
-  dragedContentData: KfLayout.ContentData | null;
-  isBoardDragging: boolean;
   extConfigs: KungfuApi.KfExtConfigs;
   uiExtConfigs: KungfuApi.KfUIExtConfigs;
   tdList: KungfuApi.KfConfig[];
@@ -48,6 +41,16 @@ interface GlobalState {
   strategyList: KungfuApi.KfConfig[];
   operatorList: KungfuApi.KfConfig[];
   basketList: KungfuApi.Basket[];
+
+  hasCoreBindBoardBeganSetup: boolean; // 依赖于底层的面板是否已经启动
+  preStartSystemLoadingData: Record<
+    'archive' | 'watcher' | 'extraResourcesLoading' | 'cpusSafeNumChecking',
+    'loading' | 'done'
+  >;
+  preQuitSystemLoadingData: Record<
+    'record' | 'quit',
+    'loading' | 'done' | undefined
+  >;
 
   processStatusData: Pm2ProcessStatusData;
   processStatusWithDetail: Pm2ProcessStatusDetailData;
@@ -92,9 +95,6 @@ export const useGlobalStore = defineStore('global', {
   state: (): GlobalState => {
     return {
       currentBoardsStoreId: 'main',
-      boardsMap: {},
-      dragedContentData: null,
-      isBoardDragging: false,
       extConfigs: toRaw<KungfuApi.KfExtConfigs>({
         td: {},
         md: {},
@@ -110,6 +110,18 @@ export const useGlobalStore = defineStore('global', {
       strategyList: [],
       operatorList: [],
       basketList: [],
+
+      hasCoreBindBoardBeganSetup: false,
+      preStartSystemLoadingData: {
+        archive: 'loading',
+        watcher: 'loading',
+        extraResourcesLoading: 'loading',
+        cpusSafeNumChecking: 'loading',
+      },
+      preQuitSystemLoadingData: {
+        record: undefined,
+        quit: undefined,
+      },
 
       processStatusData: {},
       processStatusWithDetail: {},
@@ -364,230 +376,6 @@ export const useGlobalStore = defineStore('global', {
 
     setTdFilter(tdFilter: (tds: KungfuApi.KfConfig[]) => KungfuApi.KfConfig[]) {
       this.tdFilter = tdFilter;
-    },
-
-    markIsBoardDragging(status: boolean) {
-      this.isBoardDragging = status;
-    },
-
-    initBoardsMap(boardsMap: KfLayout.BoardsMap) {
-      this.boardsMap = JSON.parse(JSON.stringify(boardsMap));
-    },
-
-    setBoardsMapAttrById(
-      id: number,
-      attrKey: keyof KfLayout.BoardInfo,
-      value: KfLayout.BoardInfo[keyof KfLayout.BoardInfo],
-    ) {
-      (<typeof value>this.boardsMap[id][attrKey]) = value;
-    },
-
-    addBoardFromEmpty(targetContentId: string) {
-      const newBoardInfo: KfLayout.BoardInfo = {
-        paId: 0,
-        direction: KfLayoutDirection.v,
-        contents: [targetContentId],
-        current: targetContentId,
-        width: '100%',
-        height: '100%',
-      };
-      this.boardsMap[1] = newBoardInfo;
-      this.boardsMap[0].children = [1];
-      return Promise.resolve();
-    },
-
-    addBoardByContentId(
-      targetBoardId: number,
-      targetContentId: string,
-    ): Promise<void> {
-      const targetBoard: KfLayout.BoardInfo = this.boardsMap[targetBoardId];
-      const contents = targetBoard?.contents;
-      const targetIndex = contents?.indexOf(targetContentId);
-
-      if (contents === undefined) {
-        return Promise.reject();
-      } else if (targetIndex === undefined) {
-        return Promise.reject();
-      } else if (targetIndex !== -1) {
-        return Promise.reject();
-      }
-
-      contents.push(targetContentId);
-      targetBoard.current = targetContentId;
-
-      return Promise.resolve();
-    },
-
-    removeBoardByContentId(targetBoardId: number, targetContentId: string) {
-      const targetBoard: KfLayout.BoardInfo = this.boardsMap[targetBoardId];
-      const contents = targetBoard?.contents;
-      const targetIndex = contents?.indexOf(targetContentId);
-
-      if (targetIndex === undefined) return;
-      if (targetIndex === -1) return;
-
-      const removedItem: KfLayout.ContentId =
-        (contents?.splice(targetIndex, 1) || [])[0] || '';
-
-      if (removedItem === targetBoard.current && contents?.length) {
-        targetBoard.current = (targetBoard.contents || [])[0];
-      }
-
-      if (!contents?.length && targetBoard.paId != -1) {
-        this.removeBoardByBoardId_(targetBoardId);
-      }
-    },
-
-    removeBoardByBoardId_(targetBoardId: number) {
-      const targetBoard = this.boardsMap[targetBoardId];
-      if (targetBoard && targetBoard.paId !== -1) {
-        const paId = targetBoard.paId;
-        const paBoard = this.boardsMap[paId];
-        const children = paBoard?.children;
-        const childIndex = paBoard.children?.indexOf(targetBoardId);
-
-        if (childIndex === undefined) return;
-        if (childIndex === -1) return;
-
-        children?.splice(childIndex, 1);
-
-        if (!children?.length) {
-          this.removeBoardByBoardId_(paId);
-        } else {
-          children.forEach((childId: KfLayout.BoardId) => {
-            this.boardsMap[childId].width = 0;
-            this.boardsMap[childId].height = 0;
-          });
-        }
-
-        delete this.boardsMap[targetBoardId];
-      }
-      return;
-    },
-
-    setDragedContentData(
-      boardId: KfLayout.BoardId,
-      contentId: KfLayout.ContentId,
-    ) {
-      if (boardId === -1 && !contentId) {
-        this.dragedContentData = null;
-      } else {
-        this.dragedContentData = {
-          contentId,
-          boardId,
-        };
-      }
-    },
-
-    afterDragMoveBoard(
-      dragedContentData: KfLayout.ContentData | null,
-      destBoardId: KfLayout.BoardId,
-      directionClassName: KfLayoutTargetDirectionClassName,
-    ) {
-      const { boardId, contentId } = dragedContentData || {};
-      const destBoard = this.boardsMap[destBoardId];
-
-      if (!contentId || boardId === undefined) return;
-
-      //to self
-      if (
-        boardId === destBoardId &&
-        destBoard.contents &&
-        destBoard.contents.length === 1
-      ) {
-        return;
-      }
-
-      this.removeBoardByContentId(boardId, contentId);
-
-      if (directionClassName === KfLayoutTargetDirectionClassName.center) {
-        if (destBoard.contents) {
-          if (!destBoard.contents.includes(contentId)) {
-            destBoard.contents.push(contentId);
-          }
-          destBoard.current = contentId;
-        }
-      } else if (directionClassName != KfLayoutTargetDirectionClassName.unset) {
-        this.dragMakeNewBoard_(contentId, destBoardId, directionClassName);
-      }
-    },
-
-    dragMakeNewBoard_(
-      contentId: KfLayout.ContentId,
-      destBoardId: number,
-      directionClassName: KfLayoutTargetDirectionClassName,
-    ) {
-      const destBoard = this.boardsMap[destBoardId];
-      const destPaId: number = destBoard.paId;
-      const destDirection: KfLayoutDirection = destBoard.direction;
-      const newBoardId: KfLayout.BoardId = this.buildNewBoardId_();
-
-      const newBoardDirection: KfLayoutDirection =
-        directionClassName === KfLayoutTargetDirectionClassName.top ||
-        directionClassName === KfLayoutTargetDirectionClassName.bottom
-          ? KfLayoutDirection.h
-          : directionClassName === KfLayoutTargetDirectionClassName.left ||
-            directionClassName === KfLayoutTargetDirectionClassName.right
-          ? KfLayoutDirection.v
-          : KfLayoutDirection.unset;
-      const newBoardInfo: KfLayout.BoardInfo = {
-        paId: destPaId,
-        direction: newBoardDirection,
-        contents: [contentId],
-        current: contentId,
-      };
-
-      if (destDirection === newBoardDirection) {
-        const siblings = this.boardsMap[destPaId].children;
-        const destIndex = siblings?.indexOf(destBoardId);
-        if (destIndex === -1 || destIndex === undefined) {
-          throw new Error("Insert dest board is not in pa board's childen");
-        }
-
-        if (
-          directionClassName === KfLayoutTargetDirectionClassName.top ||
-          directionClassName === KfLayoutTargetDirectionClassName.left
-        ) {
-          siblings?.splice(destIndex, 0, newBoardId);
-        } else {
-          siblings?.splice(destIndex + 1, 0, newBoardId);
-        }
-      } else {
-        newBoardInfo.paId = destBoardId;
-        const destBoardCopy: KfLayout.BoardInfo = {
-          ...toRaw(destBoard),
-          direction: newBoardDirection,
-          paId: destBoardId,
-          width: undefined,
-          height: undefined,
-        };
-
-        const newDestBoardId = newBoardId + 1;
-        if (
-          directionClassName === KfLayoutTargetDirectionClassName.top ||
-          directionClassName === KfLayoutTargetDirectionClassName.left
-        ) {
-          destBoard.children = [newBoardId, newDestBoardId];
-        } else {
-          destBoard.children = [newDestBoardId, newBoardId];
-        }
-        delete destBoard.contents;
-        delete destBoard.current;
-
-        this.boardsMap[newDestBoardId] = destBoardCopy;
-      }
-
-      destBoard.width && delete destBoard.width;
-      destBoard.height && delete destBoard.height;
-
-      this.boardsMap[newBoardId] = newBoardInfo;
-    },
-
-    buildNewBoardId_(): KfLayout.BoardId {
-      const boardIds = Object.keys(this.boardsMap)
-        .map((key: string) => +key)
-        .sort((key1: number, key2: number) => key2 - key1);
-      return boardIds[0] + 1;
     },
   },
 

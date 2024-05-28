@@ -7,6 +7,7 @@ import {
   useBrowserWindowMinimize,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
+  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -55,6 +56,7 @@ const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
 
 const canvasRef = ref();
+const containerRef = ref();
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 
@@ -64,21 +66,58 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
+const {
+  boardKey,
+  boardResizeConfig,
+  handleResizeColumnEnd,
+  handleChangeHeaderPosition,
+  removeBoardResizeConfig,
+} = useBoardResizeControl(containerRef, 'Trade');
+
 const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
 
-const columns = computed(() => {
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
+
+const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
+
+const handleGetColumns = () => {
   if (!currentGlobalKfLocation.value) {
-    return getColumns({
-      category: 'td',
-      group: '*',
-      name: '*',
-      mode: '*',
+    columns.value = getColumns({
+      kfLocation: {
+        category: 'td',
+        group: '*',
+        name: '*',
+        mode: '*',
+      },
+      boardResizeConfig: boardResizeConfig.value || null,
+    });
+  } else {
+    columns.value = getColumns({
+      kfLocation: currentGlobalKfLocation.value,
+      boardResizeConfig: boardResizeConfig.value || null,
     });
   }
 
-  return getColumns(currentGlobalKfLocation.value);
-});
+  if (!boardResizeConfig.value) {
+    boardResizeConfig.value = {
+      fields: [],
+      columnsWidth: {},
+    };
+    columns.value.forEach((item) => {
+      if (item.field && item.width) {
+        (boardResizeConfig.value as ColumnsSetting).fields.push(
+          item.field as string,
+        );
+        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
+          item.field as string
+        ] = item.width as number;
+      }
+    });
+  }
+};
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
@@ -159,6 +198,7 @@ onActivated(() => {
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();
+    removeBoardResizeConfig();
   });
 
   onDeactivated(() => {
@@ -176,10 +216,18 @@ watch(
       return;
     }
     isRendering.value = true;
+    handleGetColumns();
     await processTradingData(currentTradingData.value, true);
     isRendering.value = false;
   },
   { immediate: true },
+);
+
+watch(
+  () => boardKey.value,
+  () => {
+    handleGetColumns();
+  },
 );
 
 watch(historyDate, async (newDate) => {
@@ -247,7 +295,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
 }
 </script>
 <template>
-  <div class="kf-trades__warp kf-translateZ">
+  <div class="kf-trades__warp kf-translateZ" ref="containerRef">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -303,6 +351,10 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         ref="canvasRef"
         :columns="columns"
         :hasData="hasData"
+        :option-items="optionItems"
+        column-resize-mode="header"
+        @resize-column-end="handleResizeColumnEnd"
+        @change-header-position="handleChangeHeaderPosition"
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

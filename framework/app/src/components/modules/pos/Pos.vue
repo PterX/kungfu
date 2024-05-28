@@ -12,6 +12,7 @@ import {
   useTriggerMakeOrder,
   searchByKeyword,
   useBrowserWindowMinimize,
+  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -75,6 +76,7 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
+const containerRef = ref();
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
@@ -101,7 +103,21 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     ],
   };
 });
-const columns = computed(() => {
+
+const {
+  boardKey,
+  boardResizeConfig,
+  handleResizeColumnEnd,
+  handleChangeHeaderPosition,
+  removeBoardResizeConfig,
+} = useBoardResizeControl(containerRef, 'Pos');
+
+const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
+
+const handleGetColumns = () => {
   const defaultLocation = {
     category: 'td',
     group: '*',
@@ -117,20 +133,40 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions)
-    return getColumns(currentGlobalKfLocation.value || defaultLocation);
+
+  const columnsConfig = getColumns({
+    kfLocation: currentGlobalKfLocation.value || defaultLocation,
+    boardResizeConfig: boardResizeConfig.value || null,
+  });
+
+  if (!boardResizeConfig.value) {
+    boardResizeConfig.value = {
+      fields: [],
+      columnsWidth: {},
+    };
+    columnsConfig.forEach((item) => {
+      if (item.field && item.width) {
+        (boardResizeConfig.value as ColumnsSetting).fields.push(
+          item.field as string,
+        );
+        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
+          item.field as string
+        ] = item.width as number;
+      }
+    });
+  }
+
+  if (!posTableColumnsOptions || !selectedOptions) {
+    columns.value = columnsConfig;
+    return;
+  }
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
-
-  const columnsConfig = getColumns(
-    currentGlobalKfLocation.value || defaultLocation,
-  );
-
-  return columnsConfig.filter((item) => {
+  columns.value = columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.field as string);
   });
-});
+};
 
 const hasData = computed(() => pos.value.length > 0);
 
@@ -183,6 +219,7 @@ onActivated(() => {
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();
+      removeBoardResizeConfig();
     });
 
     onDeactivated(() => {
@@ -191,8 +228,16 @@ onActivated(() => {
   }
 });
 
+watch(
+  () => boardKey.value,
+  () => {
+    handleGetColumns();
+  },
+);
+
 watch(currentGlobalKfLocation, () => {
   pos.value = [];
+  handleGetColumns();
   setTableData();
 });
 
@@ -250,7 +295,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
 }
 </script>
 <template>
-  <div class="kf-position__warp kf-translateZ">
+  <div class="kf-position__warp kf-translateZ" ref="containerRef">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -296,6 +341,10 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
+        :option-items="optionItems"
+        column-resize-mode="header"
+        @resize-column-end="handleResizeColumnEnd"
+        @change-header-position="handleChangeHeaderPosition"
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

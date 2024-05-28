@@ -119,6 +119,10 @@ import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import {
+  ResizeColumn,
+  ChangeHeaderPosition,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 // this utils file is only for ui components
 
@@ -2706,4 +2710,136 @@ export const useBrowserWindowMinimize = () => {
   });
 
   return minimized;
+};
+
+export const useBoardResizeControl = (
+  containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
+  boardName: string,
+) => {
+  const boardKey = ref<string>('');
+  const boardResizeConfig = ref<ColumnsSetting | null>(null);
+  const hasInit = ref(false);
+  const getClosestBorderId = (element: HTMLElement) => {
+    while (element) {
+      if (element.hasAttribute('board-id')) {
+        return element.getAttribute('board-id');
+      }
+      if (element.parentElement) {
+        element = element.parentElement;
+      }
+    }
+    return null;
+  };
+
+  watch(
+    containerRef,
+    (newContainer) => {
+      if (newContainer) {
+        const container = containerRef.value
+          ? '$el' in containerRef.value
+            ? containerRef.value.$el
+            : containerRef.value
+          : null;
+        if (container) {
+          const boardId = getClosestBorderId(container) || '';
+          if (!boardId) return;
+          boardKey.value = `${boardName}_${boardId}`;
+          boardResizeConfig.value =
+            getBoardResizeConfig(boardKey.value) || boardResizeConfig.value;
+        }
+        hasInit.value = true;
+      }
+    },
+    { immediate: true },
+  );
+
+  const setBoardResizeConfigMap = (
+    option = boardResizeConfig.value,
+    key = boardKey.value,
+  ) => {
+    const boardResizeConfigMapStr = localStorage.getItem(
+      'boardResizeConfigMap',
+    );
+    let boardResizeConfigMap: Record<string, ColumnsSetting> = {};
+    if (boardResizeConfigMapStr) {
+      boardResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
+    }
+
+    boardResizeConfigMap[key] = option as ColumnsSetting;
+    localStorage.setItem(
+      'boardResizeConfigMap',
+      JSON.stringify(boardResizeConfigMap),
+    );
+  };
+
+  const getBoardResizeConfig = (key: string): ColumnsSetting | null => {
+    const boardResizeConfigMapStr = localStorage.getItem(
+      'boardResizeConfigMap',
+    );
+    let boardResizeConfigMap: Record<string, ColumnsSetting> = {};
+    if (!boardResizeConfigMapStr) {
+      console.log('boardResizeConfigMap is empty');
+      return null;
+    }
+    boardResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
+    return boardResizeConfigMap[key] || null;
+  };
+
+  const removeBoardResizeConfig = (key = boardKey.value) => {
+    const boardResizeConfigMapStr = localStorage.getItem(
+      'boardResizeConfigMap',
+    );
+    let boardResizeConfigMap: Record<string, ColumnsSetting> = {};
+    if (!boardResizeConfigMapStr) {
+      console.log('boardResizeConfigMap is empty');
+      return;
+    }
+    boardResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
+    delete boardResizeConfigMap[key];
+    localStorage.setItem(
+      'boardResizeConfigMap',
+      JSON.stringify(boardResizeConfigMap),
+    );
+  };
+
+  const handleResizeColumnEnd = (args: ResizeColumn) => {
+    const col = args.col;
+    const nextCol = args.col + 1;
+    if (boardResizeConfig.value) {
+      const colWidth = args.colWidths[col];
+      const nextColWidth = args.colWidths[nextCol];
+      const colName = boardResizeConfig.value.fields[col];
+      const nextColName = boardResizeConfig.value.fields[nextCol];
+      boardResizeConfig.value.columnsWidth[colName] = colWidth;
+      nextColWidth &&
+        (boardResizeConfig.value.columnsWidth[nextColName] = nextColWidth);
+      setBoardResizeConfigMap(boardResizeConfig.value, boardKey.value);
+    }
+  };
+
+  function handleChangeHeaderPosition(args: ChangeHeaderPosition) {
+    const sourceCol = args.source.col;
+    const targetCol = args.target.col;
+    if (boardResizeConfig.value) {
+      [
+        boardResizeConfig.value.fields[sourceCol],
+        boardResizeConfig.value.fields[targetCol],
+      ] = [
+        boardResizeConfig.value.fields[targetCol],
+        boardResizeConfig.value.fields[sourceCol],
+      ];
+      setBoardResizeConfigMap(boardResizeConfig.value, boardKey.value);
+    }
+  }
+
+  return {
+    boardKey,
+    boardResizeConfig,
+    hasInit,
+    setBoardResizeConfigMap,
+    getBoardResizeConfig,
+    removeBoardResizeConfig,
+    handleResizeColumnEnd,
+    handleChangeHeaderPosition,
+  };
 };

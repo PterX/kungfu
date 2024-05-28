@@ -13,6 +13,7 @@ import {
   useBrowserWindowMinimize,
   messagePrompt,
   confirmModalSkippable,
+  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -79,6 +80,13 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolvedWithoutStat
 >(['uid_key', 'update_time']);
+
+const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
+const tableRef = ref();
+const canvasRef = ref();
+const containerRef = ref();
+const adjustNumberInputRef = ref();
+const adjustPriceTick = ref<number>();
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
@@ -93,25 +101,23 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
+const {
+  boardKey,
+  boardResizeConfig,
+  handleResizeColumnEnd,
+  handleChangeHeaderPosition,
+  removeBoardResizeConfig,
+} = useBoardResizeControl(tableRef, 'Order');
+
 const { handleDownload } = useDownloadHistoryTradingData();
 const adjustOrderMaskVisible = ref(false);
 const statisticModalVisible = ref<boolean>(false);
 
-const columns = computed(() => {
-  if (!currentGlobalKfLocation.value) {
-    return getColumns(
-      {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      !!historyDate.value,
-    );
-  }
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
 
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
-});
+const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref(false);
@@ -163,6 +169,44 @@ const processTradingData = async (
   }
 };
 
+const handleGetColumns = () => {
+  if (!currentGlobalKfLocation.value) {
+    columns.value = getColumns({
+      kfLocation: {
+        category: 'td',
+        group: '*',
+        name: '*',
+        mode: '*',
+      },
+      isHistory: !!historyDate.value,
+      boardResizeConfig: boardResizeConfig.value || null,
+    });
+  } else {
+    columns.value = getColumns({
+      kfLocation: currentGlobalKfLocation.value,
+      isHistory: !!historyDate.value,
+      boardResizeConfig: boardResizeConfig.value || null,
+    });
+  }
+
+  if (!boardResizeConfig.value) {
+    boardResizeConfig.value = {
+      fields: [],
+      columnsWidth: {},
+    };
+    columns.value.forEach((item) => {
+      if (item.field && item.width) {
+        (boardResizeConfig.value as ColumnsSetting).fields.push(
+          item.field as string,
+        );
+        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
+          item.field as string
+        ] = item.width as number;
+      }
+    });
+  }
+};
+
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
@@ -195,6 +239,7 @@ onActivated(() => {
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();
+    removeBoardResizeConfig();
   });
 
   onDeactivated(() => {
@@ -207,6 +252,7 @@ watch(currentGlobalKfLocation, async () => {
   historyDate.value = undefined;
   allOrders.value = [];
   clearCaches();
+  handleGetColumns();
   if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
     return;
   }
@@ -223,7 +269,15 @@ watch(searchKeyword, () => {
   needProcessTradingData.value = true;
 });
 
+watch(
+  () => boardKey.value,
+  () => {
+    handleGetColumns();
+  },
+);
+
 watch(historyDate, async (newDate) => {
+  handleGetColumns();
   needProcessTradingData.value = true;
   clearCaches();
   if (!newDate) {
@@ -402,7 +456,7 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
 }
 
 function handleDblClickCell(args: VTable.MousePointerCellEvent) {
-  if (historyDate.value) return;
+  if (historyDate.value || !args.originData) return;
   handleCancelOrderWithRemind(args.originData);
 }
 
@@ -428,11 +482,6 @@ const adjustOrderForm = ref<{
   price: 0,
   volume: 0,
 });
-const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
-const tableRef = ref();
-const canvasRef = ref();
-const adjustNumberInputRef = ref();
-const adjustPriceTick = ref<number>();
 
 function handleAdjustOrder(data: {
   event: MouseEvent;
@@ -611,7 +660,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
 }
 </script>
 <template>
-  <div class="kf-orders__warp kf-translateZ">
+  <div class="kf-orders__warp kf-translateZ" ref="containerRef">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -714,6 +763,10 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
           ref="canvasRef"
           :columns="columns"
           :has-data="hasData"
+          :option-items="optionItems"
+          column-resize-mode="header"
+          @resize-column-end="handleResizeColumnEnd"
+          @change-header-position="handleChangeHeaderPosition"
           @click-cell="handleClickCell"
           @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"

@@ -4,6 +4,7 @@ import {
   useBrowserWindowMinimize,
   useDashboardBodySize,
   useTriggerMakeOrder,
+  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   VTable,
@@ -18,6 +19,7 @@ import {
   onDeactivated,
   ref,
   toRaw,
+  watch,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -63,6 +65,7 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
 );
 
 const canvasRef = ref();
+const containerRef = ref();
 
 const app = getCurrentInstance();
 const windowMinimized = useBrowserWindowMinimize();
@@ -123,7 +126,19 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   };
 });
 
-const columns = computed(() => {
+const {
+  boardKey,
+  boardResizeConfig,
+  handleResizeColumnEnd,
+  handleChangeHeaderPosition,
+  removeBoardResizeConfig,
+} = useBoardResizeControl(containerRef, 'PosGlobal');
+
+const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
+const handleGetColumns = () => {
   const kfGlobalSettings = getKfGlobalSettings();
   const tradeSettings = kfGlobalSettings.filter(
     (item) => item.key === 'trade',
@@ -132,17 +147,39 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions) return getColumns();
+
+  const columnsConfig = getColumns({
+    boardResizeConfig: boardResizeConfig.value || null,
+  });
+
+  if (!boardResizeConfig.value) {
+    boardResizeConfig.value = {
+      fields: [],
+      columnsWidth: {},
+    };
+    columnsConfig.forEach((item) => {
+      if (item.field && item.width) {
+        (boardResizeConfig.value as ColumnsSetting).fields.push(
+          item.field as string,
+        );
+        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
+          item.field as string
+        ] = item.width as number;
+      }
+    });
+  }
+
+  if (!posTableColumnsOptions || !selectedOptions) {
+    columns.value = columnsConfig;
+    return;
+  }
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
-
-  const columnsConfig = getColumns();
-
-  return columnsConfig.filter((item) => {
+  columns.value = columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.field as string);
   });
-});
+};
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
@@ -190,6 +227,7 @@ onActivated(() => {
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();
+      removeBoardResizeConfig();
     });
 
     onDeactivated(() => {
@@ -197,6 +235,13 @@ onActivated(() => {
     });
   }
 });
+
+watch(
+  () => boardKey.value,
+  () => {
+    handleGetColumns();
+  },
+);
 
 type PosStat = Record<string, KungfuApi.Position & { id: string }>;
 
@@ -310,7 +355,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
 }
 </script>
 <template>
-  <div class="kf-position-global__warp kf-translateZ">
+  <div class="kf-position-global__warp kf-translateZ" ref="containerRef">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #header>
         <KfDashboardItem>
@@ -326,6 +371,10 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
+        :option-items="optionItems"
+        column-resize-mode="header"
+        @resize-column-end="handleResizeColumnEnd"
+        @change-header-position="handleChangeHeaderPosition"
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

@@ -13,147 +13,284 @@ const { t } = VueI18n.global;
 
 const { getPositionLastPrice } = useQuote();
 export { getPositionLastPrice };
-export const getColumns = (): VTable.ColumnDefine[] => [
-  {
-    field: 'instrument_id',
-    title: t('posGlobalConfig.instrument_id'),
-    width: 190,
-    sort: vTableSorter,
-  },
-  {
-    field: 'direction',
-    title: '',
-    width: 50,
-    style: {
-      color: (args) => {
-        return defaultColorMap[
-          dealDirection(args.dataValue).color || 'default'
-        ];
-      },
-    },
-    fieldFormat: (args) => {
-      return dealDirection(args.direction).name;
-    },
-  },
-  {
-    field: 'static_yesterday',
-    title: t('posGlobalConfig.static_yesterday'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'open_volume',
-    title: t('posGlobalConfig.open_volume'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'close_volume',
-    title: t('posGlobalConfig.close_volume'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'yesterday_volume',
-    title: t('posGlobalConfig.yesterday_volume'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'today_volume',
-    title: t('posGlobalConfig.today_volume'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'volume',
-    title: t('posGlobalConfig.sum_volume'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    title: t('posGlobalConfig.avg_open_price'),
-    field: 'avg_open_price_resolved',
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'last_price_resolved',
-    title: t('posGlobalConfig.last_price'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-    },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    fieldFormat: (args) => {
-      return getPositionLastPrice(args, 'last_price_resolved');
-    },
-    sort: vTableSorter,
-  },
-  {
-    field: 'unrealized_pnl_resolved',
-    title: t('posGlobalConfig.unrealized_pnl'),
-    width: 110,
-    style: {
-      textAlign: 'right',
-      color: (args) => {
-        if (!Number(args.dataValue)) return defaultColorMap['text'];
 
-        return +args.dataValue > 0
-          ? defaultColorMap['red']
-          : defaultColorMap['green'];
+export const defaultColumnsWidth: Record<string, number> = {
+  instrument_id: 190,
+  direction: 50,
+  static_yesterday: 110,
+  open_volume: 110,
+  close_volume: 110,
+  yesterday_volume: 110,
+  today_volume: 110,
+  volume: 110,
+  avg_open_price_resolved: 110,
+  last_price_resolved: 110,
+  unrealized_pnl_resolved: 110,
+};
+
+const columnConfig = (field, title, width, options = {}) => ({
+  field,
+  title,
+  width,
+  disableSelect: true,
+  ...options,
+});
+
+export const getDefaultColumns = (): VTable.ColumnDefine[] => [
+  columnConfig(
+    'instrument_id',
+    t('posGlobalConfig.instrument_id'),
+    defaultColumnsWidth.instrument_id,
+    {
+      sort: vTableSorter,
+    },
+  ),
+  columnConfig('direction', '', defaultColumnsWidth.direction, {
+    style: {
+      color: (args) =>
+        defaultColorMap[dealDirection(args.dataValue).color || 'default'],
+    },
+    fieldFormat: (args) => dealDirection(args.direction).name,
+  }),
+  columnConfig(
+    'static_yesterday',
+    t('posGlobalConfig.static_yesterday'),
+    defaultColumnsWidth.static_yesterday,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'open_volume',
+    t('posGlobalConfig.open_volume'),
+    defaultColumnsWidth.open_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'close_volume',
+    t('posGlobalConfig.close_volume'),
+    defaultColumnsWidth.close_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'yesterday_volume',
+    t('posGlobalConfig.yesterday_volume'),
+    defaultColumnsWidth.yesterday_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'today_volume',
+    t('posGlobalConfig.today_volume'),
+    defaultColumnsWidth.today_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'volume',
+    t('posGlobalConfig.sum_volume'),
+    defaultColumnsWidth.volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'avg_open_price_resolved',
+    t('posGlobalConfig.avg_open_price'),
+    defaultColumnsWidth.avg_open_price_resolved,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  columnConfig(
+    'last_price_resolved',
+    t('posGlobalConfig.last_price'),
+    defaultColumnsWidth.last_price_resolved,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+      fieldFormat: (args) =>
+        getPositionLastPrice(args, 'last_price_resolved') ?? '--',
+    },
+  ),
+  columnConfig(
+    'unrealized_pnl_resolved',
+    t('posGlobalConfig.unrealized_pnl'),
+    defaultColumnsWidth.unrealized_pnl_resolved,
+    {
+      sort: vTableSorter,
+      style: {
+        textAlign: 'right',
+        color: (args) => {
+          if (!Number(args.dataValue)) return defaultColorMap['text'];
+          return +args.dataValue > 0
+            ? defaultColorMap['red']
+            : defaultColorMap['green'];
+        },
       },
+      headerStyle: { textAlign: 'right' },
     },
-    headerStyle: {
-      textAlign: 'right',
-    },
-    sort: vTableSorter,
-  },
+  ),
 ];
+
+export const getColumnsConfig = (
+  columnsWidth: Record<string, number> = defaultColumnsWidth,
+): Record<string, VTable.ColumnDefine> => ({
+  instrument_id: columnConfig(
+    'instrument_id',
+    t('posGlobalConfig.instrument_id'),
+    columnsWidth.instrument_id,
+    {
+      sort: vTableSorter,
+    },
+  ),
+  direction: columnConfig('direction', '', columnsWidth.direction, {
+    style: {
+      color: (args) =>
+        defaultColorMap[dealDirection(args.dataValue).color || 'default'],
+    },
+    fieldFormat: (args) => dealDirection(args.direction).name,
+  }),
+  static_yesterday: columnConfig(
+    'static_yesterday',
+    t('posGlobalConfig.static_yesterday'),
+    columnsWidth.static_yesterday,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  open_volume: columnConfig(
+    'open_volume',
+    t('posGlobalConfig.open_volume'),
+    columnsWidth.open_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  close_volume: columnConfig(
+    'close_volume',
+    t('posGlobalConfig.close_volume'),
+    columnsWidth.close_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  yesterday_volume: columnConfig(
+    'yesterday_volume',
+    t('posGlobalConfig.yesterday_volume'),
+    columnsWidth.yesterday_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  today_volume: columnConfig(
+    'today_volume',
+    t('posGlobalConfig.today_volume'),
+    columnsWidth.today_volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  volume: columnConfig(
+    'volume',
+    t('posGlobalConfig.sum_volume'),
+    columnsWidth.volume,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  avg_open_price_resolved: columnConfig(
+    'avg_open_price_resolved',
+    t('posGlobalConfig.avg_open_price'),
+    columnsWidth.avg_open_price_resolved,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+  last_price_resolved: columnConfig(
+    'last_price_resolved',
+    t('posGlobalConfig.last_price'),
+    columnsWidth.last_price_resolved,
+    {
+      sort: vTableSorter,
+      style: { textAlign: 'right' },
+      headerStyle: { textAlign: 'right' },
+      fieldFormat: (args) =>
+        getPositionLastPrice(args, 'last_price_resolved') ?? '--',
+    },
+  ),
+  unrealized_pnl_resolved: columnConfig(
+    'unrealized_pnl_resolved',
+    t('posGlobalConfig.unrealized_pnl'),
+    columnsWidth.unrealized_pnl_resolved,
+    {
+      sort: vTableSorter,
+      style: {
+        textAlign: 'right',
+        color: (args) => {
+          if (!Number(args.dataValue)) return defaultColorMap['text'];
+          return +args.dataValue > 0
+            ? defaultColorMap['red']
+            : defaultColorMap['green'];
+        },
+      },
+      headerStyle: { textAlign: 'right' },
+    },
+  ),
+});
+
+export const getColumns = ({
+  boardResizeConfig,
+}: {
+  boardResizeConfig: ColumnsSetting | null;
+}): VTable.ColumnDefine[] => {
+  let columnDefineList: VTable.ColumnDefine[] = [];
+
+  if (!boardResizeConfig) {
+    columnDefineList = getDefaultColumns();
+  } else {
+    columnDefineList = boardResizeConfig.fields
+      .map((field) => getColumnsConfig(boardResizeConfig.columnsWidth)[field])
+      .filter(Boolean) as VTable.ColumnDefine[];
+  }
+
+  return columnDefineList;
+};
 
 const orderSortKey = getTradingDataSortKey('Order');
 const tradeSortKey = getTradingDataSortKey('Trade');

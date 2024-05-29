@@ -69,12 +69,8 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const {
-  boardKey,
-  handleResizeColumnEnd,
-  handleChangeHeaderPosition,
-  getResizedColumns,
-} = useBoardResizeControl(containerRef, 'Trade');
+const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
+  useBoardResizeControl(containerRef, 'Trade');
 
 const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
@@ -95,11 +91,7 @@ const columns = computed(() => {
   } else {
     defaultColumns = getColumns(currentGlobalKfLocation.value);
   }
-  if (boardKey.value) {
-    return getResizedColumns(defaultColumns);
-  } else {
-    return defaultColumns;
-  }
+  getResizedColumns(defaultColumns);
 });
 
 const needProcessTradingData = ref<boolean>(true);

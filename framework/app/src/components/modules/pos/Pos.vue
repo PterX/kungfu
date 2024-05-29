@@ -107,12 +107,8 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   };
 });
 
-const {
-  boardKey,
-  handleResizeColumnEnd,
-  handleChangeHeaderPosition,
-  getResizedColumns,
-} = useBoardResizeControl(containerRef, 'Pos');
+const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
+  useBoardResizeControl(containerRef, 'Pos');
 
 const optionItems: VTable.ListTableConstructorOptions = {
   dragHeaderMode: 'all',
@@ -139,11 +135,7 @@ const columns = computed(() => {
     defaultColumns = getColumns(
       currentGlobalKfLocation.value || defaultLocation,
     );
-    if (boardKey.value) {
-      return getResizedColumns(defaultColumns);
-    } else {
-      return defaultColumns;
-    }
+    return getResizedColumns(defaultColumns);
   }
 
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
@@ -157,11 +149,8 @@ const columns = computed(() => {
   defaultColumns = columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.field as string);
   });
-  if (boardKey.value) {
-    return getResizedColumns(defaultColumns);
-  } else {
-    return defaultColumns;
-  }
+
+  return getResizedColumns(defaultColumns);
 });
 
 const hasData = computed(() => pos.value.length > 0);

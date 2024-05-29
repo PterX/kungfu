@@ -2716,6 +2716,7 @@ export const useBoardResizeControl = (
   containerRef: Ref<HTMLElement | ComponentPublicInstance | null>,
   boardName: string,
 ) => {
+  const DEFAULT_KEY = 'tableResizeConfigMap';
   const app = getCurrentInstance();
   const boardKey = ref<string>('');
   const boardResizeConfig = ref<ColumnsSetting | null>(null);
@@ -2724,7 +2725,7 @@ export const useBoardResizeControl = (
     (data: KfEvent.KfBusEvent) => {
       if (data.tag === 'main') {
         if (data.name === 'reset-main-dashboard') {
-          localStorage.removeItem('boardResizeConfigMap');
+          localStorage.removeItem(DEFAULT_KEY);
           boardResizeConfig.value = null;
           boardKey.value = boardName;
         }
@@ -2755,53 +2756,41 @@ export const useBoardResizeControl = (
     { immediate: true },
   );
 
-  const setBoardResizeConfigMap = (
+  const setTableResizeConfigMap = (
     option = boardResizeConfig.value,
     key = boardKey.value,
   ) => {
-    const boardResizeConfigMapStr = localStorage.getItem(
-      'boardResizeConfigMap',
-    );
-    let boardResizeConfigMap: Record<string, ColumnsSetting> = {};
+    const boardResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
+    let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
     if (boardResizeConfigMapStr) {
-      boardResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
+      tableResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
     }
 
-    boardResizeConfigMap[key] = option as ColumnsSetting;
-    localStorage.setItem(
-      'boardResizeConfigMap',
-      JSON.stringify(boardResizeConfigMap),
-    );
+    tableResizeConfigMap[key] = option as ColumnsSetting;
+    localStorage.setItem(DEFAULT_KEY, JSON.stringify(tableResizeConfigMap));
   };
 
   const getBoardResizeConfig = (key: string): ColumnsSetting | null => {
-    const boardResizeConfigMapStr = localStorage.getItem(
-      'boardResizeConfigMap',
-    );
-    let boardResizeConfigMap: Record<string, ColumnsSetting> = {};
+    const boardResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
+    let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
     if (!boardResizeConfigMapStr) {
-      console.log('boardResizeConfigMap is empty');
+      console.log('tableResizeConfigMap is empty');
       return null;
     }
-    boardResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
-    return boardResizeConfigMap[key] || null;
+    tableResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
+    return tableResizeConfigMap[key] || null;
   };
 
   const removeBoardResizeConfig = (key = boardKey.value) => {
-    const boardResizeConfigMapStr = localStorage.getItem(
-      'boardResizeConfigMap',
-    );
-    let boardResizeConfigMap: Record<string, ColumnsSetting> = {};
+    const boardResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
+    let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
     if (!boardResizeConfigMapStr) {
-      console.log('boardResizeConfigMap is empty');
+      console.log('tableResizeConfigMap is empty');
       return;
     }
-    boardResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
-    delete boardResizeConfigMap[key];
-    localStorage.setItem(
-      'boardResizeConfigMap',
-      JSON.stringify(boardResizeConfigMap),
-    );
+    tableResizeConfigMap = JSON.parse(boardResizeConfigMapStr);
+    delete tableResizeConfigMap[key];
+    localStorage.setItem(DEFAULT_KEY, JSON.stringify(tableResizeConfigMap));
   };
 
   const handleResizeColumnEnd = (args: ResizeColumn) => {
@@ -2815,7 +2804,7 @@ export const useBoardResizeControl = (
       boardResizeConfig.value.columnsWidth[colName] = colWidth;
       nextColWidth &&
         (boardResizeConfig.value.columnsWidth[nextColName] = nextColWidth);
-      setBoardResizeConfigMap(boardResizeConfig.value, boardKey.value);
+      setTableResizeConfigMap(boardResizeConfig.value, boardKey.value);
     }
   };
 
@@ -2830,13 +2819,13 @@ export const useBoardResizeControl = (
         boardResizeConfig.value.fields[targetCol],
         boardResizeConfig.value.fields[sourceCol],
       ];
-      setBoardResizeConfigMap(boardResizeConfig.value, boardKey.value);
+      setTableResizeConfigMap(boardResizeConfig.value, boardKey.value);
     }
   }
 
   function getResizedColumns(columns: VTable.TYPES.ColumnDefine[]) {
-    if (!boardKey.value) return columns;
     if (!boardResizeConfig.value) {
+      if (!boardKey.value) return columns;
       boardResizeConfig.value = {
         fields: [],
         columnsWidth: {},
@@ -2872,7 +2861,7 @@ export const useBoardResizeControl = (
   return {
     boardKey,
     boardResizeConfig,
-    setBoardResizeConfigMap,
+    setTableResizeConfigMap,
     getBoardResizeConfig,
     removeBoardResizeConfig,
     handleResizeColumnEnd,

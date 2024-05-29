@@ -12,6 +12,7 @@ import {
   useTriggerMakeOrder,
   searchByKeyword,
   useBrowserWindowMinimize,
+  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -78,6 +79,7 @@ const { dealDataWithCache } = useDealDataWithCaches<
 const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
+const containerRef = ref();
 
 const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   return {
@@ -104,6 +106,14 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     ],
   };
 });
+
+const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
+  useBoardResizeControl(containerRef, 'Pos');
+
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
+
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -120,8 +130,14 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions)
-    return getColumns(currentGlobalKfLocation.value || defaultLocation);
+  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
+  if (!posTableColumnsOptions || !selectedOptions) {
+    defaultColumns = getColumns(
+      currentGlobalKfLocation.value || defaultLocation,
+    );
+    return getResizedColumns(defaultColumns);
+  }
+
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
@@ -130,9 +146,11 @@ const columns = computed(() => {
     currentGlobalKfLocation.value || defaultLocation,
   );
 
-  return columnsConfig.filter((item) => {
+  defaultColumns = columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.field as string);
   });
+
+  return getResizedColumns(defaultColumns);
 });
 
 const hasData = computed(() => pos.value.length > 0);
@@ -253,7 +271,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
 }
 </script>
 <template>
-  <div class="kf-position__warp kf-translateZ">
+  <div class="kf-position__warp kf-translateZ" ref="containerRef">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -299,6 +317,10 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
+        :option-items="optionItems"
+        column-resize-mode="header"
+        @resize-column-end="handleResizeColumnEnd"
+        @change-header-position="handleChangeHeaderPosition"
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

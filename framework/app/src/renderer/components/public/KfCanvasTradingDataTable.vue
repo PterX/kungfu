@@ -214,9 +214,9 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   hover: {
     highlightMode: 'row',
   },
-  // select: {
-  //   disableSelect: true,
-  // },
+  select: {
+    disableSelect: true,
+  },
   maintainedDataCount: 100,
   defaultRowHeight: 30,
   columnResizeMode,

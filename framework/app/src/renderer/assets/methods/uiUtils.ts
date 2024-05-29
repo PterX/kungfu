@@ -2865,7 +2865,6 @@ export const useBoardResizeControl = (
           resizedColumns.push(column);
         }
       });
-      console.log('resizedColumns', resizedColumns);
       return resizedColumns;
     }
   }

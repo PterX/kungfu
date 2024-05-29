@@ -26,7 +26,6 @@ import {
   defineComponent,
   onUnmounted,
   VNode,
-  onDeactivated,
 } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
@@ -2732,10 +2731,6 @@ export const useBoardResizeControl = (
       }
     },
   );
-
-  onDeactivated(() => {
-    subscription && subscription.unsubscribe();
-  });
 
   onUnmounted(() => {
     subscription && subscription.unsubscribe();

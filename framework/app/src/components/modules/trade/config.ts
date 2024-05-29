@@ -24,7 +24,6 @@ export const getColumns = (
         field: 'trade_time',
         title: t('tradeConfig.trade_time_resolved'),
         width: 160,
-        disableSelect: true,
         sort: vTableSorter,
         fieldFormat: (args) => {
           return dealKfTime(args.trade_time, true);
@@ -39,7 +38,6 @@ export const getColumns = (
         field: 'side',
         title: '',
         width: 80,
-        disableSelect: true,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -53,7 +51,6 @@ export const getColumns = (
         field: 'offset',
         title: '',
         width: 50,
-        disableSelect: true,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -69,7 +66,6 @@ export const getColumns = (
         field: 'price_resolved',
         title: t('tradeConfig.price'),
         width: 120,
-        disableSelect: true,
         style: {
           textAlign: 'right',
         },
@@ -82,7 +78,6 @@ export const getColumns = (
         field: 'volume',
         title: t('tradeConfig.volume'),
         width: 120,
-        disableSelect: true,
         style: {
           textAlign: 'right',
         },
@@ -98,7 +93,6 @@ export const getColumns = (
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
         width: 300,
-        disableSelect: true,
         style: {
           color: (args) => {
             return getAccountIdStyle(args.dataValue);
@@ -112,7 +106,6 @@ export const getColumns = (
               field: 'dest_uname',
               title: t('orderConfig.dest_uname'),
               width: 300,
-              disableSelect: true,
               style: {
                 color: (args) => {
                   return getAccountIdStyle(args.dataValue);

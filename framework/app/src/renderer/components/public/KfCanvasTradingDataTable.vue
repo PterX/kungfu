@@ -156,7 +156,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     color: '#ffffffd9',
     // lineHeight: 35,
     hover: {
-      cellBgColor: '#333',
+      cellBgColor: 'rgba(128, 128, 128, 0.3)',
       inlineRowBgColor: '#333',
     },
     // cursor: 'pointer',
@@ -205,7 +205,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   dragHeaderSplitLine: {
     lineColor: '#FAAD14',
     lineWidth: 1,
-    // shadowBlockColor: 'rgba(128, 128, 128, 0.3)',
+    shadowBlockColor: 'rgba(128, 128, 128, 0.3)',
   },
 };
 

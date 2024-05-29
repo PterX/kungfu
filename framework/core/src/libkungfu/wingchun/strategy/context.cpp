@@ -34,11 +34,13 @@ void Context::bypass_accounting() { bypass_accounting_ = true; }
 
 bool Context::is_bypass_accounting() const { return bypass_accounting_; }
 
-void Context::attach_orderbooks(Orderbooks &orderbooks) { orderbooks.on_start(events_); }
+void Context::attach_orderbooks(wingchun::orderbook::Orderbooks &orderbooks) { orderbooks.on_start(events_); }
 
 void Context::attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache) {
   set_runner(factor_cache, &app_);
   factor_cache.on_start(events_);
 }
+
+const std::string &Context::get_strategy_dir() { return strategy_dir_; }
 
 } // namespace kungfu::wingchun::strategy

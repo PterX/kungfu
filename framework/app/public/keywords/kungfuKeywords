@@ -18,10 +18,12 @@ algo_orders
 algo_order_actions
 context
 arguments
+operator_dir
 bookkeeper
 side
 io_device
 usable
+strategy_dir
 begin_time
 end_time
 gen_time
@@ -135,6 +137,7 @@ open_volume
 last_price
 avg_open_price
 position_cost_price
+avg_open_price_today
 close_price
 pre_close_price
 settlement_price
@@ -159,6 +162,8 @@ time_condition
 block_id
 external_order_id
 insert_time
+restore_time
+trading_day
 volume_left
 tax
 commission
@@ -413,6 +418,7 @@ set_to_indexer
 set_report
 set_time_interval
 set_backtest_config
+set_operator_dir
 add_operator
 is_started
 subscribe_operator
@@ -439,6 +445,7 @@ on_operator_state_change
 get_bids
 get_asks
 set_matcher
+set_strategy_dir
 add_strategy
 add_account
 insert_order_input
@@ -452,6 +459,7 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
+batch_streaming
 on_order
 on_order_trigger
 on_algo_order
@@ -466,6 +474,19 @@ on_history_trade
 on_req_history_order_error
 on_req_history_trade_error
 on_custom_data
+get_events
+pop_batched_entrust_until
+pop_batched_transaction_until
+pop_batched_quote_until
+pop_batched_tree_until
+pop_batched_depth_until
+pop_batched_tick_until
+get_entrust_buffer
+get_transaction_buffer
+get_quote_buffer
+get_tree_buffer
+get_depth_buffer
+get_tick_buffer
 get_begin_time
 get_end_time
 get_location
@@ -610,11 +631,6 @@ SSE
 SZE
 MarketType
 Snapshot
-Entrust
-Transaction
-Tree
-Tick
-Depth
 SubscribeDataType
 Stock
 Future

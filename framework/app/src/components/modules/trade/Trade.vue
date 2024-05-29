@@ -71,10 +71,9 @@ const {
 
 const {
   boardKey,
-  boardResizeConfig,
   handleResizeColumnEnd,
   handleChangeHeaderPosition,
-  removeBoardResizeConfig,
+  getResizedColumns,
 } = useBoardResizeControl(containerRef, 'Trade');
 
 const { handleDownload } = useDownloadHistoryTradingData();
@@ -84,43 +83,24 @@ const optionItems: VTable.ListTableConstructorOptions = {
   dragHeaderMode: 'all',
 };
 
-const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
-
-const handleGetColumns = () => {
+const columns = computed(() => {
+  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
   if (!currentGlobalKfLocation.value) {
-    columns.value = getColumns({
-      kfLocation: {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      boardResizeConfig: boardResizeConfig.value || null,
+    defaultColumns = getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: '*',
     });
   } else {
-    columns.value = getColumns({
-      kfLocation: currentGlobalKfLocation.value,
-      boardResizeConfig: boardResizeConfig.value || null,
-    });
+    defaultColumns = getColumns(currentGlobalKfLocation.value);
   }
-
-  if (!boardResizeConfig.value) {
-    boardResizeConfig.value = {
-      fields: [],
-      columnsWidth: {},
-    };
-    columns.value.forEach((item) => {
-      if (item.field && item.width) {
-        (boardResizeConfig.value as ColumnsSetting).fields.push(
-          item.field as string,
-        );
-        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
-          item.field as string
-        ] = item.width as number;
-      }
-    });
+  if (boardKey.value) {
+    return getResizedColumns(defaultColumns);
+  } else {
+    return defaultColumns;
   }
-};
+});
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
@@ -201,7 +181,6 @@ onActivated(() => {
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();
-    removeBoardResizeConfig();
   });
 
   onDeactivated(() => {
@@ -219,18 +198,10 @@ watch(
       return;
     }
     isRendering.value = true;
-    handleGetColumns();
     await processTradingData(currentTradingData.value, true);
     isRendering.value = false;
   },
   { immediate: true },
-);
-
-watch(
-  () => boardKey.value,
-  () => {
-    handleGetColumns();
-  },
 );
 
 watch(historyDate, async (newDate) => {

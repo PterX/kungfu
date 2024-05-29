@@ -131,17 +131,16 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
 
 const {
   boardKey,
-  boardResizeConfig,
   handleResizeColumnEnd,
   handleChangeHeaderPosition,
-  removeBoardResizeConfig,
+  getResizedColumns,
 } = useBoardResizeControl(containerRef, 'PosGlobal');
 
-const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
 const optionItems: VTable.ListTableConstructorOptions = {
   dragHeaderMode: 'all',
 };
-const handleGetColumns = () => {
+
+const columns = computed(() => {
   const kfGlobalSettings = getKfGlobalSettings();
   const tradeSettings = kfGlobalSettings.filter(
     (item) => item.key === 'trade',
@@ -150,39 +149,31 @@ const handleGetColumns = () => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-
-  const columnsConfig = getColumns({
-    boardResizeConfig: boardResizeConfig.value || null,
+  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
+  if (!posTableColumnsOptions || !selectedOptions) {
+    defaultColumns = getColumns();
+    if (boardKey.value) {
+      return getResizedColumns(defaultColumns);
+    } else {
+      return defaultColumns;
+    }
+  }
+  const notSelectedOptions = posTableColumnsOptions.filter((item) => {
+    return !selectedOptions.includes(item as string);
   });
 
-  if (!posTableColumnsOptions || !selectedOptions) {
-    columns.value = columnsConfig;
-  } else {
-    const notSelectedOptions = posTableColumnsOptions.filter((item) => {
-      return !selectedOptions.includes(item as string);
-    });
-    columns.value = columnsConfig.filter((item) => {
-      return !notSelectedOptions.includes(item.field as string);
-    });
-  }
+  const columnsConfig = getColumns();
 
-  if (!boardResizeConfig.value) {
-    boardResizeConfig.value = {
-      fields: [],
-      columnsWidth: {},
-    };
-    columns.value.forEach((item) => {
-      if (item.field && item.width) {
-        (boardResizeConfig.value as ColumnsSetting).fields.push(
-          item.field as string,
-        );
-        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
-          item.field as string
-        ] = item.width as number;
-      }
-    });
+  defaultColumns = columnsConfig.filter((item) => {
+    return !notSelectedOptions.includes(item.field as string);
+  });
+
+  if (boardKey.value) {
+    return getResizedColumns(defaultColumns);
+  } else {
+    return defaultColumns;
   }
-};
+});
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
@@ -230,7 +221,6 @@ onActivated(() => {
 
     onBeforeUnmount(() => {
       subscription.unsubscribe();
-      removeBoardResizeConfig();
     });
 
     onDeactivated(() => {
@@ -238,13 +228,6 @@ onActivated(() => {
     });
   }
 });
-
-watch(
-  () => boardKey.value,
-  () => {
-    handleGetColumns();
-  },
-);
 
 type PosStat = Record<string, KungfuApi.Position & { id: string }>;
 

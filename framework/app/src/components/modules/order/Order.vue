@@ -108,10 +108,9 @@ const {
 
 const {
   boardKey,
-  boardResizeConfig,
   handleResizeColumnEnd,
   handleChangeHeaderPosition,
-  removeBoardResizeConfig,
+  getResizedColumns,
 } = useBoardResizeControl(tableRef, 'Order');
 
 const { handleDownload } = useDownloadHistoryTradingData();
@@ -122,7 +121,30 @@ const optionItems: VTable.ListTableConstructorOptions = {
   dragHeaderMode: 'all',
 };
 
-const columns = ref<VTable.TYPES.ColumnDefine[]>([]);
+const columns = computed(() => {
+  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
+  if (!currentGlobalKfLocation.value) {
+    defaultColumns = getColumns(
+      {
+        category: 'td',
+        group: '*',
+        name: '*',
+        mode: '*',
+      },
+      !!historyDate.value,
+    );
+  } else {
+    defaultColumns = getColumns(
+      currentGlobalKfLocation.value,
+      !!historyDate.value,
+    );
+  }
+  if (boardKey.value) {
+    return getResizedColumns(defaultColumns);
+  } else {
+    return defaultColumns;
+  }
+});
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref(false);
@@ -174,44 +196,6 @@ const processTradingData = async (
   }
 };
 
-const handleGetColumns = () => {
-  if (!currentGlobalKfLocation.value) {
-    columns.value = getColumns({
-      kfLocation: {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      isHistory: !!historyDate.value,
-      boardResizeConfig: boardResizeConfig.value || null,
-    });
-  } else {
-    columns.value = getColumns({
-      kfLocation: currentGlobalKfLocation.value,
-      isHistory: !!historyDate.value,
-      boardResizeConfig: boardResizeConfig.value || null,
-    });
-  }
-
-  if (!boardResizeConfig.value) {
-    boardResizeConfig.value = {
-      fields: [],
-      columnsWidth: {},
-    };
-    columns.value.forEach((item) => {
-      if (item.field && item.width) {
-        (boardResizeConfig.value as ColumnsSetting).fields.push(
-          item.field as string,
-        );
-        (boardResizeConfig.value as ColumnsSetting).columnsWidth[
-          item.field as string
-        ] = item.width as number;
-      }
-    });
-  }
-};
-
 onActivated(() => {
   const subscription = app?.proxy?.$tradingDataSubject.subscribe(
     async (data) => {
@@ -244,7 +228,6 @@ onActivated(() => {
 
   onBeforeUnmount(() => {
     subscription?.unsubscribe();
-    removeBoardResizeConfig();
   });
 
   onDeactivated(() => {
@@ -257,7 +240,6 @@ watch(currentGlobalKfLocation, async () => {
   historyDate.value = undefined;
   allOrders.value = [];
   clearCaches();
-  handleGetColumns();
   if (currentGlobalKfLocation.value === null || !currentTradingData.value) {
     return;
   }
@@ -274,15 +256,7 @@ watch(searchKeyword, () => {
   needProcessTradingData.value = true;
 });
 
-watch(
-  () => boardKey.value,
-  () => {
-    handleGetColumns();
-  },
-);
-
 watch(historyDate, async (newDate) => {
-  handleGetColumns();
   needProcessTradingData.value = true;
   clearCaches();
   if (!newDate) {

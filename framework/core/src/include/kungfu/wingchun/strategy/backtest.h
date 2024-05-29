@@ -315,6 +315,8 @@ public:
 
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
+  std::shared_ptr<wingchun::factor::StreamDataBatcher> batch_streaming() override;
+
 protected:
   void on_start() override;
   void prepare(const event_ptr &event) override;
@@ -369,6 +371,7 @@ private:
     int reference_count;
   };
 
+  static std::shared_ptr<wingchun::factor::LiveStreamDataBatcher> backtest_stream_data_batcher_;
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   Matcher_ptr matcher_;

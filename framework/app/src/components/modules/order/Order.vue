@@ -4,7 +4,10 @@ import {
   getProcessIdByKfLocation,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useActiveInstruments,
+  useCoreBindBoardState,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useDashboardBodySize,
@@ -13,6 +16,7 @@ import {
   useBrowserWindowMinimize,
   messagePrompt,
   confirmModalSkippable,
+  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -66,6 +70,8 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+useCoreBindBoardState().markSetup();
+
 const { t } = VueI18n.global;
 const { success, error, warn } = messagePrompt();
 const app = getCurrentInstance();
@@ -79,6 +85,13 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolvedWithoutStat
 >(['uid_key', 'update_time']);
+
+const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
+const tableRef = ref();
+const canvasRef = ref();
+const containerRef = ref();
+const adjustNumberInputRef = ref();
+const adjustPriceTick = ref<number>();
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
@@ -93,13 +106,21 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
+const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
+  useBoardResizeControl(containerRef, 'Order');
+
 const { handleDownload } = useDownloadHistoryTradingData();
 const adjustOrderMaskVisible = ref(false);
 const statisticModalVisible = ref<boolean>(false);
 
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
+
 const columns = computed(() => {
+  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
   if (!currentGlobalKfLocation.value) {
-    return getColumns(
+    defaultColumns = getColumns(
       {
         category: 'td',
         group: '*',
@@ -108,9 +129,13 @@ const columns = computed(() => {
       },
       !!historyDate.value,
     );
+  } else {
+    defaultColumns = getColumns(
+      currentGlobalKfLocation.value,
+      !!historyDate.value,
+    );
   }
-
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
+  return getResizedColumns(defaultColumns);
 });
 
 const needProcessTradingData = ref<boolean>(true);
@@ -402,7 +427,7 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
 }
 
 function handleDblClickCell(args: VTable.MousePointerCellEvent) {
-  if (historyDate.value) return;
+  if (historyDate.value || !args.originData) return;
   handleCancelOrderWithRemind(args.originData);
 }
 
@@ -428,11 +453,6 @@ const adjustOrderForm = ref<{
   price: 0,
   volume: 0,
 });
-const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
-const tableRef = ref();
-const canvasRef = ref();
-const adjustNumberInputRef = ref();
-const adjustPriceTick = ref<number>();
 
 function handleAdjustOrder(data: {
   event: MouseEvent;
@@ -611,7 +631,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
 }
 </script>
 <template>
-  <div class="kf-orders__warp kf-translateZ">
+  <div class="kf-orders__warp kf-translateZ" ref="containerRef">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -714,6 +734,10 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
           ref="canvasRef"
           :columns="columns"
           :has-data="hasData"
+          :option-items="optionItems"
+          column-resize-mode="header"
+          @resize-column-end="handleResizeColumnEnd"
+          @change-header-position="handleChangeHeaderPosition"
           @click-cell="handleClickCell"
           @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"

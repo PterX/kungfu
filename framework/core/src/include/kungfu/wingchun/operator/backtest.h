@@ -125,6 +125,8 @@ public:
 
   yijinjing::data::location_ptr get_location(uint32_t location_uid) override;
 
+  std::shared_ptr<wingchun::factor::StreamDataBatcher> batch_streaming() override;
+
 protected:
   void on_start() override;
 
@@ -175,6 +177,8 @@ private:
     SliceState state;
     int reference_count;
   };
+
+  static std::shared_ptr<wingchun::factor::LiveStreamDataBatcher> backtest_stream_data_batcher_;
   broker::PassiveClient broker_client_;
   book::Bookkeeper bookkeeper_;
   tool::SliceIndexer_ptr from_indexer_;

@@ -127,8 +127,8 @@ tick_column_names = [
     "exchange_id",
     "instrument_type",
     "bid_price",
-    "ask_price",
     "bid_volume",
+    "ask_price",
     "ask_volume",
 ]
 
@@ -137,7 +137,8 @@ class PyStreamDataBatcher:
     def __init__(self, stream_data_batcher: wc.StreamDataBatcher):
         self.stream_data_batcher = stream_data_batcher
 
-    def merge_columns(self, row):
+    @staticmethod
+    def merge_columns(row):
         return row.tolist()
 
     def get_entrust_df(self, source, instrument_id, exchange_id):
@@ -173,7 +174,7 @@ class PyStreamDataBatcher:
             end_col = i + 9
             new_col_name = f"merged_column_{(i-22)//10 + 1}"
             quote_df[new_col_name] = quote_df.iloc[:, start_col : end_col + 1].apply(
-                merge_columns, axis=1
+                self.merge_columns, axis=1
             )
 
         quote_df = quote_df.drop(quote_df.columns[22:62], axis=1)
@@ -191,7 +192,7 @@ class PyStreamDataBatcher:
             end_col = i + 9
             new_col_name = f"merged_column_{(i-21)//10 + 1}"
             tree_df[new_col_name] = tree_df.iloc[:, start_col : end_col + 1].apply(
-                merge_columns, axis=1
+                self.merge_columns, axis=1
             )
 
         tree_df = tree_df.drop(tree_df.columns[21:61], axis=1)

@@ -118,6 +118,18 @@ defineEmits<{
     e: 'checkboxStateChange',
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['checkbox_state_change'],
   ): void;
+  (
+    e: 'resizeColumn',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['resize_column'],
+  ): void;
+  (
+    e: 'resizeColumnEnd',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['resize_column_end'],
+  ): void;
+  (
+    e: 'changeHeaderPosition',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['change_header_position'],
+  ): void;
 }>();
 
 const defaultTheme: VTable.TYPES.ITableThemeDefine = {
@@ -144,10 +156,10 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     color: '#ffffffd9',
     // lineHeight: 35,
     hover: {
-      cellBgColor: '#333',
+      cellBgColor: 'rgba(128, 128, 128, 0.3)',
       inlineRowBgColor: '#333',
     },
-    cursor: 'pointer',
+    // cursor: 'pointer',
     textBaseline: 'middle',
   },
   defaultStyle: {
@@ -185,6 +197,16 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     disableCheckedFill: '#FAAD14',
     disableCheckedStroke: '#FAAD14',
   },
+  selectionStyle: {
+    cellBgColor: 'rgba(128, 128, 128, 0.3)',
+    cellBorderColor: '#444',
+    cellBorderLineWidth: 2,
+  },
+  dragHeaderSplitLine: {
+    lineColor: '#FAAD14',
+    lineWidth: 1,
+    shadowBlockColor: 'rgba(128, 128, 128, 0.3)',
+  },
 };
 
 const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
@@ -221,7 +243,8 @@ let listTable: VTable.ListTable | null = null;
 const containerWidth = ref<number>(10);
 
 const initCustomLayoutOptions = () => {
-  const customLayoutOption = props.customLayout || {};
+  if (!props.customLayout) return;
+  const customLayoutOption = props.customLayout;
   Object.keys(customLayoutOption).forEach((key) => {
     if (!customLayoutOption[key]) return;
     ColumnCustomMap.value[key] = {
@@ -438,6 +461,9 @@ const registerEvent = () => {
     keydown: 'keydown',
     scroll: 'scroll',
     checkbox_state_change: 'checkboxStateChange',
+    resize_column: 'resizeColumn',
+    resize_column_end: 'resizeColumnEnd',
+    change_header_position: 'changeHeaderPosition',
   };
 
   Object.entries(eventMap).forEach(([event, emitEvent]) => {

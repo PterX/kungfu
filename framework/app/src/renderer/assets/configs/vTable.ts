@@ -34,6 +34,16 @@ export interface InputEditorConfig {
   min?: number;
 }
 
+export interface ResizeColumn {
+  col: number;
+  colWidths: number[];
+}
+
+export interface ChangeHeaderPosition {
+  source: VTable.TYPES.CellAddress;
+  target: VTable.TYPES.CellAddress;
+}
+
 // class CustomInputEditor implements VTable_editors.IEditor {
 //   style: Record<string, string> = {};
 //   editorType = 'Input';

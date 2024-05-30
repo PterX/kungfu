@@ -4,7 +4,7 @@ import {
   useBrowserWindowMinimize,
   useDashboardBodySize,
   useTriggerMakeOrder,
-  useBoardResizeControl,
+  useTableResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   VTable,
@@ -68,7 +68,6 @@ globalThis.HookKeeper.getHooks().dealTradingData.register(
 );
 
 const canvasRef = ref();
-const containerRef = ref();
 
 const app = getCurrentInstance();
 const windowMinimized = useBrowserWindowMinimize();
@@ -129,13 +128,6 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
   };
 });
 
-const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
-  useBoardResizeControl(containerRef, 'PosGlobal');
-
-const optionItems: VTable.ListTableConstructorOptions = {
-  dragHeaderMode: 'all',
-};
-
 const columns = computed(() => {
   const kfGlobalSettings = getKfGlobalSettings();
   const tradeSettings = kfGlobalSettings.filter(
@@ -149,7 +141,7 @@ const columns = computed(() => {
   if (!posTableColumnsOptions || !selectedOptions) {
     defaultColumns = getColumns();
 
-    return getResizedColumns(defaultColumns);
+    return defaultColumns;
   }
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
@@ -157,12 +149,18 @@ const columns = computed(() => {
 
   const columnsConfig = getColumns();
 
-  defaultColumns = columnsConfig.filter((item) => {
+  return columnsConfig.filter((item) => {
     return !notSelectedOptions.includes(item.field as string);
   });
-
-  return getResizedColumns(defaultColumns);
 });
+
+const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
+  useTableResizeControl('PosGlobal', columns);
+
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
+
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
@@ -330,7 +328,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
 }
 </script>
 <template>
-  <div class="kf-position-global__warp kf-translateZ" ref="containerRef">
+  <div class="kf-position-global__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #header>
         <KfDashboardItem>
@@ -343,7 +341,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
-        :columns="columns"
+        :columns="resizedColumns"
         :has-data="hasData"
         :custom-layout="customLayout"
         :option-items="optionItems"

@@ -16,7 +16,7 @@ import {
   useBrowserWindowMinimize,
   messagePrompt,
   confirmModalSkippable,
-  useBoardResizeControl,
+  useTableResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -89,7 +89,6 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
 const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
 const tableRef = ref();
 const canvasRef = ref();
-const containerRef = ref();
 const adjustNumberInputRef = ref();
 const adjustPriceTick = ref<number>();
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
@@ -106,21 +105,9 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
-  useBoardResizeControl(containerRef, 'Order');
-
-const { handleDownload } = useDownloadHistoryTradingData();
-const adjustOrderMaskVisible = ref(false);
-const statisticModalVisible = ref<boolean>(false);
-
-const optionItems: VTable.ListTableConstructorOptions = {
-  dragHeaderMode: 'all',
-};
-
 const columns = computed(() => {
-  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
   if (!currentGlobalKfLocation.value) {
-    defaultColumns = getColumns(
+    return getColumns(
       {
         category: 'td',
         group: '*',
@@ -130,13 +117,20 @@ const columns = computed(() => {
       !!historyDate.value,
     );
   } else {
-    defaultColumns = getColumns(
-      currentGlobalKfLocation.value,
-      !!historyDate.value,
-    );
+    return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
   }
-  return getResizedColumns(defaultColumns);
 });
+
+const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
+  useTableResizeControl('Order', columns);
+
+const { handleDownload } = useDownloadHistoryTradingData();
+const adjustOrderMaskVisible = ref(false);
+const statisticModalVisible = ref<boolean>(false);
+
+const optionItems: VTable.ListTableConstructorOptions = {
+  dragHeaderMode: 'all',
+};
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref(false);
@@ -631,7 +625,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
 }
 </script>
 <template>
-  <div class="kf-orders__warp kf-translateZ" ref="containerRef">
+  <div class="kf-orders__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -732,7 +726,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         </div>
         <KfCanvasTradingDataTable
           ref="canvasRef"
-          :columns="columns"
+          :columns="resizedColumns"
           :has-data="hasData"
           :option-items="optionItems"
           column-resize-mode="header"

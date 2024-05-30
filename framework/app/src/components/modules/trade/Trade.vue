@@ -7,7 +7,7 @@ import {
   useBrowserWindowMinimize,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
-  useBoardResizeControl,
+  useTableResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -59,7 +59,6 @@ const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
 
 const canvasRef = ref();
-const containerRef = ref();
 const historyDate = ref<Dayjs>();
 const historyDataLoading = ref<boolean>();
 
@@ -69,8 +68,21 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
-  useBoardResizeControl(containerRef, 'Trade');
+const columns = computed(() => {
+  if (!currentGlobalKfLocation.value) {
+    return getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: '*',
+    });
+  } else {
+    return getColumns(currentGlobalKfLocation.value);
+  }
+});
+
+const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
+  useTableResizeControl('Trade', columns);
 
 const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
@@ -78,21 +90,6 @@ const statisticModalVisible = ref<boolean>(false);
 const optionItems: VTable.ListTableConstructorOptions = {
   dragHeaderMode: 'all',
 };
-
-const columns = computed(() => {
-  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
-  if (!currentGlobalKfLocation.value) {
-    defaultColumns = getColumns({
-      category: 'td',
-      group: '*',
-      name: '*',
-      mode: '*',
-    });
-  } else {
-    defaultColumns = getColumns(currentGlobalKfLocation.value);
-  }
-  getResizedColumns(defaultColumns);
-});
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
@@ -261,7 +258,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
 }
 </script>
 <template>
-  <div class="kf-trades__warp kf-translateZ" ref="containerRef">
+  <div class="kf-trades__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -315,7 +312,7 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
-        :columns="columns"
+        :columns="resizedColumns"
         :hasData="hasData"
         :option-items="optionItems"
         column-resize-mode="header"

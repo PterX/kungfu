@@ -15,12 +15,7 @@ defineProps<{
   title: string;
 }>();
 
-const getContainer = () => {
-  const e = document.querySelector('#kf-layout-content');
-  console.log('#kf-layout-content', e);
-
-  return e;
-};
+const getContainer = () => document.querySelector('#kf-layout-content');
 </script>
 <template>
   <a-modal
@@ -31,6 +26,7 @@ const getContainer = () => {
     :closable="false"
     :maskClosable="false"
     :footer="null"
+    wrapClassName="kf-system-prepare-modal-wrapper"
     :maskStyle="{ position: 'absolute' }"
     :getContainer="getContainer"
   >
@@ -47,6 +43,10 @@ const getContainer = () => {
   </a-modal>
 </template>
 <style lang="less">
+.kf-system-prepare-modal-wrapper {
+  position: absolute !important;
+}
+
 .kf-system-prepare-modal {
   .prepare-item {
     margin: 10px 10px 10px 0;

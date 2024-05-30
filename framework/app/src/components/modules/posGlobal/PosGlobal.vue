@@ -136,11 +136,8 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
   if (!posTableColumnsOptions || !selectedOptions) {
-    defaultColumns = getColumns();
-
-    return defaultColumns;
+    return getColumns();
   }
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);

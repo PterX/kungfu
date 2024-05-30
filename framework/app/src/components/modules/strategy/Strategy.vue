@@ -32,7 +32,7 @@ import {
   useSwitchAllConfig,
   useReplay,
   useExtConfigsRelated,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -52,7 +52,7 @@ import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();

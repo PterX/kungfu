@@ -138,6 +138,7 @@ import { TradeAccountingUsageMap } from '@kungfu-trader/kungfu-js-api/utils/acco
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import fse from 'fs-extra';
 import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { useRouter } from 'vue-router';
 import {
   LifeCycleHook,
   LifeCycleKeys,
@@ -1156,18 +1157,18 @@ export const useInstruments = (): {
   };
 };
 
-export const useCoreBindBoardState = () => {
+export const useCoreBindPage = () => {
+  const router = useRouter();
   const globalStore = useGlobalStore();
-  const { hasCoreBindBoardBeganSetup } = storeToRefs(globalStore);
+  const { coreBindRoutePaths } = storeToRefs(globalStore);
 
-  const markSetup = () => {
-    hasCoreBindBoardBeganSetup.value = true;
-  };
+  onActivated(() => {
+    const currentRoutePath = router.currentRoute.value.fullPath;
 
-  return {
-    hasCoreBindBoardBeganSetup,
-    markSetup,
-  };
+    if (!coreBindRoutePaths.value.has(currentRoutePath)) {
+      coreBindRoutePaths.value.add(currentRoutePath);
+    }
+  });
 };
 
 export const usePreStartAndQuitApp = (): {
@@ -1185,10 +1186,13 @@ export const usePreStartAndQuitApp = (): {
   preQuitSystemLoading: ComputedRef<boolean>;
 } => {
   const app = getCurrentInstance();
+  const router = useRouter();
   const globalStore = useGlobalStore();
-  const { preStartSystemLoadingData, preQuitSystemLoadingData } =
-    storeToRefs(globalStore);
-  const { hasCoreBindBoardBeganSetup } = useCoreBindBoardState();
+  const {
+    coreBindRoutePaths,
+    preStartSystemLoadingData,
+    preQuitSystemLoadingData,
+  } = storeToRefs(globalStore);
 
   const preStartSystemLoading = computed(() => {
     return (
@@ -1199,7 +1203,10 @@ export const usePreStartAndQuitApp = (): {
   });
 
   const showPreStartLoading = computed(() => {
-    return hasCoreBindBoardBeganSetup.value && preStartSystemLoading.value;
+    return (
+      coreBindRoutePaths.value.has(router.currentRoute.value.fullPath) &&
+      preStartSystemLoading.value
+    );
   });
 
   const watchStopHandle = watch(

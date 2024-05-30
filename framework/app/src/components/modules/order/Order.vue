@@ -6,7 +6,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   useActiveInstruments,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
@@ -16,7 +16,6 @@ import {
   useBrowserWindowMinimize,
   messagePrompt,
   confirmModalSkippable,
-  useBoardResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -70,7 +69,7 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error, warn } = messagePrompt();
@@ -89,7 +88,6 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
 const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
 const tableRef = ref();
 const canvasRef = ref();
-const containerRef = ref();
 const adjustNumberInputRef = ref();
 const adjustPriceTick = ref<number>();
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
@@ -106,21 +104,9 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { handleResizeColumnEnd, handleChangeHeaderPosition, getResizedColumns } =
-  useBoardResizeControl(containerRef, 'Order');
-
-const { handleDownload } = useDownloadHistoryTradingData();
-const adjustOrderMaskVisible = ref(false);
-const statisticModalVisible = ref<boolean>(false);
-
-const optionItems: VTable.ListTableConstructorOptions = {
-  dragHeaderMode: 'all',
-};
-
 const columns = computed(() => {
-  let defaultColumns: VTable.TYPES.ColumnDefine[] = [];
   if (!currentGlobalKfLocation.value) {
-    defaultColumns = getColumns(
+    return getColumns(
       {
         category: 'td',
         group: '*',
@@ -130,13 +116,13 @@ const columns = computed(() => {
       !!historyDate.value,
     );
   } else {
-    defaultColumns = getColumns(
-      currentGlobalKfLocation.value,
-      !!historyDate.value,
-    );
+    return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
   }
-  return getResizedColumns(defaultColumns);
 });
+
+const { handleDownload } = useDownloadHistoryTradingData();
+const adjustOrderMaskVisible = ref(false);
+const statisticModalVisible = ref<boolean>(false);
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref(false);
@@ -631,7 +617,7 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
 }
 </script>
 <template>
-  <div class="kf-orders__warp kf-translateZ" ref="containerRef">
+  <div class="kf-orders__warp kf-translateZ">
     <KfDashboard @boardSizeChange="handleBodySizeChange">
       <template #title>
         <span v-if="currentGlobalKfLocation">
@@ -732,12 +718,13 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         </div>
         <KfCanvasTradingDataTable
           ref="canvasRef"
+          table-key="Order"
           :columns="columns"
           :has-data="hasData"
-          :option-items="optionItems"
+          cache-column-resizable
+          cache-column-change
           column-resize-mode="header"
-          @resize-column-end="handleResizeColumnEnd"
-          @change-header-position="handleChangeHeaderPosition"
+          drag-header-mode="all"
           @click-cell="handleClickCell"
           @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"

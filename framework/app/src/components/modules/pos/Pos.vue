@@ -305,8 +305,8 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         :has-data="hasData"
         :custom-layout="customLayout"
         column-resize-mode="header"
-        :resizeColumn="true"
-        :changeHeader="true"
+        :resize-column="true"
+        :change-header="true"
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

@@ -309,8 +309,8 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         :columns="columns"
         :hasData="hasData"
         column-resize-mode="header"
-        :resizeColumn="true"
-        :changeHeader="true"
+        :resize-column="true"
+        :change-header="true"
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

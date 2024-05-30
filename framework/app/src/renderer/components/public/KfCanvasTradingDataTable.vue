@@ -37,6 +37,7 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
 let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
+let dragHeaderMode: 'all' | 'none' | 'column' | 'row' = 'none';
 let font = '';
 const ColumnCustomMap = ref<
   Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
@@ -49,18 +50,19 @@ type tableDataItem =
 
 const props = withDefaults(
   defineProps<{
-    boardKey: string;
+    boardKey?: string;
     columns: VTable.ColumnsDefine;
     dataSource?: tableDataItem[];
     hasData?: boolean;
     customLayout?: Record<string, ICustomActionOption[]>;
     widthMode?: 'adaptive' | 'autoWidth' | 'standard';
     columnResizeMode?: 'all' | 'body' | 'header' | 'none';
+    dragHeaderMode?: 'all' | 'none' | 'column' | 'row';
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
     ScrollableContainerWidth?: number;
-    resizeColumn?: boolean;
-    changeHeader?: boolean;
+    resizeColumnRecord?: boolean;
+    changeHeaderRecord?: boolean;
   }>(),
   {
     boardKey: '',
@@ -68,8 +70,8 @@ const props = withDefaults(
     optionItems: () => ({}),
     dataSource: () => [],
     event: () => ({}),
-    resizeColumn: false,
-    changeHeader: false,
+    resizeColumnRecord: false,
+    changeHeaderRecord: false,
   },
 );
 
@@ -127,7 +129,7 @@ defineEmits<{
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['checkbox_state_change'],
   ): void;
   (
-    e: 'resizeColumn',
+    e: 'resizeColumnRecord',
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['resize_column'],
   ): void;
   (
@@ -244,8 +246,9 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   },
   maintainedDataCount: 100,
   defaultRowHeight: 30,
-  columnResizeMode,
-  widthMode,
+  columnResizeMode: props.columnResizeMode || columnResizeMode,
+  dragHeaderMode: props.dragHeaderMode || dragHeaderMode,
+  widthMode: props.widthMode || widthMode,
   limitMaxAutoWidth: 300,
   //  autoFillHeight:true,
   //  frozenColCount: 1,
@@ -253,7 +256,6 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   tooltip: {
     isShowOverflowTextTooltip: true,
   },
-  dragHeaderMode: props.changeHeader ? 'all' : 'none',
 });
 
 const listTableRef = ref();
@@ -388,10 +390,6 @@ onMounted(() => {
     }
   }
   initCustomLayoutOptions();
-  widthMode = props.widthMode || 'standard';
-  columnResizeMode = props.columnResizeMode || 'none';
-  defaultOptionItems.value.widthMode = widthMode;
-  defaultOptionItems.value.columnResizeMode = columnResizeMode;
   if (listTableRef.value) {
     listTable = new VTable.ListTable(
       listTableRef.value,
@@ -476,7 +474,7 @@ const registerEvent = () => {
     keydown: 'keydown',
     scroll: 'scroll',
     checkbox_state_change: 'checkboxStateChange',
-    resize_column: 'resizeColumn',
+    resize_column: 'resizeColumnRecord',
     resize_column_end: 'resizeColumnEnd',
     change_header_position: 'changeHeaderPosition',
   };
@@ -501,12 +499,12 @@ const registerEvent = () => {
     });
   }
 
-  if (props.resizeColumn) {
+  if (props.resizeColumnRecord) {
     listTable?.on('resize_column_end', (e) => {
       handleResizeColumnEnd(e);
     });
   }
-  if (props.changeHeader) {
+  if (props.changeHeaderRecord) {
     listTable?.on('change_header_position', (e) =>
       handleChangeHeaderPosition(e),
     );

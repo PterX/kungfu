@@ -81,15 +81,8 @@ const columns = computed(() => {
   }
 });
 
-const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
-  useTableResizeControl('Trade', columns);
-
 const { handleDownload } = useDownloadHistoryTradingData();
 const statisticModalVisible = ref<boolean>(false);
-
-const optionItems: VTable.ListTableConstructorOptions = {
-  dragHeaderMode: 'all',
-};
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
@@ -312,12 +305,12 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
-        :columns="resizedColumns"
+        board-key="Trade"
+        :columns="columns"
         :hasData="hasData"
-        :option-items="optionItems"
         column-resize-mode="header"
-        @resize-column-end="handleResizeColumnEnd"
-        @change-header-position="handleChangeHeaderPosition"
+        :resizeColumn="true"
+        :changeHeader="true"
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

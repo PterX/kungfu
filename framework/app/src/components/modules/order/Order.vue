@@ -121,16 +121,9 @@ const columns = computed(() => {
   }
 });
 
-const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
-  useTableResizeControl('Order', columns);
-
 const { handleDownload } = useDownloadHistoryTradingData();
 const adjustOrderMaskVisible = ref(false);
 const statisticModalVisible = ref<boolean>(false);
-
-const optionItems: VTable.ListTableConstructorOptions = {
-  dragHeaderMode: 'all',
-};
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref(false);
@@ -726,12 +719,12 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         </div>
         <KfCanvasTradingDataTable
           ref="canvasRef"
-          :columns="resizedColumns"
+          board-key="Order"
+          :columns="columns"
           :has-data="hasData"
-          :option-items="optionItems"
+          :resizeColumn="true"
+          :changeHeader="true"
           column-resize-mode="header"
-          @resize-column-end="handleResizeColumnEnd"
-          @change-header-position="handleChangeHeaderPosition"
           @click-cell="handleClickCell"
           @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"

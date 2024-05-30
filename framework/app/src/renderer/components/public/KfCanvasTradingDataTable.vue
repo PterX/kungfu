@@ -28,6 +28,8 @@ import {
   ICustomActionOption,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
+import { useTableResizeControl } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
@@ -47,6 +49,7 @@ type tableDataItem =
 
 const props = withDefaults(
   defineProps<{
+    boardKey: string;
     columns: VTable.ColumnsDefine;
     dataSource?: tableDataItem[];
     hasData?: boolean;
@@ -56,12 +59,17 @@ const props = withDefaults(
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
     ScrollableContainerWidth?: number;
+    resizeColumn?: boolean;
+    changeHeader?: boolean;
   }>(),
   {
+    boardKey: '',
     columns: () => [],
     optionItems: () => ({}),
     dataSource: () => [],
     event: () => ({}),
+    resizeColumn: false,
+    changeHeader: false,
   },
 );
 
@@ -131,6 +139,23 @@ defineEmits<{
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['change_header_position'],
   ): void;
 }>();
+
+const columnsRef = computed(() => {
+  return props.columns;
+});
+
+const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
+  useTableResizeControl(props.boardKey, columnsRef);
+
+watch(
+  () => resizedColumns.value,
+  (resizedColumns) => {
+    if (listTable) {
+      initCustomLayoutOptions();
+      listTable.updateColumns(resizedColumns);
+    }
+  },
+);
 
 const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   columnResize: {
@@ -228,12 +253,14 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   tooltip: {
     isShowOverflowTextTooltip: true,
   },
+  dragHeaderMode: props.changeHeader ? 'all' : 'none',
 });
+
 const listTableRef = ref();
 const emptyRef = ref();
 const option = computed<VTable.ListTableConstructorOptions>(() => {
   return {
-    columns: props.columns,
+    columns: resizedColumns.value,
     ...defaultOptionItems.value,
     ...props.optionItems,
   } as VTable.ListTableConstructorOptions;
@@ -432,17 +459,6 @@ watch(
     }
   },
 );
-
-watch(
-  () => props.columns,
-  () => {
-    if (listTable) {
-      initCustomLayoutOptions();
-      listTable.updateOption(option.value);
-    }
-  },
-);
-
 const registerEvent = () => {
   if (!listTable) return;
 
@@ -483,6 +499,17 @@ const registerEvent = () => {
         >,
       );
     });
+  }
+
+  if (props.resizeColumn) {
+    listTable?.on('resize_column_end', (e) => {
+      handleResizeColumnEnd(e);
+    });
+  }
+  if (props.changeHeader) {
+    listTable?.on('change_header_position', (e) =>
+      handleChangeHeaderPosition(e),
+    );
   }
 };
 </script>

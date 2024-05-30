@@ -2731,6 +2731,10 @@ export const useTableResizeControl = (
           localStorage.removeItem(DEFAULT_KEY);
           tableResizeConfig.value = null;
           boardKey.value = boardName;
+          resizedColumns.value = [];
+          nextTick(() => {
+            resizedColumns.value = getResizedColumns(columnsRef.value);
+          });
         }
       }
     },
@@ -2740,7 +2744,8 @@ export const useTableResizeControl = (
     subscription && subscription.unsubscribe();
   });
 
-  function getTableResizeConfig(key: string): ColumnsSetting | null {
+  function getTableResizeConfig(key = boardKey.value): ColumnsSetting | null {
+    if (!key) return null;
     const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
     let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
     if (!tableResizeConfigMapStr) {
@@ -2752,9 +2757,8 @@ export const useTableResizeControl = (
 
   watch(
     () => columnsRef.value,
-    (columns) => {
-      tableResizeConfig.value ||= getTableResizeConfig(boardKey.value);
-      resizedColumns.value = getResizedColumns(columns);
+    (columnsValue) => {
+      resizedColumns.value = getResizedColumns(columnsValue);
     },
     {
       immediate: true,
@@ -2765,6 +2769,7 @@ export const useTableResizeControl = (
     option = tableResizeConfig.value,
     key = boardKey.value,
   ) {
+    if (!key) return;
     const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
     let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
     if (tableResizeConfigMapStr) {
@@ -2818,6 +2823,7 @@ export const useTableResizeControl = (
   }
 
   function getResizedColumns(columns: VTable.TYPES.ColumnDefine[]) {
+    tableResizeConfig.value ||= getTableResizeConfig(boardKey.value);
     if (!tableResizeConfig.value) {
       initializeTableResizeConfig(columns);
       return columns;

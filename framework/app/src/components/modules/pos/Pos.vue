@@ -139,13 +139,6 @@ const columns = computed(() => {
   });
 });
 
-const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
-  useTableResizeControl('Pos', columns);
-
-const optionItems: VTable.ListTableConstructorOptions = {
-  dragHeaderMode: 'all',
-};
-
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
@@ -307,13 +300,13 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
-        :columns="resizedColumns"
+        board-key="Pos"
+        :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
-        :option-items="optionItems"
         column-resize-mode="header"
-        @resize-column-end="handleResizeColumnEnd"
-        @change-header-position="handleChangeHeaderPosition"
+        :resizeColumn="true"
+        :changeHeader="true"
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

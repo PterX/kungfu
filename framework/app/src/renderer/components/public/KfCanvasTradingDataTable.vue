@@ -50,7 +50,7 @@ type tableDataItem =
 
 const props = withDefaults(
   defineProps<{
-    boardKey?: string;
+    tableKey?: string;
     columns: VTable.ColumnsDefine;
     dataSource?: tableDataItem[];
     hasData?: boolean;
@@ -61,17 +61,17 @@ const props = withDefaults(
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
     ScrollableContainerWidth?: number;
-    resizeColumnRecord?: boolean;
-    changeHeaderRecord?: boolean;
+    cacheColumnResizable?: boolean;
+    cacheColumnChange?: boolean;
   }>(),
   {
-    boardKey: '',
+    tableKey: '',
     columns: () => [],
     optionItems: () => ({}),
     dataSource: () => [],
     event: () => ({}),
-    resizeColumnRecord: false,
-    changeHeaderRecord: false,
+    cacheColumnResizable: false,
+    cacheColumnChange: false,
   },
 );
 
@@ -129,7 +129,7 @@ defineEmits<{
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['checkbox_state_change'],
   ): void;
   (
-    e: 'resizeColumnRecord',
+    e: 'resizeColumn',
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['resize_column'],
   ): void;
   (
@@ -147,7 +147,7 @@ const columnsRef = computed(() => {
 });
 
 const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
-  useTableResizeControl(props.boardKey, columnsRef);
+  useTableResizeControl(props.tableKey, columnsRef);
 
 watch(
   () => resizedColumns.value,
@@ -474,7 +474,7 @@ const registerEvent = () => {
     keydown: 'keydown',
     scroll: 'scroll',
     checkbox_state_change: 'checkboxStateChange',
-    resize_column: 'resizeColumnRecord',
+    resize_column: 'resizeColumn',
     resize_column_end: 'resizeColumnEnd',
     change_header_position: 'changeHeaderPosition',
   };
@@ -499,12 +499,12 @@ const registerEvent = () => {
     });
   }
 
-  if (props.resizeColumnRecord) {
+  if (props.cacheColumnResizable) {
     listTable?.on('resize_column_end', (e) => {
       handleResizeColumnEnd(e);
     });
   }
-  if (props.changeHeaderRecord) {
+  if (props.cacheColumnChange) {
     listTable?.on('change_header_position', (e) =>
       handleChangeHeaderPosition(e),
     );

@@ -2713,7 +2713,7 @@ export const useBrowserWindowMinimize = () => {
 };
 
 export const useTableResizeControl = (
-  boardName: string,
+  tableName: string,
   columnsRef:
     | Ref<VTable.TYPES.ColumnDefine[]>
     | ComputedRef<VTable.TYPES.ColumnDefine[]>,
@@ -2721,7 +2721,7 @@ export const useTableResizeControl = (
   const resizedColumns = ref<VTable.TYPES.ColumnDefine[]>([]);
   const DEFAULT_KEY = 'tableResizeConfigMap';
   const app = getCurrentInstance();
-  const boardKey = ref<string>(boardName);
+  const tableKey = ref<string>(tableName);
   const tableResizeConfig = ref<ColumnsSetting | null>(null);
 
   const subscription = app?.proxy?.$globalBus.subscribe(
@@ -2730,7 +2730,7 @@ export const useTableResizeControl = (
         if (data.name === 'reset-main-dashboard') {
           localStorage.removeItem(DEFAULT_KEY);
           tableResizeConfig.value = null;
-          boardKey.value = boardName;
+          tableKey.value = tableName;
           resizedColumns.value = [];
           nextTick(() => {
             resizedColumns.value = getResizedColumns(columnsRef.value);
@@ -2744,7 +2744,7 @@ export const useTableResizeControl = (
     subscription && subscription.unsubscribe();
   });
 
-  function getTableResizeConfig(key = boardKey.value): ColumnsSetting | null {
+  function getTableResizeConfig(key = tableKey.value): ColumnsSetting | null {
     if (!key) return null;
     const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
     let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
@@ -2767,7 +2767,7 @@ export const useTableResizeControl = (
 
   function setTableResizeConfigMap(
     option = tableResizeConfig.value,
-    key = boardKey.value,
+    key = tableKey.value,
   ) {
     if (!key) return;
     const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
@@ -2780,7 +2780,7 @@ export const useTableResizeControl = (
     localStorage.setItem(DEFAULT_KEY, JSON.stringify(tableResizeConfigMap));
   }
 
-  function removeTableResizeConfig(key = boardKey.value) {
+  function removeTableResizeConfig(key = tableKey.value) {
     const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
     let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
     if (!tableResizeConfigMapStr) {
@@ -2803,7 +2803,7 @@ export const useTableResizeControl = (
       tableResizeConfig.value.columnsWidth[colName] = colWidth;
       nextColWidth &&
         (tableResizeConfig.value.columnsWidth[nextColName] = nextColWidth);
-      setTableResizeConfigMap(tableResizeConfig.value, boardKey.value);
+      setTableResizeConfigMap(tableResizeConfig.value, tableKey.value);
     }
   };
 
@@ -2818,12 +2818,12 @@ export const useTableResizeControl = (
         tableResizeConfig.value.fields[targetCol],
         tableResizeConfig.value.fields[sourceCol],
       ];
-      setTableResizeConfigMap(tableResizeConfig.value, boardKey.value);
+      setTableResizeConfigMap(tableResizeConfig.value, tableKey.value);
     }
   }
 
   function getResizedColumns(columns: VTable.TYPES.ColumnDefine[]) {
-    tableResizeConfig.value ||= getTableResizeConfig(boardKey.value);
+    tableResizeConfig.value ||= getTableResizeConfig(tableKey.value);
     if (!tableResizeConfig.value) {
       initializeTableResizeConfig(columns);
       return columns;
@@ -2894,7 +2894,7 @@ export const useTableResizeControl = (
   }
 
   return {
-    boardKey,
+    tableKey,
     tableResizeConfig,
     resizedColumns,
     setTableResizeConfigMap,

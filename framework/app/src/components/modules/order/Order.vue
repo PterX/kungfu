@@ -718,11 +718,11 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         </div>
         <KfCanvasTradingDataTable
           ref="canvasRef"
-          board-key="Order"
+          table-key="Order"
           :columns="columns"
           :has-data="hasData"
-          :resize-column-record="true"
-          :change-header-record="true"
+          cache-column-resizable
+          cache-column-change
           column-resize-mode="header"
           drag-header-mode="all"
           @click-cell="handleClickCell"

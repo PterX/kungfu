@@ -333,14 +333,14 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
-        board-key="PosGlobal"
+        table-key="PosGlobal"
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
         column-resize-mode="header"
         drag-header-mode="all"
-        :resize-column-record="true"
-        :change-header-record="true"
+        cache-column-resizable
+        cache-column-change
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

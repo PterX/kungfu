@@ -304,13 +304,13 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
-        board-key="Trade"
+        table-key="Trade"
         :columns="columns"
         :hasData="hasData"
         column-resize-mode="header"
         drag-header-mode="all"
-        :resize-column-record="true"
-        :change-header-record="true"
+        cache-column-resizable
+        cache-column-change
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

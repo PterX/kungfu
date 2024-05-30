@@ -20,7 +20,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   useActiveInstruments,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getConfigSettings, LABEL_COL, WRAPPER_COL } from './config';
 import { dealOrderPlaceVNode, dealStockOffset } from './utils';
@@ -81,7 +81,7 @@ import {
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { error, success } = messagePrompt();

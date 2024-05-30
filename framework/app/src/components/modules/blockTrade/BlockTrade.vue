@@ -20,7 +20,7 @@ import {
   useProcessStatusDetailData,
   useActiveInstruments,
   useFormCurrentState,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   confirmModal,
@@ -38,7 +38,7 @@ import {
   SideEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { error } = messagePrompt();

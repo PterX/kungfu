@@ -14,7 +14,7 @@ import { initFormStateByConfig } from '@kungfu-trader/kungfu-js-api/utils/busiUt
 import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { transformSearchInstrumentResultToInstrument } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import {
-  useCoreBindBoardState,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
   useFormCurrentState,
   useProcessStatusDetailData,
@@ -28,7 +28,7 @@ import {
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { dealOrderPlaceVNode } from '../makeOrder/utils';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { error } = messagePrompt();

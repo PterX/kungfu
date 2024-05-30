@@ -4,7 +4,6 @@ import {
   useBrowserWindowMinimize,
   useDashboardBodySize,
   useTriggerMakeOrder,
-  useTableResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   VTable,

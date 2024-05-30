@@ -7,7 +7,6 @@ import {
   useBrowserWindowMinimize,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
-  useTableResizeControl,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';

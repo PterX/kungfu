@@ -14,6 +14,13 @@ defineProps<{
   >;
   title: string;
 }>();
+
+const getContainer = () => {
+  const e = document.querySelector('#kf-layout-content');
+  console.log('#kf-layout-content', e);
+
+  return e;
+};
 </script>
 <template>
   <a-modal
@@ -24,6 +31,8 @@ defineProps<{
     :closable="false"
     :maskClosable="false"
     :footer="null"
+    :maskStyle="{ position: 'absolute' }"
+    :getContainer="getContainer"
   >
     <div class="prepare-item" v-for="item in status" :key="item.key">
       <span

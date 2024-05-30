@@ -42,7 +42,7 @@ interface GlobalState {
   operatorList: KungfuApi.KfConfig[];
   basketList: KungfuApi.Basket[];
 
-  hasCoreBindBoardBeganSetup: boolean; // 依赖于 core 的 board 是否已经启动
+  hasCoreBindBoardBeganSetup: boolean; // 依赖于底层的面板是否已经启动
   preStartSystemLoadingData: Record<
     'archive' | 'watcher' | 'extraResourcesLoading' | 'cpusSafeNumChecking',
     'loading' | 'done'

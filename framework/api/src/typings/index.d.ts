@@ -9,6 +9,11 @@ type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
 
 type TradingDataKeeperListType = 'all' | 'common' | 'unfinished';
 
+type ColumnsSetting = {
+  fields: string[];
+  columnsWidth: Record<string, number>;
+};
+
 declare module 'tasklist' {
   function tasklist(options: {
     verbose: boolean;

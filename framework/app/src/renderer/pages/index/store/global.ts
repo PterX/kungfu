@@ -42,7 +42,7 @@ interface GlobalState {
   operatorList: KungfuApi.KfConfig[];
   basketList: KungfuApi.Basket[];
 
-  hasCoreBindBoardBeganSetup: boolean; // 依赖于底层的面板是否已经启动
+  coreBindRoutePaths: Set<string>; // 依赖于底层的页面
   preStartSystemLoadingData: Record<
     'archive' | 'watcher' | 'extraResourcesLoading' | 'cpusSafeNumChecking',
     'loading' | 'done'
@@ -111,7 +111,7 @@ export const useGlobalStore = defineStore('global', {
       operatorList: [],
       basketList: [],
 
-      hasCoreBindBoardBeganSetup: false,
+      coreBindRoutePaths: new Set(),
       preStartSystemLoadingData: {
         archive: 'loading',
         watcher: 'loading',

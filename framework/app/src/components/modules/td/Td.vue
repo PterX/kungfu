@@ -41,7 +41,7 @@ import {
   useAssets,
   useReplay,
   showTradingDataDetail,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIfProcessRunning,
@@ -69,7 +69,7 @@ import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/met
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();

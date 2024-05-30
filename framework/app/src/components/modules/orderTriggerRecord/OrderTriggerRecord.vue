@@ -23,7 +23,7 @@ import {
 
 import {
   showTradingDataDetail,
-  useCoreBindBoardState,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -83,7 +83,7 @@ interface CsvOrderInput {
 
 type CsvOrderInputError = Partial<CsvOrderInput> & { index?: number };
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { error, success, warn } = messagePrompt();

@@ -35,7 +35,7 @@ import {
   handleSwitchProcessStatusGenerator,
   useExtConfigsRelated,
   useReplay,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIfProcessRunning,
@@ -51,7 +51,7 @@ import { AddOperatorTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums'
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import path from 'path';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();

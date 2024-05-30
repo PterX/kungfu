@@ -6,7 +6,7 @@ import {
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import {
   useActiveInstruments,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
@@ -70,7 +70,7 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error, warn } = messagePrompt();

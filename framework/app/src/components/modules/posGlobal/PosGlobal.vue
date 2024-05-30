@@ -44,7 +44,7 @@ import {
   useDealDataWithCaches,
   showTradingDataDetail,
   getPosClosableVolumeByOffset,
-  useCoreBindBoardState,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
@@ -53,7 +53,7 @@ import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalS
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
-useCoreBindBoardState().markSetup();
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 

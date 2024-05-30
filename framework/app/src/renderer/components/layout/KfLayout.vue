@@ -220,7 +220,7 @@ function handleToPage(pathname: string) {
         </div>
       </a-layout-sider>
       <a-layout style="padding: 0px 8px 0 8px; box-sizing: border-box">
-        <a-layout-content>
+        <a-layout-content id="kf-layout-content" style="position: relative">
           <slot></slot>
         </a-layout-content>
       </a-layout>

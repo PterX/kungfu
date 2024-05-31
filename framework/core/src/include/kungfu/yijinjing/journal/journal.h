@@ -170,6 +170,8 @@ public:
 
   void preload_next_page();
 
+  void clear();
+
   static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 
 private:

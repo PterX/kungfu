@@ -689,10 +689,6 @@ declare namespace KungfuApi {
     position_pnl: number; //持仓盈亏(期货)
     close_pnl: number; //平仓盈亏(期货)
 
-    update_time: bigint; //更新时间
-    holder_uid: number;
-    ledger_category: LedgerCategoryEnum;
-
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
     long_margin: number; //融资占用保证金

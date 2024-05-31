@@ -146,8 +146,11 @@ const columnsRef = computed(() => {
   return props.columns;
 });
 
+const resizable =
+  props.columnResizeMode !== 'none' || props.dragHeaderMode !== 'none';
+
 const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
-  useTableResizeControl(props.tableKey, columnsRef);
+  useTableResizeControl(props.tableKey, columnsRef, resizable);
 
 watch(
   () => resizedColumns.value,

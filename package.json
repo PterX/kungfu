@@ -64,6 +64,7 @@
     "fs-extra": "^10.1.0",
     "nanopop": "~2.3.0",
     "@vue/babel-plugin-jsx": "~1.1.0",
-    "@vue/compiler-sfc": "~3.2.4"
+    "@vue/compiler-sfc": "~3.2.4",
+    "@vueuse/core": ">=10.9.0 <10.10.0"
   }
 }

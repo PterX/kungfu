@@ -2717,6 +2717,7 @@ export const useTableResizeControl = (
   columnsRef:
     | Ref<VTable.TYPES.ColumnDefine[]>
     | ComputedRef<VTable.TYPES.ColumnDefine[]>,
+  resizable = false,
 ) => {
   const resizedColumns = ref<VTable.TYPES.ColumnDefine[]>([]);
   const DEFAULT_KEY = 'tableResizeConfigMap';
@@ -2724,21 +2725,21 @@ export const useTableResizeControl = (
   const tableKey = ref<string>(tableName);
   const tableResizeConfig = ref<ColumnsSetting | null>(null);
 
-  const subscription = app?.proxy?.$globalBus.subscribe(
-    (data: KfEvent.KfBusEvent) => {
-      if (data.tag === 'main') {
-        if (data.name === 'reset-main-dashboard') {
-          localStorage.removeItem(DEFAULT_KEY);
-          tableResizeConfig.value = null;
-          tableKey.value = tableName;
-          resizedColumns.value = [];
-          nextTick(() => {
-            resizedColumns.value = getResizedColumns(columnsRef.value);
-          });
+  const subscription = resizable
+    ? app?.proxy?.$globalBus?.subscribe((data: KfEvent.KfBusEvent) => {
+        if (data.tag === 'main') {
+          if (data.name === 'reset-main-dashboard') {
+            localStorage.removeItem(DEFAULT_KEY);
+            tableResizeConfig.value = null;
+            tableKey.value = tableName;
+            resizedColumns.value = [];
+            nextTick(() => {
+              resizedColumns.value = getResizedColumns(columnsRef.value);
+            });
+          }
         }
-      }
-    },
-  );
+      })
+    : null;
 
   onUnmounted(() => {
     subscription && subscription.unsubscribe();
@@ -2823,6 +2824,9 @@ export const useTableResizeControl = (
   }
 
   function getResizedColumns(columns: VTable.TYPES.ColumnDefine[]) {
+    if (!resizable) {
+      return columns;
+    }
     tableResizeConfig.value ||= getTableResizeConfig(tableKey.value);
     if (!tableResizeConfig.value) {
       initializeTableResizeConfig(columns);

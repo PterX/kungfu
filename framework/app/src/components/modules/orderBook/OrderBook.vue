@@ -20,10 +20,16 @@ import {
   SideEnum,
   InstrumentTypeEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useCoreBindPage,
+  useQuote,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { getPrecisionByInstrumentType } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+useCoreBindPage();
+
 const { t } = VueI18n.global;
 
 const currentInstrument = ref<KungfuApi.InstrumentResolved | undefined>();

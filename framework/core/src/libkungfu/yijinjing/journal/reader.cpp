@@ -175,6 +175,12 @@ uint64_t reader::find_page_size(const data::location_ptr &location, uint32_t des
   return page_size;
 }
 
+void reader::clear() {
+  journals_.clear();
+  current_ = nullptr;
+  sort_without_buffer();
+}
+
 bool reader::later::operator()(const journal *const lhs, const journal *const rhs) const {
   if (lhs->priority_ == rhs->priority_) {
     return const_cast<journal *>(lhs)->current_frame()->gen_time() >

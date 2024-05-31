@@ -427,6 +427,7 @@ publish_synthetic_data
 update_operator_state
 set_resume_policy
 attach_orderbooks
+batch_streaming
 attach_factor_cache
 req_deregister
 pre_start
@@ -460,7 +461,6 @@ is_positions_held
 is_bypass_accounting
 bypass_accounting
 update_strategy_state
-batch_streaming
 on_order
 on_order_trigger
 on_algo_order
@@ -633,6 +633,11 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
+Tick
+Depth
 SubscribeDataType
 Stock
 Future

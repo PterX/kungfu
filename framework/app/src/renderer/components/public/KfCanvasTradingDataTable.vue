@@ -28,6 +28,8 @@ import {
   ICustomActionOption,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
+import { useTableResizeControl } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
@@ -35,6 +37,7 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
 let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
+let dragHeaderMode: 'all' | 'none' | 'column' | 'row' = 'none';
 let font = '';
 const ColumnCustomMap = ref<
   Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
@@ -47,21 +50,28 @@ type tableDataItem =
 
 const props = withDefaults(
   defineProps<{
+    tableKey?: string;
     columns: VTable.ColumnsDefine;
     dataSource?: tableDataItem[];
     hasData?: boolean;
     customLayout?: Record<string, ICustomActionOption[]>;
     widthMode?: 'adaptive' | 'autoWidth' | 'standard';
     columnResizeMode?: 'all' | 'body' | 'header' | 'none';
+    dragHeaderMode?: 'all' | 'none' | 'column' | 'row';
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
     ScrollableContainerWidth?: number;
+    cacheColumnResizable?: boolean;
+    cacheColumnChange?: boolean;
   }>(),
   {
+    tableKey: '',
     columns: () => [],
     optionItems: () => ({}),
     dataSource: () => [],
     event: () => ({}),
+    cacheColumnResizable: false,
+    cacheColumnChange: false,
   },
 );
 
@@ -118,7 +128,36 @@ defineEmits<{
     e: 'checkboxStateChange',
     data: VTable.TYPES.TableEventHandlersEventArgumentMap['checkbox_state_change'],
   ): void;
+  (
+    e: 'resizeColumn',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['resize_column'],
+  ): void;
+  (
+    e: 'resizeColumnEnd',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['resize_column_end'],
+  ): void;
+  (
+    e: 'changeHeaderPosition',
+    data: VTable.TYPES.TableEventHandlersEventArgumentMap['change_header_position'],
+  ): void;
 }>();
+
+const columnsRef = computed(() => {
+  return props.columns;
+});
+
+const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
+  useTableResizeControl(props.tableKey, columnsRef);
+
+watch(
+  () => resizedColumns.value,
+  (resizedColumns) => {
+    if (listTable) {
+      initCustomLayoutOptions();
+      listTable.updateColumns(resizedColumns);
+    }
+  },
+);
 
 const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   columnResize: {
@@ -144,10 +183,10 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     color: '#ffffffd9',
     // lineHeight: 35,
     hover: {
-      cellBgColor: '#333',
+      cellBgColor: 'rgba(128, 128, 128, 0.3)',
       inlineRowBgColor: '#333',
     },
-    cursor: 'pointer',
+    // cursor: 'pointer',
     textBaseline: 'middle',
   },
   defaultStyle: {
@@ -185,6 +224,16 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
     disableCheckedFill: '#FAAD14',
     disableCheckedStroke: '#FAAD14',
   },
+  selectionStyle: {
+    cellBgColor: 'rgba(128, 128, 128, 0.3)',
+    cellBorderColor: '#444',
+    cellBorderLineWidth: 2,
+  },
+  dragHeaderSplitLine: {
+    lineColor: '#FAAD14',
+    lineWidth: 1,
+    shadowBlockColor: 'rgba(128, 128, 128, 0.3)',
+  },
 };
 
 const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
@@ -197,8 +246,9 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   },
   maintainedDataCount: 100,
   defaultRowHeight: 30,
-  columnResizeMode,
-  widthMode,
+  columnResizeMode: props.columnResizeMode || columnResizeMode,
+  dragHeaderMode: props.dragHeaderMode || dragHeaderMode,
+  widthMode: props.widthMode || widthMode,
   limitMaxAutoWidth: 300,
   //  autoFillHeight:true,
   //  frozenColCount: 1,
@@ -207,11 +257,12 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
     isShowOverflowTextTooltip: true,
   },
 });
+
 const listTableRef = ref();
 const emptyRef = ref();
 const option = computed<VTable.ListTableConstructorOptions>(() => {
   return {
-    columns: props.columns,
+    columns: resizedColumns.value,
     ...defaultOptionItems.value,
     ...props.optionItems,
   } as VTable.ListTableConstructorOptions;
@@ -221,7 +272,8 @@ let listTable: VTable.ListTable | null = null;
 const containerWidth = ref<number>(10);
 
 const initCustomLayoutOptions = () => {
-  const customLayoutOption = props.customLayout || {};
+  if (!props.customLayout) return;
+  const customLayoutOption = props.customLayout;
   Object.keys(customLayoutOption).forEach((key) => {
     if (!customLayoutOption[key]) return;
     ColumnCustomMap.value[key] = {
@@ -338,10 +390,6 @@ onMounted(() => {
     }
   }
   initCustomLayoutOptions();
-  widthMode = props.widthMode || 'standard';
-  columnResizeMode = props.columnResizeMode || 'none';
-  defaultOptionItems.value.widthMode = widthMode;
-  defaultOptionItems.value.columnResizeMode = columnResizeMode;
   if (listTableRef.value) {
     listTable = new VTable.ListTable(
       listTableRef.value,
@@ -409,17 +457,6 @@ watch(
     }
   },
 );
-
-watch(
-  () => props.columns,
-  () => {
-    if (listTable) {
-      initCustomLayoutOptions();
-      listTable.updateOption(option.value);
-    }
-  },
-);
-
 const registerEvent = () => {
   if (!listTable) return;
 
@@ -437,6 +474,9 @@ const registerEvent = () => {
     keydown: 'keydown',
     scroll: 'scroll',
     checkbox_state_change: 'checkboxStateChange',
+    resize_column: 'resizeColumn',
+    resize_column_end: 'resizeColumnEnd',
+    change_header_position: 'changeHeaderPosition',
   };
 
   Object.entries(eventMap).forEach(([event, emitEvent]) => {
@@ -457,6 +497,17 @@ const registerEvent = () => {
         >,
       );
     });
+  }
+
+  if (props.cacheColumnResizable) {
+    listTable?.on('resize_column_end', (e) => {
+      handleResizeColumnEnd(e);
+    });
+  }
+  if (props.cacheColumnChange) {
+    listTable?.on('change_header_position', (e) =>
+      handleChangeHeaderPosition(e),
+    );
   }
 };
 </script>

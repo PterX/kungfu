@@ -4,7 +4,10 @@ import {
   getProcessIdByKfLocation,
   delayMilliSeconds,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { useActiveInstruments } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useActiveInstruments,
+  useCoreBindPage,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   useDownloadHistoryTradingData,
   useDashboardBodySize,
@@ -66,6 +69,8 @@ import {
 import StatisticModal from './OrderStatisticModal.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+useCoreBindPage();
+
 const { t } = VueI18n.global;
 const { success, error, warn } = messagePrompt();
 const app = getCurrentInstance();
@@ -79,6 +84,12 @@ const { dealDataWithCache, clearCaches } = useDealDataWithCaches<
   KungfuApi.Order,
   KungfuApi.OrderResolvedWithoutStat
 >(['uid_key', 'update_time']);
+
+const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
+const tableRef = ref();
+const canvasRef = ref();
+const adjustNumberInputRef = ref();
+const adjustPriceTick = ref<number>();
 const allOrders = ref<KungfuApi.OrderResolved[]>([]);
 const unfinishedOrder = ref<boolean>(false);
 const historyDate = ref<Dayjs>();
@@ -93,10 +104,6 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { handleDownload } = useDownloadHistoryTradingData();
-const adjustOrderMaskVisible = ref(false);
-const statisticModalVisible = ref<boolean>(false);
-
 const columns = computed(() => {
   if (!currentGlobalKfLocation.value) {
     return getColumns(
@@ -108,10 +115,14 @@ const columns = computed(() => {
       },
       !!historyDate.value,
     );
+  } else {
+    return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
   }
-
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
+
+const { handleDownload } = useDownloadHistoryTradingData();
+const adjustOrderMaskVisible = ref(false);
+const statisticModalVisible = ref<boolean>(false);
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref(false);
@@ -402,7 +413,7 @@ function handleClickCell(args: VTable.MousePointerCellEvent) {
 }
 
 function handleDblClickCell(args: VTable.MousePointerCellEvent) {
-  if (historyDate.value) return;
+  if (historyDate.value || !args.originData) return;
   handleCancelOrderWithRemind(args.originData);
 }
 
@@ -428,11 +439,6 @@ const adjustOrderForm = ref<{
   price: 0,
   volume: 0,
 });
-const adjustOrder = ref<KungfuApi.OrderResolved | null>(null);
-const tableRef = ref();
-const canvasRef = ref();
-const adjustNumberInputRef = ref();
-const adjustPriceTick = ref<number>();
 
 function handleAdjustOrder(data: {
   event: MouseEvent;
@@ -712,8 +718,13 @@ function testOrderSourceIsOnline(order: KungfuApi.OrderResolved) {
         </div>
         <KfCanvasTradingDataTable
           ref="canvasRef"
+          table-key="Order"
           :columns="columns"
           :has-data="hasData"
+          cache-column-resizable
+          cache-column-change
+          column-resize-mode="header"
+          drag-header-mode="all"
           @click-cell="handleClickCell"
           @dblclick-cell="handleDblClickCell"
           @right-click-row="handleShowTradingDataDetail"

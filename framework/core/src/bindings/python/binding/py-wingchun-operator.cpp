@@ -122,6 +122,7 @@ void bind_operator(pybind11::module &m) {
       .def("update_operator_state", &op::Context::update_operator_state)
       .def("set_resume_policy", &op::Context::set_resume_policy)
       .def("attach_orderbooks", &op::Context::attach_orderbooks)
+      .def("batch_streaming", &op::Context::batch_streaming)
       .def("attach_factor_cache", &op::Context::attach_factor_cache)
       .def("req_deregister", &op::Context::req_deregister);
 

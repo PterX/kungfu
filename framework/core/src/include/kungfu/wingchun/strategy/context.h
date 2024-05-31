@@ -11,7 +11,10 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/factor/backteststreamdatabatcher.h>
 #include <kungfu/wingchun/factor/crosssection.h>
+#include <kungfu/wingchun/factor/livestreamdatabatcher.h>
+#include <kungfu/wingchun/factor/streamdatabatcher.h>
 #include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/wingchun/strategy/strategy.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
@@ -402,6 +405,8 @@ public:
    * @return
    */
   const std::string &get_strategy_dir();
+
+  virtual std::shared_ptr<wingchun::factor::StreamDataBatcher> batch_streaming() = 0;
 
 protected:
   yijinjing::practice::apprentice &app_;

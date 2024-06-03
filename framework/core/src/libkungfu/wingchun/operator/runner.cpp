@@ -65,7 +65,10 @@ tool::Report_ptr Runner::get_report() const { return report_; }
 
 void Runner::on_exit() { post_stop(); }
 
-void Runner::on_react() { context_ = make_context(); }
+void Runner::on_react() {
+  context_ = make_context();
+  make_operator_dir(*context_, operator_dir_);
+}
 
 void Runner::on_start() {
   pre_start();
@@ -140,4 +143,6 @@ bool Runner::is_reactable(const event_ptr &event) {
   }
   return not is_custom_event(event);
 }
+
+void Runner::set_operator_dir(const std::string &operator_dir) { operator_dir_ = operator_dir; }
 } // namespace kungfu::wingchun::op

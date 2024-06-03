@@ -41,6 +41,7 @@ import {
   useAssets,
   useReplay,
   showTradingDataDetail,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import {
   getIfProcessRunning,
@@ -67,6 +68,8 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { FundTransTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -1051,14 +1054,12 @@ function isShowFundTransIcon(location: KungfuApi.KfConfig) {
     ></SetTdGroupModal>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
-      :width="520"
+      :width="720"
       v-model:visible="setReplayModalVisible"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
-      :begin-time="replayConfig.begin_time.split(' ')[1]"
-      :end-time="
-        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
-      "
+      :begin-time="replayConfig.begin_time"
+      :end-time="replayConfig.end_time ? replayConfig.end_time : ''"
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"

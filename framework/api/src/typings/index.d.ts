@@ -7,6 +7,13 @@ declare const __resources: string;
 type AnyFunction = (...args: unknown[]) => unknown;
 type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
 
+type TradingDataKeeperListType = 'all' | 'common' | 'unfinished';
+
+type ColumnsSetting = {
+  fields: string[];
+  columnsWidth: Record<string, number>;
+};
+
 declare module 'tasklist' {
   function tasklist(options: {
     verbose: boolean;
@@ -682,10 +689,6 @@ declare namespace KungfuApi {
     position_pnl: number; //持仓盈亏(期货)
     close_pnl: number; //平仓盈亏(期货)
 
-    update_time: bigint; //更新时间
-    holder_uid: number;
-    ledger_category: LedgerCategoryEnum;
-
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
     long_margin: number; //融资占用保证金
@@ -759,6 +762,7 @@ declare namespace KungfuApi {
     parent_id: bigint; //母单号
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
+    restore_time: bigint; //根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -800,6 +804,7 @@ declare namespace KungfuApi {
     dest_uname: string;
     status_uname: string;
     status_color: AntInKungfuColorTypes;
+    status_resolved: KungfuApi.KfTradeValueCommonData;
     update_time_resolved: string;
     limit_price_resolved: string;
   }
@@ -858,6 +863,7 @@ declare namespace KungfuApi {
 
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
+    restore_time: bigint; //根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -1065,6 +1071,7 @@ declare namespace KungfuApi {
     update_time: bigint; // 更新时间
     begin_time: bigint; // 开始时间
     end_time: bigint; // 结束时间
+    restore_time: bigint; // 根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; // 合约代码
     exchange_id: string; // 交易所代码
@@ -1199,6 +1206,7 @@ declare namespace KungfuApi {
     external_order_id: string; //外部委托ID
     external_trade_id: string; //外部委托ID
     trade_time: bigint; //成交时间
+    restore_time: bigint; //根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -1338,6 +1346,8 @@ declare namespace KungfuApi {
     replace_flag: CashReplaceFlagEnum; // 是否可以由现金替代
     cash_premium_ratio: number; // 现金替代溢价比率
     replace_balance: number; // 替代金额
+    keep_single_side: boolean; // 保留单边
+    close_today_first: boolean; // 优先平今
   }
 
   export interface BasketInstrumentResolved
@@ -1486,8 +1496,10 @@ declare namespace KungfuApi {
     getValue(key1: unknown, key2: unknown): V | undefined;
     getCommonList(): V[];
     getUnfinishedList(): V[];
-    getAllUnfinishedList(): V[];
-    getAllList(): V[];
+    getCommonTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getUnfinishedTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getFullTree(filterFunc?: (item: V) => boolean): BTree<unknown, V>;
+    getFullList(): V[];
   }
 
   export interface TradingDataKeeper {
@@ -1498,10 +1510,13 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, OrderResolved>;
       };
-      list: () => KungfuApi.OrderResolved[];
+      list: (
+        type?: TradingDataKeeperListType,
+        filterFunc?: (order: OrderResolved) => boolean,
+      ) => KungfuApi.OrderResolved[];
       filter: (
-        key: string | function,
-        value?: unknown,
+        filterFunc: (order: OrderResolved) => boolean,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.OrderResolved[];
     };
     trade: {
@@ -1511,10 +1526,13 @@ declare namespace KungfuApi {
       strategy: {
         [key: number]: KfDynamicTradingDataIndexedMap<string, TradeResolved>;
       };
-      list: () => KungfuApi.TradeResolved[];
+      list: (
+        type?: TradingDataKeeperListType,
+        filterFunc?: (order: TradeResolved) => boolean,
+      ) => KungfuApi.TradeResolved[];
       filter: (
-        key: string | function,
-        value?: unknown,
+        filterFunc: (order: TradeResolved) => boolean,
+        type?: TradingDataKeeperListType,
       ) => KungfuApi.TradeResolved[];
     };
     update: boolean;
@@ -1559,6 +1577,7 @@ declare namespace KungfuApi {
     genTime: () => bigint;
     triggerTime: () => bigint;
     dataAsString: () => string;
+    initialSource: () => number;
     data: () => unknown;
   }
 
@@ -1567,6 +1586,7 @@ declare namespace KungfuApi {
     genTime: bigint;
     triggerTime: bigint;
     dataAsString: string;
+    initialSource: number;
     msgType: number;
     source: number;
     dest: number;
@@ -1579,6 +1599,7 @@ declare namespace KungfuApi {
     id: string;
     msgTypeName: string;
     sourceToDest: string;
+    initialSourceResolved: string;
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;
@@ -1774,10 +1795,6 @@ declare module '@kungfu-trader/kungfu-core' {
 declare namespace Code {
   import { Stats } from 'fs-extra';
   import { SpaceTabSettingEnum, SpaceSizeSettingEnum } from './enums';
-  import { session } from 'electron';
-  import path from 'path';
-  import Replay from '@kungfu-trader/kungfu-app/src/renderer/pages/replay/Replay.vue';
-  import { kf } from '../kungfu/index';
 
   export interface CodeInfo {
     code_id: string;

@@ -7,6 +7,7 @@ import {
 import {
   dealOffset,
   dealSide,
+  getPrecisionByInstrumentType,
 } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { computed } from 'vue';
 import { Stats } from 'fast-stats';
@@ -76,7 +77,9 @@ const priceVolumeStats = computed(() => {
         priceVolumeData: Record<string, PriceVolumeStatItem>,
         trade: KungfuApi.TradeResolved,
       ) => {
-        const id = `${trade.instrument_id}_${trade.exchange_id}_${trade.side}_${trade.offset}`;
+        const id = `${trade.instrument_id}_${trade.exchange_id}_${trade.instrument_type}_${trade.side}_${trade.offset}`;
+        const precision = getPrecisionByInstrumentType(trade.instrument_type);
+
         if (!priceVolumeData[id]) {
           priceVolumeData[id] = {
             price: [],
@@ -87,7 +90,9 @@ const priceVolumeStats = computed(() => {
 
         priceVolumeData[id].price.push(trade.price);
         priceVolumeData[id].volume.push(trade.volume);
-        priceVolumeData[id].priceByVolume.push(trade.volume * trade.price);
+        priceVolumeData[id].priceByVolume.push(
+          dealKfDecimalPrecision(trade.volume * trade.price, precision),
+        );
         return priceVolumeData;
       },
       {} as Record<string, PriceVolumeStatItem>,
@@ -103,23 +108,27 @@ const priceVolumeStats = computed(() => {
     volume: string;
   }> = Object.keys(priceVolumeData)
     .map((id) => {
-      const [instrumentId, exchangeId, side, offset] = id.split('_');
+      const [instrumentId, exchangeId, instrumentType, side, offset] =
+        id.split('_');
+      const precision = getPrecisionByInstrumentType(Number(instrumentType));
       const priceStats = new Stats().push(...priceVolumeData[id].price);
       const priceSum = dealKfDecimalPrecision(
         priceVolumeData[id].priceByVolume.reduce((a, b) => a + b),
+        precision,
       );
       const volumeSum = dealKfDecimalPrecision(
         priceVolumeData[id].volume.reduce((a, b) => a + b),
+        precision,
       );
       const range = priceStats.range();
       return {
         id,
         instrumentId_exchangeId: `${instrumentId}_${exchangeId}`,
-        mean: dealKfNumber(Number(priceSum / volumeSum)) + '',
+        mean: dealKfNumber(priceSum / volumeSum, precision),
         side: +side,
         offset: +offset,
-        min: dealKfNumber(range[0]) + '',
-        max: dealKfNumber(range[1]) + '',
+        min: dealKfNumber(range[0], precision),
+        max: dealKfNumber(range[1], precision),
         volume: volumeSum.toString(),
       };
     })

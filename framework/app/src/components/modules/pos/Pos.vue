@@ -11,6 +11,7 @@ import {
   useDashboardBodySize,
   useTriggerMakeOrder,
   searchByKeyword,
+  useBrowserWindowMinimize,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
@@ -43,15 +44,19 @@ import {
   useActiveInstruments,
   showTradingDataDetail,
   getPosClosableVolumeByOffset,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from './utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 
+useCoreBindPage();
+
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
 const app = getCurrentInstance();
+const windowMinimized = useBrowserWindowMinimize();
 const { handleBodySizeChange } = useDashboardBodySize();
 
 const pos = ref<KungfuApi.PositionResolved[]>([]);
@@ -99,6 +104,7 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     ],
   };
 });
+
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -115,8 +121,10 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions)
+  if (!posTableColumnsOptions || !selectedOptions) {
     return getColumns(currentGlobalKfLocation.value || defaultLocation);
+  }
+
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
@@ -150,6 +158,9 @@ onActivated(() => {
   if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
+
+      if (windowMinimized.value) return;
+
       if (!currentGlobalKfLocation.value) return;
 
       const positions =
@@ -288,9 +299,14 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
+        table-key="Pos"
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
+        column-resize-mode="header"
+        drag-header-mode="all"
+        cache-column-resizable
+        cache-column-change
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

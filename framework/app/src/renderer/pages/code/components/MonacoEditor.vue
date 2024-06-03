@@ -29,6 +29,7 @@ import { useCodeStore } from '../store/codeStore';
 import { getFileContent } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
 import path from 'path';
 import fse from 'fs-extra';
+import { getCurrentWindow } from '@electron/remote';
 import {
   CodeTabSetting,
   CodeSizeSetting,
@@ -37,6 +38,8 @@ import {
   SpaceTabSettingEnum,
   SpaceSizeSettingEnum,
 } from '@kungfu-trader/kungfu-js-api/typings/enums';
+
+const FONTFAMILY = `Font3-Inconsolata-Regular, sans-serif, "Courier New", monospace`;
 
 monaco.editor.defineTheme(
   'monokai',
@@ -78,12 +81,12 @@ watch(fileTree, (newTree, oldTree) => {
       Object.values(newTree),
       'root',
       true,
-    )!.filePath;
+    )?.filePath;
     const oldRootPath = findTargetFromArray<Code.FileData>(
       Object.values(oldTree),
       'root',
       true,
-    )!.filePath;
+    )?.filePath;
     if (newRootPath !== oldRootPath) {
       activeFile.value = null;
       handleEditor.value = null;
@@ -108,21 +111,35 @@ watch(currentFile, async (newFile: Code.FileData) => {
     );
     await nextTick();
     updateSpaceTab(globalSetting.value.code as Code.ICodeSetting);
-    bindBlur(handleEditor.value, activeFile.value);
+    handleEditor.value && bindEvent(handleEditor.value, activeFile.value);
   }
 });
 
-function bindBlur(editor, curFile) {
-  editor !== null &&
-    editor.onDidBlurEditorText(() => {
-      curWriteFile(editor, curFile);
-    });
+let saveFileCallback: () => void;
+function bindEvent(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  curFile: Code.FileData,
+) {
+  editor.onDidBlurEditorText(() => {
+    curWriteFile(editor, curFile);
+  });
+
+  const win = getCurrentWindow();
+  if (saveFileCallback) win.removeListener('close', saveFileCallback);
+
+  saveFileCallback = () => {
+    curWriteFile(editor, curFile);
+  };
+  win.once('close', saveFileCallback);
 }
 
-function curWriteFile(editor, curFile) {
+function curWriteFile(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  curFile: Code.FileData,
+) {
   const value = editor.getValue();
   const curPath: string = path.normalize(curFile.filePath);
-  fse.outputFile(curPath, value);
+  fse.outputFileSync(curPath, value);
 }
 
 // 创建代码编辑器
@@ -147,12 +164,9 @@ function createEditor(
       formatOnPaste: true,
       formatOnType: true,
 
-      fontSize: 14,
+      fontSize: 16,
       automaticLayout: true,
-
-      ...(document.body.style.fontFamily
-        ? { fontFamily: document.body.style.fontFamily }
-        : {}),
+      fontFamily: FONTFAMILY,
     },
   );
   return editor;
@@ -291,6 +305,11 @@ function pythonProvideCompletionItems(model, position) {
   justify-content: center;
   align-items: center;
   min-width: 0;
+
+  .margin-view-overlays {
+    user-select: none;
+  }
+
   #editor-content {
     height: 100%;
     width: 100%;

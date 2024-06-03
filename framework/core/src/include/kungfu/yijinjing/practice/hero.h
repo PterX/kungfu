@@ -43,7 +43,7 @@ public:
 
   void step(uint32_t count = 0);
 
-  void run();
+  void run(uint32_t step_limit);
 
   bool is_live() const;
 

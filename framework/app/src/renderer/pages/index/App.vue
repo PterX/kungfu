@@ -12,6 +12,7 @@ import {
   markClearDB,
   handleOpenJournalView,
   setHtmlTitle,
+  useShortcutFocusContainer,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import {
   playSound,
@@ -46,7 +47,7 @@ const { locale } = useLocale();
 
 const {
   preStartSystemLoadingData,
-  preStartSystemLoading,
+  showPreStartLoading,
   preQuitSystemLoadingData,
   preQuitSystemLoading,
 } = usePreStartAndQuitApp();
@@ -60,6 +61,9 @@ const { exportDateModalVisible, exportDataLoading, handleConfirmExportDate } =
 const latestTrade = ref<bigint>(0n);
 
 useIpcListener();
+
+const { registerKeyDown } = useShortcutFocusContainer();
+registerKeyDown();
 
 const tradingDataSubscription = tradingDataSubject.subscribe((data) => {
   const { watcher } = data;
@@ -178,7 +182,7 @@ onBeforeUnmount(() => {
     </div>
     <KfSystemPrepareModal
       :title="$t('system_prompt')"
-      :visible="preStartSystemLoading"
+      :visible="showPreStartLoading"
       :status="[
         {
           key: 'cpusSafeNumChecking',

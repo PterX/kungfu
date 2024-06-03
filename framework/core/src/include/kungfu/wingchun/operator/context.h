@@ -7,6 +7,11 @@
 #include <kungfu/wingchun/book/bookkeeper.h>
 #include <kungfu/wingchun/book/staticdata.h>
 #include <kungfu/wingchun/broker/client.h>
+#include <kungfu/wingchun/factor/backteststreamdatabatcher.h>
+#include <kungfu/wingchun/factor/crosssection.h>
+#include <kungfu/wingchun/factor/livestreamdatabatcher.h>
+#include <kungfu/wingchun/factor/streamdatabatcher.h>
+#include <kungfu/wingchun/orderbook/orderbooks.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
 namespace kungfu::wingchun::op {
@@ -151,9 +156,30 @@ public:
    */
   virtual longfist::enums::ResumePolicy get_resume_policy() { return longfist::enums::ResumePolicy::Now; };
 
+  /**
+   * attach the orderbooks to market data received.
+   * @param orderbooks
+   */
+  void attach_orderbooks(orderbook::Orderbooks &orderbooks);
+
+  /**
+   * attach the factor cache to market data received.
+   * @param factor_cache
+   */
+  void attach_factor_cache(factor::MultiCrossSectionalFactor &factor_cache);
+
+  /**
+   * the directory of operator
+   * @return
+   */
+  const std::string &get_operator_dir();
+
+  virtual std::shared_ptr<wingchun::factor::StreamDataBatcher> batch_streaming() = 0;
+
 protected:
   yijinjing::practice::apprentice &app_;
   const rx::connectable_observable<event_ptr> &events_;
+  std::string operator_dir_;
   bool started_ = false;
 
   virtual void on_start(){};
@@ -166,6 +192,10 @@ private:
   friend void enable(Context &context) { context.on_start(); }
 
   friend void prepare(const event_ptr &event, Context &context) { context.prepare(event); }
+
+  friend void make_operator_dir(Context &context, const std::string &operator_dir) {
+    context.operator_dir_ = operator_dir;
+  }
 
   friend void stop(Context &context) { context.post_stop(); }
 };

@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file */
 import os from 'os';
 import {
   ComputedRef,
@@ -24,12 +25,13 @@ import {
   createApp,
   defineComponent,
   onUnmounted,
+  VNode,
 } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { ensureFileSync, outputFile } from 'fs-extra';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
-import { Button } from 'ant-design-vue';
+import { Button, Checkbox } from 'ant-design-vue';
 import { Locale } from 'ant-design-vue/es/locale-provider';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import {
@@ -117,6 +119,11 @@ import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
+import {
+  VTable,
+  ResizeColumn,
+  ChangeHeaderPosition,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 // this utils file is only for ui components
 
@@ -129,20 +136,17 @@ export const getCustomFont = async (): Promise<string> => {
   const fontFiles = await fse.readdir(fontsDir);
   const loadedFonts: string[] = [];
 
-  await Promise.all(
-    fontFiles.map(async (fontFileName) => {
-      const fontName = fontFileName.split('.')[0];
-      const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
-
-      if (fse.existsSync(fontFullPath)) {
-        const fontBuffer = await fsPromise.readFile(fontFullPath);
-        const font = new FontFace(fontName, fontBuffer);
-        await font.load();
-        document.fonts.add(font);
-        loadedFonts.push(fontName);
-      }
-    }),
-  );
+  for (const fontFileName of fontFiles) {
+    const fontName = fontFileName.split('.')[0];
+    const fontFullPath = normalizePath(path.join(fontsDir, fontFileName));
+    if (fse.existsSync(fontFullPath)) {
+      const fontBuffer = await fsPromise.readFile(fontFullPath);
+      const font = new FontFace(fontName, fontBuffer);
+      await font.load();
+      document.fonts.add(font);
+      loadedFonts.push(fontName);
+    }
+  }
 
   return loadedFonts.length > 0
     ? `${loadedFonts.join(', ')}, monospace, sans-serif`
@@ -367,11 +371,11 @@ export function useShortcutFocusContainer() {
               ? containerRef.value.$el
               : containerRef.value
             : null;
-          if (!globalThis.KeyShortMap[curKeyShort]) {
+          if (!globalThis.KeyShortMap?.[curKeyShort]) {
             globalThis.KeyShortMap[curKeyShort] = new LinkedList<HTMLElement>();
             globalThis.KeyShortMap[curKeyShort].prepend(key, container);
           } else {
-            globalThis.KeyShortMap[curKeyShort].prepend(key, container);
+            globalThis.KeyShortMap?.[curKeyShort].prepend(key, container);
           }
           keyShort = curKeyShort;
           clean();
@@ -382,7 +386,7 @@ export function useShortcutFocusContainer() {
   };
 
   const cleanupShortcut = () => {
-    if (keyShort && globalThis.KeyShortMap[keyShort]) {
+    if (keyShort && globalThis.KeyShortMap?.[keyShort]) {
       globalThis.KeyShortMap[keyShort].remove(key);
     }
   };
@@ -429,7 +433,7 @@ export function useShortcutFocusContainer() {
   };
 
   const setPos = () => {
-    if (globalThis.KeyShortMap[keyShort]) {
+    if (globalThis.KeyShortMap?.[keyShort]) {
       globalThis.KeyShortMap[keyShort].setPos(key);
     }
   };
@@ -1083,7 +1087,6 @@ export const openNewBrowserWindow = (
       alwaysOnTop: false,
       width: 1080,
       height: 766,
-      show: false,
       parent: currentWindow,
       fullscreen: false,
       webPreferences: {
@@ -1683,18 +1686,69 @@ export const isInTdGroup = (
   return targetGroups[0] || null;
 };
 
+export const buildCustomCheckboxVNode = (
+  defaultChecked: boolean,
+  label: string,
+  onCheckSettled?: (checked: boolean) => void,
+): VNode => {
+  const CustomCheckbox = defineComponent({
+    name: 'CustomCheckbox',
+    props: {
+      defaultChecked: Boolean,
+      label: {
+        type: String,
+        default: '',
+        required: true,
+      },
+    },
+    setup(props) {
+      const isChecked = ref(props.defaultChecked);
+
+      const handleCheckboxChange = (e) => {
+        isChecked.value = e.target.checked;
+      };
+
+      onBeforeUnmount(async () => {
+        onCheckSettled?.(isChecked.value);
+      });
+
+      return () =>
+        h(
+          Checkbox,
+          {
+            style: {
+              position: 'absolute',
+              left: '24px',
+              bottom: '24px',
+            },
+            checked: isChecked.value,
+            onChange: handleCheckboxChange,
+          },
+          { default: () => [props.label] },
+        );
+    },
+  });
+
+  return h(CustomCheckbox, {
+    defaultChecked,
+    label,
+  });
+};
+
 export const confirmModal = (
   title: string,
   content: VueNode | (() => VueNode) | string,
   okText = t('confirm'),
   cancelText = t('cancel'),
+  closable = false,
 ): Promise<boolean> => {
   return new Promise((resolve) => {
     Modal.confirm({
-      title: title,
-      content: content,
-      okText: okText,
-      cancelText: cancelText,
+      title,
+      content,
+      okText,
+      cancelText,
+      closable,
       onOk: () => {
         resolve(true);
       },
@@ -1712,14 +1766,15 @@ export const extraConfirmModal = (
   cancelText = t('cancel'),
   extraTextList?: {
     text: string;
+    value: number;
   }[],
-): Promise<'ok' | 'cancel' | string> => {
+): Promise<'ok' | 'cancel' | number> => {
   return new Promise((resolve) => {
     const Comp = defineComponent({
       setup() {
         const visible = ref(true);
 
-        const close = (result: 'ok' | 'cancel' | string) => {
+        const close = (result: 'ok' | 'cancel' | number) => {
           resolve(result);
           visible.value = false;
         };
@@ -1756,7 +1811,7 @@ export const extraConfirmModal = (
                 h(
                   Button,
                   {
-                    onClick: () => this.close(item.text),
+                    onClick: () => this.close(item.value),
                   },
                   () => item.text,
                 ),
@@ -1808,6 +1863,41 @@ export const confirmModalByCustomArgs = (
       },
     });
   });
+};
+
+export const confirmModalSkippable = (
+  title: string,
+  content: VueNode | (() => VueNode) | string,
+  storageKey: string,
+  args: ModalFuncProps = {},
+): Promise<boolean> => {
+  const flag = localStorage.getItem(storageKey);
+
+  const checkBoxVNode = buildCustomCheckboxVNode(
+    false,
+    t('tradingConfig.hide_next_time'),
+    (checked) => {
+      if (checked) {
+        localStorage.setItem(storageKey, '1');
+      }
+    },
+  );
+  const contentResolved =
+    typeof content === 'function'
+      ? content()
+      : typeof content === 'string'
+      ? h('div', {}, content)
+      : content;
+  const rootBox = h('div', { class: 'root-node' }, [
+    contentResolved,
+    checkBoxVNode,
+  ]);
+  const rootVNode = h('div', { class: 'modal-node' }, rootBox);
+  const promise = flag
+    ? Promise.resolve(true)
+    : confirmModalByCustomArgs(title, rootVNode, args);
+
+  return promise;
 };
 
 const markdown = md('commonmark');
@@ -2590,4 +2680,232 @@ export const setPreStyle = () => {
     const value = styleMap[key];
     document.documentElement.style.setProperty(key, value);
   }
+};
+
+export const useBrowserWindowFocus = () => {
+  const win = getCurrentWindow();
+  const focus = ref(win.isFocused());
+
+  win.on('focus', () => {
+    focus.value = true;
+  });
+
+  win.on('blur', () => {
+    focus.value = false;
+  });
+
+  return focus;
+};
+
+export const useBrowserWindowMinimize = () => {
+  const win = getCurrentWindow();
+  const minimized = ref(win.isMinimized());
+
+  win.on('minimize', () => {
+    minimized.value = true;
+  });
+
+  win.on('restore', () => {
+    minimized.value = false;
+  });
+
+  return minimized;
+};
+
+export const useTableResizeControl = (
+  tableName: string,
+  columnsRef:
+    | Ref<VTable.TYPES.ColumnDefine[]>
+    | ComputedRef<VTable.TYPES.ColumnDefine[]>,
+  resizable = false,
+) => {
+  const resizedColumns = ref<VTable.TYPES.ColumnDefine[]>([]);
+  const DEFAULT_KEY = 'tableResizeConfigMap';
+  const app = getCurrentInstance();
+  const tableKey = ref<string>(tableName);
+  const tableResizeConfig = ref<ColumnsSetting | null>(null);
+
+  const subscription = resizable
+    ? app?.proxy?.$globalBus?.subscribe((data: KfEvent.KfBusEvent) => {
+        if (data.tag === 'main') {
+          if (data.name === 'reset-main-dashboard') {
+            localStorage.removeItem(DEFAULT_KEY);
+            tableResizeConfig.value = null;
+            tableKey.value = tableName;
+            resizedColumns.value = [];
+            nextTick(() => {
+              resizedColumns.value = getResizedColumns(columnsRef.value);
+            });
+          }
+        }
+      })
+    : null;
+
+  onUnmounted(() => {
+    subscription && subscription.unsubscribe();
+  });
+
+  function getTableResizeConfig(key = tableKey.value): ColumnsSetting | null {
+    if (!key) return null;
+    const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
+    let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
+    if (!tableResizeConfigMapStr) {
+      return null;
+    }
+    tableResizeConfigMap = JSON.parse(tableResizeConfigMapStr);
+    return tableResizeConfigMap[key] || null;
+  }
+
+  watch(
+    () => columnsRef.value,
+    (columnsValue) => {
+      resizedColumns.value = getResizedColumns(columnsValue);
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  function setTableResizeConfigMap(
+    option = tableResizeConfig.value,
+    key = tableKey.value,
+  ) {
+    if (!key) return;
+    const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
+    let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
+    if (tableResizeConfigMapStr) {
+      tableResizeConfigMap = JSON.parse(tableResizeConfigMapStr);
+    }
+
+    tableResizeConfigMap[key] = option as ColumnsSetting;
+    localStorage.setItem(DEFAULT_KEY, JSON.stringify(tableResizeConfigMap));
+  }
+
+  function removeTableResizeConfig(key = tableKey.value) {
+    const tableResizeConfigMapStr = localStorage.getItem(DEFAULT_KEY);
+    let tableResizeConfigMap: Record<string, ColumnsSetting> = {};
+    if (!tableResizeConfigMapStr) {
+      console.log('tableResizeConfigMap is empty');
+      return;
+    }
+    tableResizeConfigMap = JSON.parse(tableResizeConfigMapStr);
+    delete tableResizeConfigMap[key];
+    localStorage.setItem(DEFAULT_KEY, JSON.stringify(tableResizeConfigMap));
+  }
+
+  const handleResizeColumnEnd = (args: ResizeColumn) => {
+    const col = args.col;
+    const nextCol = args.col + 1;
+    if (tableResizeConfig.value) {
+      const colWidth = args.colWidths[col];
+      const nextColWidth = args.colWidths[nextCol];
+      const colName = tableResizeConfig.value.fields[col];
+      const nextColName = tableResizeConfig.value.fields[nextCol];
+      tableResizeConfig.value.columnsWidth[colName] = colWidth;
+      nextColWidth &&
+        (tableResizeConfig.value.columnsWidth[nextColName] = nextColWidth);
+      setTableResizeConfigMap(tableResizeConfig.value, tableKey.value);
+    }
+  };
+
+  function handleChangeHeaderPosition(args: ChangeHeaderPosition) {
+    const sourceCol = args.source.col;
+    const targetCol = args.target.col;
+    if (tableResizeConfig.value) {
+      [
+        tableResizeConfig.value.fields[sourceCol],
+        tableResizeConfig.value.fields[targetCol],
+      ] = [
+        tableResizeConfig.value.fields[targetCol],
+        tableResizeConfig.value.fields[sourceCol],
+      ];
+      setTableResizeConfigMap(tableResizeConfig.value, tableKey.value);
+    }
+  }
+
+  function getResizedColumns(columns: VTable.TYPES.ColumnDefine[]) {
+    if (!resizable) {
+      return columns;
+    }
+    tableResizeConfig.value ||= getTableResizeConfig(tableKey.value);
+    if (!tableResizeConfig.value) {
+      initializeTableResizeConfig(columns);
+      return columns;
+    }
+
+    const { fields, columnsWidth } = tableResizeConfig.value;
+    if (fields.length === 0 || Object.keys(columnsWidth).length === 0) {
+      return columns;
+    }
+
+    updateTableResizeConfig(columns, fields, columnsWidth);
+
+    const resizedColumns = buildResizedColumns(columns, fields, columnsWidth);
+    setTableResizeConfigMap(tableResizeConfig.value);
+    return resizedColumns;
+  }
+
+  function initializeTableResizeConfig(columns: VTable.TYPES.ColumnDefine[]) {
+    tableResizeConfig.value = {
+      fields: [],
+      columnsWidth: {},
+    };
+
+    columns.forEach((item) => {
+      if (item.field && item.width) {
+        (tableResizeConfig.value as ColumnsSetting).fields.push(
+          item.field as string,
+        );
+        (tableResizeConfig.value as ColumnsSetting).columnsWidth[
+          item.field as string
+        ] = item.width as number;
+      }
+    });
+  }
+
+  function updateTableResizeConfig(
+    columns: VTable.TYPES.ColumnDefine[],
+    fields: string[],
+    columnsWidth: Record<string, number>,
+  ) {
+    columns.forEach((item) => {
+      if (!fields.includes(item.field as string)) {
+        fields.push(item.field as string);
+        columnsWidth[item.field as string] = item.width as number;
+      }
+    });
+  }
+
+  function buildResizedColumns(
+    columns: VTable.TYPES.ColumnDefine[],
+    fields: string[],
+    columnsWidth: Record<string, number>,
+  ) {
+    const resizedColumns: VTable.TYPES.ColumnDefine[] = [];
+
+    fields.forEach((field, index) => {
+      const column = columns.find((item) => item.field === field);
+      if (column) {
+        column.width = columnsWidth[field] || column.width;
+        resizedColumns.push(column);
+      } else {
+        fields.splice(index, 1);
+        delete columnsWidth[field];
+      }
+    });
+
+    return resizedColumns;
+  }
+
+  return {
+    tableKey,
+    tableResizeConfig,
+    resizedColumns,
+    setTableResizeConfigMap,
+    getTableResizeConfig,
+    removeTableResizeConfig,
+    handleResizeColumnEnd,
+    handleChangeHeaderPosition,
+    getResizedColumns,
+  };
 };

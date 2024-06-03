@@ -100,11 +100,13 @@ void bind_operator(pybind11::module &m) {
       .def("set_report", &op::Runner::set_report)
       .def("set_time_interval", &op::Runner::set_time_interval)
       .def("set_backtest_config", &op::Runner::set_backtest_config)
+      .def("set_operator_dir", &op::Runner::set_operator_dir)
       .def("add_operator", &op::Runner::add_operator);
 
   py::class_<op::Context, std::shared_ptr<op::Context>>(m, "OpContext")
       .def_property_readonly("config", &op::Context::get_config, py::return_value_policy::reference)
       .def_property_readonly("arguments", &op::Context::get_arguments, py::return_value_policy::reference)
+      .def_property_readonly("operator_dir", &op::Context::get_operator_dir, py::return_value_policy::reference)
       .def_property_readonly("bookkeeper", &op::Context::get_bookkeeper, py::return_value_policy::reference)
       .def("now", &op::Context::now)
       .def("is_started", &op::Context::is_started)
@@ -119,6 +121,9 @@ void bind_operator(pybind11::module &m) {
       .def("publish_synthetic_data", &op::Context::publish_synthetic_data)
       .def("update_operator_state", &op::Context::update_operator_state)
       .def("set_resume_policy", &op::Context::set_resume_policy)
+      .def("attach_orderbooks", &op::Context::attach_orderbooks)
+      .def("batch_streaming", &op::Context::batch_streaming)
+      .def("attach_factor_cache", &op::Context::attach_factor_cache)
       .def("req_deregister", &op::Context::req_deregister);
 
   py::class_<op::Operator, PyOperator, op::Operator_ptr>(m, "Operator")

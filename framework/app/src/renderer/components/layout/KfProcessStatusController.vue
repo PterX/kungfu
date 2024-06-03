@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import Icon, {
+  LoadingOutlined,
   ClusterOutlined,
   FileTextOutlined,
   HistoryOutlined,
@@ -43,6 +44,7 @@ import {
   handleSwitchProcessStatusGenerator,
   useAllKfConfigData,
   useExtConfigsRelated,
+  usePreStartAndQuitApp,
   useProcessStatusDetailData,
   useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
@@ -71,6 +73,7 @@ const {
   processStatusDetailData,
   getProcessStatusName,
 } = useProcessStatusDetailData();
+const { preStartSystemLoading } = usePreStartAndQuitApp();
 
 const {
   replayConfig,
@@ -239,7 +242,11 @@ onMounted(() => {
     }"
     @click="handleOpenProcessControllerBoard"
   >
-    <ClusterOutlined style="font-size: 14px; padding-right: 4px" />
+    <LoadingOutlined
+      v-if="preStartSystemLoading"
+      style="font-size: 14px; padding-right: 4px"
+    />
+    <ClusterOutlined v-else style="font-size: 14px; padding-right: 4px" />
     <span class="title">{{ $t('baseConfig.control_center') }}</span>
 
     <a-drawer
@@ -388,15 +395,13 @@ onMounted(() => {
     </a-drawer>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
-      :width="520"
+      :width="720"
       v-model:visible="setReplayModalVisible"
       :can-backtest="canBacktest"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
-      :begin-time="replayConfig.begin_time.split(' ')[1]"
-      :end-time="
-        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
-      "
+      :begin-time="replayConfig.begin_time"
+      :end-time="replayConfig.end_time ? replayConfig.end_time : ''"
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, toRefs, ComputedRef } from 'vue';
+import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
 import KfDashboardItem from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboardItem.vue';
 import KfSetByConfigModal from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfSetByConfigModal.vue';
@@ -31,6 +32,7 @@ import {
   useSwitchAllConfig,
   useReplay,
   useExtConfigsRelated,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import {
@@ -49,7 +51,8 @@ import path from 'path';
 import KfBlinkNum from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfBlinkNum.vue';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
-import { storeToRefs } from 'pinia';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -340,15 +343,13 @@ function handleOpenCodeViewResolved(record: KungfuApi.KfConfig) {
     ></KfSetByConfigModal>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
-      :width="520"
+      :width="720"
       v-model:visible="setReplayModalVisible"
       :can-backtest="true"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
-      :begin-time="replayConfig.begin_time.split(' ')[1]"
-      :end-time="
-        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
-      "
+      :begin-time="replayConfig.begin_time"
+      :end-time="replayConfig.end_time ? replayConfig.end_time : ''"
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"

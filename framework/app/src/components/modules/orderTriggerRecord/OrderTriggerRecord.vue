@@ -23,6 +23,7 @@ import {
 
 import {
   showTradingDataDetail,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -82,8 +83,10 @@ interface CsvOrderInput {
 
 type CsvOrderInputError = Partial<CsvOrderInput> & { index?: number };
 
+useCoreBindPage();
+
 const { t } = VueI18n.global;
-const { error, success } = messagePrompt();
+const { error, success, warn } = messagePrompt();
 
 const { dashboardBodyHeight, handleBodySizeChange } = useDashboardBodySize();
 const { processStatusData } = useProcessStatusDetailData();
@@ -97,6 +100,8 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 const columns = getColumns();
+
+const cancelOrderTriggerLoading = ref<boolean>(false);
 
 const selectedRowKeys = ref<number[]>([]);
 const selectedRows = ref<KungfuApi.OrderTriggerResolved[]>([]);
@@ -130,7 +135,7 @@ watch(
 );
 
 onActivated(() => {
-  if (app?.proxy && 0) {
+  if (app?.proxy) {
     const subscription = app.proxy.$tradingDataSubject.subscribe((data) => {
       const { watcher } = data;
       if (!currentGlobalKfLocation.value) return;
@@ -148,7 +153,7 @@ onActivated(() => {
         .list();
 
       tableDataResolved.value = orderTriggerData.map((item, index) => {
-        return dealOrderTrigger(window.watcher, item, false, index);
+        return dealOrderTrigger(window.watcher, item, index);
       });
     });
 
@@ -468,7 +473,7 @@ function handleCancelOrderTrigger(
     currentGlobalKfLocation.value,
   )
     .then(() => {
-      success();
+      success(t('orderTriggerConfig.cancel_order_success'));
     })
     .catch((err: Error) => {
       error(err.message);
@@ -484,7 +489,11 @@ function handleCancelAllOrderTrigger() {
   const orderTriggers = selectedRows.value.filter((item) => {
     return orderTriggerCanBeCancel(item);
   });
-  if (orderTriggers.length === 0) return;
+
+  if (orderTriggers.length === 0) {
+    warn(t('orderTriggerConfig.no_order_to_cancel'));
+    return;
+  }
 
   const cancelOrderTriggers = orderTriggers.filter((order) => {
     return order.action_flag === OrderTriggerFlag.TriggerCancel;
@@ -517,16 +526,21 @@ function handleCancelAllOrderTrigger() {
         return;
       }
 
+      cancelOrderTriggerLoading.value = true;
+
       return kfCancelAllOrdersTrigger(
         window.watcher,
         [...insertOrderTriggers, ...unfinishedOrderTriggers],
         currentGlobalKfLocation.value,
       )
         .then(() => {
-          success();
+          success(t('orderTriggerConfig.cancel_all_order_success'));
         })
         .catch((err: Error) => {
           error(err.message);
+        })
+        .finally(() => {
+          cancelOrderTriggerLoading.value = false;
         });
     })
     .finally(() => {
@@ -574,6 +588,7 @@ function orderTriggerCanBeCancel(record: KungfuApi.OrderTriggerResolved) {
             size="small"
             type="primary"
             danger
+            :loading="cancelOrderTriggerLoading"
             @click="handleCancelAllOrderTrigger"
           >
             {{ $t('orderTriggerConfig.cancel_all') }}

@@ -4,6 +4,7 @@ import { delayMilliSeconds } from '@kungfu-trader/kungfu-js-api/utils/commonUtil
 import {
   messagePrompt,
   searchByKeyword,
+  useBrowserWindowMinimize,
   useDashboardBodySize,
   useDownloadHistoryTradingData,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
@@ -40,14 +41,18 @@ import { getColumns } from './config';
 import type { Dayjs } from 'dayjs';
 import {
   showTradingDataDetail,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import TradeStatisticModal from './TradeStatisticModal.vue';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 
+useCoreBindPage();
+
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
+const windowMinimized = useBrowserWindowMinimize();
 const { handleBodySizeChange } = useDashboardBodySize();
 const allTrades = ref<KungfuApi.TradeResolved[]>([]);
 const currentTradingData = ref<KungfuApi.TradingDataKeeper>();
@@ -62,24 +67,21 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { handleDownload } = useDownloadHistoryTradingData();
-const statisticModalVisible = ref<boolean>(false);
-
 const columns = computed(() => {
   if (!currentGlobalKfLocation.value) {
-    return getColumns(
-      {
-        category: 'td',
-        group: '*',
-        name: '*',
-        mode: '*',
-      },
-      !!historyDate.value,
-    );
+    return getColumns({
+      category: 'td',
+      group: '*',
+      name: '*',
+      mode: '*',
+    });
+  } else {
+    return getColumns(currentGlobalKfLocation.value);
   }
-
-  return getColumns(currentGlobalKfLocation.value, !!historyDate.value);
 });
+
+const { handleDownload } = useDownloadHistoryTradingData();
+const statisticModalVisible = ref<boolean>(false);
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
@@ -93,12 +95,12 @@ const processTradingData = async (
   if (isRendering.value && !keepProcessing) return;
   currentTradingData.value = tradingDataKeeper;
 
-  const tradeList = (await getOrderOrTradeListFromTradingDataKeeper({
+  const tradeList = getOrderOrTradeListFromTradingDataKeeper({
     watcher: window.watcher,
     tradingDataKeeper: tradingDataKeeper as KungfuApi.TradingDataKeeper,
     currentGlobalKfLocation: currentGlobalKfLocation.value,
     type: 'trade',
-  })) as KungfuApi.TradeResolved[];
+  }) as KungfuApi.TradeResolved[];
 
   if (tradeList.length > 0) {
     const tableData = searchByKeyword(
@@ -137,6 +139,12 @@ onActivated(() => {
     async (data) => {
       const { tradingDataKeeper } = data;
       const { update } = tradingDataKeeper;
+
+      if (windowMinimized.value) {
+        needProcessTradingData.value = true;
+        return;
+      }
+
       if (historyDate.value) {
         return;
       }
@@ -212,9 +220,7 @@ watch(historyDate, async (newDate) => {
 
       const tempAllTrades = toRaw(
         tradesResolved.map((item) => {
-          return toRaw(
-            dealTrade(window.watcher, item, tradingData.OrderStat, true),
-          );
+          return toRaw(dealTrade(window.watcher, item, tradingData.OrderStat));
         }),
       );
 
@@ -298,8 +304,13 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
+        table-key="Trade"
         :columns="columns"
         :hasData="hasData"
+        column-resize-mode="header"
+        drag-header-mode="all"
+        cache-column-resizable
+        cache-column-change
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

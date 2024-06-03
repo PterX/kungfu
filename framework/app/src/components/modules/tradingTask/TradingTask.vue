@@ -44,6 +44,7 @@ import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import {
   playSound,
   useAddUpdateRemoveKfConfig,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -57,6 +58,8 @@ import { ProcessStatusTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
 import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 
@@ -427,15 +430,13 @@ function getProcessStatusName(
     ></KfSetExtensionModal>
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
-      :width="520"
+      :width="720"
       v-model:visible="setReplayModalVisible"
       :can-backtest="true"
       :session-options="sessionOptions"
       :session-info="replayConfig.session_info"
-      :begin-time="replayConfig.begin_time.split(' ')[1]"
-      :end-time="
-        replayConfig.end_time ? replayConfig.end_time.split(' ')[1] : ''
-      "
+      :begin-time="replayConfig.begin_time"
+      :end-time="replayConfig.end_time ? replayConfig.end_time : ''"
       :log-level="replayConfig.log_level"
       @close="setReplayModalVisible = false"
       @confirm="(event) => handleReplayModal(event)"

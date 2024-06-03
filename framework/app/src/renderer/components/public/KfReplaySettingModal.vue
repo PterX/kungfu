@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
-import { getNanoDateString } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { getKfExtOriginConfigsByType } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
 
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { useReplay } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 const { t } = VueI18n.global;
 const formRef = ref();
@@ -43,15 +43,25 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
+const { formatSessionTime } = useReplay();
+
+const SessionTimeDivider = '--';
+
+const getSessionTimeRange = (timeStr: string) => {
+  const [sessionBeginTime, sessionEndTime] = timeStr.split(SessionTimeDivider);
+  return { sessionBeginTime, sessionEndTime };
+};
+
 const dealEndTime = () => {
   let endTime = '';
   for (let i of props.sessionOptions) {
-    if (i.value.split('--')[0] === formState.value.beginTime) {
-      endTime = i.value.split('--')[1];
+    const { sessionBeginTime, sessionEndTime } = getSessionTimeRange(i.value);
+    if (sessionBeginTime === formState.value.beginTime) {
+      endTime = sessionEndTime;
     }
   }
   if (endTime === 'now') {
-    endTime = getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+    endTime = formatSessionTime(BigInt(new Date().getTime()) * 1000000n);
   }
   formState.value.endTime = formatTimeToNanoseconds(formState.value.endTime, [
     props.beginTime,
@@ -86,9 +96,9 @@ onMounted(() => {
   props.canBacktest ? getBacktestConfig() : '';
   dealEndTime();
   if (props.sessionInfo) {
-    const now = props.sessionInfo.split('--')[1];
-    if (now === 'now') {
-      formState.value.endTime = getNanoDateString(
+    const { sessionEndTime } = getSessionTimeRange(props.sessionInfo);
+    if (sessionEndTime === 'now') {
+      formState.value.endTime = formatSessionTime(
         BigInt(new Date().getTime()) * 1000000n,
       );
     }
@@ -115,11 +125,12 @@ const formState = ref({
   enableMatcher: false,
 });
 const handleSelectSessionInfo = (value: string) => {
-  formState.value.beginTime = value.split('--')[0];
+  const { sessionBeginTime, sessionEndTime } = getSessionTimeRange(value);
+  formState.value.beginTime = sessionBeginTime;
   formState.value.endTime =
-    value.split('--')[1] !== 'now'
-      ? value.split('--')[1]
-      : getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+    sessionEndTime !== 'now'
+      ? sessionEndTime
+      : formatSessionTime(BigInt(new Date().getTime()) * 1000000n);
 };
 
 const formatTimeToNanoseconds = (
@@ -127,24 +138,25 @@ const formatTimeToNanoseconds = (
   boundaries: [string, string],
 ): string => {
   const format = (str: string) => {
-    const regex = /^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})(?:\.([0-9]{1,9}))?$/;
+    const regex =
+      /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?$/;
     const match = str.match(regex);
     if (!match) {
       return boundaries[1];
     }
-    const [, hoursStr, minutesStr, secondsStr, nanosecondsStr] = match;
+    const [, dateStr, hoursStr, minutesStr, secondsStr, nanosecondsStr] = match;
     const hours = hoursStr.padStart(2, '0');
     const minutes = minutesStr.padStart(2, '0');
     const seconds = secondsStr.padStart(2, '0');
     const nanoseconds = (nanosecondsStr || '').padEnd(9, '0');
-    return `${hours}:${minutes}:${seconds}.${nanoseconds}`;
+    return `${dateStr} ${hours}:${minutes}:${seconds}.${nanoseconds}`;
   };
 
   const formattedTime = format(timeStr);
   const [lowerBound, upperBound] = boundaries.map(format);
 
   if (!formattedTime || !lowerBound || !upperBound) {
-    return getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+    return formatSessionTime(BigInt(new Date().getTime()) * 1000000n);
   }
 
   if (formattedTime < lowerBound || formattedTime > upperBound) {
@@ -157,13 +169,14 @@ const formatTimeToNanoseconds = (
 const refreshEndTime = () => {
   let endTime = '';
   for (let i of props.sessionOptions) {
-    if (i.value.split('--')[0] === formState.value.beginTime) {
-      endTime = i.value.split('--')[1];
+    const { sessionBeginTime, sessionEndTime } = getSessionTimeRange(i.value);
+    if (sessionBeginTime === formState.value.beginTime) {
+      endTime = sessionEndTime;
     }
   }
 
   if (endTime === 'now') {
-    endTime = getNanoDateString(BigInt(new Date().getTime()) * 1000000n);
+    endTime = formatSessionTime(BigInt(new Date().getTime()) * 1000000n);
   }
 
   formState.value.endTime = endTime;
@@ -185,22 +198,10 @@ const handleCancel = () => {
 };
 </script>
 
-<style lang="less">
-.replay-config-form {
-  .ant-form-item-label {
-    flex: 0 0 25%;
-    max-width: 25%;
-  }
-  .ant-form-item-control {
-    max-width: 58.33333333%;
-  }
-}
-</style>
-
 <template>
   <a-modal
     :visible="visible"
-    :maskClosable="false"
+    :mask-closable="false"
     class="kf-set-by-config-modal"
     :title="$t('replay.replay')"
     :ok-text="$t('confirm')"
@@ -210,10 +211,10 @@ const handleCancel = () => {
   >
     <div class="flex-container">
       <a-form
+        ref="formRef"
         :model="formState"
         name="basic"
         autocomplete="off"
-        ref="formRef"
         class="replay-config-form"
       >
         <a-form-item :label="$t('replay.session')" name="sessionInfo">
@@ -239,8 +240,8 @@ const handleCancel = () => {
         </a-form-item>
         <a-form-item :label="$t('replay.end_time')" name="endTime">
           <a-input v-model:value="formState.endTime" @blur="dealEndTime">
-            <template v-slot:suffix>
-              <ReloadOutlined @click="refreshEndTime" style="font-size: 14px" />
+            <template #suffix>
+              <ReloadOutlined style="font-size: 14px" @click="refreshEndTime" />
             </template>
           </a-input>
         </a-form-item>
@@ -279,7 +280,7 @@ const handleCancel = () => {
       </a-form>
       <div class="form-note">
         <div class="spacer"></div>
-        <div class="note-content" v-if="props.isJournal">
+        <div v-if="props.isJournal" class="note-content">
           <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
@@ -310,7 +311,7 @@ const handleCancel = () => {
             </li>
           </ul>
         </div>
-        <div class="note-content" v-else>
+        <div v-else class="note-content">
           <p>{{ t('replay.tips_title') }}</p>
           <ul>
             <li>
@@ -347,6 +348,16 @@ const handleCancel = () => {
 </template>
 
 <style lang="less">
+.replay-config-form {
+  .ant-form-item-label {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+  .ant-form-item-control {
+    max-width: 58.33333333%;
+  }
+}
+
 .flex-container {
   display: flex;
   flex-direction: column;

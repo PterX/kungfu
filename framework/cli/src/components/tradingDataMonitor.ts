@@ -349,12 +349,11 @@ export class TradingDataDashboard extends Dashboard {
 
     const { market_value, avail, margin, unrealized_pnl } = asset;
 
-    assetForShow.market_value =
-      dealKfNumber(market_value, ASSET_PRECISION) + '';
+    assetForShow.market_value = dealKfNumber(market_value, ASSET_PRECISION);
     assetForShow.avail = colorNum(
       dealKfDecimalPrecision(avail, ASSET_PRECISION),
     );
-    assetForShow.margin = dealKfNumber(margin, ASSET_PRECISION) + '';
+    assetForShow.margin = dealKfNumber(margin, ASSET_PRECISION);
     assetForShow.unrealized_pnl = colorNum(
       dealKfDecimalPrecision(unrealized_pnl, ASSET_PRECISION),
     );

@@ -37,6 +37,10 @@ Napi::Value Frame::Source(const Napi::CallbackInfo &info) { return Napi::Number:
 
 Napi::Value Frame::Dest(const Napi::CallbackInfo &info) { return Napi::Number::New(info.Env(), frame_->dest()); }
 
+Napi::Value Frame::InitialSource(const Napi::CallbackInfo &info) {
+  return Napi::Number::New(info.Env(), frame_->initial_source());
+}
+
 Napi::Value Frame::Data(const Napi::CallbackInfo &info) {
   auto result = Napi::Object::New(info.Env());
   // have to be AllDataTypes, for data size is not 0
@@ -71,14 +75,15 @@ void Frame::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::Function func = DefineClass(env, "Frame",
                                     {
-                                        InstanceMethod("dataLength", &Frame::DataLength),    //
-                                        InstanceMethod("genTime", &Frame::GenTime),          //
-                                        InstanceMethod("triggerTime", &Frame::TriggerTime),  //
-                                        InstanceMethod("msgType", &Frame::MsgType),          //
-                                        InstanceMethod("source", &Frame::Source),            //
-                                        InstanceMethod("dest", &Frame::Dest),                //
-                                        InstanceMethod("data", &Frame::Data),                //
-                                        InstanceMethod("dataAsString", &Frame::DataAsString) //
+                                        InstanceMethod("dataLength", &Frame::DataLength),       //
+                                        InstanceMethod("genTime", &Frame::GenTime),             //
+                                        InstanceMethod("triggerTime", &Frame::TriggerTime),     //
+                                        InstanceMethod("msgType", &Frame::MsgType),             //
+                                        InstanceMethod("source", &Frame::Source),               //
+                                        InstanceMethod("dest", &Frame::Dest),                   //
+                                        InstanceMethod("initialSource", &Frame::InitialSource), //
+                                        InstanceMethod("data", &Frame::Data),                   //
+                                        InstanceMethod("dataAsString", &Frame::DataAsString)    //
                                     });
 
   constructor = Napi::Persistent(func);

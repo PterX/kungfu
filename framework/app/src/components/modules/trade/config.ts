@@ -1,7 +1,7 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import {
   isTdStrategyCategory,
-  sorter,
+  vTableSorter,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
@@ -16,7 +16,6 @@ const { t } = useLanguage();
 
 export const getColumns = (
   kfLocation: KungfuApi.KfLocation,
-  isHistory = false,
 ): VTable.ColumnDefine[] =>
   (globalThis.HookKeeper.getHooks().dealTradingTable as DealTradingTableHooks)
     .trigger(kfLocation, 'trade')
@@ -24,10 +23,10 @@ export const getColumns = (
       {
         field: 'trade_time',
         title: t('tradeConfig.trade_time_resolved'),
-        width: isHistory ? 160 : 120,
-        sort: sorter,
+        width: 160,
+        sort: vTableSorter,
         fieldFormat: (args) => {
-          return dealKfTime(args.trade_time, isHistory);
+          return dealKfTime(args.trade_time, true);
         },
       },
       {
@@ -73,7 +72,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: 'volume',
@@ -85,7 +84,7 @@ export const getColumns = (
         headerStyle: {
           textAlign: 'right',
         },
-        sort: sorter,
+        sort: vTableSorter,
       },
       {
         field: kfLocation.category === 'td' ? 'dest_uname' : 'source_uname',

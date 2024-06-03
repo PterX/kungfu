@@ -65,6 +65,7 @@
     "nanopop": "~2.3.0",
     "@vue/babel-plugin-jsx": "~1.1.0",
     "@vue/compiler-sfc": "~3.2.4",
-    "@vueuse/core": ">=10.9.0 <10.10.0"
+    "@vueuse/core": ">=10.9.0 <10.10.0",
+    "@vercel/webpack-asset-relocator-loader": "<1.7.4"
   }
 }

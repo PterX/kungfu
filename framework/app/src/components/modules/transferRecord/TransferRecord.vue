@@ -15,7 +15,10 @@ import {
   ref,
 } from 'vue';
 
-import { useCurrentGlobalKfLocation } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
+import {
+  useCoreBindPage,
+  useCurrentGlobalKfLocation,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealKfTime } from '@kungfu-trader/kungfu-js-api/kungfu';
 import { dealKfNumber } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
@@ -23,6 +26,8 @@ import { ArrowRightOutlined } from '@ant-design/icons-vue';
 import { FundTransEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { FundTransType } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 import { dealKungfuColorToClassname } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 

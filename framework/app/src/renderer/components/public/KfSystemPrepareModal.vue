@@ -14,6 +14,8 @@ defineProps<{
   >;
   title: string;
 }>();
+
+const getContainer = () => document.querySelector('#kf-layout-content');
 </script>
 <template>
   <a-modal
@@ -24,6 +26,9 @@ defineProps<{
     :closable="false"
     :maskClosable="false"
     :footer="null"
+    wrapClassName="kf-system-prepare-modal-wrapper"
+    :maskStyle="{ position: 'absolute' }"
+    :getContainer="getContainer"
   >
     <div class="prepare-item" v-for="item in status" :key="item.key">
       <span
@@ -38,6 +43,10 @@ defineProps<{
   </a-modal>
 </template>
 <style lang="less">
+.kf-system-prepare-modal-wrapper {
+  position: absolute !important;
+}
+
 .kf-system-prepare-modal {
   .prepare-item {
     margin: 10px 10px 10px 0;

@@ -37,7 +37,7 @@ void reader::disjoin_channel(const data::location_ptr &location, uint32_t dest_i
 
 void reader::disjoin(const data::location_ptr &location) {
   for (auto it = journals_.begin(); it != journals_.end();) {
-    if (it->first.location_uid != location->location_uid and it->first.locator_uid == location->locator->locator_uid) {
+    if (it->first.location_uid != location->location_uid or it->first.locator_uid != location->locator->locator_uid) {
       it++;
     } else {
       it = journals_.erase(it);
@@ -164,6 +164,12 @@ uint64_t reader::find_page_size(const data::location_ptr &location, uint32_t des
     throw journal_error(msg);
   }
   return page_size;
+}
+
+void reader::clear() {
+  journals_.clear();
+  current_ = nullptr;
+  sort_without_buffer();
 }
 
 bool reader::later::operator()(const journal_ptr &lhs, const journal_ptr &rhs) const {

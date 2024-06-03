@@ -32,7 +32,7 @@ struct journal_key {
       : locator_uid(locator_uid), location_uid(location_uid), dest_id(dest_id) {}
 
   journal_key(const data::location_ptr &location, uint32_t dest_id)
-      : locator_uid(util::hash_str_32(location->locator->get_root())), location_uid(location->uid), dest_id(dest_id) {}
+      : locator_uid(location->locator->locator_uid), location_uid(location->uid), dest_id(dest_id) {}
 
   bool operator<(const journal_key &rhs) const {
     return std::tie(locator_uid, location_uid, dest_id) < std::tie(rhs.locator_uid, rhs.location_uid, rhs.dest_id);
@@ -174,6 +174,8 @@ public:
   virtual void release_page();
 
   virtual void preload_next_page();
+
+  void clear();
 
   static uint64_t find_page_size(const data::location_ptr &location, uint32_t dest_id);
 

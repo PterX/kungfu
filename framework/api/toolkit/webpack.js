@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const UnpluginIcons = require('unplugin-icons/webpack').default;
 const { isProduction, getAppDir } = require('./utils');
 
 module.exports = {
@@ -184,6 +185,7 @@ module.exports = {
             return false;
           },
         }),
+        UnpluginIcons(),
       ],
       resolve: {
         alias: {

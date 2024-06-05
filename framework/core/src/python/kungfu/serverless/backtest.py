@@ -7,6 +7,8 @@ import requests
 import time
 import signal
 import sys
+import io
+import tarfile
 
 from kungfu.serverless.sso import SSO
 from kungfu.serverless.utils import (
@@ -85,6 +87,35 @@ class Backtest:
         job_id = self.__run_job(zip_file, begin_time, end_time, level, parameter_map)
         log_group_name = parameter_map[self.LOG_GROUP_PARAM_NAME]
         self.__monit_log(log_group_name, job_id, access_key, secret_key, session_token)
+        backtest_result_bucket = parameter_map[self.S3_BUCKET_PARAM_NAME]
+        result = self.__get_backtest_result(
+            job_id, backtest_result_bucket, access_key, secret_key, session_token
+        )
+
+        return result
+
+    def __get_backtest_result(
+        self, job_id, bucket_name, access_key, secret_key, session_token
+    ):
+        client = boto3.client(
+            "s3",
+            region_name="cn-north-1",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            aws_session_token=session_token,
+        )
+        key = f"{self.user_id}/download/{job_id}.tar.gz"
+        result_file = io.BytesIO()
+        client.download_fileobj(Bucket=bucket_name, Key=key, Fileobj=result_file)
+        result_file.seek(0)
+
+        with tarfile.open(fileobj=result_file, mode="r:gz") as tar:
+            for name in tar.getnames():
+                if "context_dump.json" in name:
+                    file_content_byte = tar.extractfile(name).read().decode("utf-8")
+                    result = json.loads(file_content_byte)
+                    return result
+        raise Exception(f"No context_dump.json found, bucket {bucket_name}, key {key}")
 
     def check_data_range(self):
         access_token, refresh_token, id_token = get_tokens(self.stage)

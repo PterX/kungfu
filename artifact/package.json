@@ -14,8 +14,7 @@
     "productName": "Kungfu",
     "zipTargetEnable": {
       "mac": false,
-      "win": false,
-      "linux": false
+      "win": false
     }
   },
   "scripts": {

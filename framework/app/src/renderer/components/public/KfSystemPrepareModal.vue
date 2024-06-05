@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import waitingGif from '@kungfu-trader/kungfu-app/src/renderer/assets/imgs/waiting.gif';
 defineProps<{
   visible: boolean;
   status: {
@@ -16,6 +17,9 @@ defineProps<{
 }>();
 
 const getContainer = () => document.querySelector('#kf-layout-content');
+const isWaiting = (status: 'done' | 'loading' | undefined) => {
+  return status === 'loading' || true;
+};
 </script>
 <template>
   <a-modal
@@ -31,13 +35,10 @@ const getContainer = () => document.querySelector('#kf-layout-content');
     :getContainer="getContainer"
   >
     <div class="prepare-item" v-for="item in status" :key="item.key">
-      <span
-        :class="[
-          'kf-dot',
-          item.status === 'done' ? 'kf-color-running' : 'kf-color-waiting',
-          item.status === 'loading' ? 'kf-dot-wave' : '',
-        ]"
-      ></span>
+      <span v-if="isWaiting(item.status)" class="kf-img-dot">
+        <img :src="waitingGif" width="16" height="16" />
+      </span>
+      <span v-else :class="['kf-dot', 'kf-color-running']"></span>
       <span>{{ item.status ? txt[item.key][item.status] : '' }}</span>
     </div>
   </a-modal>

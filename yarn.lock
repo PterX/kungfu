@@ -3024,10 +3024,10 @@
   resolved "https://registry.npmmirror.com/@ungap/structured-clone/-/structured-clone-1.2.0.tgz#756641adb587851b5ccb3e095daf27ae581c8406"
   integrity sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==
 
-"@vercel/webpack-asset-relocator-loader@^1.7.0":
-  version "1.7.4"
-  resolved "https://registry.npmmirror.com/@vercel/webpack-asset-relocator-loader/-/webpack-asset-relocator-loader-1.7.4.tgz#f4bfddb80c1491efacaa54a0d3a43b8e9f536797"
-  integrity sha512-RFFite6v51Qhj/eERru3qwUNCLybnceSChI5yiu9bhLpTemWbKPORAOExOgpO2W7IE/0UEh3aX6wTSHgDE/fdQ==
+"@vercel/webpack-asset-relocator-loader@<1.7.4", "@vercel/webpack-asset-relocator-loader@^1.7.0":
+  version "1.7.3"
+  resolved "https://registry.npmmirror.com/@vercel/webpack-asset-relocator-loader/-/webpack-asset-relocator-loader-1.7.3.tgz#e65ca1fd9feb045039788f9b4710e5acc84b01b0"
+  integrity sha512-vizrI18v8Lcb1PmNNUBz7yxPxxXoOeuaVEjTG9MjvDrphjiSxFZrRJ5tIghk+qdLFRCXI5HBCshgobftbmrC5g==
   dependencies:
     resolve "^1.10.0"
 
@@ -3405,7 +3405,7 @@
   resolved "https://registry.npmmirror.com/@vue/web-component-wrapper/-/web-component-wrapper-1.3.0.tgz#b6b40a7625429d2bd7c2281ddba601ed05dc7f1a"
   integrity sha512-Iu8Tbg3f+emIIMmI2ycSI8QcEuAUgPTgHwesDU1eKMLE4YC/c/sFbGc70QgMq31ijRftV0R7vCm9co6rldCeOA==
 
-"@vueuse/core@^10.4.1":
+"@vueuse/core@>=10.9.0 <10.10.0", "@vueuse/core@^10.4.1":
   version "10.9.0"
   resolved "https://registry.npmmirror.com/@vueuse/core/-/core-10.9.0.tgz#7d779a95cf0189de176fee63cee4ba44b3c85d64"
   integrity sha512-/1vjTol8SXnx6xewDEKfS0Ra//ncg4Hb0DaZiwKf7drgfMsKFExQ+FnnENcN6efPen+1kIzhLQoGSy0eDUVOMg==

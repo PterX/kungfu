@@ -99,6 +99,7 @@ class Backtest:
     ):
         client = boto3.client(
             "s3",
+            region_name="cn-north-1",
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             aws_session_token=session_token,

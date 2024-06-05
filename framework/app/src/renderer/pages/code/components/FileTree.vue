@@ -5,6 +5,7 @@
         <span class="name">
           {{ $t('editor.current') + $t('folder') }}
         </span>
+
         <span class="tree-deal-file">
           <span
             class="create"
@@ -30,6 +31,9 @@
             <FolderAddFilled class="icon" />
           </span>
         </span>
+      </div>
+      <div class="path">
+        {{ currentCodePath }}
       </div>
       <div class="file-tree-body" v-if="currentCodePath">
         <div class="scroll-view">
@@ -222,7 +226,6 @@ function bindFunctionalNode(curFileTree) {
     font-size: 14px;
     font-weight: bolder;
     margin-top: 8px;
-    margin-bottom: 8px;
     height: 30px;
     line-height: 30px;
     padding: 0px 8px;
@@ -252,6 +255,13 @@ function bindFunctionalNode(curFileTree) {
         font-size: 15px;
       }
     }
+  }
+  .path {
+    margin: 0 8px 8px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
+    text-align: left;
+    word-break: break-all;
   }
   .folder-name {
     height: 30px;

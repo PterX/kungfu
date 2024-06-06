@@ -185,7 +185,10 @@ module.exports = {
             return false;
           },
         }),
-        UnpluginIcons(),
+        UnpluginIcons({
+          autoInstall: true,
+          compiler: 'vue3',
+        }),
       ],
       resolve: {
         alias: {

@@ -781,8 +781,11 @@ void Watcher::RequestDeregister() {
 void Watcher::AfterMasterDown(const Napi::CallbackInfo &info) {
   SPDLOG_INFO("after master down");
   Napi::HandleScope scope(info.Env());
-  disjoin(get_master_command_uid());
+  //  disjoin(get_master_command_uid());
+  reader_->clear();
+  trading_data_reader_->clear();
   writers_.clear();
+  band_writers_.clear();
   serialize::InitObjectReference(info, app_states_ref_);
   serialize::InitObjectReference(info, strategy_states_ref_);
   serialize::InitStateMap(info, ledger_ref_, "ledger");

@@ -32,12 +32,12 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('tradeConfig.instrument_id'),
-        width: 140,
+        width: 80,
       },
       {
         field: 'side',
         title: '',
-        width: 80,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -50,7 +50,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 50,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[

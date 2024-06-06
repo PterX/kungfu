@@ -28,6 +28,8 @@ import {
   ICustomActionOption,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
+import { useTableResizeControl } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
+
 const { t } = VueI18n.global;
 
 const app = getCurrentInstance();
@@ -35,6 +37,7 @@ const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 const showEmpty = ref<boolean>(false);
 let widthMode: 'adaptive' | 'autoWidth' | 'standard' = 'standard';
 let columnResizeMode: 'all' | 'body' | 'header' | 'none' = 'none';
+let dragHeaderMode: 'all' | 'none' | 'column' | 'row' = 'none';
 let font = '';
 const ColumnCustomMap = ref<
   Record<string, { customLayout: VTable.TYPES.ICustomLayoutFuc }>
@@ -47,21 +50,28 @@ type tableDataItem =
 
 const props = withDefaults(
   defineProps<{
+    tableKey?: string;
     columns: VTable.ColumnsDefine;
     dataSource?: tableDataItem[];
     hasData?: boolean;
     customLayout?: Record<string, ICustomActionOption[]>;
     widthMode?: 'adaptive' | 'autoWidth' | 'standard';
     columnResizeMode?: 'all' | 'body' | 'header' | 'none';
+    dragHeaderMode?: 'all' | 'none' | 'column' | 'row';
     optionItems?: VTable.ListTableConstructorOptions;
     event?: Partial<VTable.TYPES.TableEventHandlersEventArgumentMap>;
     ScrollableContainerWidth?: number;
+    cacheColumnResizable?: boolean;
+    cacheColumnChange?: boolean;
   }>(),
   {
+    tableKey: '',
     columns: () => [],
     optionItems: () => ({}),
     dataSource: () => [],
     event: () => ({}),
+    cacheColumnResizable: false,
+    cacheColumnChange: false,
   },
 );
 
@@ -132,6 +142,26 @@ defineEmits<{
   ): void;
 }>();
 
+const columnsRef = computed(() => {
+  return props.columns;
+});
+
+const resizable =
+  props.columnResizeMode !== 'none' || props.dragHeaderMode !== 'none';
+
+const { resizedColumns, handleResizeColumnEnd, handleChangeHeaderPosition } =
+  useTableResizeControl(props.tableKey, columnsRef, resizable);
+
+watch(
+  () => resizedColumns.value,
+  (resizedColumns) => {
+    if (listTable) {
+      initCustomLayoutOptions();
+      listTable.updateColumns(resizedColumns);
+    }
+  },
+);
+
 const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   columnResize: {
     lineColor: 'transparent',
@@ -185,6 +215,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   scrollStyle: {
     scrollSliderColor: '#555',
     visible: 'focus',
+    barToSide: true,
   },
   checkboxStyle: {
     size: 12,
@@ -219,8 +250,9 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
   },
   maintainedDataCount: 100,
   defaultRowHeight: 30,
-  columnResizeMode,
-  widthMode,
+  columnResizeMode: props.columnResizeMode || columnResizeMode,
+  dragHeaderMode: props.dragHeaderMode || dragHeaderMode,
+  widthMode: props.widthMode || widthMode,
   limitMaxAutoWidth: 300,
   //  autoFillHeight:true,
   //  frozenColCount: 1,
@@ -229,11 +261,12 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
     isShowOverflowTextTooltip: true,
   },
 });
+
 const listTableRef = ref();
 const emptyRef = ref();
 const option = computed<VTable.ListTableConstructorOptions>(() => {
   return {
-    columns: props.columns,
+    columns: resizedColumns.value,
     ...defaultOptionItems.value,
     ...props.optionItems,
   } as VTable.ListTableConstructorOptions;
@@ -361,10 +394,6 @@ onMounted(() => {
     }
   }
   initCustomLayoutOptions();
-  widthMode = props.widthMode || 'standard';
-  columnResizeMode = props.columnResizeMode || 'none';
-  defaultOptionItems.value.widthMode = widthMode;
-  defaultOptionItems.value.columnResizeMode = columnResizeMode;
   if (listTableRef.value) {
     listTable = new VTable.ListTable(
       listTableRef.value,
@@ -432,17 +461,6 @@ watch(
     }
   },
 );
-
-watch(
-  () => props.columns,
-  () => {
-    if (listTable) {
-      initCustomLayoutOptions();
-      listTable.updateOption(option.value);
-    }
-  },
-);
-
 const registerEvent = () => {
   if (!listTable) return;
 
@@ -483,6 +501,17 @@ const registerEvent = () => {
         >,
       );
     });
+  }
+
+  if (props.cacheColumnResizable) {
+    listTable?.on('resize_column_end', (e) => {
+      handleResizeColumnEnd(e);
+    });
+  }
+  if (props.cacheColumnChange) {
+    listTable?.on('change_header_position', (e) =>
+      handleChangeHeaderPosition(e),
+    );
   }
 };
 </script>

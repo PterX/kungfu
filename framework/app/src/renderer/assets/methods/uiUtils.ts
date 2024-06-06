@@ -298,6 +298,16 @@ export const loadExtComponents = (
   });
 };
 
+export const registerComponents = (
+  app: App,
+  componentsMap: { [componentsName: string]: Component },
+) => {
+  Object.keys(componentsMap).forEach((componentsName) => {
+    if (componentsName in app._context.components) return;
+    app.component(componentsName, componentsMap[componentsName]);
+  });
+};
+
 export function useStyle(styleString: string) {
   const key = Date.now();
   const styleSheet = document.styleSheets[0];

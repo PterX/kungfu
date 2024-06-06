@@ -3250,31 +3250,31 @@
     simplify-geojson "^1.0.4"
     topojson-client "^3.1.0"
 
-"@visactor/vrender-components@0.19.6-alpha.3":
-  version "0.19.6-alpha.3"
-  resolved "https://registry.npmmirror.com/@visactor/vrender-components/-/vrender-components-0.19.6-alpha.3.tgz#8cd3cd4367b94ba7789a5af72b983cc566343195"
-  integrity sha512-Iip2T4g+lZ5HYRQo7HSyVpx2npdK726OZVMazCK+UjgTAke9lM/iqKGzZIF0XjzQhCPGkjlBtA28saQb0QhXkQ==
+"@visactor/vrender-components@0.19.7-alpha.1":
+  version "0.19.7-alpha.1"
+  resolved "https://registry.npmmirror.com/@visactor/vrender-components/-/vrender-components-0.19.7-alpha.1.tgz#0443c45799fa57ee28b972796143713fd1940366"
+  integrity sha512-YGoFLHVABz2mb4jgvK1SQKZOycVaDULXUhOGZiVoXzwbfO8R0j88tdunA0iKwHbFPywRuAwvpy2hYMMexYgePQ==
   dependencies:
-    "@visactor/vrender-core" "0.19.6-alpha.3"
-    "@visactor/vrender-kits" "0.19.6-alpha.3"
+    "@visactor/vrender-core" "0.19.7-alpha.1"
+    "@visactor/vrender-kits" "0.19.7-alpha.1"
     "@visactor/vscale" "~0.18.9"
     "@visactor/vutils" "~0.18.9"
 
-"@visactor/vrender-core@0.19.6-alpha.3":
-  version "0.19.6-alpha.3"
-  resolved "https://registry.npmmirror.com/@visactor/vrender-core/-/vrender-core-0.19.6-alpha.3.tgz#fa87a2483865d65a3bd406c1895fb52f34ab1c83"
-  integrity sha512-9oGE6JxX9afOV8hR2vommc+BfjXmqkraSGGL3nPFSD5ORl1wfwgSjp0IcYs5cO4nVKg3wrOmI29p4VP42Rs5pA==
+"@visactor/vrender-core@0.19.7-alpha.1":
+  version "0.19.7-alpha.1"
+  resolved "https://registry.npmmirror.com/@visactor/vrender-core/-/vrender-core-0.19.7-alpha.1.tgz#c30bb57e612bb2e7c8d06288c4c114973a7d14af"
+  integrity sha512-Q3BWV8dqqKHeYJciFjPUoiaJ3KJ/+GPXXKYCJbWlXOK9G9nf69qfnqNQLWI4tAO9dMK8sJXnOskcLi8r2ffzXQ==
   dependencies:
     "@visactor/vutils" "~0.18.9"
     color-convert "2.0.1"
 
-"@visactor/vrender-kits@0.19.6-alpha.3":
-  version "0.19.6-alpha.3"
-  resolved "https://registry.npmmirror.com/@visactor/vrender-kits/-/vrender-kits-0.19.6-alpha.3.tgz#84bb5b78ab5b592b6b0d8ca9dbc2dd3c323fc877"
-  integrity sha512-bGNaKZZGYIxz2gh1b1MLXPogms0/yYwUuKbxVtzvvHhpaAq9cXvhLV/S0beN234N+IR2/WW20zC6zL4M1k6PDA==
+"@visactor/vrender-kits@0.19.7-alpha.1":
+  version "0.19.7-alpha.1"
+  resolved "https://registry.npmmirror.com/@visactor/vrender-kits/-/vrender-kits-0.19.7-alpha.1.tgz#c339326cc35b3aede50db9cc92078d02048aa653"
+  integrity sha512-PGGr+rLHGBu9QOvSsoPMLpYN3zdKod/MHKmzpicW2TPuVyCgWq/3SUgk431McGHPIb9GQGAFVvS4Y8A/s95OqQ==
   dependencies:
     "@resvg/resvg-js" "2.4.1"
-    "@visactor/vrender-core" "0.19.6-alpha.3"
+    "@visactor/vrender-core" "0.19.7-alpha.1"
     "@visactor/vutils" "~0.18.9"
     roughjs "4.5.2"
 
@@ -3285,22 +3285,22 @@
   dependencies:
     "@visactor/vutils" "0.18.9"
 
-"@visactor/vtable-editors@1.1.0":
-  version "1.1.0"
-  resolved "https://registry.npmmirror.com/@visactor/vtable-editors/-/vtable-editors-1.1.0.tgz#63844a5b73bdaf3c2df3af2639bdf3cfbf8fe1fc"
-  integrity sha512-BTRSzfYY9sunVA4RNjw/58ke1OgGoRFLLwoOrpXRMxbPhnbndbPDp/cpwJIsCcz0XZoTUkL2aYcyttw+p1GSNg==
+"@visactor/vtable-editors@1.1.3-alpha.0":
+  version "1.1.3-alpha.0"
+  resolved "https://registry.npmmirror.com/@visactor/vtable-editors/-/vtable-editors-1.1.3-alpha.0.tgz#f191da92be26a0f8daad3ed0cc7ed267a23412f4"
+  integrity sha512-R9kMWQKdb9FpSf5JwFA6MefCXQ1poKcMpS983kUjQbgVZRAo/h9tMXRV5i5OskPaG20dW9BZj8/wgJnGzLtQfQ==
 
-"@visactor/vtable@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.npmmirror.com/@visactor/vtable/-/vtable-1.1.0.tgz#5f0e7088fc6be2a3e9dbcd53fc5fa09154bda003"
-  integrity sha512-zuzEp1D0kaYqSlmt4prZYbd2tGoe1Fq4CAbJqMXR0L5f0WSmZGQHNIep5TTp6PioER8Lv6Oi0U5Rp78XnY3dcA==
+"@visactor/vtable@1.1.3-alpha.0":
+  version "1.1.3-alpha.0"
+  resolved "https://registry.npmmirror.com/@visactor/vtable/-/vtable-1.1.3-alpha.0.tgz#828f4e1b199cddf0facd7ed53a5307f3767228d9"
+  integrity sha512-ZVMULyLc7lTD2Gquhb1UFsOq5i1N4M2BlmUaAz9rYscZflJGGrc5GcezcLv7ChwZIR/2u8Ii58DozswRQGJA0Q==
   dependencies:
     "@visactor/vdataset" "~0.18.1"
-    "@visactor/vrender-components" "0.19.6-alpha.3"
-    "@visactor/vrender-core" "0.19.6-alpha.3"
-    "@visactor/vrender-kits" "0.19.6-alpha.3"
+    "@visactor/vrender-components" "0.19.7-alpha.1"
+    "@visactor/vrender-core" "0.19.7-alpha.1"
+    "@visactor/vrender-kits" "0.19.7-alpha.1"
     "@visactor/vscale" "~0.18.1"
-    "@visactor/vtable-editors" "1.1.0"
+    "@visactor/vtable-editors" "1.1.3-alpha.0"
     "@visactor/vutils" "~0.18.9"
     cssfontparser "^1.2.1"
 

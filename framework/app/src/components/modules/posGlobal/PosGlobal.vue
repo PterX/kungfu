@@ -97,11 +97,7 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     instrument_id: [
       {
         type: 'text',
-        dealValue: (record) => {
-          return `${record.instrument_id}${
-            ExchangeIds[record.exchange_id]?.name
-          }`;
-        },
+        dealValue: (record) => record.instrument_id_resolved,
         fontSize: 12,
         fill: '#ffffffd9',
         boundsPadding: [7, 10, 5, 10],

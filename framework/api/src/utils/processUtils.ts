@@ -988,19 +988,12 @@ function buildKfcArgs(options: {
     fullArgsArray.push(options.suffix);
   }
 
-  fullArgsArray.push(
-    buildKfcEnv({
-      logFrame,
-    }),
-  );
+  if (options.location && options.location.category !== 'archive') {
+    fullArgsArray.push(buildKfcEnv({ logFrame }));
+  }
 
   if (options.env) {
-    fullArgsArray.push(
-      buildKfcEnv({
-        logFrame,
-      }),
-      buildKfcEnv(options.env),
-    );
+    fullArgsArray.push(buildKfcEnv(options.env));
   }
 
   const fullArgs = fullArgsArray.join(' ');

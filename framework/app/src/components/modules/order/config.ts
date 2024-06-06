@@ -36,12 +36,12 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('orderConfig.instrument_id'),
-        width: 140,
+        width: 80,
       },
       {
         field: 'side',
         title: '',
-        width: 80,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -113,7 +113,7 @@ export const getColumns = (
       {
         field: 'status_resolved',
         title: t('orderConfig.order_status'),
-        width: 120,
+        width: 80,
         style: {
           color: (args) => {
             return defaultColorMap[args.dataValue?.color || 'default'];
@@ -144,13 +144,13 @@ export const getColumns = (
       {
         field: 'latency_system',
         title: t('orderConfig.latency_system'),
-        width: 160,
+        width: 120,
         sort: vTableSorter,
       },
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
-        width: 160,
+        width: 120,
         sort: vTableSorter,
       },
       {

@@ -952,12 +952,14 @@ function buildKfcArgs(options: {
   args?: string;
   suffix?: string;
   env?: KfcEnvs;
+  canLogFrame?: boolean;
 }): string {
   const globalSetting = getKfGlobalSettingsValue();
   const logLevel: string =
     options.logLevel || (globalSetting?.system?.logLevel ?? '');
   const ifRocket = globalSetting?.performance?.rocket ?? false;
   const logFrame = globalSetting?.system?.logFrame ?? false;
+  const { canLogFrame = true } = options;
 
   const fullArgsArray: string[] = [];
 
@@ -988,7 +990,7 @@ function buildKfcArgs(options: {
     fullArgsArray.push(options.suffix);
   }
 
-  if (options.location && options.location.category !== 'archive') {
+  if (canLogFrame) {
     fullArgsArray.push(buildKfcEnv({ logFrame }));
   }
 
@@ -1059,6 +1061,7 @@ export function startArchiveMakeTask(
       name: ProcessId,
       args: buildKfcArgs({
         extraArgs: `journal archive ${bypassArchive ? '-m delete' : ''}`,
+        canLogFrame: false,
       }),
     },
     cb,

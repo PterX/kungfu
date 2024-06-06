@@ -20,7 +20,7 @@ export const getColumns = (
       {
         field: 'instrument_id_resolved',
         title: t('posGlobalConfig.instrument_id'),
-        width: 190,
+        width: 180,
         sort: vTableSorter,
       },
       ...(isTd(kfLocation.category)
@@ -36,7 +36,7 @@ export const getColumns = (
       {
         field: 'direction',
         title: '',
-        width: 50,
+        width: 60,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -51,7 +51,7 @@ export const getColumns = (
       {
         field: 'static_yesterday',
         title: t('posGlobalConfig.static_yesterday'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -63,7 +63,7 @@ export const getColumns = (
       {
         field: 'open_volume',
         title: t('posGlobalConfig.open_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -75,7 +75,7 @@ export const getColumns = (
       {
         field: 'close_volume',
         title: t('posGlobalConfig.close_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -87,7 +87,7 @@ export const getColumns = (
       {
         field: 'yesterday_volume',
         title: t('posGlobalConfig.yesterday_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -99,7 +99,7 @@ export const getColumns = (
       {
         field: 'today_volume',
         title: t('posGlobalConfig.today_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -111,7 +111,7 @@ export const getColumns = (
       {
         field: 'volume',
         title: t('posGlobalConfig.sum_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -123,7 +123,7 @@ export const getColumns = (
       {
         field: 'frozen_total',
         title: t('posGlobalConfig.frozen_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -135,7 +135,7 @@ export const getColumns = (
       {
         field: 'closable_volume',
         title: t('posGlobalConfig.closable_volume'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -148,7 +148,7 @@ export const getColumns = (
       {
         field: 'avg_open_price_resolved',
         title: t('posGlobalConfig.avg_open_price'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -160,7 +160,7 @@ export const getColumns = (
       {
         field: 'last_price_resolved',
         title: t('posGlobalConfig.last_price'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
         },
@@ -175,7 +175,7 @@ export const getColumns = (
       {
         field: 'unrealized_pnl_resolved',
         title: t('posGlobalConfig.unrealized_pnl'),
-        width: 110,
+        width: 120,
         style: {
           textAlign: 'right',
           color: (args) => {

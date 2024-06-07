@@ -169,6 +169,7 @@ class PyStreamDataBatcher:
         if quote_array.size == 0:
             return pd.DataFrame()
         else:
+
             def process_element(tuple_):
                 return (
                     tuple_[:22]
@@ -196,6 +197,7 @@ class PyStreamDataBatcher:
         if tree_array.size == 0:
             return pd.DataFrame()
         else:
+
             def process_element(tuple_):
                 return (
                     tuple_[:21]

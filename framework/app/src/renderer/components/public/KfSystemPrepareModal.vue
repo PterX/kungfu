@@ -18,7 +18,7 @@ defineProps<{
 
 const getContainer = () => document.querySelector('#kf-layout-content');
 const isWaiting = (status: 'done' | 'loading' | undefined) => {
-  return status === 'loading' || true;
+  return status === 'loading';
 };
 </script>
 <template>

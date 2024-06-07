@@ -35,7 +35,7 @@
   "dependencies": {
     "@electron/remote": "^2.0.0",
     "@kungfu-trader/kungfu-js-api": "^3.0.7-alpha.3",
-    "@visactor/vtable": "^1.1.0",
+    "@visactor/vtable": "^1.2.0",
     "@vueuse/core": "^10.4.1",
     "ant-design-vue": "^3.2.20",
     "axios": "^0.28.0",

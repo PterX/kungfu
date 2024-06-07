@@ -102,8 +102,9 @@ const enableMatcher = computed(() => {
   return props.params.enableMatcher === 'true';
 });
 
+const logLevel = ref(props.params.logLevel);
 const replayLogLevel = computed(
-  () => LogLevelType[props.params.logLevel ? props.params.logLevel : ''] || '',
+  () => LogLevelType[logLevel.value ? logLevel.value : ''] || '',
 );
 
 const timeRange = computed(() => ({
@@ -173,8 +174,7 @@ onMounted(async () => {
 watch(
   () => props.params.logLevel,
   (newVal) => {
-    replayLogLevel.value =
-      LogLevelType[newVal ? newVal.replace('%20', ' ') : ''] || '';
+    logLevel.value = newVal;
   },
 );
 
@@ -223,7 +223,7 @@ async function reLoadLog() {
     beginTime,
     endTime,
     filePath: paramsFilePath,
-    logLevel,
+    logLevel: paramsLogLevel,
     sessionName,
   } = props.params;
   const rerunFlag =
@@ -236,7 +236,7 @@ async function reLoadLog() {
     group: configArgs.group,
     begin_time: beginTime,
     end_time: endTime,
-    log_level: logLevel ? logLevel.replace('%20', ' ') : '-l info',
+    log_level: paramsLogLevel ? paramsLogLevel : '-l info',
     session_name: sessionName,
     file_path: filePath,
     enable_matcher: enableMatcher.value,
@@ -252,7 +252,7 @@ async function reLoadLog() {
   if (!rerunFlag) {
     replayArgs[processId].args = args;
     localStorage.setItem('replayConfigs', JSON.stringify(replayArgs));
-    replayLogLevel.value = LogLevelType[args.replayConfig.log_level];
+    logLevel.value = args.replayConfig.log_level;
   }
 
   try {
@@ -282,8 +282,7 @@ function updateLogLevel() {
     if (config) {
       const replayParams = config.args;
       if (replayParams && replayParams.replayConfig) {
-        replayLogLevel.value =
-          LogLevelType[replayParams.replayConfig.log_level];
+        logLevel.value = replayParams.replayConfig.log_level;
       }
     }
   }

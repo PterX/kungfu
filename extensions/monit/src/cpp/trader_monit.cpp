@@ -65,7 +65,6 @@ bool monit::custom_OnOrderEvent(const event_ptr &event) {
       return false;
     }
   }
-
   writer->write(now(), public_order);
   return true;
 };
@@ -84,12 +83,12 @@ bool monit::custom_OnTradeEvent(const event_ptr &event) {
       return false;
     }
   }
-
   writer->write(now(), public_trade);
+  
   return true;
 };
 bool monit::custom_OnOrderInputEvent(const event_ptr &event) {
-  SPDLOG_DEBUG("custom_OnTradeEvent");
+  SPDLOG_DEBUG("custom_OnOrderInputEvent");
   const kungfu::longfist::types::OrderInput &orderinput = event->data<kungfu::longfist::types::OrderInput>();
 
   kungfu::longfist::types::OrderInput public_orderinput{};

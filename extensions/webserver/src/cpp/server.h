@@ -70,7 +70,7 @@ public:
     T2 data_send;
     memcpy(&data_send.data, data, sizeof(T1));
     data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-    io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(T2));
+    web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     return;
   };
 
@@ -79,7 +79,7 @@ public:
     T2 data_send;
     memcpy(&data_send.data, data, sizeof(T1));
     data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-    io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(T2));
+    web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     return;
   };
 
@@ -88,7 +88,7 @@ public:
     T2 data_send;
     memcpy(&data_send.data, data, sizeof(T1));
     data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
-    io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(T2));
+    web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     return;
   };
   // test end
@@ -97,7 +97,7 @@ public:
     auto data = static_cast<T1 *>(ptr);
     T2 data_send;
     memcpy(&data_send.data, data, sizeof(T1));
-    io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(T2));
+    web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     return;
   };
 
@@ -111,7 +111,7 @@ private:
 
 private:
   kungfu::wingchun::broker::TestClient broker_client_;
-  kungfu::yijinjing::io_device_network_ptr io_network_;
+  kungfu::yijinjing::webserver::web_agent_ptr web_agent_;
   std::mutex asm_mutex_;
   ThreadPool *threadpool_;
   std::unordered_map<uint64_t, kungfu::yijinjing::journal::reader_ptr> stream_reader_map_;

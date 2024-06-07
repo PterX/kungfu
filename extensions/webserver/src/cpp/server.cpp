@@ -15,6 +15,8 @@ using namespace kungfu::yijinjing::practice;
 using namespace kungfu::wingchun;
 using namespace kungfu::yijinjing::nanomsg;
 using namespace kungfu::yijinjing::journal;
+using namespace kungfu::yijinjing::webserver;
+
 
 namespace kungfu::wingchun::broker {
 
@@ -57,7 +59,7 @@ ServerConfig server::read_config(std::string filename) const {
     }
     res.address = config["address"];
     res.paths = config["paths"];
-    res.thread_num = config["thread_num"];
+  res.thread_num = config["thread_num"];
     break;
   }
   return res;
@@ -74,7 +76,16 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
   SPDLOG_DEBUG("read file from: {}", file_path);
   ServerConfig config = read_config(file_path.generic_string());
   std::vector<std::string> paths = config.paths;
-  io_network_ = std::make_shared<io_device_network_server>(config.address, paths, true, false);
+  web_agent_ = std::make_shared<http_server>(config.address);
+  for (const auto &path : paths) {
+    auto http_server_ptr = std::dynamic_pointer_cast<http_server>(web_agent_);
+    if (http_server_ptr) {
+      http_server_ptr->add_websocket(path, false, true);
+    }
+    else {
+      SPDLOG_ERROR("server pointer cast error"); 
+    }
+}
   threadpool_ = new ThreadPool(config.thread_num);
   threadpool_->init();
 }
@@ -105,6 +116,7 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) 
   default:
     break;
   }
+  return;
 }
 
 void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
@@ -124,7 +136,7 @@ void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
     SPDLOG_INFO("stream {} pushlish PackReqEnd nums:{}",stream_id,nums);
   }
   CICC::types::PackReqEnd data_send;
-  io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send), sizeof(CICC::types::PackReqEnd));
+  web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
   return;
 }
 
@@ -148,8 +160,7 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
       CICC::types::PackOrderInput data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(OrderInput));
       data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send),
-                                             sizeof(CICC::types::PackOrderInput));
+      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
       break;
     }
     case Order::tag:{
@@ -157,8 +168,7 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
       CICC::types::PackOrder data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(Order));
       data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send),
-                                             sizeof(CICC::types::PackOrder));
+      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
       break;
     }
     case Trade::tag:{
@@ -166,8 +176,7 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
       CICC::types::PackTrade data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(Trade));
       data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
-      io_network_->get_stream_manager()->publish(stream_id, (char *)(&data_send),
-                                             sizeof(CICC::types::PackTrade));
+      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
       break;
     }
 
@@ -177,6 +186,7 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
     //auto iter = map_event_back.find(type);
     reader->next();
     }
+  return ;
 }
 
 bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
@@ -271,8 +281,8 @@ bool server::custom_OnCancelOrder(const char *ptr, uint64_t stream_id) {
 bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
 
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
-  auto manager = io_network_->get_stream_manager();
-  auto &reader = io_network_->get_stream_manager()->get_reader();
+  auto manager = web_agent_->get_stream_manager();
+  auto &reader = web_agent_->get_stream_manager()->get_reader();
   int count = 0;
   while (reader->data_available() and count < 100) {
     uint32_t location_uid = reader->current_journal()->get_location()->location_uid;
@@ -281,11 +291,13 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
     reader->next();
     ++count;
   }
+  return ;
 }
 
 void server::submit_read_read_assemble() {
   for (auto &item : stream_reader_map_) {
     auto it = stream_task_map_.find(item.first);
+
     if (it != stream_task_map_.end() && it->second.valid() &&
         it->second.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
       continue;
@@ -293,6 +305,7 @@ void server::submit_read_read_assemble() {
     stream_task_map_[item.first] =
         threadpool_->submit(std::mem_fn(&server::thread_read_data), this, item.second, item.first);
   }
+  return ;
 }
 
 bool server::drain(const rx::subscriber<event_ptr> &sb) {
@@ -335,5 +348,6 @@ void server::on_start() {
   broker_client_.on_start(events_);
   SPDLOG_DEBUG("on_start  thread_id:{}", std::this_thread::get_id());
   SPDLOG_DEBUG("end on_start");
+  return ;
 }
 } // namespace kungfu::service

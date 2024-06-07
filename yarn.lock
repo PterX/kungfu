@@ -3290,9 +3290,9 @@
   resolved "https://registry.yarnpkg.com/@visactor/vtable-editors/-/vtable-editors-1.2.0.tgz#58a5bd43984e0d3ced36fd52d08688463be6580b"
   integrity sha512-lQl0TiN2svC/FMCBjaAQUptTFWM7O5Lf1vBYQ3zvoX1svIiZjIo9SJB6uEI6az9j87UdmvKHSgtHsoi7tyRWJg==
 
-"@visactor/vtable@1.2.0":
+"@visactor/vtable@^1.2.0":
   version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@visactor/vtable/-/vtable-1.2.0.tgz#77d1caaed7bdda4553c494713061f1346adcb829"
+  resolved "https://registry.npmjs.org/@visactor/vtable/-/vtable-1.2.0.tgz#77d1caaed7bdda4553c494713061f1346adcb829"
   integrity sha512-xedKJTvGX2UA2JIBQVc+Tknrn6lE7eWljcS1ZVEvHXKwlQtqW90DWznsYeHU63gTVXd54Ja4relaYoaJEBCKpQ==
   dependencies:
     "@visactor/vdataset" "~0.18.1"

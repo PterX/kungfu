@@ -246,6 +246,7 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
     highlightMode: 'row',
   },
   select: {
+    highlightMode: 'cell',
     disableSelect: true,
   },
   maintainedDataCount: 100,

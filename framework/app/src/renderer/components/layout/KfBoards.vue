@@ -2,9 +2,7 @@
   <KfRowColIter
     :board-id="0"
     :closable="closable"
-    :init-boards-map="curBoardsMap"
     :current-boards-store-id="boardsId"
-    :default-boards-map="curDefaultBoardsMap"
   ></KfRowColIter>
 </template>
 

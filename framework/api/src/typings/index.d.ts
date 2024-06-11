@@ -627,10 +627,6 @@ declare namespace KungfuApi {
     position_pnl: number; //持仓盈亏(期货)
     close_pnl: number; //平仓盈亏(期货)
 
-    update_time: bigint; //更新时间
-    holder_uid: number;
-    ledger_category: LedgerCategoryEnum;
-
     total_asset: number; //总资产
     avail_margin: number; //可用保证金
     long_margin: number; //融资占用保证金
@@ -705,6 +701,7 @@ declare namespace KungfuApi {
     parent_id: bigint; //母单号
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
+    restore_time: bigint; //根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -747,6 +744,7 @@ declare namespace KungfuApi {
     status_uname: string;
     status_color: AntInKungfuColorTypes;
     update_time_resolved: string;
+    insert_time_resolved: string;
     price_precision?: number;
     limit_price_resolved: string;
   }
@@ -805,6 +803,7 @@ declare namespace KungfuApi {
 
     insert_time: bigint; //订单写入时间
     update_time: bigint; //订单更新时间
+    restore_time: bigint; //根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -1013,6 +1012,7 @@ declare namespace KungfuApi {
     update_time: bigint; // 更新时间
     begin_time: bigint; // 开始时间
     end_time: bigint; // 结束时间
+    restore_time: bigint; // 根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; // 合约代码
     exchange_id: string; // 交易所代码
@@ -1147,6 +1147,7 @@ declare namespace KungfuApi {
     external_order_id: string; //外部委托ID
     external_trade_id: string; //外部委托ID
     trade_time: bigint; //成交时间
+    restore_time: bigint; //根据这个时间决定是否要恢复该数据, 主要针对期货夜盘
 
     instrument_id: string; //合约ID
     exchange_id: string; //交易所ID
@@ -1458,6 +1459,7 @@ declare namespace KungfuApi {
     genTime: () => bigint;
     triggerTime: () => bigint;
     dataAsString: () => string;
+    initialSource: () => number;
     data: () => unknown;
   }
 
@@ -1466,6 +1468,7 @@ declare namespace KungfuApi {
     genTime: bigint;
     triggerTime: bigint;
     dataAsString: string;
+    initialSource: number;
     msgType: number;
     source: number;
     dest: number;
@@ -1478,6 +1481,7 @@ declare namespace KungfuApi {
     id: string;
     msgTypeName: string;
     sourceToDest: string;
+    initialSourceResolved: string;
     genTimeResolved: string;
     triggerTimeResolved: string;
     msgTypeResolved: KfTradeValueCommonData;

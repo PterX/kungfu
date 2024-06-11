@@ -149,7 +149,7 @@ onMounted(() => {
           .list();
 
         tableDataResolved.value = orderTriggerData.map((item, index) => {
-          return dealOrderTrigger(window.watcher, item, false, 4, index);
+          return dealOrderTrigger(window.watcher, item, 4, index);
         });
       },
     );

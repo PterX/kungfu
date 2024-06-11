@@ -121,7 +121,8 @@ const { isMarginMakeOrder, isSpecifyContract } = useMarginSupport(
 );
 
 const sideList = ref<string[]>([SideEnum.Buy + '', SideEnum.Sell + '']);
-const offsetList = ref<string[]>(Object.keys(enableCustomRadioType['offset']));
+const enableOffset = Object.keys(enableCustomRadioType['offset']);
+const offsetList = ref<string[]>([...enableOffset]);
 
 const autoFillInstrument = ref<boolean>(false);
 
@@ -334,11 +335,13 @@ watch(
 
       if (instrumentType === InstrumentTypeEnum.future) {
         if (exchangeId !== 'SHFE' && exchangeId !== 'INE') {
-          offsetList.value = offsetList.value.filter(
+          offsetList.value = enableOffset.filter(
             (item) =>
-              item !== OffsetEnum.CloseToday + '' ||
+              item !== OffsetEnum.CloseToday + '' &&
               item !== OffsetEnum.CloseYest + '',
           );
+        } else {
+          offsetList.value = [...enableOffset];
         }
       }
 

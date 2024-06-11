@@ -127,6 +127,7 @@ open_volume
 last_price
 avg_open_price
 position_cost_price
+avg_open_price_today
 close_price
 pre_close_price
 settlement_price
@@ -151,6 +152,8 @@ time_condition
 block_id
 external_order_id
 insert_time
+restore_time
+trading_day
 volume_left
 tax
 commission
@@ -478,7 +481,13 @@ order_trigger_from_input
 order_trigger_from_order
 order_input_from_trigger_order
 now_in_nano
+nano_hashed
+next_minute
+next_trading_day_end
+calendar_day_start
 today_start
+trading_day_start
+restore_start
 strftime
 strptime
 strfnow
@@ -573,6 +582,9 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
 SubscribeDataType
 Stock
 Future

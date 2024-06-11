@@ -635,8 +635,8 @@ function csvTableCallback(
     targetKey: string,
   ) {
     return new Promise<void>((resolve) => {
-      if (errRows.length) {
-        console.warn('Csv resolve error rows:', errRows);
+      if (errRows.length || !data.length) {
+        errRows.length && console.warn('Csv resolve error rows:', errRows);
         messagePrompt().error(
           `${t('settingsFormConfig.import_failed')}: ${t(
             'settingsFormConfig.csv_format_error',
@@ -1199,7 +1199,7 @@ function calcTableItemHeight(
 ) {
   const baseHeight = layout === 'vertical' ? 52 : 32;
   const dividerHeight = noDivider ? 8 : 25;
-  return baseHeight + dividerHeight;
+  return baseHeight + dividerHeight + 12;
 }
 
 function getContracData(open) {

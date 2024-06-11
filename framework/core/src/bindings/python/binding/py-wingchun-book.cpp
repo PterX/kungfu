@@ -96,10 +96,12 @@ void bind_book(pybind11::module &m) {
       .def_property_readonly("static_data", &Bookkeeper::get_static_data, py::return_value_policy::reference);
 
   py::class_<StaticData, std::shared_ptr<StaticData>>(m, "StaticData")
-      .def_property_readonly("baskets", &StaticData::get_baskets)
-      .def_property_readonly("basket_instruments", &StaticData::get_basket_instruments)
-      .def_property_readonly("commissions", &StaticData::get_commissions)
-      .def_property_readonly("instruments", &StaticData::get_instruments)
-      .def_property_readonly("instrument_factors", &StaticData::get_instrument_factors);
+      .def_property_readonly("baskets", &StaticData::get_baskets, py::return_value_policy::reference)
+      .def_property_readonly("basket_instruments", &StaticData::get_basket_instruments,
+                             py::return_value_policy::reference)
+      .def_property_readonly("commissions", &StaticData::get_commissions, py::return_value_policy::reference)
+      .def_property_readonly("instruments", &StaticData::get_instruments, py::return_value_policy::reference)
+      .def_property_readonly("instrument_factors", &StaticData::get_instrument_factors,
+                             py::return_value_policy::reference);
 }
 } // namespace kungfu::wingchun::pybind

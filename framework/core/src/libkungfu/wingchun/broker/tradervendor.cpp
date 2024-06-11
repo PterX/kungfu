@@ -28,23 +28,27 @@ void TraderWriterHook::on_close_frame(int64_t gen_time, frame_ptr frame) {
   switch (frame->msg_type()) {
   case Order::tag: {
     auto &order = guard_update_time<Order>(frame->data<Order>());
+    order.restore_time = std::max<int64_t>(order.insert_time, order.restore_time);
     get_algo_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
     get_order_service().on_order(frame->gen_time(), frame->source(), frame->dest(), order);
     break;
   }
   case Trade::tag: {
-    const Trade &trade = frame->data<Trade>();
+    auto &trade = const_cast<Trade &>(frame->data<Trade>());
+    trade.restore_time = std::max<int64_t>(trade.trade_time, trade.restore_time);
     get_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     get_algo_order_service().on_trade(frame->gen_time(), frame->source(), frame->dest(), trade);
     break;
   }
   case OrderTrigger::tag: {
     auto &order_trigger = guard_update_time<OrderTrigger>(frame->data<OrderTrigger>());
+    order_trigger.restore_time = std::max<int64_t>(order_trigger.insert_time, order_trigger.restore_time);
     get_order_trigger_service().on_order_trigger(frame->gen_time(), frame->source(), frame->dest(), order_trigger);
     break;
   }
   case AlgoOrder::tag: {
     auto &algo_order = guard_update_time<AlgoOrder>(frame->data<AlgoOrder>());
+    algo_order.restore_time = std::max<int64_t>(algo_order.insert_time, algo_order.restore_time);
     get_algo_order_service().on_algo_order(frame->gen_time(), frame->source(), frame->dest(), algo_order);
     break;
   }
@@ -170,6 +174,13 @@ void TraderVendor::on_active() {
   order_service_.on_active();
   algo_order_service_.on_active();
   order_trigger_service_.on_active();
+}
+
+void TraderVendor::on_frame() {
+  apprentice::on_frame();
+  order_service_.on_frame();
+  algo_order_service_.on_frame();
+  order_trigger_service_.on_frame();
 }
 
 void TraderVendor::on_recover() {

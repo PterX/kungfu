@@ -155,7 +155,7 @@ void cached::restore_states(const yijinjing::data::location_ptr &location,
       for (auto dest : location->locator->list_location_dest_by_db(ledger_location)) {
         try {
           ensure_cached_storage(ledger_location, dest);
-
+          app_states_shift_.at(ledger_location->uid).restore_to(writer, dest);
         } catch (const std::exception &ex) {
           SPDLOG_ERROR("failed to write cache {} {} {} for target {}", ledger_location->uname, dest, ex.what(),
                        location->uname);

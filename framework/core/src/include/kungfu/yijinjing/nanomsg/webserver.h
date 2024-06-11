@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <shared_mutex>
 
 #include <sstream>
 #include <stdexcept>
@@ -252,7 +253,7 @@ public:
 
 private:
   std::unordered_map<uint64_t, stream_ptr> streams_;
-  std::mutex mtx_;
+  std::shared_mutex mtx_;
   journal::reader_ptr reader_ = nullptr;
   std::map<uint32_t, uint64_t> location_to_stream_id_;
 };

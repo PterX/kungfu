@@ -298,7 +298,7 @@ KF_DEFINE_PACK_TYPE(                                           //
     (enums::PriceType, price_type),             // 价格类型
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition)      // 成交时间类型
-
+);
 KF_DEFINE_PACK_TYPE(                                   //
     Trade, 203, PK(trade_id), TIMESTAMP(restore_time), //
     (uint64_t, trade_id),                              // 成交ID

@@ -16,7 +16,11 @@ import {
 const props = withDefaults(
   defineProps<{
     content: string;
-    options?: Partial<monaco.editor.IStandaloneEditorConstructionOptions>;
+    options?: {
+      language?: string;
+      insertSpaces?: boolean;
+      tabSize?: number;
+    };
   }>(),
   {
     options: () => ({
@@ -75,7 +79,6 @@ const options = computed(() => {
   } = props.options;
 
   return {
-    ...props.options,
     language,
     insertSpaces,
     tabSize,
@@ -101,6 +104,9 @@ function createEditor(): monaco.editor.IStandaloneCodeEditor | undefined {
   const editor: monaco.editor.IStandaloneCodeEditor = monaco.editor.create(
     $editor,
     {
+      value: props.content,
+      language: options.value.language,
+
       autoIndent: 'full',
       formatOnPaste: true,
       formatOnType: true,
@@ -108,11 +114,6 @@ function createEditor(): monaco.editor.IStandaloneCodeEditor | undefined {
       fontSize: 16,
       automaticLayout: true,
       fontFamily: FONTFAMILY,
-
-      ...options.value,
-
-      value: props.content,
-      language: options.value.language,
     },
   );
 

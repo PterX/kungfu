@@ -2,7 +2,9 @@
   <KfRowColIter
     :board-id="0"
     :closable="closable"
+    :init-boards-map="curBoardsMap"
     :current-boards-store-id="boardsId"
+    :default-boards-map="curDefaultBoardsMap"
   ></KfRowColIter>
 </template>
 
@@ -22,10 +24,11 @@ const props = defineProps<{
 
 const app = getCurrentInstance();
 const { getLocalBoardsMap, createBoardsStore } = useBoards();
+const curDefaultBoardsMap = props.boardsMapBuilder();
 const curBoardsMap: KfLayout.BoardsMap =
-  getLocalBoardsMap(props.boardsId) || props.boardsMapBuilder();
+  getLocalBoardsMap(props.boardsId) || curDefaultBoardsMap;
 
-createBoardsStore(props.boardsId, curBoardsMap, props.boardsMapBuilder());
+createBoardsStore(props.boardsId, curBoardsMap, curDefaultBoardsMap);
 
 if (app && props.componentsMap) {
   registerComponents(app.appContext.app, props.componentsMap);

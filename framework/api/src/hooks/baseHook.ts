@@ -73,15 +73,6 @@ export class ResetOptionHook<Method, ValueType> {
   ): Promise<ValueType> {
     const { category, group, name, mode } = kfLocation;
     const key = `${category}_${group}_${name}_${mode}`;
-    const hook = Reflect.get(this.hooks, key) as unknown as (
-      location: typeof kfLocation,
-      options: ValueType,
-    ) => Promise<ValueType>;
-
-    if (typeof hook === 'function') {
-      return hook(kfLocation, options);
-    } else {
-      return Promise.reject(new Error(`Hook for key ${key} is not a function`));
-    }
+    return Reflect.get(this.hooks, key)(kfLocation, options);
   }
 }

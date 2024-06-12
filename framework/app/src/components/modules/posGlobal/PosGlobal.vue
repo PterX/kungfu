@@ -18,6 +18,7 @@ import {
   onDeactivated,
   ref,
   toRaw,
+  watch,
 } from 'vue';
 import { storeToRefs } from 'pinia';
 import KfDashboard from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfDashboard.vue';
@@ -49,6 +50,7 @@ import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/ind
 import { resolveTriggerOffset } from '../pos/utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
 
 useCoreBindPage();
 

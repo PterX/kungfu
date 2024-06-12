@@ -1142,17 +1142,14 @@ export const buildTableColumnSorterWithStrike = <T, U = object>(
   };
 };
 
-export const omitObject = <T extends object, U extends Array<keyof T>>(
-  obj: T,
-  keys: U,
-): Omit<T, U[number]> => {
+export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
   const strKeys = keys.map((key) => key.toString());
   return Object.keys(obj)
     .filter((key) => !strKeys.includes(key))
     .reduce((result, key) => {
       result[key] = obj[key];
       return result;
-    }, {} as Omit<T, U[number]>);
+    }, {});
 };
 
 export const vTableSorter = (

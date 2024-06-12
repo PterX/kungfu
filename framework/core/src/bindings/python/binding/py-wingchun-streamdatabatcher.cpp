@@ -19,43 +19,80 @@ using namespace kungfu::wingchun::factor;
 
 namespace py = pybind11;
 
-#define DEFINE_FORMAT_DESCRIPTOR(Type, Format)                                                                         \
-  template <> struct py::format_descriptor<Type> {                                                                     \
-    static std::string format() { return std::string(Format); }                                                        \
-  };
+template <> struct py::format_descriptor<kungfu::array<char, 32>> {
+  static std::string format() { return "32s"; }
+};
 
-DEFINE_FORMAT_DESCRIPTOR(int64_t, "q")
-DEFINE_FORMAT_DESCRIPTOR(int32_t, "q")
-DEFINE_FORMAT_DESCRIPTOR(double, "d")
-DEFINE_FORMAT_DESCRIPTOR(enums::InstrumentType, "b")
-DEFINE_FORMAT_DESCRIPTOR(enums::Side, "b")
-DEFINE_FORMAT_DESCRIPTOR(enums::PriceType, "b")
-DEFINE_FORMAT_DESCRIPTOR(enums::ExecType, "b")
+template <> struct py::format_descriptor<kungfu::array<char, 16>> {
+  static std::string format() { return "16s"; }
+};
+
+template <> struct py::format_descriptor<kungfu::array<char, 8>> {
+  static std::string format() { return "8s"; }
+};
+
+template <> struct py::format_descriptor<kungfu::array<double, 10>> {
+  static std::string format() { return std::string(10, 'd'); }
+};
+
+template <> struct py::format_descriptor<int64_t> {
+  static std::string format() { return std::string(1, 'q'); }
+};
+
+template <> struct py::format_descriptor<int32_t> {
+  static std::string format() { return std::string(1, 'q'); }
+};
+
+template <> struct py::format_descriptor<double> {
+  static std::string format() { return std::string(1, 'd'); }
+};
+
+template <> struct py::format_descriptor<enums::InstrumentType> {
+  static std::string format() { return std::string(1, 'b'); }
+};
+
+template <> struct py::format_descriptor<enums::Side> {
+  static std::string format() { return std::string(1, 'b'); }
+};
+
+template <> struct py::format_descriptor<enums::PriceType> {
+  static std::string format() { return std::string(1, 'b'); }
+};
+
+template <> struct py::format_descriptor<enums::ExecType> {
+  static std::string format() { return std::string(1, 'b'); }
+};
 
 namespace kungfu::wingchun::pybind {
 
-template <typename T, size_t N> struct FormatDescriptor {
-  static std::string format() {
-    if constexpr (std::is_same_v<T, char>) {
-      return std::to_string(N) + "s";
-    } else if constexpr (std::is_same_v<T, double>) {
-      return std::string(N, 'd');
-    }
-  }
-};
-
-auto formatMap = hana::make_map(
+decltype(hana::make_map(
     hana::make_pair(hana::type_c<int64_t>, py::format_descriptor<int64_t>::format()),
     hana::make_pair(hana::type_c<int32_t>, py::format_descriptor<int32_t>::format()),
-    hana::make_pair(hana::type_c<kungfu::array<char, 32>>, FormatDescriptor<char, 32>::format()),
-    hana::make_pair(hana::type_c<kungfu::array<char, 16>>, FormatDescriptor<char, 16>::format()),
-    hana::make_pair(hana::type_c<kungfu::array<char, 8>>, FormatDescriptor<char, 8>::format()),
-    hana::make_pair(hana::type_c<kungfu::array<double, 10>>, FormatDescriptor<double, 10>::format()),
+    hana::make_pair(hana::type_c<kungfu::array<char, 32>>, py::format_descriptor<kungfu::array<char, 32>>::format()),
+    hana::make_pair(hana::type_c<kungfu::array<char, 16>>, py::format_descriptor<kungfu::array<char, 16>>::format()),
+    hana::make_pair(hana::type_c<kungfu::array<char, 8>>, py::format_descriptor<kungfu::array<char, 8>>::format()),
+    hana::make_pair(hana::type_c<kungfu::array<double, 10>>,
+                    py::format_descriptor<kungfu::array<double, 10>>::format()),
     hana::make_pair(hana::type_c<enums::InstrumentType>, py::format_descriptor<enums::InstrumentType>::format()),
     hana::make_pair(hana::type_c<enums::Side>, py::format_descriptor<enums::Side>::format()),
     hana::make_pair(hana::type_c<enums::ExecType>, py::format_descriptor<enums::ExecType>::format()),
     hana::make_pair(hana::type_c<enums::PriceType>, py::format_descriptor<enums::PriceType>::format()),
-    hana::make_pair(hana::type_c<double>, py::format_descriptor<double>::format()));
+    hana::make_pair(hana::type_c<double>, py::format_descriptor<double>::format()))) formatMap =
+    hana::make_map(
+        hana::make_pair(hana::type_c<int64_t>, py::format_descriptor<int64_t>::format()),
+        hana::make_pair(hana::type_c<int32_t>, py::format_descriptor<int32_t>::format()),
+        hana::make_pair(hana::type_c<kungfu::array<char, 32>>,
+                        py::format_descriptor<kungfu::array<char, 32>>::format()),
+        hana::make_pair(hana::type_c<kungfu::array<char, 16>>,
+                        py::format_descriptor<kungfu::array<char, 16>>::format()),
+        hana::make_pair(hana::type_c<kungfu::array<char, 8>>, py::format_descriptor<kungfu::array<char, 8>>::format()),
+        hana::make_pair(hana::type_c<kungfu::array<double, 10>>,
+                        py::format_descriptor<kungfu::array<double, 10>>::format()),
+        hana::make_pair(hana::type_c<enums::InstrumentType>, py::format_descriptor<enums::InstrumentType>::format()),
+        hana::make_pair(hana::type_c<enums::Side>, py::format_descriptor<enums::Side>::format()),
+        hana::make_pair(hana::type_c<enums::ExecType>, py::format_descriptor<enums::ExecType>::format()),
+        hana::make_pair(hana::type_c<enums::PriceType>, py::format_descriptor<enums::PriceType>::format()),
+        hana::make_pair(hana::type_c<double>, py::format_descriptor<double>::format()));
 
 template <typename BufferType>
 void bind_buffer_class(const std::string &name, py::module &m, const std::string &str_format, int ndim) {

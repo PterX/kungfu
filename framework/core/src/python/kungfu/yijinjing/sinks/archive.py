@@ -18,30 +18,6 @@ class ArchiveSink(yjj.sink):
         self.locator = None
         self.writer_maps = {}
 
-    def ensure_journal(self, location):
-        writers = self.writer_maps[location.uid]
-        for dest_id in location.locator.list_location_dest(location):
-            if dest_id not in writers:
-                target_location = yjj.location(
-                    location.mode,
-                    location.category,
-                    location.group,
-                    location.name,
-                    self.locator,
-                )
-
-                # have to find_page_size of 'location', instead of 'target_location'
-                page_size = int(self.find_page_size(location, dest_id) / (1024 * 1024))
-                writers[dest_id] = yjj.writer(
-                    target_location,
-                    dest_id,
-                    True,
-                    self.publisher,
-                    False,
-                    self.bus,
-                    page_size,
-                )
-
     def put(self, location, dest_id, frame):
         date = int(frame.gen_time / DAY_IN_NANO)
         if date > self.last_day:
@@ -54,5 +30,23 @@ class ArchiveSink(yjj.sink):
             self.writer_maps[location.uid] = {}
         writers = self.writer_maps[location.uid]
         if dest_id not in writers:
-            self.ensure_journal(location)
+            target_location = yjj.location(
+                location.mode,
+                location.category,
+                location.group,
+                location.name,
+                self.locator,
+            )
+
+            # have to find_page_size of 'location', instead of 'target_location'
+            page_size = int(self.find_page_size(location, dest_id) / (1024 * 1024))
+            writers[dest_id] = yjj.writer(
+                target_location,
+                dest_id,
+                True,
+                self.publisher,
+                False,
+                self.bus,
+                page_size,
+            )
         writers[dest_id].copy_frame(frame)

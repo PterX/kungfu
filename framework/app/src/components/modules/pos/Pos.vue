@@ -70,7 +70,7 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
 
-const { getInstrumentCurrency } = useActiveInstruments();
+const { getInstrumentCurrency, getInstrumentName } = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -172,15 +172,25 @@ onActivated(() => {
         ) as KungfuApi.Position[];
 
       pos.value = toRaw(
-        positions.reverse().map((item) => {
+        positions.reverse().map((position) => {
           const currency = getInstrumentCurrency(
-            item.instrument_id,
-            item.exchange_id,
+            position.instrument_id,
+            position.exchange_id,
           );
 
-          return dealDataWithCache(item, () => dealPosition(watcher, item), {
-            currency,
-          });
+          const instrumentName = getInstrumentName(
+            position.instrument_id,
+            position.exchange_id,
+            position.instrument_type,
+          );
+
+          return dealDataWithCache(
+            position,
+            () => dealPosition(watcher, position, instrumentName),
+            {
+              currency,
+            },
+          );
         }),
       );
 

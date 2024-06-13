@@ -8,7 +8,7 @@ const buildType = process.env.npm_package_config_build_type;
 const srcDir = path.join('src', 'python');
 const buildDir = path.join('build', buildType);
 const wheelDir = path.join('build', 'python');
-const vsDir = path.join(".deps", "vs")
+const vsDir = path.join('.deps', 'vs');
 
 fse.removeSync(wheelDir);
 fse.copySync(srcDir, wheelDir, {
@@ -18,7 +18,7 @@ fse.copySync(buildDir, wheelDir, {
   filter: (p) => !path.basename(p).endsWith('.node'),
 });
 if (process.platform == 'win32') {
-  fse.copySync(vsDir, wheelDir)
+  fse.copySync(vsDir, wheelDir);
 }
 
 const pipenv_args = ['run', 'python', 'setup.py', 'bdist_wheel'];

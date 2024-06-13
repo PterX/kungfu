@@ -15,6 +15,7 @@ jobs:
     with:
       build-runner-linux: kungfu-builder-linux
       build-runner-windows: kungfu-builder-windows
+      vsversion-windows: 2022
       build-runner-macos: macos-12-xl
       builder-container: docker.io/kungfutrader/kungfu-builder-centos:v1.2.2
       use-pipenv: true

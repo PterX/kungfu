@@ -41,7 +41,7 @@
   "scripts": {
     "install": "node .gyp/run-build.js install",
     "build": "node .gyp/run-build.js build",
-    "postbuild": "copyfiles Pipfile.lock poetry.lock dist/kfc",
+    "postbuild": "copyfiles -a -f .deps/vs/* dist/kfc && copyfiles Pipfile.lock poetry.lock .deps/vs/msvcp140.dll dist/kfc",
     "clean": "node .gyp/run-build.js clean",
     "package": "node .gyp/run-build.js package",
     "rebuild": "node .gyp/run-build.js rebuild",

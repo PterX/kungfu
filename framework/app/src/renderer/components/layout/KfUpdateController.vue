@@ -1,5 +1,6 @@
 <template>
   <a-popover
+    class="kf-update-controller__wrap"
     v-model:visible="popoverVisible"
     :overlay-style="{ width: '460px' }"
     placement="topRight"
@@ -157,10 +158,18 @@ const {
 </script>
 
 <style lang="less">
-.kf-update-controller-title__wrap {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.kf-update-controller__wrap {
+  .kf-update-controller-title__wrap {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .ant-progress-status-success {
+      .anticon-check-circle {
+        color: @primary-color;
+      }
+    }
+  }
 }
 </style>

@@ -1,6 +1,5 @@
 const path = require('path');
 const fse = require('fs-extra');
-const os = require('os');
 const kungfuCore = require('@kungfu-trader/kungfu-core/package.json');
 const {
   getAppDir,
@@ -9,9 +8,7 @@ const {
   findPackageRoot,
 } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
 
-const isWindows = os.platform() === 'win32';
 const appDir = getAppDir();
-const vsDepsDir = path.join(appDir, 'public', 'vsDeps');
 const kfcDir = getKfcDir();
 const extensionDirs = getExtensionDirs(true);
 const root = findPackageRoot();
@@ -135,14 +132,6 @@ module.exports = {
       to: 'kfc',
       filter: ['!**/btdata'],
     },
-    ...(isWindows // 只在 windows 下拷贝 vs 依赖到 kfc
-      ? [
-          {
-            from: vsDepsDir,
-            to: 'kfc',
-          },
-        ]
-      : []),
     {
       from: appDir,
       to: 'app/dist',

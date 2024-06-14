@@ -86,8 +86,8 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
       SPDLOG_ERROR("server pointer cast error"); 
     }
 }
-  threadpool_ = new ThreadPool(config.thread_num);
-  threadpool_->init();
+  //threadpool_ = new ThreadPool(config.thread_num);
+  //threadpool_->init();
 }
 
 server::~server() {}
@@ -110,7 +110,8 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) 
     auto *round_req = reinterpret_cast<const CICC::types::PackRoundReq *>(msg);
     uint32_t limit = round_req->limit;
     stream_limit_map_.emplace(stream_id,limit);
-    submit_read_read_assemble();
+    cv_.notify_all();
+    //submit_read_read_assemble();
     break;
   }
   default:
@@ -119,6 +120,7 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) 
   return;
 }
 
+/*
 void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
   int limit = stream_limit_map_.contains(stream_id) ? stream_limit_map_.at(stream_id) : 100;
   int nums = 0;
@@ -139,6 +141,37 @@ void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
   web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
   return;
 }
+*/
+
+void server::thread_read_data(const location_ptr & td_location, uint64_t stream_id) {
+  SPDLOG_INFO("stream {} thread_send_data",stream_id);
+  int limit = stream_limit_map_.contains(stream_id) ? stream_limit_map_.at(stream_id) : 100;
+  int nums = 0;
+  auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
+  auto now = time::now_in_nano();
+  reader->join(td_location, get_home_uid(), now);
+  reader->join(get_home(), td_location->location_uid, now);
+
+  while (1) {
+    if(!reader->data_available() || nums >= limit){
+      CICC::types::PackReqEnd data_send;
+      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
+      std::unique_lock<std::mutex> lock(cv_mtx_);
+      cv_.wait(lock);
+      nums = 0;
+      continue;
+    }
+    auto frame = reader->current_frame();
+    auto type = frame->msg_type();
+    auto iter = map_event_back.find(type);
+    if (iter != map_event_back.end()) {
+      iter->second(frame->data_address(), stream_id);
+    }
+    reader->next();
+    nums++;
+  }
+  return;
+}
 
 void server::thread_send_data(const location_ptr & td_location, uint64_t stream_id) {
   SPDLOG_INFO("stream {} thread_send_data",stream_id);
@@ -147,6 +180,8 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
   auto now = time::now_in_nano();
   reader->join(td_location, get_home_uid(), now);
   reader->join(get_home(), td_location->location_uid, now);
+
+  auto stream = web_agent_->get_stream_by_id(stream_id);
   
   while (1) {
     if(!reader->data_available())
@@ -160,7 +195,8 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
       CICC::types::PackOrderInput data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(OrderInput));
       data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
+      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrderInput));
+      //web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
       break;
     }
     case Order::tag:{
@@ -168,7 +204,8 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
       CICC::types::PackOrder data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(Order));
       data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
+      //web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
+      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrder));
       break;
     }
     case Trade::tag:{
@@ -176,7 +213,8 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
       CICC::types::PackTrade data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(Trade));
       data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
-      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
+      //web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
+      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackTrade));
       break;
     }
 
@@ -211,11 +249,15 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
       stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_id));
   }
   else if(method == CICC::enums::Method::round){
+    stream_thread_map_.try_emplace(
+      stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_id));
+    /*
     auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
     auto now = time::now_in_nano();
     reader->join(td_location, get_home_uid(), now);
     reader->join(get_home(), td_location->location_uid, now);
     stream_reader_map_.try_emplace(stream_id, reader);
+    */
   }
   else{
     return false;
@@ -294,6 +336,7 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
   return ;
 }
 
+/*
 void server::submit_read_read_assemble() {
   for (auto &item : stream_reader_map_) {
     auto it = stream_task_map_.find(item.first);
@@ -307,6 +350,7 @@ void server::submit_read_read_assemble() {
   }
   return ;
 }
+*/
 
 bool server::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();

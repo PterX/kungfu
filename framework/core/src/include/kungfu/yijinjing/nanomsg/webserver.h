@@ -78,8 +78,6 @@ public:
   nng_type *operator->() { return obj; }
 };
 
-FORWARD_DECLARE_CLASS_PTR(stream_manage)
-
 // remote_ip:remote_port:local_port
 static uint64_t generate_stream_id(nng_stream *s) {
   nng_sockaddr local_address, remote_address;
@@ -130,6 +128,35 @@ private:
 };
 DECLARE_PTR(stream)
 
+
+class stream_manage {
+public:
+  explicit stream_manage();
+
+  virtual ~stream_manage() = default;
+
+  int publish(uint64_t stream_id, const std::string &msg);
+
+  int publish(uint64_t stream_id, const char *data, int len);
+
+  stream_ptr get_stream_by_id(uint64_t stream_id);
+
+  void add_stream(nng_stream *s);
+
+  void add_stream(const stream_ptr &s);
+
+  journal::reader_ptr &get_reader();
+
+  uint64_t get_stream_id(uint32_t location_uid);
+
+private:
+  std::unordered_map<uint64_t, stream_ptr> streams_;
+  std::shared_mutex mtx_;
+  journal::reader_ptr reader_ = nullptr;
+  std::map<uint32_t, uint64_t> location_to_stream_id_;
+};
+DECLARE_PTR(stream_manage)
+
 class web_agent{
 public:
   explicit web_agent(stream_manage_ptr stream_manager = nullptr):stream_manager_(stream_manager ? stream_manager : std::make_shared<kungfu::yijinjing::webserver::stream_manage>()) {};
@@ -141,6 +168,8 @@ public:
   virtual void publish(const char *data, int len, uint64_t stream_id) = 0;
 
   virtual stream_manage_ptr get_stream_manager(){return stream_manager_;}
+  
+  virtual stream_ptr get_stream_by_id(uint64_t stream_id){return stream_manager_->get_stream_by_id(stream_id);}
 private:
   stream_manage_ptr stream_manager_;
 };
@@ -230,33 +259,6 @@ private:
   nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
 };
 FORWARD_DECLARE_CLASS_PTR(websocket_client)
-
-class stream_manage {
-public:
-  explicit stream_manage();
-
-  virtual ~stream_manage() = default;
-
-  int publish(uint64_t stream_id, const std::string &msg);
-
-  int publish(uint64_t stream_id, const char *data, int len);
-
-  stream_ptr get_stream_by_id(uint64_t stream_id);
-
-  void add_stream(nng_stream *s);
-
-  void add_stream(const stream_ptr &s);
-
-  journal::reader_ptr &get_reader();
-
-  uint64_t get_stream_id(uint32_t location_uid);
-
-private:
-  std::unordered_map<uint64_t, stream_ptr> streams_;
-  std::shared_mutex mtx_;
-  journal::reader_ptr reader_ = nullptr;
-  std::map<uint32_t, uint64_t> location_to_stream_id_;
-};
 
 } // namespace kungfu::yijinjing::webserver
 

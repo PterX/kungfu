@@ -7,7 +7,7 @@
 #include "kungfu/yijinjing/practice/apprentice.h"
 #include "nlohmann/json.hpp"
 #include "pack_types.h"
-#include "threadpoll.h"
+//#include "threadpoll.h"
 #include <atomic>
 #include <mutex>
 #include <nng/supplemental/http/http.h>
@@ -113,13 +113,15 @@ private:
   kungfu::wingchun::broker::TestClient broker_client_;
   kungfu::yijinjing::webserver::web_agent_ptr web_agent_;
   std::mutex asm_mutex_;
-  ThreadPool *threadpool_;
-  std::unordered_map<uint64_t, kungfu::yijinjing::journal::reader_ptr> stream_reader_map_;
+  //ThreadPool *threadpool_;
+  //std::unordered_map<uint64_t, kungfu::yijinjing::journal::reader_ptr> stream_reader_map_;
   std::unordered_map<uint64_t, std::shared_ptr<std::thread>> stream_thread_map_;
-  std::unordered_map<uint64_t, std::future<void>> stream_task_map_;
+  //std::unordered_map<uint64_t, std::future<void>> stream_task_map_;
   std::unordered_map<uint64_t, kungfu::yijinjing::journal::writer_ptr> stream_writer_map_;
   std::unordered_map<std::pair<uint64_t, uint64_t>, std::uint64_t, StreamRequestHash> request_order_map_ = {};
   std::unordered_map<uint64_t, uint64_t> stream_limit_map_;
+  std::condition_variable cv_;
+  std::mutex cv_mtx_;
   /*
   std::map<int32_t, std::function<void(void *, uint64_t)>> map_event_back = {
       {longfist::types::OrderInput::tag,
@@ -159,10 +161,10 @@ private:
        }},
   };
 
-  void submit_read_read_assemble();
-  void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
-  void thread_send_data(const kungfu::yijinjing::data::location_ptr &location,
-                        uint64_t stream_id);
+  //void submit_read_read_assemble();
+  //void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
+  void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, uint64_t stream_id);
+  void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, uint64_t stream_id);
   void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id);
   bool custom_OnInitEvent(const char *ptr, uint64_t stream_id);
   bool custom_OnNewOrder(const char *ptr, uint64_t stream_id);

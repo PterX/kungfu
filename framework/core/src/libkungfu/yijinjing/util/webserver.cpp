@@ -503,7 +503,7 @@ int stream_manage::publish(uint64_t stream_id, const char *data, const int len) 
 }
 
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
-  //std::shared_lock<std::shared_mutex> lock(mtx_);
+  std::shared_lock<std::shared_mutex> lock(mtx_);
   if (!streams_.contains(stream_id)) [[unlikely]]{
     SPDLOG_ERROR("do not exist stream_id:{}",stream_id);
     return nullptr;
@@ -516,7 +516,7 @@ stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
 void stream_manage::add_stream(nng_stream *s) {
   SPDLOG_DEBUG("add_stream");
   auto temp_stream = std::make_shared<stream>(s, generate_stream_id(s));
-  //std::lock_guard<std::mutex> lock(mtx_);
+  std::unique_lock<std::shared_mutex> lock(mtx_);
   streams_.emplace(temp_stream->get_stream_id(), temp_stream);
   reader_->join(temp_stream->get_location(), location::PUBLIC, time::now_in_nano());
   location_to_stream_id_.insert_or_assign(temp_stream->get_location()->location_uid, temp_stream->get_stream_id());
@@ -524,7 +524,7 @@ void stream_manage::add_stream(nng_stream *s) {
 
 void stream_manage::add_stream(const stream_ptr &s) {
   SPDLOG_DEBUG("add_stream");
-  //std::lock_guard<std::mutex> lock(mtx_);
+  std::unique_lock<std::shared_mutex> lock(mtx_);
   streams_.emplace(s->get_stream_id(), s);
   reader_->join(s->get_location(), location::PUBLIC, time::now_in_nano());
   location_to_stream_id_.insert_or_assign(s->get_location()->location_uid, s->get_stream_id());
@@ -535,7 +535,7 @@ journal::reader_ptr &stream_manage::get_reader() { return reader_; }
 stream_manage::stream_manage() { reader_ = std::make_shared<reader>(true, true, std::make_shared<bus>(false)); }
 
 uint64_t stream_manage::get_stream_id(uint32_t location_uid) {
-  //std::shared_lock<std::shared_mutex> lock(mtx_);
+  std::shared_lock<std::shared_mutex> lock(mtx_);
   auto iter = location_to_stream_id_.find(location_uid);
   if (iter != location_to_stream_id_.end()) {
     return iter->second;

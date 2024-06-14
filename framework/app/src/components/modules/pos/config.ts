@@ -1,10 +1,12 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
 import { isTd } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { vTableSorter } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
-import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  VTable,
+  vTableSorter,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 const { t } = VueI18n.global;

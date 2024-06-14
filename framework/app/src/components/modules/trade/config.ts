@@ -1,10 +1,10 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import {
-  isTdStrategyCategory,
-  vTableSorter,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
-import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  VTable,
+  vTableSorter,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import {
   dealOffset,
   dealSide,

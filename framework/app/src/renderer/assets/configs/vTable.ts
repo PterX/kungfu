@@ -223,6 +223,29 @@ const registerVTableIconsAndEditors = () => {
   // VTable.register.editor('input-editor', input_editor);
 };
 
+const vTableSorter: VTable.TYPES.SortOption = (a, b, sorterOrder) => {
+  a = a === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : a;
+  b = b === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : b;
+
+  const numA = isNaN(Number(a)) ? null : Number(a);
+  const numB = isNaN(Number(b)) ? null : Number(b);
+
+  if (sorterOrder === 'asc') {
+    if (numA !== null && numB !== null) {
+      return Math.sign(numA - numB) as 0 | 1 | -1;
+    } else if (typeof a === 'string' && typeof b === 'string') {
+      return Math.sign(a.localeCompare(b)) as 0 | 1 | -1;
+    }
+  } else if (sorterOrder === 'desc') {
+    if (numA !== null && numB !== null) {
+      return Math.sign(numB - numA) as 0 | 1 | -1;
+    } else if (typeof a === 'string' && typeof b === 'string') {
+      return Math.sign(b.localeCompare(a)) as 0 | 1 | -1;
+    }
+  }
+  return 0;
+};
+
 registerVTableIconsAndEditors();
 
-export { VTable, VTable_editors };
+export { VTable, VTable_editors, vTableSorter };

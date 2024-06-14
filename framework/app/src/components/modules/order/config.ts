@@ -3,10 +3,12 @@ import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradi
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   isTdStrategyCategory,
-  vTableSorter,
   dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  VTable,
+  vTableSorter,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import {
   dealOffset,
   dealSide,

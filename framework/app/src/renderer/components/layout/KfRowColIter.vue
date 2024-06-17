@@ -33,7 +33,7 @@
         @drop="handleDrop"
       >
         <a-tab-pane v-for="content in contents" :key="content">
-          <template v-slot:tab>
+          <template #tab>
             <div
               class="kf-tab-header"
               draggable="true"
@@ -46,8 +46,8 @@
           <a-card style="width: 100%; height: 100%">
             <keep-alive>
               <component
-                v-if="hasComponent(content) && content === boardInfo.current"
                 :is="content"
+                v-if="hasComponent(content) && content === boardInfo.current"
                 :id="content"
               ></component>
               <KfNoData
@@ -96,7 +96,7 @@
         @drop="handleDrop"
       >
         <a-tab-pane v-for="content in contents" :key="content">
-          <template v-slot:tab>
+          <template #tab>
             <div
               class="kf-tab-header"
               draggable="true"
@@ -109,8 +109,8 @@
           <a-card style="width: 100%; height: 100%">
             <keep-alive>
               <component
-                v-if="hasComponent(content) && content === boardInfo.current"
                 :is="content"
+                v-if="hasComponent(content) && content === boardInfo.current"
                 :id="content"
               ></component>
               <KfNoData
@@ -126,7 +126,10 @@
     </template>
   </KfDragCol>
   <a-empty
-    v-if="boardId === 0 && boardsMap[0].children.length === 0"
+    v-if="
+      boardId === 0 &&
+      (!boardsMap[0].children || boardsMap[0].children.length === 0)
+    "
     class="kf-index__empty"
     :image="simpleImage"
   >
@@ -155,7 +158,7 @@ import KfDragCol from '@kungfu-trader/kungfu-app/src/renderer/components/layout/
 import KfNoData from '@kungfu-trader/kungfu-app/src/renderer/components/public/KfNoData.vue';
 
 import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
-import { useBoards } from '../../pages/index/store/board';
+import { useBoards } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/board';
 
 const { t } = VueI18n.global;
 
@@ -189,16 +192,6 @@ export default defineComponent({
       default: false,
     },
 
-    initBoardsMap: {
-      type: Object as PropType<KfLayout.BoardsMap>,
-      default: null,
-    },
-
-    defaultBoardsMap: {
-      type: Object as PropType<KfLayout.BoardsMap>,
-      default: null,
-    },
-
     currentBoardsStoreId: {
       type: String as PropType<string>,
       default: 'main',
@@ -209,17 +202,9 @@ export default defineComponent({
     const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
     const { isLanguageKeyAvailable } = useLanguage();
 
-    const { getBoardsStoreById, createBoardsStore } = useBoards();
-    let useBoardsStore;
-    if (props.boardId === 0) {
-      useBoardsStore = createBoardsStore(
-        props.currentBoardsStoreId,
-        props.initBoardsMap,
-        props.defaultBoardsMap,
-      );
-    } else {
-      useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
-    }
+    const { getBoardsStoreById } = useBoards();
+
+    const useBoardsStore = getBoardsStoreById(props.currentBoardsStoreId);
 
     const { boardsMap, dragedContentData, isBoardDragging } = storeToRefs(
       useBoardsStore(),
@@ -278,6 +263,12 @@ export default defineComponent({
     direction(): string {
       return this.boardInfo.direction || '';
     },
+  },
+
+  unmounted() {
+    this.$globalBus.next({
+      tag: 'resize',
+    } as KfEvent.ResizeEvent);
   },
 
   methods: {
@@ -375,12 +366,6 @@ export default defineComponent({
         boardId: 0,
       });
     },
-  },
-
-  unmounted() {
-    this.$globalBus.next({
-      tag: 'resize',
-    } as KfEvent.ResizeEvent);
   },
 });
 </script>

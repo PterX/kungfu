@@ -3,10 +3,12 @@ import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradi
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
   isTdStrategyCategory,
-  vTableSorter,
   dealKfDecimalPrecision,
 } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  VTable,
+  vTableSorter,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import {
   dealOffset,
   dealSide,
@@ -27,7 +29,7 @@ export const getColumns = (
       {
         field: 'insert_time',
         title: t('orderConfig.order_time'),
-        width: 160,
+        width: 136,
         sort: vTableSorter,
         fieldFormat: (args) => {
           return dealKfTime(args.insert_time, true);
@@ -36,12 +38,12 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('orderConfig.instrument_id'),
-        width: 140,
+        width: 74,
       },
       {
         field: 'side',
         title: '',
-        width: 80,
+        width: 44,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -54,7 +56,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 60,
+        width: 44,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -69,7 +71,7 @@ export const getColumns = (
       {
         title: t('orderConfig.limit_price'),
         field: 'limit_price_resolved',
-        width: 120,
+        width: 86,
         style: {
           textAlign: 'right',
         },
@@ -81,7 +83,7 @@ export const getColumns = (
       {
         field: 'avg_price_resolved',
         title: t('orderConfig.avg_price'),
-        width: 120,
+        width: 98,
         style: {
           textAlign: 'right',
         },
@@ -94,7 +96,7 @@ export const getColumns = (
       {
         field: 'volume_left',
         title: `${t('orderConfig.clinch')}/${t('orderConfig.all')}`,
-        width: 120,
+        width: 116,
         style: {
           textAlign: 'right',
         },
@@ -113,7 +115,7 @@ export const getColumns = (
       {
         field: 'status_resolved',
         title: t('orderConfig.order_status'),
-        width: 120,
+        width: 80,
         style: {
           color: (args) => {
             return defaultColorMap[args.dataValue?.color || 'default'];
@@ -144,13 +146,13 @@ export const getColumns = (
       {
         field: 'latency_system',
         title: t('orderConfig.latency_system'),
-        width: 160,
+        width: 114,
         sort: vTableSorter,
       },
       {
         field: 'latency_network',
         title: t('orderConfig.latency_network'),
-        width: 160,
+        width: 114,
         sort: vTableSorter,
       },
       {
@@ -159,7 +161,7 @@ export const getColumns = (
           kfLocation.category === 'td'
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
-        width: 300,
+        width: 78,
         style: {
           color: (args) => {
             return getAccountIdStyle(args.dataValue);
@@ -172,7 +174,7 @@ export const getColumns = (
             {
               field: 'dest_uname',
               title: t('orderConfig.dest_uname'),
-              width: 300,
+              width: 78,
               style: {
                 color: (args) => {
                   return getAccountIdStyle(args.dataValue);

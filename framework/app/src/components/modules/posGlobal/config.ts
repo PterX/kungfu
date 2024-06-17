@@ -1,12 +1,14 @@
 import { LedgerCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { vTableSorter } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import { useQuote } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 
 import { DealTradingDataGetter } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingDataHook';
 import { getTradingDataSortKey } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  VTable,
+  vTableSorter,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import { dealDirection } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 
 const { t } = VueI18n.global;
@@ -17,13 +19,13 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'instrument_id',
     title: t('posGlobalConfig.instrument_id'),
-    width: 190,
+    width: 156,
     sort: vTableSorter,
   },
   {
     field: 'direction',
     title: '',
-    width: 50,
+    width: 44,
     style: {
       color: (args) => {
         return defaultColorMap[
@@ -38,7 +40,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'static_yesterday',
     title: t('posGlobalConfig.static_yesterday'),
-    width: 110,
+    width: 74,
     style: {
       textAlign: 'right',
     },
@@ -50,7 +52,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'open_volume',
     title: t('posGlobalConfig.open_volume'),
-    width: 110,
+    width: 74,
     style: {
       textAlign: 'right',
     },
@@ -62,7 +64,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'close_volume',
     title: t('posGlobalConfig.close_volume'),
-    width: 110,
+    width: 74,
     style: {
       textAlign: 'right',
     },
@@ -74,7 +76,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'yesterday_volume',
     title: t('posGlobalConfig.yesterday_volume'),
-    width: 110,
+    width: 74,
     style: {
       textAlign: 'right',
     },
@@ -86,7 +88,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'today_volume',
     title: t('posGlobalConfig.today_volume'),
-    width: 110,
+    width: 74,
     style: {
       textAlign: 'right',
     },
@@ -98,7 +100,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'volume',
     title: t('posGlobalConfig.sum_volume'),
-    width: 110,
+    width: 74,
     style: {
       textAlign: 'right',
     },
@@ -110,7 +112,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     title: t('posGlobalConfig.avg_open_price'),
     field: 'avg_open_price_resolved',
-    width: 110,
+    width: 98,
     style: {
       textAlign: 'right',
     },
@@ -122,7 +124,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'last_price_resolved',
     title: t('posGlobalConfig.last_price'),
-    width: 110,
+    width: 86,
     style: {
       textAlign: 'right',
     },
@@ -137,7 +139,7 @@ export const getColumns = (): VTable.ColumnDefine[] => [
   {
     field: 'unrealized_pnl_resolved',
     title: t('posGlobalConfig.unrealized_pnl'),
-    width: 110,
+    width: 98,
     style: {
       textAlign: 'right',
       color: (args) => {

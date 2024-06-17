@@ -953,6 +953,7 @@ function buildKfcArgs(options: {
   args?: string;
   suffix?: string;
   env?: KfcEnvs;
+  canLogFrame?: boolean;
 }): string {
   const globalSetting = getKfGlobalSettingsValue();
   const logLevel: string =
@@ -960,6 +961,16 @@ function buildKfcArgs(options: {
   const ifRocket = globalSetting?.performance?.rocket ?? false;
   const verifyLocation = globalSetting?.system?.verifyLocation ?? false;
   const logFrame = globalSetting?.system?.logFrame ?? false;
+  const {
+    canLogFrame = true,
+    prefix,
+    extensionDirs,
+    location,
+    extraArgs,
+    args,
+    suffix,
+    env,
+  } = options;
 
   const fullArgsArray: string[] = [
     buildKfcEnv({
@@ -967,46 +978,39 @@ function buildKfcArgs(options: {
     }),
   ];
 
-  if (options.prefix) {
-    fullArgsArray.push(options.prefix);
+  if (prefix) {
+    fullArgsArray.push(prefix);
   }
 
   if (logLevel) {
     fullArgsArray.push(logLevel);
   }
-  if (options.extensionDirs) {
-    fullArgsArray.push(`-X ${options.extensionDirs}`);
+  if (extensionDirs) {
+    fullArgsArray.push(`-X ${extensionDirs}`);
   }
 
-  if (options.location) {
-    const locationArgs = `run -c ${options.location.category} -g ${options.location.group} -n ${options.location.name} -m ${options.location.mode}`;
+  if (location) {
+    const locationArgs = `run -c ${location.category} -g ${location.group} -n ${location.name} -m ${location.mode}`;
     fullArgsArray.push(locationArgs);
   }
-  if (options.extraArgs) {
-    fullArgsArray.push(options.extraArgs);
+  if (extraArgs) {
+    fullArgsArray.push(extraArgs);
   }
 
-  if (options.args) {
-    fullArgsArray.push(`-a '${options.args}'`);
+  if (args) {
+    fullArgsArray.push(`-a '${args}'`);
   }
 
-  if (options.suffix) {
-    fullArgsArray.push(options.suffix);
+  if (suffix) {
+    fullArgsArray.push(suffix);
   }
 
-  fullArgsArray.push(
-    buildKfcEnv({
-      logFrame,
-    }),
-  );
+  if (canLogFrame) {
+    fullArgsArray.push(buildKfcEnv({ logFrame }));
+  }
 
-  if (options.env) {
-    fullArgsArray.push(
-      buildKfcEnv({
-        logFrame,
-      }),
-      buildKfcEnv(options.env),
-    );
+  if (env) {
+    fullArgsArray.push(buildKfcEnv(env));
   }
 
   const fullArgs = fullArgsArray.join(' ');
@@ -1072,6 +1076,7 @@ export function startArchiveMakeTask(
       name: ProcessId,
       args: buildKfcArgs({
         extraArgs: `journal archive ${bypassArchive ? '-m delete' : ''}`,
+        canLogFrame: false,
       }),
     },
     cb,

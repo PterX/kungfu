@@ -97,11 +97,9 @@ public:
     }
     if (it == events.end()) {
       events.clear();
-      std::vector<BufferType>().swap(events);
     } else {
       auto ori_begin = std::rotate(events.begin(), it, events.end());
       events.erase(ori_begin, events.end());
-      std::vector<BufferType>(events).swap(events);
     }
   }
 

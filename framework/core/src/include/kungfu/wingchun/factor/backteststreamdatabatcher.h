@@ -151,9 +151,10 @@ private:
       }
     }
     reader.seek_to_time(begin_time);
+    const int64_t end_time = app_.now();
     while (reader.data_available()) {
       const yijinjing::journal::frame_ptr frame = reader.current_frame();
-      if (frame->gen_time() > app_.now()) {
+      if (frame->gen_time() > end_time) {
         break;
       }
       if (frame->msg_type() == BufferType::tag) {

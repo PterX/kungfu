@@ -17,7 +17,6 @@ using namespace kungfu::yijinjing::nanomsg;
 using namespace kungfu::yijinjing::journal;
 using namespace kungfu::yijinjing::webserver;
 
-
 namespace kungfu::wingchun::broker {
 
 TestClient::TestClient(yijinjing::practice::apprentice &app) : AutoClient(app){};
@@ -59,7 +58,7 @@ ServerConfig server::read_config(std::string filename) const {
     }
     res.address = config["address"];
     res.paths = config["paths"];
-  res.thread_num = config["thread_num"];
+    res.thread_num = config["thread_num"];
     break;
   }
   return res;
@@ -81,13 +80,12 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
     auto http_server_ptr = std::dynamic_pointer_cast<http_server>(web_agent_);
     if (http_server_ptr) {
       http_server_ptr->add_websocket(path, false, true);
+    } else {
+      SPDLOG_ERROR("server pointer cast error");
     }
-    else {
-      SPDLOG_ERROR("server pointer cast error"); 
-    }
-}
-  //threadpool_ = new ThreadPool(config.thread_num);
-  //threadpool_->init();
+  }
+  // threadpool_ = new ThreadPool(config.thread_num);
+  // threadpool_->init();
 }
 
 server::~server() {}
@@ -106,12 +104,18 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) 
     custom_OnCancelOrder(const_cast<char *>(msg), stream_id);
     break;
   }
-  case CICC::types::ReqType:{
+  case CICC::types::ReqType: {
     auto *round_req = reinterpret_cast<const CICC::types::PackRoundReq *>(msg);
     uint32_t limit = round_req->limit;
-    stream_limit_map_.emplace(stream_id,limit);
-    cv_.notify_all();
-    //submit_read_read_assemble();
+    stream_limit_map_.emplace(stream_id, limit);
+    //cv_.notify_all();
+    if(stream_cvs_.contains(stream_id)){
+        stream_cvs_[stream_id]->notify_one();
+    }
+    else{
+        SPDLOG_ERROR("couldn't find cv for stream:{}",stream_id);
+    }
+    // submit_read_read_assemble();
     break;
   }
   default:
@@ -143,8 +147,8 @@ void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
 }
 */
 
-void server::thread_read_data(const location_ptr & td_location, uint64_t stream_id) {
-  SPDLOG_INFO("stream {} thread_send_data",stream_id);
+void server::thread_read_data(const location_ptr &td_location, uint64_t stream_id) {
+  SPDLOG_INFO("stream {} thread_read_data", stream_id);
   int limit = stream_limit_map_.contains(stream_id) ? stream_limit_map_.at(stream_id) : 100;
   int nums = 0;
   auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
@@ -152,12 +156,23 @@ void server::thread_read_data(const location_ptr & td_location, uint64_t stream_
   reader->join(td_location, get_home_uid(), now);
   reader->join(get_home(), td_location->location_uid, now);
 
+  auto stream = web_agent_->get_stream_by_id(stream_id);
+
+  std::mutex mtx; 
+  std::condition_variable cv_local;
+  {
+  std::unique_lock<std::mutex> lock(mtx);
+  stream_cvs_[stream_id]=&cv_local;
+  }
+
   while (1) {
-    if(!reader->data_available() || nums >= limit){
+    if (!reader->data_available() || nums >= limit) {
       CICC::types::PackReqEnd data_send;
-      web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
+      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
+      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackReqEnd));
       std::unique_lock<std::mutex> lock(cv_mtx_);
-      cv_.wait(lock);
+      cv_local.wait(lock);
+      //cv_.wait(lock);
       nums = 0;
       continue;
     }
@@ -165,7 +180,7 @@ void server::thread_read_data(const location_ptr & td_location, uint64_t stream_
     auto type = frame->msg_type();
     auto iter = map_event_back.find(type);
     if (iter != map_event_back.end()) {
-      iter->second(frame->data_address(), stream_id);
+      iter->second(frame->data_address(), stream);
     }
     reader->next();
     nums++;
@@ -173,47 +188,45 @@ void server::thread_read_data(const location_ptr & td_location, uint64_t stream_
   return;
 }
 
-void server::thread_send_data(const location_ptr & td_location, uint64_t stream_id) {
-  SPDLOG_INFO("stream {} thread_send_data",stream_id);
-  auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(
-      true, false, std::make_shared<bus>(false));
+void server::thread_send_data(const location_ptr &td_location, uint64_t stream_id) {
+  SPDLOG_INFO("stream {} thread_send_data", stream_id);
+  auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
   auto now = time::now_in_nano();
   reader->join(td_location, get_home_uid(), now);
   reader->join(get_home(), td_location->location_uid, now);
 
   auto stream = web_agent_->get_stream_by_id(stream_id);
-  
+
   while (1) {
-    if(!reader->data_available())
+    if (!reader->data_available())
       continue;
     auto frame = reader->current_frame();
     auto type = frame->msg_type();
-    switch (type)
-    {
-    case OrderInput::tag:{
-      //auto data = const_cast<OrderInput *>(frame->data_address());
+    switch (type) {
+    case OrderInput::tag: {
+      // auto data = const_cast<OrderInput *>(frame->data_address());
       CICC::types::PackOrderInput data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(OrderInput));
       data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
       stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrderInput));
-      //web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
+      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
       break;
     }
-    case Order::tag:{
-      //auto data = const_cast<Order *>(frame->data_address());
+    case Order::tag: {
+      // auto data = const_cast<Order *>(frame->data_address());
       CICC::types::PackOrder data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(Order));
       data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      //web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
+      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
       stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrder));
       break;
     }
-    case Trade::tag:{
-      //auto data = const_cast<Trade *>(frame->data_address());
+    case Trade::tag: {
+      // auto data = const_cast<Trade *>(frame->data_address());
       CICC::types::PackTrade data_send;
       memcpy(&data_send.data, frame->data_address(), sizeof(Trade));
       data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
-      //web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
+      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
       stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackTrade));
       break;
     }
@@ -221,10 +234,10 @@ void server::thread_send_data(const location_ptr & td_location, uint64_t stream_
     default:
       break;
     }
-    //auto iter = map_event_back.find(type);
+    // auto iter = map_event_back.find(type);
     reader->next();
-    }
-  return ;
+  }
+  return;
 }
 
 bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
@@ -235,22 +248,21 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
   SPDLOG_DEBUG("group:{} name:{}", group, name);
   auto td_location = std::make_shared<location>(mode::LIVE, category::TD, group, name, std::make_shared<locator>());
 
-  if(!has_writer(td_location->location_uid)){
+  if (!has_writer(td_location->location_uid)) {
     SPDLOG_ERROR("td {}_{} not exist!", group, name);
     return false;
   }
-  
+
   auto writer = get_writer(td_location->location_uid);
   stream_writer_map_.try_emplace(stream_id, writer);
   SPDLOG_DEBUG("add writer for stream:{}", stream_id);
 
-  if(method == CICC::enums::Method::direct){
+  if (method == CICC::enums::Method::direct) {
     stream_thread_map_.try_emplace(
-      stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_id));
-  }
-  else if(method == CICC::enums::Method::round){
+        stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_id));
+  } else if (method == CICC::enums::Method::round) {
     stream_thread_map_.try_emplace(
-      stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_id));
+        stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_id));
     /*
     auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
     auto now = time::now_in_nano();
@@ -258,8 +270,7 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
     reader->join(get_home(), td_location->location_uid, now);
     stream_reader_map_.try_emplace(stream_id, reader);
     */
-  }
-  else{
+  } else {
     return false;
   }
   return true;
@@ -333,7 +344,7 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
     reader->next();
     ++count;
   }
-  return ;
+  return;
 }
 
 /*
@@ -356,9 +367,8 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
   deal_msg(sb);
   deal_notice(bypass, true, sb);
-  for (std::size_t step_count = 0;                                                             
-       live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_);
-       step_count++) {
+  for (std::size_t step_count = 0;
+       live_ and reader_->data_available() and (step_limit_ == 0 || step_count < step_limit_); step_count++) {
     deal_msg(sb);
     deal_notice(io_device_->is_lazy(), false, sb);
     const frame_ptr frame = reader_->current_frame();
@@ -366,7 +376,7 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
     if (frame->gen_time() <= end_time_) {
       int64_t frame_time = frame->gen_time();
       if (frame_time > now_) {
-        now_ = frame_time; 
+        now_ = frame_time;
       }
       if (is_reactable(frame)) {
         sb.on_next(frame);
@@ -388,10 +398,107 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
 
 void server::on_exit() { SPDLOG_DEBUG("exit!"); }
 
+#define MEMBER_OFFSET_OF(obj, member)                                                                                  \
+  (reinterpret_cast<std::ptrdiff_t>(&((obj).member)) - reinterpret_cast<std::ptrdiff_t>(&obj))
+
 void server::on_start() {
   broker_client_.on_start(events_);
   SPDLOG_DEBUG("on_start  thread_id:{}", std::this_thread::get_id());
+  SPDLOG_DEBUG("sizeof OrderInput:{}", sizeof(OrderInput));
+  SPDLOG_DEBUG("sizeof Order:{}", sizeof(Order));
+  SPDLOG_DEBUG("sizeof Trade:{}", sizeof(Trade));
+  SPDLOG_DEBUG("sizeof PackOrderInput:{}", sizeof(CICC::types::PackOrderInput));
+  SPDLOG_DEBUG("sizeof PackOrder:{}", sizeof(CICC::types::PackOrder));
+  SPDLOG_DEBUG("sizeof PackTrade:{}", sizeof(CICC::types::PackTrade));
+  SPDLOG_DEBUG("sizeof CICCOrderInput:{}", sizeof(CICC::types::OrderInput));
+  SPDLOG_DEBUG("sizeof CICCOrder:{}", sizeof(CICC::types::Order));
+  SPDLOG_DEBUG("sizeof CICCTrade:{}", sizeof(CICC::types::Trade));
+
+  Order order{};
+  CICC::types::Order cicc_order{};
+
+  SPDLOG_DEBUG("Offset of order_id:{}", MEMBER_OFFSET_OF(order, order_id));
+  SPDLOG_DEBUG("Offset of order_id:{}", MEMBER_OFFSET_OF(cicc_order, order_id));
+
+  SPDLOG_DEBUG("Offset of external_order_id:{}", MEMBER_OFFSET_OF(order, external_order_id));
+  SPDLOG_DEBUG("Offset of external_order_id:{}", MEMBER_OFFSET_OF(cicc_order, external_order_id));
+
+  SPDLOG_DEBUG("Offset of parent_id:{}", MEMBER_OFFSET_OF(order, parent_id));
+  SPDLOG_DEBUG("Offset of parent_id:{}", MEMBER_OFFSET_OF(cicc_order, parent_id));
+
+  SPDLOG_DEBUG("Offset of insert_time:{}", MEMBER_OFFSET_OF(order, insert_time));
+  SPDLOG_DEBUG("Offset of insert_time:{}", MEMBER_OFFSET_OF(cicc_order, insert_time));
+
+  SPDLOG_DEBUG("Offset of update_time:{}", MEMBER_OFFSET_OF(order, update_time));
+  SPDLOG_DEBUG("Offset of update_time:{}", MEMBER_OFFSET_OF(cicc_order, update_time));
+
+  SPDLOG_DEBUG("Offset of restore_time:{}", MEMBER_OFFSET_OF(order, restore_time));
+  SPDLOG_DEBUG("Offset of restore_time:{}", MEMBER_OFFSET_OF(cicc_order, restore_time));
+
+  SPDLOG_DEBUG("Offset of trading_day:{}", MEMBER_OFFSET_OF(order, trading_day));
+  SPDLOG_DEBUG("Offset of trading_day:{}", MEMBER_OFFSET_OF(cicc_order, trading_day));
+
+  SPDLOG_DEBUG("Offset of instrument_id:{}", MEMBER_OFFSET_OF(order, instrument_id));
+  SPDLOG_DEBUG("Offset of instrument_id:{}", MEMBER_OFFSET_OF(cicc_order, instrument_id));
+
+  SPDLOG_DEBUG("Offset of exchange_id:{}", MEMBER_OFFSET_OF(order, exchange_id));
+  SPDLOG_DEBUG("Offset of exchange_id:{}", MEMBER_OFFSET_OF(cicc_order, exchange_id));
+
+  SPDLOG_DEBUG("Offset of contract_id:{}", MEMBER_OFFSET_OF(order, contract_id));
+  SPDLOG_DEBUG("Offset of contract_id:{}", MEMBER_OFFSET_OF(cicc_order, contract_id));
+
+  SPDLOG_DEBUG("Offset of instrument_type:{}", MEMBER_OFFSET_OF(order, instrument_type));
+  SPDLOG_DEBUG("Offset of instrument_type:{}", MEMBER_OFFSET_OF(cicc_order, instrument_type));
+
+  SPDLOG_DEBUG("Offset of limit_price:{}", MEMBER_OFFSET_OF(order, limit_price));
+  SPDLOG_DEBUG("Offset of limit_price:{}", MEMBER_OFFSET_OF(cicc_order, limit_price));
+
+  SPDLOG_DEBUG("Offset of frozen_price:{}", MEMBER_OFFSET_OF(order, frozen_price));
+  SPDLOG_DEBUG("Offset of frozen_price:{}", MEMBER_OFFSET_OF(cicc_order, frozen_price));
+
+  SPDLOG_DEBUG("Offset of volume:{}", MEMBER_OFFSET_OF(order, volume));
+  SPDLOG_DEBUG("Offset of volume:{}", MEMBER_OFFSET_OF(cicc_order, volume));
+
+  SPDLOG_DEBUG("Offset of volume_left:{}", MEMBER_OFFSET_OF(order, volume_left));
+  SPDLOG_DEBUG("Offset of volume_left:{}", MEMBER_OFFSET_OF(cicc_order, volume_left));
+
+  SPDLOG_DEBUG("Offset of tax:{}", MEMBER_OFFSET_OF(order, tax));
+  SPDLOG_DEBUG("Offset of tax:{}", MEMBER_OFFSET_OF(cicc_order, tax));
+
+  SPDLOG_DEBUG("Offset of commission:{}", MEMBER_OFFSET_OF(order, commission));
+  SPDLOG_DEBUG("Offset of commission:{}", MEMBER_OFFSET_OF(cicc_order, commission));
+
+  SPDLOG_DEBUG("Offset of status:{}", MEMBER_OFFSET_OF(order, status));
+  SPDLOG_DEBUG("Offset of status:{}", MEMBER_OFFSET_OF(cicc_order, status));
+
+  SPDLOG_DEBUG("Offset of error_id:{}", MEMBER_OFFSET_OF(order, error_id));
+  SPDLOG_DEBUG("Offset of error_id:{}", MEMBER_OFFSET_OF(cicc_order, error_id));
+
+  SPDLOG_DEBUG("Offset of error_msg:{}", MEMBER_OFFSET_OF(order, error_msg));
+  SPDLOG_DEBUG("Offset of error_msg:{}", MEMBER_OFFSET_OF(cicc_order, error_msg));
+
+  SPDLOG_DEBUG("Offset of is_swap:{}", MEMBER_OFFSET_OF(order, is_swap));
+  SPDLOG_DEBUG("Offset of is_swap:{}", MEMBER_OFFSET_OF(cicc_order, is_swap));
+
+  SPDLOG_DEBUG("Offset of side:{}", MEMBER_OFFSET_OF(order, side));
+  SPDLOG_DEBUG("Offset of side:{}", MEMBER_OFFSET_OF(cicc_order, side));
+
+  SPDLOG_DEBUG("Offset of offset:{}", MEMBER_OFFSET_OF(order, offset));
+  SPDLOG_DEBUG("Offset of offset:{}", MEMBER_OFFSET_OF(cicc_order, offset));
+
+  SPDLOG_DEBUG("Offset of hedge_flag:{}", MEMBER_OFFSET_OF(order, hedge_flag));
+  SPDLOG_DEBUG("Offset of hedge_flag:{}", MEMBER_OFFSET_OF(cicc_order, hedge_flag));
+
+  SPDLOG_DEBUG("Offset of price_type:{}", MEMBER_OFFSET_OF(order, price_type));
+  SPDLOG_DEBUG("Offset of price_type:{}", MEMBER_OFFSET_OF(cicc_order, price_type));
+
+  SPDLOG_DEBUG("Offset of volume_condition:{}", MEMBER_OFFSET_OF(order, volume_condition));
+  SPDLOG_DEBUG("Offset of volume_condition:{}", MEMBER_OFFSET_OF(cicc_order, volume_condition));
+
+  SPDLOG_DEBUG("Offset of time_condition:{}", MEMBER_OFFSET_OF(order, time_condition));
+  SPDLOG_DEBUG("Offset of time_condition:{}", MEMBER_OFFSET_OF(cicc_order, time_condition));
+
   SPDLOG_DEBUG("end on_start");
-  return ;
+  return;
 }
 } // namespace kungfu::service

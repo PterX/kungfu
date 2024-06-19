@@ -24,7 +24,7 @@ void monit::on_start() {
   api_ = CICC::API::IMSTradeAPI::CreateApi();
   api_->Initial(address_.c_str());
   api_->SetTradeSPI(this);
-  api_->TryLogin(group_.c_str(), name_.c_str(),0);
+  api_->TryLogin(group_.c_str(), name_.c_str(), 0);
 
   update_broker_state(BrokerState::Ready);
 };
@@ -84,7 +84,7 @@ bool monit::custom_OnTradeEvent(const event_ptr &event) {
     }
   }
   writer->write(now(), public_trade);
-  
+
   return true;
 };
 bool monit::custom_OnOrderInputEvent(const event_ptr &event) {

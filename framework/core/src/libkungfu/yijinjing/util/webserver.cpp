@@ -13,22 +13,20 @@ using namespace kungfu::yijinjing::journal;
 namespace kungfu::yijinjing::webserver {
 constexpr uint64_t PAGE_SIZE = 256;
 
-uint64_t roundup_pow_of_two(const uint64_t x)
-{
-    if (x == 0)
-      return 0;
-    if (x == 1)
-      return 2;
-    uint64_t ret = 1;
-    while (ret < x)
-    {
-        ret = ret << 1;
-    }
-    return ret;
+uint64_t roundup_pow_of_two(const uint64_t x) {
+  if (x == 0)
+    return 0;
+  if (x == 1)
+    return 2;
+  uint64_t ret = 1;
+  while (ret < x) {
+    ret = ret << 1;
+  }
+  return ret;
 }
 
 stream::stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums)
-    : stream_(s,nng_stream_free), stream_id_(stream_id) {
+    : stream_(s, nng_stream_free), stream_id_(stream_id) {
   SPDLOG_DEBUG("stream");
   aio_nums_ = roundup_pow_of_two(aio_nums);
   location_ = location::make_shared(mode::LIVE, category::SYSTEM, "webserver", std::to_string(stream_id),
@@ -47,7 +45,7 @@ stream::stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums)
     fatal("nng_aio_alloc read", rv);
   }
 
-    if ((rv = nng_aio_alloc(&aio_send_,nullptr,nullptr)) != 0) {
+  if ((rv = nng_aio_alloc(&aio_send_, nullptr, nullptr)) != 0) {
     fatal("nng_aio_alloc read", rv);
   }
   /*
@@ -70,10 +68,10 @@ stream::~stream() {
   close_data();
   cancel();
   nng_stream_close(stream_);
-  //nng_stream_free(stream_);
-  //nng_aio_free(aio_recv_);
-  //for (int i = 0; i < aio_nums_; i++) {
-    //nng_aio_free(aio_send_[i]);
+  // nng_stream_free(stream_);
+  // nng_aio_free(aio_recv_);
+  // for (int i = 0; i < aio_nums_; i++) {
+  // nng_aio_free(aio_send_[i]);
   //}
 }
 
@@ -123,9 +121,7 @@ void stream::stream_recv_cb() {
   }
 }
 
-
-void stream::stream_send_cb(){
-}
+void stream::stream_send_cb() {}
 
 /*
 int stream::stream_send(const std::string &data) {
@@ -231,10 +227,9 @@ void stream::cancel() {
 const yijinjing::data::location_ptr &stream::get_location() const { return location_; }
 
 websocket_server::websocket_server(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path,
-                     const bool is_text_mode, const bool tcp_no_delay, const size_t max_num_connections)
-    : web_agent(std::move(stream_manager)), url_(base_url),
-      is_text_mode_(is_text_mode), tcp_no_delay_(tcp_no_delay), max_num_connections_(max_num_connections),
-      num_connected_(0) {
+                                   const bool is_text_mode, const bool tcp_no_delay, const size_t max_num_connections)
+    : web_agent(std::move(stream_manager)), url_(base_url), is_text_mode_(is_text_mode), tcp_no_delay_(tcp_no_delay),
+      max_num_connections_(max_num_connections), num_connected_(0) {
   SPDLOG_DEBUG("websocket_server");
 
   int rv;
@@ -249,11 +244,11 @@ websocket_server::websocket_server(stream_manage_ptr stream_manager, const nng_u
   if (rv = nng_stream_listener_alloc_url(&listener_, &url)) {
     fatal("nng_stream_listener_alloc_url", rv);
   }
-  
+
   nng_stream_listener_set_bool(listener_, NNG_OPT_TCP_NODELAY, true);
   nng_stream_listener_set_bool(listener_, NNG_OPT_TCP_KEEPALIVE, true);
   nng_stream_listener_set_size(listener_, NNG_OPT_WS_SENDMAXFRAME, 1000000);
-  
+
   if (is_text_mode_) {
     nng_stream_listener_set_bool(listener_, NNG_OPT_WS_SEND_TEXT, true);
     nng_stream_listener_set_bool(listener_, NNG_OPT_WS_RECV_TEXT, true);
@@ -344,12 +339,13 @@ void websocket_server::accept_cb() {
   }
 }
 
-void websocket_server::publish(const char *data, int len, uint64_t stream_id){
-  get_stream_manager()->publish(stream_id,data,len);
-  return ;
+void websocket_server::publish(const char *data, int len, uint64_t stream_id) {
+  get_stream_manager()->publish(stream_id, data, len);
+  return;
 }
 
-http_server::http_server(const std::string &address):web_agent(std::make_shared<kungfu::yijinjing::webserver::stream_manage>()), started_(false) {
+http_server::http_server(const std::string &address)
+    : web_agent(std::make_shared<kungfu::yijinjing::webserver::stream_manage>()), started_(false) {
   SPDLOG_DEBUG("http_server");
   int rv;
   if ((rv = nng_url_parse(&url_, address.c_str())) != 0) {
@@ -366,14 +362,14 @@ http_server::~http_server() {
   stop();
 }
 
-void http_server::add_websocket(const std::string &path, bool is_text_mode,
-                                bool tcp_no_delay, const size_t max_num_connections) {
-  auto websocket =
-      std::make_shared<websocket_server>(get_stream_manager(), url_, path, is_text_mode, tcp_no_delay, max_num_connections);
+void http_server::add_websocket(const std::string &path, bool is_text_mode, bool tcp_no_delay,
+                                const size_t max_num_connections) {
+  auto websocket = std::make_shared<websocket_server>(get_stream_manager(), url_, path, is_text_mode, tcp_no_delay,
+                                                      max_num_connections);
   websockets_.emplace(std::make_pair(path, std::move(websocket)));
 }
 
-void http_server::remove_websocket(const std::string& path) {
+void http_server::remove_websocket(const std::string &path) {
   auto it = websockets_.find(path);
   if (it != websockets_.end()) {
     websockets_.erase(path);
@@ -393,13 +389,13 @@ void http_server::start() {
 }
 
 void http_server::stop() {
-  if(!started_){
+  if (!started_) {
     return;
   }
   started_ = false;
-  if(!websockets_.empty()){
+  if (!websockets_.empty()) {
     SPDLOG_ERROR("Websocket service still run!");
-    //TODO: should do more to release memory?
+    // TODO: should do more to release memory?
   }
   if (server_ != nullptr) {
     nng_http_server_stop(server_);
@@ -408,10 +404,9 @@ void http_server::stop() {
   url_.reset();
 }
 
-
 void http_server::publish(const char *data, int len, uint64_t stream_id) {
-  get_stream_manager()->publish(stream_id,data,len);
-  return ;
+  get_stream_manager()->publish(stream_id, data, len);
+  return;
 }
 
 int http_server::port() {
@@ -427,8 +422,7 @@ int http_server::port() {
 }
 
 websocket_client::websocket_client(stream_manage_ptr stream_manager, const std::string &address,
-                              const bool is_text_mode, const bool tcp_no_delay)
-  {
+                                   const bool is_text_mode, const bool tcp_no_delay) {
   SPDLOG_DEBUG("websocket_client");
   int rv;
   nng_smart_ptr<nng_url> url{nng_url_free};
@@ -470,22 +464,19 @@ int websocket_client::send_msg(const char *data, int data_len) { return stream_-
 
 stream_ptr websocket_client::get_stream() { return stream_; }
 
-void websocket_client::start(){
-}
+void websocket_client::start() {}
 
-void websocket_client::stop(){
-  nng_stream_dialer_free(dialer_);
-}
+void websocket_client::stop() { nng_stream_dialer_free(dialer_); }
 
-void websocket_client::publish(const char *data, int len, uint64_t stream_id){
-  //send_msg(data, len);
-  stream_->stream_send(data, len); 
+void websocket_client::publish(const char *data, int len, uint64_t stream_id) {
+  // send_msg(data, len);
+  stream_->stream_send(data, len);
   return;
 }
 
 int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
   auto stream_ptr = get_stream_by_id(stream_id);
-  if(stream_ptr == nullptr){
+  if (stream_ptr == nullptr) {
     SPDLOG_ERROR("Publish Failed");
     return -1;
   }
@@ -494,7 +485,7 @@ int stream_manage::publish(uint64_t stream_id, const std::string &msg) {
 }
 int stream_manage::publish(uint64_t stream_id, const char *data, const int len) {
   auto stream_ptr = get_stream_by_id(stream_id);
-  if(stream_ptr == nullptr){
+  if (stream_ptr == nullptr) {
     SPDLOG_ERROR("Publish Failed");
     return -1;
   }
@@ -504,11 +495,10 @@ int stream_manage::publish(uint64_t stream_id, const char *data, const int len) 
 
 stream_ptr stream_manage::get_stream_by_id(uint64_t stream_id) {
   std::shared_lock<std::shared_mutex> lock(mtx_);
-  if (!streams_.contains(stream_id)) [[unlikely]]{
-    SPDLOG_ERROR("do not exist stream_id:{}",stream_id);
+  if (!streams_.contains(stream_id)) [[unlikely]] {
+    SPDLOG_ERROR("do not exist stream_id:{}", stream_id);
     return nullptr;
-  }
-  else{
+  } else {
     return streams_.at(stream_id);
   }
 }

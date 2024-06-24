@@ -18,20 +18,6 @@
 #include <thread>
 #include <unordered_map>
 
-// const int max_num = 9000;
-// static std::unordered_map<int32_t,uint64_t> id_orderinput_map(max_num);
-// static std::unordered_map<uint64_t,uint64_t> orderinput_order_map(max_num);
-
-// static std::unordered_map<uint64_t,int32_t> orderinput_id_map(max_num);
-
-// static std::unordered_map<int32_t,uint64_t> id_time_map(max_num);
-// static std::unordered_map<uint64_t,uint64_t> orderinput_time_map(max_num);
-// static std::unordered_map<uint64_t,uint64_t> order_time_map(max_num);
-
-// static std::unordered_map<uint64_t,uint64_t> before_order_time_map(max_num);
-// static std::unordered_map<uint64_t,uint64_t> order_insert_time_map(max_num);
-// static std::unordered_map<uint64_t,uint64_t> order_update_time_map(max_num);
-
 namespace kungfu::wingchun::broker {
 
 class TestClient : public AutoClient {
@@ -54,6 +40,43 @@ struct ServerConfig {
   std::vector<std::string> paths;
   int thread_num;
 };
+
+
+class ThreadWorker {
+public:
+  ThreadWorker(yijinjing::webserver::stream_ptr stream) : stream_(stream), ready_(false), live_(true) {}
+
+  void wait() {
+    std::unique_lock<std::mutex> lock(mtx);
+    // 等待主线程的通知
+    cv.wait(lock, [this] { return ready_; });
+    ready_ = false;
+  }
+
+  void notify() {
+    std::lock_guard<std::mutex> lock(mtx);
+    ready_ = true;
+    cv.notify_all();
+  }
+
+  bool is_live() const { return live_; }
+
+  // 通知线程退出
+  void stop() {
+    live_ = false;
+    notify();
+  }
+
+  const yijinjing::webserver::stream_ptr &get_stream() { return stream_; }
+
+private:
+  std::mutex mtx;
+  std::condition_variable cv;
+  bool ready_;
+  bool live_;
+  yijinjing::webserver::stream_ptr stream_;
+};
+DECLARE_PTR(ThreadWorker)
 
 class server : public kungfu::yijinjing::practice::apprentice {
 public:
@@ -80,10 +103,8 @@ public:
     T2 data_send;
     memcpy(&data_send.data, data, sizeof(T1));
     data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-    SPDLOG_DEBUG("size T1:{}  size T2:{}", sizeof(T1), sizeof(T2));
     //web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     stream->stream_send((char *)(&data_send), sizeof(T2));
-    SPDLOG_DEBUG("after send");
     return;
   };
 
@@ -92,10 +113,8 @@ public:
     T2 data_send;
     memcpy(&data_send.data, data, sizeof(T1));
     data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
-    SPDLOG_DEBUG("size T1:{}  size T2:{}", sizeof(T1), sizeof(T2));
     //web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     stream->stream_send((char *)(&data_send), sizeof(T2));
-    SPDLOG_DEBUG("after send");
     return;
   };
   // test end
@@ -128,8 +147,10 @@ private:
   std::unordered_map<std::pair<uint64_t, uint64_t>, std::uint64_t, StreamRequestHash> request_order_map_ = {};
   std::unordered_map<uint64_t, uint64_t> stream_limit_map_;
   //std::condition_variable cv_;
-  std::unordered_map<uint64_t, std::condition_variable*> stream_cvs_;
-  std::mutex cv_mtx_;
+  //std::unordered_map<uint64_t, std::condition_variable*> stream_cvs_;
+  //std::mutex cv_mtx_;
+
+  std::map<uint64_t, ThreadWorker_ptr> stream_workers_ = {};
 
   /*
   std::map<int32_t, std::function<void(void *, uint64_t)>> map_event_back = {
@@ -172,11 +193,11 @@ private:
 
   // void submit_read_read_assemble();
   // void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
-  void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, uint64_t stream_id);
-  void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, uint64_t stream_id);
-  void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id);
+  void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
+  void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
+  void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time);
   bool custom_OnInitEvent(const char *ptr, uint64_t stream_id);
-  bool custom_OnNewOrder(const char *ptr, uint64_t stream_id);
+  bool custom_OnNewOrder(const char *ptr, uint64_t stream_id,uint64_t gen_time);
   bool custom_OnCancelOrder(const char *ptr, uint64_t stream_id);
   bool custom_OnQryAlgoParentOrder(const char *ptr);
 };

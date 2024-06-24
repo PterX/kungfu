@@ -90,14 +90,14 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
 
 server::~server() {}
 
-void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) {
+void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time) {
   switch (msg_type) {
   case CICC::types::AccountInfoType: {
     custom_OnInitEvent(msg, stream_id);
     break;
   }
   case CICC::types::OrderInputType: {
-    custom_OnNewOrder(const_cast<char *>(msg), stream_id);
+    custom_OnNewOrder(const_cast<char *>(msg), stream_id,gen_time);
     break;
   }
   case CICC::types::OrderActionType: {
@@ -109,8 +109,8 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id) 
     uint32_t limit = round_req->limit;
     stream_limit_map_.emplace(stream_id, limit);
     //cv_.notify_all();
-    if(stream_cvs_.contains(stream_id)){
-        stream_cvs_[stream_id]->notify_one();
+    if(stream_workers_.contains(stream_id)){
+        stream_workers_.at(stream_id)->notify();
     }
     else{
         SPDLOG_ERROR("couldn't find cv for stream:{}",stream_id);
@@ -147,7 +147,9 @@ void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
 }
 */
 
-void server::thread_read_data(const location_ptr &td_location, uint64_t stream_id) {
+void server::thread_read_data(const location_ptr &td_location, ThreadWorker_ptr worker) {
+  auto stream = worker->get_stream();
+  auto stream_id = stream->get_stream_id();
   SPDLOG_INFO("stream {} thread_read_data", stream_id);
   int limit = stream_limit_map_.contains(stream_id) ? stream_limit_map_.at(stream_id) : 100;
   int nums = 0;
@@ -156,86 +158,73 @@ void server::thread_read_data(const location_ptr &td_location, uint64_t stream_i
   reader->join(td_location, get_home_uid(), now);
   reader->join(get_home(), td_location->location_uid, now);
 
-  auto stream = web_agent_->get_stream_by_id(stream_id);
-
-  std::mutex mtx; 
-  std::condition_variable cv_local;
-  {
-  std::unique_lock<std::mutex> lock(mtx);
-  stream_cvs_[stream_id]=&cv_local;
-  }
-
-  while (1) {
-    if (!reader->data_available() || nums >= limit) {
-      CICC::types::PackReqEnd data_send;
-      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
-      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackReqEnd));
-      std::unique_lock<std::mutex> lock(cv_mtx_);
-      cv_local.wait(lock);
-      //cv_.wait(lock);
-      nums = 0;
-      continue;
+  while (worker->is_live()) {
+    while (reader->data_available() && nums >= limit) {
+      auto frame = reader->current_frame();
+      auto type = frame->msg_type();
+      auto iter = map_event_back.find(type);
+      if (iter != map_event_back.end()) {
+        iter->second(frame->data_address(), stream);
+      }
+      reader->next();
+      nums++;
     }
-    auto frame = reader->current_frame();
-    auto type = frame->msg_type();
-    auto iter = map_event_back.find(type);
-    if (iter != map_event_back.end()) {
-      iter->second(frame->data_address(), stream);
-    }
-    reader->next();
-    nums++;
+    CICC::types::PackReqEnd data_send{};
+    stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackReqEnd));
+    nums = 0;
+    worker->wait();
   }
   return;
 }
 
-void server::thread_send_data(const location_ptr &td_location, uint64_t stream_id) {
+void server::thread_send_data(const location_ptr &td_location, ThreadWorker_ptr worker) {
+  auto stream = worker->get_stream();
+  auto stream_id = stream->get_stream_id();
   SPDLOG_INFO("stream {} thread_send_data", stream_id);
   auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
   auto now = time::now_in_nano();
   reader->join(td_location, get_home_uid(), now);
   reader->join(get_home(), td_location->location_uid, now);
 
-  auto stream = web_agent_->get_stream_by_id(stream_id);
+  while (worker->is_live()) {
+    while (reader->data_available()){
+      auto frame = reader->current_frame();
+      auto type = frame->msg_type();
+      switch (type) {
+      case OrderInput::tag: {
+        // auto data = const_cast<OrderInput *>(frame->data_address());
+        CICC::types::PackOrderInput data_send;
+        memcpy(&data_send.data, frame->data_address(), sizeof(OrderInput));
+        data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
+        stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrderInput));
+        // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
+        break;
+      }
+      case Order::tag: {
+        // auto data = const_cast<Order *>(frame->data_address());
+        CICC::types::PackOrder data_send;
+        memcpy(&data_send.data, frame->data_address(), sizeof(Order));
+        data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
+        // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
+        stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrder));
+        break;
+      }
+      case Trade::tag: {
+        // auto data = const_cast<Trade *>(frame->data_address());
+        CICC::types::PackTrade data_send;
+        memcpy(&data_send.data, frame->data_address(), sizeof(Trade));
+        data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
+        // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
+        stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackTrade));
+        break;
+      }
 
-  while (1) {
-    if (!reader->data_available())
-      continue;
-    auto frame = reader->current_frame();
-    auto type = frame->msg_type();
-    switch (type) {
-    case OrderInput::tag: {
-      // auto data = const_cast<OrderInput *>(frame->data_address());
-      CICC::types::PackOrderInput data_send;
-      memcpy(&data_send.data, frame->data_address(), sizeof(OrderInput));
-      data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrderInput));
-      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrderInput), stream_id);
-      break;
-    }
-    case Order::tag: {
-      // auto data = const_cast<Order *>(frame->data_address());
-      CICC::types::PackOrder data_send;
-      memcpy(&data_send.data, frame->data_address(), sizeof(Order));
-      data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackOrder), stream_id);
-      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackOrder));
-      break;
-    }
-    case Trade::tag: {
-      // auto data = const_cast<Trade *>(frame->data_address());
-      CICC::types::PackTrade data_send;
-      memcpy(&data_send.data, frame->data_address(), sizeof(Trade));
-      data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
-      // web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackTrade), stream_id);
-      stream->stream_send((char *)(&data_send), sizeof(CICC::types::PackTrade));
-      break;
-    }
-
-    default:
-      break;
-    }
-    // auto iter = map_event_back.find(type);
-    reader->next();
+      default:
+        break;
+      }
+      // auto iter = map_event_back.find(type);
+      reader->next();
+      }
   }
   return;
 }
@@ -258,11 +247,14 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
   SPDLOG_DEBUG("add writer for stream:{}", stream_id);
 
   if (method == CICC::enums::Method::direct) {
-    stream_thread_map_.try_emplace(
-        stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_id));
+    // 创建worker, 每个线程一个worker, 里面有属于每一个单独线程的cv和锁
+    stream_workers_.insert_or_assign(stream_id, std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id)));
+    stream_thread_map_.try_emplace(stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_workers_.at(stream_id)));
   } else if (method == CICC::enums::Method::round) {
-    stream_thread_map_.try_emplace(
-        stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_id));
+
+    // 创建worker, 每个线程一个worker, 里面有属于每一个单独线程的cv和锁
+    stream_workers_.insert_or_assign(stream_id, std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id)));
+    stream_thread_map_.try_emplace(stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_workers_.at(stream_id)));
     /*
     auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
     auto now = time::now_in_nano();
@@ -276,7 +268,7 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
   return true;
 }
 
-bool server::custom_OnNewOrder(const char *ptr, uint64_t stream_id) {
+bool server::custom_OnNewOrder(const char *ptr, uint64_t stream_id,uint64_t gen_time) {
   auto *remote_data = reinterpret_cast<const CICC::types::PackOrderInput *>(ptr);
   auto remote_input = remote_data->data;
   std::string instrument_id = remote_input.instrument_id;
@@ -299,6 +291,7 @@ bool server::custom_OnNewOrder(const char *ptr, uint64_t stream_id) {
   memcpy(&input, &(remote_data->data), sizeof(OrderInput));
   input.order_id = writer->current_frame_uid();
   input.insert_time = time::now_in_nano();
+  input.block_id = gen_time;
   writer->close_data();
   request_order_map_.try_emplace(std::make_pair(stream_id, remote_input.request_id), input.order_id);
   return true;
@@ -340,7 +333,8 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
   while (reader->data_available() and count < 100) {
     uint32_t location_uid = reader->current_journal()->get_location()->location_uid;
     const char *data = reader->current_frame()->data_as_bytes();
-    write_data(reinterpret_cast<const uint32_t &>(*data), data, manager->get_stream_id(location_uid));
+    uint64_t gen_time = reader->current_frame()->gen_time();
+    write_data(reinterpret_cast<const uint32_t &>(*data), data, manager->get_stream_id(location_uid),gen_time);
     reader->next();
     ++count;
   }

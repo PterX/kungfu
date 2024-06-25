@@ -193,10 +193,12 @@ const afterWatchIsLive = () => {
       .then(() => startLedger(false))
       .then(() => postStartAll())
       .then(() => {
-        globalBus.next({
-          tag: 'processStatus',
-          name: 'extraResourcesLoading',
-          status: 'online',
+        delayMilliSeconds(1000).then(() => {
+          globalBus.next({
+            tag: 'processStatus',
+            name: 'extraResourcesLoading',
+            status: 'online',
+          });
         });
       })
       .catch((err) => kfLogger.error(err.message));

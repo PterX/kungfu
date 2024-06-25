@@ -1,7 +1,9 @@
 import click
+import logging
+import json
+
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
 from kungfu.serverless.backtest import Backtest
-import logging
 from kungfu.serverless.utils import create_logger
 
 backtest_command_context = kfc.pass_context("backtest_client", "logger")
@@ -43,7 +45,14 @@ def backtest(ctx):
 )
 @backtest_command_context
 def submit(ctx, file_path, begin_time, end_time, data_level):
-    ctx.backtest_client.submit(file_path, begin_time, end_time, data_level)
+    result = ctx.backtest_client.submit(file_path, begin_time, end_time, data_level)
+    ctx.logger.info(
+        " >>>>>>>>>>>>>>>>>>>>>>>>>>>>> backtest result <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+    )
+    ctx.logger.info(f"{json.dumps(result)}")
+    ctx.logger.info(
+        " >>>>>>>>>>>>>>>>>>>>>>>>>>>>> backtest result <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+    )
     pass
 
 

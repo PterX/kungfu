@@ -1,10 +1,10 @@
 import { DealTradingTableHooks } from '@kungfu-trader/kungfu-js-api/hooks/dealTradingTableHook';
-import {
-  isTdStrategyCategory,
-  vTableSorter,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { isTdStrategyCategory } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
 import { defaultColorMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
-import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
+import {
+  VTable,
+  vTableSorter,
+} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 import {
   dealOffset,
   dealSide,
@@ -23,7 +23,7 @@ export const getColumns = (
       {
         field: 'trade_time',
         title: t('tradeConfig.trade_time_resolved'),
-        width: 160,
+        width: 136,
         sort: vTableSorter,
         fieldFormat: (args) => {
           return dealKfTime(args.trade_time, true);
@@ -32,12 +32,12 @@ export const getColumns = (
       {
         field: 'instrument_id',
         title: t('tradeConfig.instrument_id'),
-        width: 140,
+        width: 74,
       },
       {
         field: 'side',
         title: '',
-        width: 80,
+        width: 44,
         style: {
           color: (args) => {
             return defaultColorMap[dealSide(args.dataValue).color || 'default'];
@@ -50,7 +50,7 @@ export const getColumns = (
       {
         field: 'offset',
         title: '',
-        width: 50,
+        width: 44,
         style: {
           color: (args) => {
             return defaultColorMap[
@@ -65,7 +65,7 @@ export const getColumns = (
       {
         field: 'price_resolved',
         title: t('tradeConfig.price'),
-        width: 120,
+        width: 86,
         style: {
           textAlign: 'right',
         },
@@ -77,7 +77,7 @@ export const getColumns = (
       {
         field: 'volume',
         title: t('tradeConfig.volume'),
-        width: 120,
+        width: 86,
         style: {
           textAlign: 'right',
         },
@@ -92,7 +92,7 @@ export const getColumns = (
           kfLocation.category === 'td'
             ? t('orderConfig.dest_uname')
             : t('orderConfig.source_uname'),
-        width: 300,
+        width: 78,
         style: {
           color: (args) => {
             return getAccountIdStyle(args.dataValue);
@@ -105,7 +105,7 @@ export const getColumns = (
             {
               field: 'dest_uname',
               title: t('orderConfig.dest_uname'),
-              width: 300,
+              width: 78,
               style: {
                 color: (args) => {
                   return getAccountIdStyle(args.dataValue);

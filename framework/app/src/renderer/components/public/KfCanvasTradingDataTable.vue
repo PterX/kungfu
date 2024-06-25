@@ -215,6 +215,7 @@ const defaultTheme: VTable.TYPES.ITableThemeDefine = {
   scrollStyle: {
     scrollSliderColor: '#555',
     visible: 'focus',
+    barToSide: true,
   },
   checkboxStyle: {
     size: 12,
@@ -245,6 +246,7 @@ const defaultOptionItems = ref<VTable.ListTableConstructorOptions>({
     highlightMode: 'row',
   },
   select: {
+    highlightMode: 'cell',
     disableSelect: true,
   },
   maintainedDataCount: 100,

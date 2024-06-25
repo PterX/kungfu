@@ -127,7 +127,6 @@ declare module 'worker-loader!*' {
   export = WebpackWorker;
 }
 
-declare module '*.svg' {
-  const content;
-  export default content;
-}
+declare module '~icons/*';
+declare module '*.gif';
+declare module '*.svg';

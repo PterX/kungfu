@@ -3,7 +3,7 @@
     v-if="beforeDelate"
     class="c-app-code-file-node"
     :class="{
-      folder: type == 'folder',
+      folder: type === 'folder',
       file: type !== 'folder',
     }"
   >
@@ -14,7 +14,7 @@
           'root-file': fileNode?.root,
           active: fileNode.filePath === currentFile.filePath,
         }"
-        :style="{ 'padding-left': `${curCount * 16 + 5}px` }"
+        :style="{ 'padding-left': `${curCount * 8}px` }"
       >
         <div class="file-top">
           <img class="file-icon" :src="iconPath" v-if="iconPath" />
@@ -89,13 +89,6 @@
             </span>
           </div>
         </div>
-        <span
-          class="path"
-          v-if="fileNode && fileNode?.root"
-          :title="fileNode.filePath"
-        >
-          {{ fileNode.filePath }}
-        </span>
       </div>
       <div :style="{ 'padding-left': `${curCount * 16 + 26}px` }">
         <Alert
@@ -106,8 +99,8 @@
         />
       </div>
     </div>
-    <div v-if="isShowChildren">
-      <div v-for="id in fileNode.children.folder">
+    <template v-if="isShowChildren">
+      <template v-for="id in fileNode.children.folder">
         <ComFileNode
           :fileNode="fileTree[id]"
           :id="id"
@@ -115,10 +108,8 @@
           :count="childCount"
           :isEntryFilenameEditable="isEntryFilenameEditable"
         />
-      </div>
-    </div>
-    <div v-if="isShowChildren">
-      <div v-for="id in fileNode.children.file">
+      </template>
+      <template v-for="id in fileNode.children.file">
         <ComFileNode
           :isEntryFilenameEditable="isEntryFilenameEditable"
           :fileNode="fileTree[id]"
@@ -126,9 +117,8 @@
           type="file"
           :count="childCount"
         />
-        <!-- @updateCodeToApp="updateCodeToApp" 用于上面组件 -->
-      </div>
-    </div>
+      </template>
+    </template>
   </div>
 </template>
 
@@ -146,8 +136,8 @@ import {
   DeleteFilled,
 } from '@ant-design/icons-vue';
 import { useCodeStore } from '../store/codeStore';
-import iconFolderJSON from '../config/iconFolderConfig.json';
-import iconFileJSON from '../config/iconFileConfig.json';
+import iconFolderJSON from '@kungfu-trader/kungfu-app/src/renderer/assets/monaco/iconFolderConfig.json';
+import iconFileJSON from '@kungfu-trader/kungfu-app/src/renderer/assets/monaco/iconFileConfig.json';
 import path from 'path';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, toRefs, computed, watch, nextTick } from 'vue';
@@ -176,7 +166,7 @@ const props = defineProps<{
 }>();
 
 const { fileNode, id, count, type } = toRefs(props);
-const curCount = ref<number>(+(count || 0));
+const curCount = ref<number>(+(count.value || 0));
 const childCount = ref<number>(curCount.value + 1);
 
 const iconPath = ref<string>('');
@@ -486,10 +476,10 @@ onMounted(() => {
     border: 1px solid @red-base !important;
     background-color: #8d3333 !important;
   }
+
   .each-files {
     text-align: left;
     padding: 2px 0px;
-    padding-left: 5px;
     color: @text-color;
     font-size: 14px;
     white-space: normal;
@@ -511,15 +501,7 @@ onMounted(() => {
     .text-entry-file {
       color: @gold-base;
     }
-    .path {
-      margin: 0 4px;
-      word-break: normal;
-      width: auto;
-      display: block;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      overflow: hidden;
-    }
+
     .file-icon {
       width: 20px;
       height: 20px;

@@ -2738,7 +2738,7 @@ export const useTableResizeControl = (
   const subscription = resizable
     ? app?.proxy?.$globalBus?.subscribe((data: KfEvent.KfBusEvent) => {
         if (data.tag === 'main') {
-          if (data.name === 'reset-main-dashboard') {
+          if (data.name === 'reset-current-dashboard') {
             localStorage.removeItem(DEFAULT_KEY);
             tableResizeConfig.value = null;
             tableKey.value = tableName;

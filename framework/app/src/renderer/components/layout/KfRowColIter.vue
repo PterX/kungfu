@@ -410,7 +410,7 @@ const provideObj = {
   setBoardHeaderExtra,
 };
 provide(BuiltinComponentInjectKeysMap.KfBoards, provideObj);
-inject(UIHelperInjectKeysMap.KfBoards)?.boardInfosMounter(provideObj);
+inject(UIHelperInjectKeysMap.KfBoards, null)?.boardInfosMounter(provideObj);
 
 function handleDragStart(content: KfLayout.Content) {
   if (!props.tabDraggable) return;

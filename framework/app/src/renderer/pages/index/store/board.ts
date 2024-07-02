@@ -450,7 +450,7 @@ export const useBoards = () => {
     boardInfo: KfLayout.BoardInfo;
     useBoardsStore: BoardStoreDefinition;
   } | null>(null);
-  let injection = inject(BuiltinComponentInjectKeysMap.KfBoards);
+  let injection = inject(BuiltinComponentInjectKeysMap.KfBoards, null);
   provide(UIHelperInjectKeysMap.KfBoards, {
     boardInfosMounter: (data) => {
       injection = data;

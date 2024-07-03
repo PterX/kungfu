@@ -1142,40 +1142,17 @@ export const buildTableColumnSorterWithStrike = <T, U = object>(
   };
 };
 
-export const omitObject = <T>(obj: T, keys: Array<keyof T>) => {
+export const omitObject = <T extends object, U extends Array<keyof T>>(
+  obj: T,
+  keys: U,
+): Omit<T, U[number]> => {
   const strKeys = keys.map((key) => key.toString());
   return Object.keys(obj)
     .filter((key) => !strKeys.includes(key))
     .reduce((result, key) => {
       result[key] = obj[key];
       return result;
-    }, {});
-};
-export const vTableSorter = (
-  a: string | number,
-  b: string | number,
-  sorterOrder: 'asc' | 'desc' | 'normal',
-): 0 | 1 | -1 => {
-  a = a === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : a;
-  b = b === '--' ? (sorterOrder === 'asc' ? Infinity : -Infinity) : b;
-
-  const numA = isNaN(Number(a)) ? null : Number(a);
-  const numB = isNaN(Number(b)) ? null : Number(b);
-
-  if (sorterOrder === 'asc') {
-    if (numA !== null && numB !== null) {
-      return Math.sign(numA - numB) as 0 | 1 | -1;
-    } else if (typeof a === 'string' && typeof b === 'string') {
-      return Math.sign(a.localeCompare(b)) as 0 | 1 | -1;
-    }
-  } else if (sorterOrder === 'desc') {
-    if (numA !== null && numB !== null) {
-      return Math.sign(numB - numA) as 0 | 1 | -1;
-    } else if (typeof a === 'string' && typeof b === 'string') {
-      return Math.sign(b.localeCompare(a)) as 0 | 1 | -1;
-    }
-  }
-  return 0;
+    }, {} as Omit<T, U[number]>);
 };
 
 export const escapeSpecialChar = (str: string) => {

@@ -29,8 +29,6 @@
 
 namespace kungfu::yijinjing::webserver {
 
-uint64_t roundup_pow_of_two(const uint64_t x);
-
 class webserver_error : public std::runtime_error {
 public:
   explicit webserver_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
@@ -77,49 +75,34 @@ public:
   nng_type *operator->() { return obj; }
 };
 
-// remote_ip:remote_port:local_port
-static uint64_t generate_stream_id(nng_stream *s) {
-  nng_sockaddr local_address, remote_address;
-  nng_stream_get_addr(s, NNG_OPT_REMADDR, &remote_address);
-  nng_stream_get_addr(s, NNG_OPT_LOCADDR, &local_address);
-  return (static_cast<uint64_t>(remote_address.s_in.sa_addr) << 32) |
-         (static_cast<uint64_t>(remote_address.s_in.sa_port) << 16) | local_address.s_in.sa_port;
+static uint64_t generate_stream_id(nng_stream *s, bool is_server) {
+  nng_sockaddr sockaddr;
+  if(is_server){
+    nng_stream_get_addr(s, NNG_OPT_REMADDR, &sockaddr);
+    return (static_cast<uint64_t>(sockaddr.s_in.sa_addr) << 32) | (static_cast<uint64_t>(sockaddr.s_in.sa_port) << 16);
+  }
+  else{
+    nng_stream_get_addr(s, NNG_OPT_LOCADDR, &sockaddr);
+    return (static_cast<uint64_t>(sockaddr.s_in.sa_addr) << 32) | (static_cast<uint64_t>(sockaddr.s_in.sa_port) << 16);
+  }
 }
 
 class stream {
 public:
-  using DisposeFunc = std::function<void()>;
-
-  stream(nng_stream *s, uint64_t stream_id, DisposeFunc dispose_func = nullptr);
+  stream(nng_stream *s, bool is_server);
 
   virtual ~stream();
 
-  int stream_send(const std::string &data);
-
-  int stream_send(const char *data, int len);
-
   uint64_t get_stream_id() const;
-
-  uint64_t get_opposite_stream_id();
 
   const yijinjing::data::location_ptr &get_location() const;
 
-  void cancel();
-
-private:
+protected:
   void close_data();
 
-  void start_recv();
-
-  void stream_recv_cb();
-
-  void stream_send_cb();
+  void open_data(nng_iov& iov);
 
 private:
-  DisposeFunc dispose_func_;
-  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
-  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
-  nng_smart_ptr<nng_stream> stream_;
   uint64_t stream_id_;
   yijinjing::data::location_ptr location_ = nullptr;
   journal::writer_ptr writer_ = nullptr;
@@ -127,6 +110,40 @@ private:
 };
 DECLARE_PTR(stream)
 
+
+class session:public stream{
+public:
+  session(nng_stream *s, bool is_server);
+
+  virtual ~session();
+
+  void send_data(const char *data, int len);
+
+  void start_recv();
+
+  void recv_cb();
+
+  void send_cb();
+  private:
+  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
+  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
+  nng_smart_ptr<nng_stream> stream_;
+};
+DECLARE_PTR(session)
+
+
+class websocket_client:public stream{
+public:
+
+private:
+  nng_smart_ptr<nng_stream_dialer> dialer_{nng_stream_dialer_free};
+  nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
+  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
+  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
+  nng_smart_ptr<nng_stream> stream_;
+}
+
+/*
 class stream_manage {
 public:
   explicit stream_manage();
@@ -263,7 +280,7 @@ private:
   nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
 };
 FORWARD_DECLARE_CLASS_PTR(websocket_client)
-
+*/
 } // namespace kungfu::yijinjing::webserver
 
 #endif // KUNGFU_WEBSERVER_H

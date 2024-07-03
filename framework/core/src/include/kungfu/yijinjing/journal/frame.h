@@ -35,6 +35,8 @@ struct frame : event {
 
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
+  [[nodiscard]] uint64_t stream_id() const { return header_->stream_id; }
+
   [[nodiscard]] const void *data_address() const override {
     return reinterpret_cast<void *>(address() + header_length());
   }

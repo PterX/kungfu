@@ -9,66 +9,28 @@ using namespace kungfu::yijinjing::data;
 using namespace kungfu::longfist::types;
 using namespace kungfu::longfist::enums;
 using namespace kungfu::yijinjing::journal;
+using namespace std::literals;
 
 namespace kungfu::yijinjing::webserver {
 constexpr uint64_t PAGE_SIZE = 256;
 
-uint64_t roundup_pow_of_two(const uint64_t x) {
-  if (x == 0)
-    return 0;
-  if (x == 1)
-    return 2;
-  uint64_t ret = 1;
-  while (ret < x) {
-    ret = ret << 1;
-  }
-  return ret;
-}
-
-stream::stream(nng_stream *s, uint64_t stream_id, DisposeFunc dispose_func)
-    : stream_(s, nng_stream_free), stream_id_(stream_id),dispose_func_(dispose_func) {
+stream::stream(nng_stream *s, bool is_server)
+    : stream_id_(generate_stream_id(s,is_server)){
   SPDLOG_DEBUG("stream");
-  location_ = location::make_shared(mode::LIVE, category::SYSTEM, "webserver", std::to_string(stream_id),
+  auto group = is_server?"webserver"s:"webclient"s;
+  location_ = location::make_shared(mode::LIVE, category::SYSTEM, group, std::to_string(stream_id_),
                                     std::make_shared<locator>(mode::LIVE));
   writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
                                      std::make_shared<bus>(false), PAGE_SIZE);
-  
-  int rv;
-  if ((rv = nng_aio_alloc(
-           &aio_recv_,
-           [](void *arg) {
-             auto *pThis = reinterpret_cast<stream *>(arg);
-             pThis->stream_recv_cb();
-           },
-           this)) != 0) {
-    fatal("nng_aio_alloc read", rv);
-  }
 
-  if ((rv = nng_aio_alloc(&aio_send_, [](void *arg) {
-             auto *pThis = reinterpret_cast<stream *>(arg);
-             pThis->stream_send_cb();
-           }, this)) != 0) {
-    fatal("nng_aio_alloc read", rv);
-  }
-  start_recv();
 }
 
 stream::~stream() {
   SPDLOG_DEBUG("~stream");
   close_data();
-  cancel();
-  nng_stream_close(stream_);
 }
 
 uint64_t stream::get_stream_id() const { return stream_id_; }
-
-uint64_t stream::get_opposite_stream_id() {
-  nng_sockaddr local_address, remote_address;
-  nng_stream_get_addr(stream_, NNG_OPT_REMADDR, &remote_address);
-  nng_stream_get_addr(stream_, NNG_OPT_LOCADDR, &local_address);
-  return (static_cast<uint64_t>(local_address.s_in.sa_addr) << 32) |
-         (static_cast<uint64_t>(local_address.s_in.sa_port) << 16) | remote_address.s_in.sa_port;
-}
 
 void stream::close_data() {
   if (current_frame_) {
@@ -78,64 +40,41 @@ void stream::close_data() {
   return ;
 }
 
-void stream::start_recv() {
-  close_data();
+void stream::open_data(nng_iov& iov){
   current_frame_ = writer_->open_frame_lock_free(time::now_in_nano(), 10001000, 1024);
-  nng_iov iov{const_cast<void *>(current_frame_->data_address()), current_frame_->data_length()};
-  nng_aio_set_iov(aio_recv_, 1, &iov);
-  nng_stream_recv(stream_, aio_recv_);
-  return ;
+  iov.iov_buf = const_cast<void *>(current_frame_->data_address());
+  iov.iov_len = current_frame_->data_length();
 }
 
-void stream::stream_recv_cb() {
-  int rv = nng_aio_result(aio_recv_);
 
-  auto len = nng_aio_count(aio_recv_);
-  switch (rv) {
-  case 0: {
-    start_recv();
-    break;
+const yijinjing::data::location_ptr &stream::get_location() const { return location_; }
+
+session::session(nng_stream *s, bool is_server):stream(s,is_server),stream_(s,nng_stream_free){
+  int rv;
+  if ((rv = nng_aio_alloc(
+           &aio_recv_,
+           [](void *arg) {
+             auto *pThis = reinterpret_cast<session *>(arg);
+             pThis->recv_cb();
+           },
+           this)) != 0) {
+    fatal("nng_aio_alloc read", rv);
   }
-  case NNG_ECLOSED: {
-    SPDLOG_DEBUG("NNG_ECLOSED");
-    close_data();
-    writer_->mark(time::now_in_nano(), NngDisconnect::tag);
-    dispose_func_();
-    break;
+
+  if ((rv = nng_aio_alloc(&aio_send_, [](void *arg) {
+             auto *pThis = reinterpret_cast<session *>(arg);
+             pThis->send_cb();
+           }, this)) != 0) {
+    fatal("nng_aio_alloc read", rv);
   }
-  default:
-    SPDLOG_DEBUG("default:{}", rv);
-    break;
-  }
-  return ;
+  start_recv();
 }
 
-void stream::stream_send_cb() {
-  int rv = nng_aio_result(aio_send_);
-  if(rv){
-    fatal("stream_send_cb",rv);
-  }
-  return;
+session::~session(){
 }
 
-int stream::stream_send(const std::string &data) {
-  nng_iov iov;
-  iov.iov_buf = (void *)data.data();
-  iov.iov_len = data.size();
-
-  if (nng_aio_busy(aio_send_)) {
-    nng_aio_wait(aio_send_);
-  }
-  int rv = nng_aio_set_iov(aio_send_, 1, &iov);
-  if (rv != 0) {
-    fatal("nng_aio_set_iov", rv);
-  }
-  nng_stream_send(stream_, aio_send_);
-  return 0;
-}
-
-int stream::stream_send(const char *data, const int len) {
-  nng_iov iov;
+void session::send_data(const char *data, int len){
+  nng_iov iov{};
   iov.iov_buf = (void *)data;
   iov.iov_len = len;
 
@@ -147,19 +86,53 @@ int stream::stream_send(const char *data, const int len) {
     fatal("nng_aio_set_iov", rv);
   }
   nng_stream_send(stream_, aio_send_);
-  return 0;
+  return ;
 }
 
-void stream::cancel() {
-  nng_aio_cancel(aio_recv_);
-  nng_aio_wait(aio_recv_);
-  nng_aio_cancel(aio_send_);
-  nng_aio_wait(aio_send_);
-    return ;
+void session::recv_cb(){
+  int rv = nng_aio_result(aio_recv_);
+
+  auto len = nng_aio_count(aio_recv_);
+  switch (rv) {
+  case 0: {
+    start_recv();
+    break;
+  }
+  case NNG_ECLOSED: {
+    SPDLOG_DEBUG("NNG_ECLOSED");
+    //close_data();
+    //writer_->mark(time::now_in_nano(), NngDisconnect::tag);
+    //dispose_func_();
+    break;
+  }
+  default:
+    SPDLOG_DEBUG("default:{}", rv);
+    break;
+  }
+  return ;
 }
 
-const yijinjing::data::location_ptr &stream::get_location() const { return location_; }
+void session::send_cb(){
+  int rv = nng_aio_result(aio_send_);
+  if(rv){
+    fatal("stream_send_cb",rv);
+  }
+  return;
+}
 
+void session::start_recv() {
+  close_data();
+  nng_iov iov{};
+  open_data(iov);
+  nng_aio_set_iov(aio_recv_, 1, &iov);
+  nng_stream_recv(stream_, aio_recv_);
+  return ;
+}
+
+
+
+
+/*
 websocket_server::websocket_server(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path,
                                    const bool is_text_mode, const bool tcp_no_delay, const size_t max_num_connections)
     : web_agent(std::move(stream_manager)), url_(base_url), is_text_mode_(is_text_mode), tcp_no_delay_(tcp_no_delay),
@@ -456,5 +429,5 @@ uint64_t stream_manage::get_stream_id(uint32_t location_uid) {
   SPDLOG_DEBUG("get_stream_id");
   return 0;
 }
-
+*/
 } // namespace kungfu::yijinjing::webserver

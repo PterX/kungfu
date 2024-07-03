@@ -91,6 +91,7 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
 server::~server() {}
 
 void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time) {
+  SPDLOG_DEBUG("write_data");
   switch (msg_type) {
   case CICC::types::AccountInfoType: {
     custom_OnInitEvent(msg, stream_id);
@@ -108,19 +109,19 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, 
     auto *round_req = reinterpret_cast<const CICC::types::PackRoundReq *>(msg);
     uint32_t limit = round_req->limit;
     stream_limit_map_.emplace(stream_id, limit);
-    //cv_.notify_all();
+    SPDLOG_DEBUG("stream_id:{} limit:{}",stream_id, limit);
     if(stream_workers_.contains(stream_id)){
         stream_workers_.at(stream_id)->notify();
     }
     else{
         SPDLOG_ERROR("couldn't find cv for stream:{}",stream_id);
     }
-    // submit_read_read_assemble();
     break;
   }
   default:
     break;
   }
+  SPDLOG_DEBUG("finish write_data");
   return;
 }
 
@@ -159,7 +160,7 @@ void server::thread_read_data(const location_ptr &td_location, ThreadWorker_ptr 
   reader->join(get_home(), td_location->location_uid, now);
 
   while (worker->is_live()) {
-    while (reader->data_available() && nums >= limit) {
+    while (reader->data_available() && nums < limit) {
       auto frame = reader->current_frame();
       auto type = frame->msg_type();
       auto iter = map_event_back.find(type);
@@ -328,16 +329,31 @@ bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
 
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
   auto manager = web_agent_->get_stream_manager();
-  auto &reader = web_agent_->get_stream_manager()->get_reader();
+  //SPDLOG_DEBUG("before reader");
+  auto &reader = web_agent_->get_stream_manager()->get_reader(); 
+  //SPDLOG_DEBUG("after reader");
   int count = 0;
   while (reader->data_available() and count < 100) {
     uint32_t location_uid = reader->current_journal()->get_location()->location_uid;
     const char *data = reader->current_frame()->data_as_bytes();
     uint64_t gen_time = reader->current_frame()->gen_time();
-    write_data(reinterpret_cast<const uint32_t &>(*data), data, manager->get_stream_id(location_uid),gen_time);
+    uint64_t msg_type = reader->current_frame()->msg_type();
+    uint64_t stream_id = manager->get_stream_id(location_uid);
+    SPDLOG_DEBUG("after get_stream_id:{} ",stream_id);
+    if(msg_type == NngDisconnect::tag){
+      //manager->remove_stream(manager->get_stream_id(location_uid));
+      SPDLOG_DEBUG("get NngDisconnect");
+      stream_workers_.erase(stream_id);
+      stream_thread_map_.erase(stream_id);
+      continue;
+    }
+    SPDLOG_DEBUG("before write_data: pack_type:{} frame_type:{}",reinterpret_cast<const uint32_t &>(*data),msg_type);
+    write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id,gen_time);
+    SPDLOG_DEBUG("after write_data");
     reader->next();
     ++count;
   }
+  //SPDLOG_DEBUG("finish deal_msg");
   return;
 }
 

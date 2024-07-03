@@ -12,7 +12,6 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/log.h>
-#include <kungfu/yijinjing/nanomsg/webserver.h>
 #include <kungfu/yijinjing/time.h>
 
 #ifndef KUNGFU_SETUP_LOG

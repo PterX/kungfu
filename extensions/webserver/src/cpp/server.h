@@ -17,6 +17,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <kungfu/yijinjing/nanomsg/webserver.h>
 
 namespace kungfu::wingchun::broker {
 

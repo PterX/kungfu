@@ -9,7 +9,6 @@
 
 #include <kungfu/yijinjing/journal/journal.h>
 #include <kungfu/yijinjing/nanomsg/socket.h>
-#include <kungfu/yijinjing/nanomsg/webserver.h>
 
 namespace kungfu::yijinjing {
 FORWARD_DECLARE_CLASS_PTR(session)

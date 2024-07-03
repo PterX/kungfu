@@ -88,7 +88,9 @@ static uint64_t generate_stream_id(nng_stream *s) {
 
 class stream {
 public:
-  stream(nng_stream *s, uint64_t stream_id, uint64_t aio_nums = 1024);
+  using DisposeFunc = std::function<void()>;
+
+  stream(nng_stream *s, uint64_t stream_id, DisposeFunc dispose_func = nullptr);
 
   virtual ~stream();
 
@@ -114,6 +116,7 @@ private:
   void stream_send_cb();
 
 private:
+  DisposeFunc dispose_func_;
   nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
   nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
   nng_smart_ptr<nng_stream> stream_;
@@ -121,9 +124,6 @@ private:
   yijinjing::data::location_ptr location_ = nullptr;
   journal::writer_ptr writer_ = nullptr;
   journal::frame_ptr current_frame_ = nullptr;
-  // std::vector<nng_smart_ptr<nng_aio>> aio_send_;
-  uint64_t aio_nums_;
-  uint64_t cur_index_;
 };
 DECLARE_PTR(stream)
 
@@ -141,7 +141,7 @@ public:
 
   void add_stream(nng_stream *s);
 
-  void add_stream(const stream_ptr &s);
+  void remove_stream(uint64_t stream_id);
 
   journal::reader_ptr &get_reader();
 

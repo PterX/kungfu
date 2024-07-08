@@ -71,6 +71,8 @@ struct frame : event {
     return length;
   }
 
+  void set_stream_id(uint64_t stream_id) { header_->stream_id = stream_id; }
+
 private:
   longfist::types::frame_header *header_ = nullptr;
 

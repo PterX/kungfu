@@ -77,23 +77,48 @@ public:
 
 static uint64_t generate_stream_id(nng_stream *s, bool is_server) {
   nng_sockaddr sockaddr;
-  if(is_server){
+  if (is_server) {
     nng_stream_get_addr(s, NNG_OPT_REMADDR, &sockaddr);
     return (static_cast<uint64_t>(sockaddr.s_in.sa_addr) << 32) | (static_cast<uint64_t>(sockaddr.s_in.sa_port) << 16);
-  }
-  else{
+  } else {
     nng_stream_get_addr(s, NNG_OPT_LOCADDR, &sockaddr);
     return (static_cast<uint64_t>(sockaddr.s_in.sa_addr) << 32) | (static_cast<uint64_t>(sockaddr.s_in.sa_port) << 16);
   }
 }
 
-class web_agent: public std::enable_shared_from_this<web_agent>{
+class web_agent : public std::enable_shared_from_this<web_agent> {
 public:
+  explicit web_agent();
+
   virtual void start() = 0;
   virtual void stop() = 0;
   virtual void onError() = 0;
   virtual void onDisconnect() = 0;
   virtual void onConnect() = 0;
+
+  kungfu::yijinjing::journal::frame_ptr current_frame() { return reader_->current_frame(); }
+
+  void next() {
+    // 处理disjoin, join
+    reader_->next();
+  }
+
+  void on_frame();
+
+  void add_join(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest, int64_t begin_time);
+
+  void add_disjion(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest);
+
+  void cleanup_reader_join();
+
+  void cleanup_reader_disjoin();
+
+private:
+  journal::reader_ptr reader_;
+  std::atomic_flag flag_write; // 子线程竞争
+  std::atomic<bool> flag_has;  // 子线程和主线程
+  std::map<std::pair<kungfu::yijinjing::data::location_ptr, uint32_t>, int64_t> join_channels_ = {};
+  std::set<std::pair<kungfu::yijinjing::data::location_ptr, uint32_t>> disjoin_channels_ = {};
 };
 DECLARE_PTR(web_agent)
 
@@ -107,11 +132,10 @@ public:
 
   const yijinjing::data::location_ptr &get_location() const;
 
-
 protected:
   void close_data();
 
-  void open_data(nng_iov& iov);
+  void open_data(nng_iov &iov);
 
 private:
   uint64_t stream_id_;
@@ -121,16 +145,16 @@ private:
 };
 DECLARE_PTR(stream)
 
-
-class session:public stream{
+class session : public stream {
 public:
   session(web_agent_ptr agent, nng_stream *s, bool is_server);
 
-  virtual ~session();
+  ~session() override = default;
   void start_recv();
   int send(const char *data, int len);
   void recv_cb();
   void send_cb();
+
 private:
   web_agent_ptr agent_;
   uint64_t session_id;
@@ -140,9 +164,9 @@ private:
 };
 DECLARE_PTR(session)
 
-class websocket_client: public web_agent{
+class websocket_client : public web_agent {
 public:
-  explicit websocket_client(const std::string &address, const bool is_text_mode, const bool tcp_no_delay);
+  explicit websocket_client(const std::string &address, bool is_text_mode, bool tcp_no_delay);
   virtual ~websocket_client();
   void start() override;
   void stop() override;
@@ -151,20 +175,21 @@ public:
   void onError() override;
   void onDisconnect() override;
   void onConnect() override;
+
 private:
   nng_smart_ptr<nng_stream_dialer> dialer_{nng_stream_dialer_free};
   nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
   uint64_t start_time_;
-  journal::reader_ptr reader_;
   session_ptr session_;
 
   bool tcp_no_delay_;
 };
 DECLARE_PTR(websocket_client)
 
-class websocket_server:public web_agent{
+class websocket_server : public web_agent {
 public:
-  explicit websocket_server(const nng_url *base_url, std::string path, bool is_text_mode, bool tcp_no_delay, size_t max_num_connections);
+  explicit websocket_server(const nng_url *base_url, std::string path, bool is_text_mode, bool tcp_no_delay,
+                            size_t max_num_connections);
 
   virtual ~websocket_server();
 
@@ -185,6 +210,7 @@ public:
   void onError() override;
   void onDisconnect() override;
   void onConnect() override;
+
 private:
   const nng_url *url_;
   const bool is_text_mode_;
@@ -194,13 +220,10 @@ private:
   nng_smart_ptr<nng_stream_listener> listener_{nng_stream_listener_free};
   nng_smart_ptr<nng_aio> aio_listener_{nng_aio_free};
 
-  journal::reader_ptr reader_;
   std::unordered_map<uint64_t, session_ptr> sessions_;
   std::shared_mutex sessions_mtx_;
-
 };
 DECLARE_PTR(websocket_server)
-
 
 class http_server : public web_agent {
 public:
@@ -220,9 +243,9 @@ public:
   void stop() override;
 
   void onError() override;
-  
+
   void onDisconnect() override;
-  
+
   void onConnect() override;
 
 private:

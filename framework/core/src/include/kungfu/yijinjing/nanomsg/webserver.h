@@ -98,10 +98,9 @@ public:
 
   kungfu::yijinjing::journal::frame_ptr current_frame() { return reader_->current_frame(); }
 
-  void next() {
-    // 处理disjoin, join
-    reader_->next();
-  }
+  bool data_available();
+
+  void next();
 
   void on_frame();
 

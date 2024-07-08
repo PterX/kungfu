@@ -410,5 +410,11 @@ void web_agent::on_frame() {
     flag_write.clear(std::memory_order_acquire);
   }
 }
+bool web_agent::data_available() { return reader_->data_available(); }
+
+void web_agent::next() {
+  on_frame();
+  reader_->next();
+}
 
 } // namespace kungfu::yijinjing::webserver

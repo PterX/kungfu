@@ -90,6 +90,7 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
 
 server::~server() {}
 
+/*
 void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time) {
   SPDLOG_DEBUG("write_data");
   switch (msg_type) {
@@ -125,28 +126,6 @@ void server::write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, 
   return;
 }
 
-/*
-void server::thread_read_data(const reader_ptr &reader, uint64_t stream_id) {
-  int limit = stream_limit_map_.contains(stream_id) ? stream_limit_map_.at(stream_id) : 100;
-  int nums = 0;
-  while (reader->data_available() && nums < limit) {
-    auto frame = reader->current_frame();
-    auto type = frame->msg_type();
-    auto iter = map_event_back.find(type);
-    if (iter != map_event_back.end()) {
-      iter->second(frame->data_address(), stream_id);
-    }
-    reader->next();
-    nums++;
-  }
-  if(nums){
-    SPDLOG_INFO("stream {} pushlish PackReqEnd nums:{}",stream_id,nums);
-  }
-  CICC::types::PackReqEnd data_send;
-  web_agent_->publish((char *)(&data_send), sizeof(CICC::types::PackReqEnd), stream_id);
-  return;
-}
-*/
 
 void server::thread_read_data(const location_ptr &td_location, ThreadWorker_ptr worker) {
   auto stream = worker->get_stream();
@@ -256,13 +235,13 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
     // 创建worker, 每个线程一个worker, 里面有属于每一个单独线程的cv和锁
     stream_workers_.insert_or_assign(stream_id, std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id)));
     stream_thread_map_.try_emplace(stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_workers_.at(stream_id)));
-    /*
-    auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
-    auto now = time::now_in_nano();
-    reader->join(td_location, get_home_uid(), now);
-    reader->join(get_home(), td_location->location_uid, now);
-    stream_reader_map_.try_emplace(stream_id, reader);
-    */
+    
+    // auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
+    // auto now = time::now_in_nano();
+    // reader->join(td_location, get_home_uid(), now);
+    // reader->join(get_home(), td_location->location_uid, now);
+    // stream_reader_map_.try_emplace(stream_id, reader);
+    
   } else {
     return false;
   }
@@ -357,21 +336,6 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
   return;
 }
 
-/*
-void server::submit_read_read_assemble() {
-  for (auto &item : stream_reader_map_) {
-    auto it = stream_task_map_.find(item.first);
-
-    if (it != stream_task_map_.end() && it->second.valid() &&
-        it->second.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
-      continue;
-    }
-    stream_task_map_[item.first] =
-        threadpool_->submit(std::mem_fn(&server::thread_read_data), this, item.second, item.first);
-  }
-  return ;
-}
-*/
 
 bool server::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
@@ -405,108 +369,13 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
   }
   return true;
 }
-
+*/
 void server::on_exit() { SPDLOG_DEBUG("exit!"); }
 
-#define MEMBER_OFFSET_OF(obj, member)                                                                                  \
-  (reinterpret_cast<std::ptrdiff_t>(&((obj).member)) - reinterpret_cast<std::ptrdiff_t>(&obj))
 
 void server::on_start() {
   broker_client_.on_start(events_);
-  SPDLOG_DEBUG("on_start  thread_id:{}", std::this_thread::get_id());
-  SPDLOG_DEBUG("sizeof OrderInput:{}", sizeof(OrderInput));
-  SPDLOG_DEBUG("sizeof Order:{}", sizeof(Order));
-  SPDLOG_DEBUG("sizeof Trade:{}", sizeof(Trade));
-  SPDLOG_DEBUG("sizeof PackOrderInput:{}", sizeof(CICC::types::PackOrderInput));
-  SPDLOG_DEBUG("sizeof PackOrder:{}", sizeof(CICC::types::PackOrder));
-  SPDLOG_DEBUG("sizeof PackTrade:{}", sizeof(CICC::types::PackTrade));
-  SPDLOG_DEBUG("sizeof CICCOrderInput:{}", sizeof(CICC::types::OrderInput));
-  SPDLOG_DEBUG("sizeof CICCOrder:{}", sizeof(CICC::types::Order));
-  SPDLOG_DEBUG("sizeof CICCTrade:{}", sizeof(CICC::types::Trade));
 
-  Order order{};
-  CICC::types::Order cicc_order{};
-
-  SPDLOG_DEBUG("Offset of order_id:{}", MEMBER_OFFSET_OF(order, order_id));
-  SPDLOG_DEBUG("Offset of order_id:{}", MEMBER_OFFSET_OF(cicc_order, order_id));
-
-  SPDLOG_DEBUG("Offset of external_order_id:{}", MEMBER_OFFSET_OF(order, external_order_id));
-  SPDLOG_DEBUG("Offset of external_order_id:{}", MEMBER_OFFSET_OF(cicc_order, external_order_id));
-
-  SPDLOG_DEBUG("Offset of parent_id:{}", MEMBER_OFFSET_OF(order, parent_id));
-  SPDLOG_DEBUG("Offset of parent_id:{}", MEMBER_OFFSET_OF(cicc_order, parent_id));
-
-  SPDLOG_DEBUG("Offset of insert_time:{}", MEMBER_OFFSET_OF(order, insert_time));
-  SPDLOG_DEBUG("Offset of insert_time:{}", MEMBER_OFFSET_OF(cicc_order, insert_time));
-
-  SPDLOG_DEBUG("Offset of update_time:{}", MEMBER_OFFSET_OF(order, update_time));
-  SPDLOG_DEBUG("Offset of update_time:{}", MEMBER_OFFSET_OF(cicc_order, update_time));
-
-  SPDLOG_DEBUG("Offset of restore_time:{}", MEMBER_OFFSET_OF(order, restore_time));
-  SPDLOG_DEBUG("Offset of restore_time:{}", MEMBER_OFFSET_OF(cicc_order, restore_time));
-
-  SPDLOG_DEBUG("Offset of trading_day:{}", MEMBER_OFFSET_OF(order, trading_day));
-  SPDLOG_DEBUG("Offset of trading_day:{}", MEMBER_OFFSET_OF(cicc_order, trading_day));
-
-  SPDLOG_DEBUG("Offset of instrument_id:{}", MEMBER_OFFSET_OF(order, instrument_id));
-  SPDLOG_DEBUG("Offset of instrument_id:{}", MEMBER_OFFSET_OF(cicc_order, instrument_id));
-
-  SPDLOG_DEBUG("Offset of exchange_id:{}", MEMBER_OFFSET_OF(order, exchange_id));
-  SPDLOG_DEBUG("Offset of exchange_id:{}", MEMBER_OFFSET_OF(cicc_order, exchange_id));
-
-  SPDLOG_DEBUG("Offset of contract_id:{}", MEMBER_OFFSET_OF(order, contract_id));
-  SPDLOG_DEBUG("Offset of contract_id:{}", MEMBER_OFFSET_OF(cicc_order, contract_id));
-
-  SPDLOG_DEBUG("Offset of instrument_type:{}", MEMBER_OFFSET_OF(order, instrument_type));
-  SPDLOG_DEBUG("Offset of instrument_type:{}", MEMBER_OFFSET_OF(cicc_order, instrument_type));
-
-  SPDLOG_DEBUG("Offset of limit_price:{}", MEMBER_OFFSET_OF(order, limit_price));
-  SPDLOG_DEBUG("Offset of limit_price:{}", MEMBER_OFFSET_OF(cicc_order, limit_price));
-
-  SPDLOG_DEBUG("Offset of frozen_price:{}", MEMBER_OFFSET_OF(order, frozen_price));
-  SPDLOG_DEBUG("Offset of frozen_price:{}", MEMBER_OFFSET_OF(cicc_order, frozen_price));
-
-  SPDLOG_DEBUG("Offset of volume:{}", MEMBER_OFFSET_OF(order, volume));
-  SPDLOG_DEBUG("Offset of volume:{}", MEMBER_OFFSET_OF(cicc_order, volume));
-
-  SPDLOG_DEBUG("Offset of volume_left:{}", MEMBER_OFFSET_OF(order, volume_left));
-  SPDLOG_DEBUG("Offset of volume_left:{}", MEMBER_OFFSET_OF(cicc_order, volume_left));
-
-  SPDLOG_DEBUG("Offset of tax:{}", MEMBER_OFFSET_OF(order, tax));
-  SPDLOG_DEBUG("Offset of tax:{}", MEMBER_OFFSET_OF(cicc_order, tax));
-
-  SPDLOG_DEBUG("Offset of commission:{}", MEMBER_OFFSET_OF(order, commission));
-  SPDLOG_DEBUG("Offset of commission:{}", MEMBER_OFFSET_OF(cicc_order, commission));
-
-  SPDLOG_DEBUG("Offset of status:{}", MEMBER_OFFSET_OF(order, status));
-  SPDLOG_DEBUG("Offset of status:{}", MEMBER_OFFSET_OF(cicc_order, status));
-
-  SPDLOG_DEBUG("Offset of error_id:{}", MEMBER_OFFSET_OF(order, error_id));
-  SPDLOG_DEBUG("Offset of error_id:{}", MEMBER_OFFSET_OF(cicc_order, error_id));
-
-  SPDLOG_DEBUG("Offset of error_msg:{}", MEMBER_OFFSET_OF(order, error_msg));
-  SPDLOG_DEBUG("Offset of error_msg:{}", MEMBER_OFFSET_OF(cicc_order, error_msg));
-
-  SPDLOG_DEBUG("Offset of is_swap:{}", MEMBER_OFFSET_OF(order, is_swap));
-  SPDLOG_DEBUG("Offset of is_swap:{}", MEMBER_OFFSET_OF(cicc_order, is_swap));
-
-  SPDLOG_DEBUG("Offset of side:{}", MEMBER_OFFSET_OF(order, side));
-  SPDLOG_DEBUG("Offset of side:{}", MEMBER_OFFSET_OF(cicc_order, side));
-
-  SPDLOG_DEBUG("Offset of offset:{}", MEMBER_OFFSET_OF(order, offset));
-  SPDLOG_DEBUG("Offset of offset:{}", MEMBER_OFFSET_OF(cicc_order, offset));
-
-  SPDLOG_DEBUG("Offset of hedge_flag:{}", MEMBER_OFFSET_OF(order, hedge_flag));
-  SPDLOG_DEBUG("Offset of hedge_flag:{}", MEMBER_OFFSET_OF(cicc_order, hedge_flag));
-
-  SPDLOG_DEBUG("Offset of price_type:{}", MEMBER_OFFSET_OF(order, price_type));
-  SPDLOG_DEBUG("Offset of price_type:{}", MEMBER_OFFSET_OF(cicc_order, price_type));
-
-  SPDLOG_DEBUG("Offset of volume_condition:{}", MEMBER_OFFSET_OF(order, volume_condition));
-  SPDLOG_DEBUG("Offset of volume_condition:{}", MEMBER_OFFSET_OF(cicc_order, volume_condition));
-
-  SPDLOG_DEBUG("Offset of time_condition:{}", MEMBER_OFFSET_OF(order, time_condition));
-  SPDLOG_DEBUG("Offset of time_condition:{}", MEMBER_OFFSET_OF(cicc_order, time_condition));
 
   SPDLOG_DEBUG("end on_start");
   return;

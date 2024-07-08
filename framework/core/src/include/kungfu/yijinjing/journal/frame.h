@@ -102,6 +102,8 @@ private:
 
   void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
 
+  void set_stream_id(uint64_t stream_id) { header_->stream_id = stream_id; }
+
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 
   friend struct cloned_frame;

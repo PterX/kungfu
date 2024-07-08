@@ -49,7 +49,7 @@ uint64_t writer::current_frame_uid() {
   return frame_id_base_ | ((page_part | frame_part) xor writer_start_time_32int_);
 }
 
-frame_ptr writer::open_frame_lock_free(int64_t trigger_time, int32_t msg_type, size_t data_length) {
+frame_ptr writer::open_frame_lock_free(int64_t trigger_time, int32_t msg_type, size_t data_length, uint64_t stream_id) {
   data_length = verify_cpu_word_length(data_length);
   int64_t start_time = time::now_in_nano();
   assert(sizeof(frame_header) + data_length + sizeof(frame_header) <= journal_.page_->get_page_size());
@@ -63,6 +63,7 @@ frame_ptr writer::open_frame_lock_free(int64_t trigger_time, int32_t msg_type, s
   frame->set_source(journal_.location_->uid);
   frame->set_initial_source(journal_.location_->uid);
   frame->set_dest(journal_.dest_id_);
+  frame->set_stream_id(stream_id);
   size_to_write_ = data_length;
   return frame;
 }
@@ -75,6 +76,16 @@ frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t data
     }
   }
   return open_frame_lock_free(trigger_time, msg_type, data_length);
+}
+
+frame_ptr writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t data_length, uint64_t stream_id) {
+  int64_t start_time = time::now_in_nano();
+  while (not writer_mtx_.try_lock()) {
+    if (time::now_in_nano() - start_time > 30 * time_unit::NANOSECONDS_PER_SECOND) {
+      throw journal_error("Can not lock writer for " + journal_.location_->uname);
+    }
+  }
+  return open_frame_lock_free(trigger_time, msg_type, data_length, stream_id);
 }
 
 void writer::close_frame_lock_free(size_t data_length, int64_t gen_time) {

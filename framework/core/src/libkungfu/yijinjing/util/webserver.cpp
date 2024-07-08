@@ -4,6 +4,7 @@
 #include <memory>
 #include <thread>
 #include <utility>
+#include <algorithm>
 
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::longfist::types;
@@ -28,9 +29,14 @@ stream::stream(nng_stream *s, bool is_server)
 stream::~stream() {
   SPDLOG_DEBUG("~stream");
   close_data();
+  writer_.reset();
+  location_.reset();
 }
 
-uint64_t stream::get_stream_id() const { return stream_id_; }
+uint64_t stream::get_stream_id(){
+  return stream_id_;
+};
+
 
 void stream::close_data() {
   if (current_frame_) {
@@ -71,6 +77,11 @@ session::session(web_agent_ptr agent, nng_stream *s, bool is_server):stream(s,is
 }
 
 session::~session(){
+  nng_aio_cancel(aio_recv_);
+  nng_aio_wait(aio_recv_);
+  nng_aio_cancel(aio_send_);
+  nng_aio_wait(aio_send_);
+  stream_.reset();
 }
 
 int session::send(const char *data, int len){
@@ -101,13 +112,16 @@ void session::recv_cb(){
   }
   case NNG_ECLOSED: {
     SPDLOG_DEBUG("NNG_ECLOSED");
+    agent_->onDisconnect();
     //close_data();
     //writer_->mark(time::now_in_nano(), NngDisconnect::tag);
     //dispose_func_();
     break;
   }
   default:
+    //such as NNG_ECANCELED by nng_cancel
     SPDLOG_DEBUG("default:{}", rv);
+    agent_->onDisconnect();
     break;
   }
   return ;
@@ -154,7 +168,15 @@ websocket_client::websocket_client(const std::string &address,const bool is_text
   }
 }
 
-websocket_client::~websocket_client() { SPDLOG_DEBUG("~websocket_client"); }
+websocket_client::~websocket_client() {
+  SPDLOG_DEBUG("~websocket_client");
+  reader_.reset();
+  session_.reset();
+}
+
+uint64_t websocket_client::get_stream_id(){
+  return session_->get_stream_id();
+};
 
 void websocket_client::start(){
   nng_stream_dialer_dial(dialer_, aio_dialer_);
@@ -175,11 +197,29 @@ void websocket_client::start(){
   onConnect();
 }
 void websocket_client::stop(){
+  // have been released
+  if(!aio_dialer_ && !dialer_){
+    onError();
+    return ;
+  }
+
+  if(aio_dialer_)
+  {
+    nng_aio_cancel(aio_dialer_);
+    nng_aio_wait(aio_dialer_);
+    aio_dialer_.reset();
+  }
+  if (dialer_) {
+    nng_stream_dialer_close(dialer_);
+    dialer_.reset();
+  }
   onDisconnect();
-  //nng_stream_dialer_free(dialer_); 
+  return ;
 }
 
-int websocket_client::send(const char *data, int data_len) { return session_->send(data, data_len); }
+int websocket_client::send(const char *data, int data_len) {
+  return session_->send(data, data_len);
+}
 
 void websocket_client::onError(){
   SPDLOG_ERROR("websocket_client onError");
@@ -224,15 +264,10 @@ websocket_server::websocket_server(const nng_url *base_url, std::string path,
 }
 
 websocket_server::~websocket_server() {
+  //nng_url_free(url_);
+  reader_.reset();
+  std::erase_if(sessions_, [](const auto &){return true;});
   SPDLOG_DEBUG("~websocket_server");
-  nng_aio_cancel(aio_listener_);
-  aio_listener_.reset();
-
-  if (listener_ != nullptr) {
-    nng_stream_listener_close(listener_);
-    listener_.reset();
-  }
-  //stop();
 }
 
 void websocket_server::start() {
@@ -246,6 +281,23 @@ void websocket_server::start() {
 }
 
 void websocket_server::stop() {
+  // have been released
+  if(!aio_listener_ && !listener_){
+    onError();
+    return ;
+  }
+
+  if(aio_listener_)
+  {
+    nng_aio_cancel(aio_listener_);
+    nng_aio_wait(aio_listener_);
+    aio_listener_.reset();
+  }
+  if (listener_) {
+    nng_stream_listener_close(listener_);
+    listener_.reset();
+  }
+  onDisconnect();
   return ;
 }
 
@@ -256,6 +308,10 @@ void websocket_server::start_accept() {
 
 void websocket_server::accept_cb() {
   int rv = nng_aio_result(aio_listener_);
+  /*May be should deal aio_result,
+    If a client dial to server,
+    and the server received, but closed when process data
+  */  
   if (rv != 0) {
     return;
   }
@@ -270,7 +326,7 @@ void websocket_server::accept_cb() {
     SPDLOG_CRITICAL("connection limited");
     stop();
   } else {
-      start_accept();
+    start_accept();
   }
   add_session(stream);
   session_num_++;
@@ -341,10 +397,13 @@ void http_server::add_websocket(const std::string &path, bool is_text_mode, bool
 }
 
 void http_server::remove_websocket(const std::string &path) {
-  auto it = websockets_.find(path);
-  if (it != websockets_.end()) {
+  if(websockets_.contains(path)){
+    auto websocket = websockets_.at(path);
+    websocket->stop();
     websockets_.erase(path);
+    return ;
   }
+  onError();
   return ;
 }
 
@@ -367,11 +426,7 @@ void http_server::stop() {
     return;
   }
   started_ = false;
-  if (!websockets_.empty()) {
-
-    SPDLOG_ERROR("Websocket service still run!");
-    // TODO: should do more to release memory?
-  }
+  std::erase_if(websockets_, [](const auto &){return true;});
   if (server_ != nullptr) {
     nng_http_server_stop(server_);
     server_.reset();

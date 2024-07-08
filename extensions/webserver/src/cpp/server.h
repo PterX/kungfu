@@ -6,8 +6,6 @@
 #include "kungfu/yijinjing/journal/journal.h"
 #include "kungfu/yijinjing/practice/apprentice.h"
 #include "nlohmann/json.hpp"
-#include "pack_types.h"
-// #include "threadpoll.h"
 #include <atomic>
 #include <mutex>
 #include <nng/supplemental/http/http.h>
@@ -85,9 +83,7 @@ public:
                   longfist::enums::mode m, bool low_latency, const std::string &arguments);
   ~server() override;
   void on_exit() override;
-  kungfu::yijinjing::data::location_ptr get_remote_location(uint64_t id);
-  bool has_remote_location(uint64_t id);
-
+  /*
   // just for test
   template <typename T1, typename T2> void test_fun_orderinput(const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
     auto data = static_cast<T1 *>(const_cast<void *>(ptr));
@@ -127,11 +123,11 @@ public:
     web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     return;
   };
-
+  */
 protected:
   void on_start() override;
-  bool drain(const rx::subscriber<event_ptr> &sb) override;
-  void deal_msg(const rx::subscriber<event_ptr> &sb);
+  //bool drain(const rx::subscriber<event_ptr> &sb) override;
+  //void deal_msg(const rx::subscriber<event_ptr> &sb);
 
 private:
   ServerConfig read_config(std::string filename) const;
@@ -153,30 +149,7 @@ private:
 
   std::map<uint64_t, ThreadWorker_ptr> stream_workers_ = {};
 
-  /*
-  std::map<int32_t, std::function<void(void *, uint64_t)>> map_event_back = {
-      {longfist::types::OrderInput::tag,
-       [this](void *ptr, uint64_t stream_id) {
-         this->test_fun<longfist::types::OrderInput,
-                        CICC::types::PackOrderInput>(ptr, stream_id);
-       }},
-      {longfist::types::Order::tag,
-       [this](void *ptr, uint64_t stream_id) {
-         this->test_fun<longfist::types::Order, CICC::types::PackOrder>(
-             ptr, stream_id);
-       }},
-      {longfist::types::Trade::tag,
-       [this](void *ptr, uint64_t stream_id) {
-         this->test_fun<longfist::types::Trade, CICC::types::PackTrade>(
-             ptr, stream_id);
-       }},
-      {longfist::types::OrderActionError::tag,
-       [this](void *ptr, uint64_t stream_id) {
-         this->test_fun<longfist::types::OrderActionError,
-                        CICC::types::PackOrderActionError>(ptr, stream_id);
-       }},
-  };
-  */
+ /*
   std::map<int32_t, std::function<void(const void *, kungfu::yijinjing::webserver::stream_ptr)>> map_event_back = {
       {longfist::types::OrderInput::tag,
        [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
@@ -191,16 +164,16 @@ private:
          this->test_fun_trade<longfist::types::Trade, CICC::types::PackTrade>(ptr, stream);
        }},
   };
-
+*/
   // void submit_read_read_assemble();
   // void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
-  void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
-  void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
-  void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time);
-  bool custom_OnInitEvent(const char *ptr, uint64_t stream_id);
-  bool custom_OnNewOrder(const char *ptr, uint64_t stream_id,uint64_t gen_time);
-  bool custom_OnCancelOrder(const char *ptr, uint64_t stream_id);
-  bool custom_OnQryAlgoParentOrder(const char *ptr);
+  // void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
+  // void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
+  // void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time);
+  // bool custom_OnInitEvent(const char *ptr, uint64_t stream_id);
+  // bool custom_OnNewOrder(const char *ptr, uint64_t stream_id,uint64_t gen_time);
+  // bool custom_OnCancelOrder(const char *ptr, uint64_t stream_id);
+  // bool custom_OnQryAlgoParentOrder(const char *ptr);
 };
 
 } // namespace kungfu::service

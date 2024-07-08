@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@kungfu-trader/kfx-broker-cpp-sim": "^2.7.5-alpha.21",
-    "@kungfu-trader/kfx-broker-monit": "^2.7.5-alpha.21",
     "@kungfu-trader/kfx-broker-sim": "^2.7.5-alpha.21",
     "@kungfu-trader/kfx-broker-xtp-demo": "^2.7.5-alpha.21",
     "@kungfu-trader/kfx-service-webserver": "^2.7.5-alpha.21",

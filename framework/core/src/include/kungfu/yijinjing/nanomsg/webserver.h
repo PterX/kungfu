@@ -29,6 +29,40 @@
 
 namespace kungfu::yijinjing::webserver {
 
+
+template <typename T> struct nng_data {
+  char origin_data[sizeof(kungfu::longfist::types::frame_header) + sizeof(T)]{};
+  size_t len;
+
+  explicit nng_data(uint32_t msg_type, uint64_t stream_id) {
+    auto *header = reinterpret_cast<kungfu::longfist::types::frame_header *>(origin_data);
+    len = sizeof(kungfu::longfist::types::frame_header) + sizeof(T);
+    header->length = len;
+    header->header_length = sizeof(kungfu::longfist::types::frame_header);
+    header->trigger_time = time::now_in_nano();
+    header->gen_time = header->trigger_time;
+    header->msg_type = header->msg_type;
+    header->source = 0;
+    header->dest = 0;
+    header->data_type = kungfu::longfist::enums::FrameDataType::Raw;
+    header->initial_source = 0;
+    header->frame_uid = 0;
+    header->trigger_frame_uid = 0;
+    header->stream_id = stream_id;
+  }
+
+  kungfu::longfist::types::frame_header *header() {
+    return reinterpret_cast<kungfu::longfist::types::frame_header *>(origin_data);
+  }
+
+  T *data() {
+    return reinterpret_cast<T *>(origin_data + sizeof(kungfu::longfist::types::frame_header));
+  }
+
+  size_t length(){return len;}
+};
+
+
 class webserver_error : public std::runtime_error {
 public:
   explicit webserver_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
@@ -90,9 +124,13 @@ static uint64_t generate_stream_id(nng_stream *s, bool is_server) {
 class web_agent: public std::enable_shared_from_this<web_agent>{
 public:
   virtual void start() = 0;
+
   virtual void stop() = 0;
+
   virtual void onError() = 0;
+
   virtual void onDisconnect() = 0;
+
   virtual void onConnect() = 0;
 };
 DECLARE_PTR(web_agent)
@@ -103,11 +141,9 @@ public:
 
   virtual ~stream();
 
-  uint64_t get_stream_id() const;
-
   const yijinjing::data::location_ptr &get_location() const;
 
-
+  uint64_t get_stream_id();
 protected:
   void close_data();
 
@@ -127,9 +163,13 @@ public:
   session(web_agent_ptr agent, nng_stream *s, bool is_server);
 
   virtual ~session();
+
   void start_recv();
+
   int send(const char *data, int len);
+
   void recv_cb();
+
   void send_cb();
 private:
   web_agent_ptr agent_;
@@ -143,18 +183,26 @@ DECLARE_PTR(session)
 class websocket_client: public web_agent{
 public:
   explicit websocket_client(const std::string &address, const bool is_text_mode, const bool tcp_no_delay);
+
   virtual ~websocket_client();
+
+  uint64_t get_stream_id();
+
   void start() override;
+
   void stop() override;
 
   int send(const char *data, int len);
+
   void onError() override;
+
   void onDisconnect() override;
+  
   void onConnect() override;
+
 private:
   nng_smart_ptr<nng_stream_dialer> dialer_{nng_stream_dialer_free};
   nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
-  uint64_t start_time_;
   journal::reader_ptr reader_;
   session_ptr session_;
 
@@ -183,7 +231,9 @@ public:
   void remove_session(uint64_t session_id);
 
   void onError() override;
+
   void onDisconnect() override;
+  
   void onConnect() override;
 private:
   const nng_url *url_;
@@ -206,7 +256,7 @@ class http_server : public web_agent {
 public:
   explicit http_server(const std::string &address);
 
-  ~http_server();
+  virtual ~http_server();
 
   void add_websocket(const std::string &path, bool is_text_mode, bool tcp_no_delay = true,
                      size_t max_num_connections = 0);

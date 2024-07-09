@@ -77,12 +77,13 @@ server::server(locator_ptr locator, const std::string &group, const std::string 
   std::vector<std::string> paths = config.paths;
   web_agent_ = std::make_shared<http_server>(config.address);
   for (const auto &path : paths) {
-    auto http_server_ptr = std::dynamic_pointer_cast<http_server>(web_agent_);
-    if (http_server_ptr) {
-      http_server_ptr->add_websocket(path, false, true);
-    } else {
-      SPDLOG_ERROR("server pointer cast error");
-    }
+    //    auto http_server_ptr = std::dynamic_pointer_cast<http_server>(web_agent_);
+    //    if (http_server_ptr) {
+    //    http_server_ptr->add_websocket(path, false, true);
+    //    } else {
+    //      SPDLOG_ERROR("server pointer cast error");
+    //    }
+    web_agent_->add_websocket(path, false, true);
   }
   // threadpool_ = new ThreadPool(config.thread_num);
   // threadpool_->init();
@@ -228,20 +229,22 @@ bool server::custom_OnInitEvent(const char *ptr, uint64_t stream_id) {
 
   if (method == CICC::enums::Method::direct) {
     // 创建worker, 每个线程一个worker, 里面有属于每一个单独线程的cv和锁
-    stream_workers_.insert_or_assign(stream_id, std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id)));
-    stream_thread_map_.try_emplace(stream_id, std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_workers_.at(stream_id)));
-  } else if (method == CICC::enums::Method::round) {
+    stream_workers_.insert_or_assign(stream_id,
+std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id))); stream_thread_map_.try_emplace(stream_id,
+std::make_shared<std::thread>(&server::thread_send_data, this, td_location, stream_workers_.at(stream_id))); } else if
+(method == CICC::enums::Method::round) {
 
     // 创建worker, 每个线程一个worker, 里面有属于每一个单独线程的cv和锁
-    stream_workers_.insert_or_assign(stream_id, std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id)));
-    stream_thread_map_.try_emplace(stream_id, std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_workers_.at(stream_id)));
-    
+    stream_workers_.insert_or_assign(stream_id,
+std::make_shared<ThreadWorker>(web_agent_->get_stream_by_id(stream_id))); stream_thread_map_.try_emplace(stream_id,
+std::make_shared<std::thread>(&server::thread_read_data, this, td_location, stream_workers_.at(stream_id)));
+
     // auto reader = std::make_shared<kungfu::yijinjing::journal::reader>(true, false, std::make_shared<bus>(false));
     // auto now = time::now_in_nano();
     // reader->join(td_location, get_home_uid(), now);
     // reader->join(get_home(), td_location->location_uid, now);
     // stream_reader_map_.try_emplace(stream_id, reader);
-    
+
   } else {
     return false;
   }
@@ -307,10 +310,10 @@ bool server::custom_OnCancelOrder(const char *ptr, uint64_t stream_id) {
 bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
 */
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
-  //auto manager = web_agent_->get_stream_manager();
-  //SPDLOG_DEBUG("before reader");
-  //  auto &reader = web_agent_->get_stream_manager()->get_reader();
-  //SPDLOG_DEBUG("after reader");
+  // auto manager = web_agent_->get_stream_manager();
+  // SPDLOG_DEBUG("before reader");
+  //   auto &reader = web_agent_->get_stream_manager()->get_reader();
+  // SPDLOG_DEBUG("after reader");
   int count = 0;
   SPDLOG_DEBUG("before on_frame");
   web_agent_->on_frame();
@@ -320,25 +323,24 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
     uint64_t gen_time = web_agent_->current_frame()->gen_time();
     uint64_t msg_type = web_agent_->current_frame()->msg_type();
     uint64_t stream_id = web_agent_->current_frame()->stream_id();
-    //uint64_t stream_id = manager->get_stream_id(location_uid);
-    SPDLOG_DEBUG("after get_stream_id:{} ",stream_id);
-    if(msg_type == NngDisconnect::tag){
-      //manager->remove_stream(manager->get_stream_id(location_uid));
+    // uint64_t stream_id = manager->get_stream_id(location_uid);
+    SPDLOG_DEBUG("after get_stream_id:{} ", stream_id);
+    if (msg_type == NngDisconnect::tag) {
+      // manager->remove_stream(manager->get_stream_id(location_uid));
       SPDLOG_DEBUG("get NngDisconnect");
       stream_workers_.erase(stream_id);
       stream_thread_map_.erase(stream_id);
       continue;
     }
-    SPDLOG_DEBUG("before write_data: pack_type:{} frame_type:{}",reinterpret_cast<const uint32_t &>(*data),msg_type);
-    //write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id,gen_time);
+    SPDLOG_DEBUG("before write_data: pack_type:{} frame_type:{}", reinterpret_cast<const uint32_t &>(*data), msg_type);
+    // write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id,gen_time);
     SPDLOG_DEBUG("after write_data");
     web_agent_->next();
     ++count;
   }
-  //SPDLOG_DEBUG("finish deal_msg");
+  // SPDLOG_DEBUG("finish deal_msg");
   return;
 }
-
 
 bool server::drain(const rx::subscriber<event_ptr> &sb) {
   bool bypass = io_device_->is_lazy() and is_low_latency();
@@ -375,10 +377,8 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
 
 void server::on_exit() { SPDLOG_DEBUG("exit!"); }
 
-
 void server::on_start() {
   broker_client_.on_start(events_);
-
 
   SPDLOG_DEBUG("end on_start");
   return;

@@ -179,7 +179,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(TimeReset),                                             // 10502
     TYPE_PAIR(TradingDay),                                            // 10503
     TYPE_PAIR(TimeValue),                                             // 10601
-    TYPE_PAIR(TimeKeyValue)                                          // 10602
+    TYPE_PAIR(TimeKeyValue)                                           // 10602
 );
 
 constexpr auto ProfileDataTypes = boost::hana::make_map( //

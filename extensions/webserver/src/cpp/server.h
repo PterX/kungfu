@@ -7,6 +7,7 @@
 #include "kungfu/yijinjing/practice/apprentice.h"
 #include "nlohmann/json.hpp"
 #include <atomic>
+#include <kungfu/yijinjing/nanomsg/webserver.h>
 #include <mutex>
 #include <nng/supplemental/http/http.h>
 #include <nng/supplemental/tls/tls.h>
@@ -15,7 +16,6 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include <kungfu/yijinjing/nanomsg/webserver.h>
 
 namespace kungfu::wingchun::broker {
 
@@ -39,7 +39,6 @@ struct ServerConfig {
   std::vector<std::string> paths;
   int thread_num;
 };
-
 
 class ThreadWorker {
 public:
@@ -85,31 +84,25 @@ public:
   void on_exit() override;
   /*
   // just for test
-  template <typename T1, typename T2> void test_fun_orderinput(const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
-    auto data = static_cast<T1 *>(const_cast<void *>(ptr));
-    T2 data_send;
-    memcpy(&data_send.data, data, sizeof(T1));
-    data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
-    //web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
-    stream->stream_send((char *)(&data_send), sizeof(T2));    
-    return;
-  };
-
-  template <typename T1, typename T2> void test_fun_order(const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
-    auto data = static_cast<T1 *>(const_cast<void *>(ptr));
-    T2 data_send;
-    memcpy(&data_send.data, data, sizeof(T1));
-    data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
+  template <typename T1, typename T2> void test_fun_orderinput(const void *ptr, kungfu::yijinjing::webserver::stream_ptr
+  stream) { auto data = static_cast<T1 *>(const_cast<void *>(ptr)); T2 data_send; memcpy(&data_send.data, data,
+  sizeof(T1)); data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
     //web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     stream->stream_send((char *)(&data_send), sizeof(T2));
     return;
   };
 
-  template <typename T1, typename T2> void test_fun_trade(const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
-    auto data = static_cast<T1 *>(const_cast<void *>(ptr));
-    T2 data_send;
-    memcpy(&data_send.data, data, sizeof(T1));
-    data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
+  template <typename T1, typename T2> void test_fun_order(const void *ptr, kungfu::yijinjing::webserver::stream_ptr
+  stream) { auto data = static_cast<T1 *>(const_cast<void *>(ptr)); T2 data_send; memcpy(&data_send.data, data,
+  sizeof(T1)); data_send.data.parent_id = kungfu::yijinjing::time::now_in_nano();
+    //web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
+    stream->stream_send((char *)(&data_send), sizeof(T2));
+    return;
+  };
+
+  template <typename T1, typename T2> void test_fun_trade(const void *ptr, kungfu::yijinjing::webserver::stream_ptr
+  stream) { auto data = static_cast<T1 *>(const_cast<void *>(ptr)); T2 data_send; memcpy(&data_send.data, data,
+  sizeof(T1)); data_send.data.parent_order_id = kungfu::yijinjing::time::now_in_nano();
     //web_agent_->publish((char *)(&data_send), sizeof(T2), stream_id);
     stream->stream_send((char *)(&data_send), sizeof(T2));
     return;
@@ -134,7 +127,8 @@ private:
 
 private:
   kungfu::wingchun::broker::TestClient broker_client_;
-  kungfu::yijinjing::webserver::web_agent_ptr web_agent_;
+  //  kungfu::yijinjing::webserver::web_agent_ptr web_agent_;
+  kungfu::yijinjing::webserver::http_server_ptr web_agent_;
   std::mutex asm_mutex_;
   // ThreadPool *threadpool_;
   // std::unordered_map<uint64_t, kungfu::yijinjing::journal::reader_ptr> stream_reader_map_;
@@ -143,28 +137,28 @@ private:
   std::unordered_map<uint64_t, kungfu::yijinjing::journal::writer_ptr> stream_writer_map_;
   std::unordered_map<std::pair<uint64_t, uint64_t>, std::uint64_t, StreamRequestHash> request_order_map_ = {};
   std::unordered_map<uint64_t, uint64_t> stream_limit_map_;
-  //std::condition_variable cv_;
-  //std::unordered_map<uint64_t, std::condition_variable*> stream_cvs_;
-  //std::mutex cv_mtx_;
+  // std::condition_variable cv_;
+  // std::unordered_map<uint64_t, std::condition_variable*> stream_cvs_;
+  // std::mutex cv_mtx_;
 
   std::map<uint64_t, ThreadWorker_ptr> stream_workers_ = {};
 
- /*
-  std::map<int32_t, std::function<void(const void *, kungfu::yijinjing::webserver::stream_ptr)>> map_event_back = {
-      {longfist::types::OrderInput::tag,
-       [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
-         this->test_fun_orderinput<longfist::types::OrderInput, CICC::types::PackOrderInput>(ptr, stream);
-       }},
-      {longfist::types::Order::tag,
-       [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
-         this->test_fun_order<longfist::types::Order, CICC::types::PackOrder>(ptr, stream);
-       }},
-      {longfist::types::Trade::tag,
-       [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
-         this->test_fun_trade<longfist::types::Trade, CICC::types::PackTrade>(ptr, stream);
-       }},
-  };
-*/
+  /*
+   std::map<int32_t, std::function<void(const void *, kungfu::yijinjing::webserver::stream_ptr)>> map_event_back = {
+       {longfist::types::OrderInput::tag,
+        [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
+          this->test_fun_orderinput<longfist::types::OrderInput, CICC::types::PackOrderInput>(ptr, stream);
+        }},
+       {longfist::types::Order::tag,
+        [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
+          this->test_fun_order<longfist::types::Order, CICC::types::PackOrder>(ptr, stream);
+        }},
+       {longfist::types::Trade::tag,
+        [this](const void *ptr, kungfu::yijinjing::webserver::stream_ptr stream) {
+          this->test_fun_trade<longfist::types::Trade, CICC::types::PackTrade>(ptr, stream);
+        }},
+   };
+ */
   // void submit_read_read_assemble();
   // void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
   // void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);

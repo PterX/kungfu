@@ -120,31 +120,31 @@ class web_agent : public std::enable_shared_from_this<web_agent> {
 public:
   explicit web_agent();
 
-  virtual void start() = 0;
+  virtual void start(){};
 
-  virtual void stop() = 0;
+  virtual void stop(){};
 
-  virtual void onError() = 0;
+  virtual void onError(){};
 
-  virtual void onDisconnect() = 0;
+  virtual void onDisconnect(){};
 
-  virtual void onConnect() = 0;
+  virtual void onConnect(){};
 
   kungfu::yijinjing::journal::frame_ptr current_frame() { return reader_->current_frame(); }
 
-  bool data_available();
+  virtual bool data_available();
 
-  void next();
+  virtual void next();
 
-  void on_frame();
+  virtual void on_frame();
 
-  void add_join(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest, int64_t begin_time);
+  virtual void add_join(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest, int64_t begin_time);
 
-  void add_disjion(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest);
+  virtual void add_disjion(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest);
 
-  void cleanup_reader_join();
+  virtual void cleanup_reader_join();
 
-  void cleanup_reader_disjoin();
+  virtual void cleanup_reader_disjoin();
 
 private:
   journal::reader_ptr reader_;
@@ -161,9 +161,9 @@ public:
 
   virtual ~stream();
 
-  const yijinjing::data::location_ptr &get_location() const;
+  [[nodiscard]] const yijinjing::data::location_ptr &get_location() const;
 
-  uint64_t get_stream_id();
+  [[nodiscard]] uint64_t get_stream_id() const;
 
 protected:
   void close_data();
@@ -203,7 +203,7 @@ DECLARE_PTR(session)
 
 class websocket_client : public web_agent {
 public:
-  explicit websocket_client(const std::string &address, const bool is_text_mode, const bool tcp_no_delay);
+  explicit websocket_client(const std::string &address, bool is_text_mode, const bool tcp_no_delay);
 
   virtual ~websocket_client();
 
@@ -230,10 +230,14 @@ private:
 };
 DECLARE_PTR(websocket_client)
 
+FORWARD_DECLARE_CLASS_PTR(http_server)
 class websocket_server : public web_agent {
 public:
-  explicit websocket_server(const nng_url *base_url, std::string path, bool is_text_mode, bool tcp_no_delay,
+  explicit websocket_server(const nng_url *base_url, const std::string &path, bool is_text_mode, bool tcp_no_delay,
                             size_t max_num_connections);
+
+  explicit websocket_server(http_server_ptr http_server, const nng_url *base_url, const std::string &path,
+                            bool is_text_mode, bool tcp_no_delay, size_t max_num_connections);
 
   virtual ~websocket_server();
 
@@ -257,11 +261,20 @@ public:
 
   void onConnect() override;
 
+  bool data_available() override;
+  void next() override;
+  void on_frame() override;
+  void add_join(const data::location_ptr &location, uint32_t dest, int64_t begin_time) override;
+  void add_disjion(const data::location_ptr &location, uint32_t dest) override;
+  void cleanup_reader_join() override;
+  void cleanup_reader_disjoin() override;
+
 private:
   const nng_url *url_;
   const bool is_text_mode_;
   const bool tcp_no_delay_;
   const size_t session_max_;
+  http_server_ptr http_server_ = nullptr;
   size_t session_num_;
   nng_smart_ptr<nng_stream_listener> listener_{nng_stream_listener_free};
   nng_smart_ptr<nng_aio> aio_listener_{nng_aio_free};
@@ -300,7 +313,7 @@ private:
   bool started_;
   nng_smart_ptr<nng_url> url_{nng_url_free};
 };
-FORWARD_DECLARE_CLASS_PTR(http_server)
+DECLARE_PTR(http_server)
 
 } // namespace kungfu::yijinjing::webserver
 

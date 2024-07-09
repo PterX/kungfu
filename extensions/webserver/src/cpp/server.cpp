@@ -305,19 +305,22 @@ bool server::custom_OnCancelOrder(const char *ptr, uint64_t stream_id) {
 }
 
 bool server::custom_OnQryAlgoParentOrder(const char *ptr) { return true; }
-
+*/
 void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
-  auto manager = web_agent_->get_stream_manager();
+  //auto manager = web_agent_->get_stream_manager();
   //SPDLOG_DEBUG("before reader");
-  auto &reader = web_agent_->get_stream_manager()->get_reader(); 
+  //  auto &reader = web_agent_->get_stream_manager()->get_reader();
   //SPDLOG_DEBUG("after reader");
   int count = 0;
-  while (reader->data_available() and count < 100) {
-    uint32_t location_uid = reader->current_journal()->get_location()->location_uid;
-    const char *data = reader->current_frame()->data_as_bytes();
-    uint64_t gen_time = reader->current_frame()->gen_time();
-    uint64_t msg_type = reader->current_frame()->msg_type();
-    uint64_t stream_id = manager->get_stream_id(location_uid);
+  SPDLOG_DEBUG("before on_frame");
+  web_agent_->on_frame();
+  SPDLOG_DEBUG("after on_frame");
+  while (web_agent_->data_available() and count < 100) {
+    const char *data = web_agent_->current_frame()->data_as_bytes();
+    uint64_t gen_time = web_agent_->current_frame()->gen_time();
+    uint64_t msg_type = web_agent_->current_frame()->msg_type();
+    uint64_t stream_id = web_agent_->current_frame()->stream_id();
+    //uint64_t stream_id = manager->get_stream_id(location_uid);
     SPDLOG_DEBUG("after get_stream_id:{} ",stream_id);
     if(msg_type == NngDisconnect::tag){
       //manager->remove_stream(manager->get_stream_id(location_uid));
@@ -327,9 +330,9 @@ void server::deal_msg(const rx::subscriber<event_ptr> &sb) {
       continue;
     }
     SPDLOG_DEBUG("before write_data: pack_type:{} frame_type:{}",reinterpret_cast<const uint32_t &>(*data),msg_type);
-    write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id,gen_time);
+    //write_data(reinterpret_cast<const uint32_t &>(*data), data, stream_id,gen_time);
     SPDLOG_DEBUG("after write_data");
-    reader->next();
+    web_agent_->next();
     ++count;
   }
   //SPDLOG_DEBUG("finish deal_msg");
@@ -369,7 +372,7 @@ bool server::drain(const rx::subscriber<event_ptr> &sb) {
   }
   return true;
 }
-*/
+
 void server::on_exit() { SPDLOG_DEBUG("exit!"); }
 
 

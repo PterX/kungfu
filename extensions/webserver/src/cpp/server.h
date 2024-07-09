@@ -126,8 +126,8 @@ public:
   */
 protected:
   void on_start() override;
-  //bool drain(const rx::subscriber<event_ptr> &sb) override;
-  //void deal_msg(const rx::subscriber<event_ptr> &sb);
+  bool drain(const rx::subscriber<event_ptr> &sb) override;
+  void deal_msg(const rx::subscriber<event_ptr> &sb);
 
 private:
   ServerConfig read_config(std::string filename) const;

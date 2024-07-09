@@ -1,9 +1,9 @@
+#include <algorithm>
 #include <kungfu/common.h>
 #include <kungfu/yijinjing/common.h>
 #include <kungfu/yijinjing/nanomsg/webserver.h>
 #include <memory>
 #include <utility>
-#include <algorithm>
 
 using namespace kungfu::yijinjing::data;
 using namespace kungfu::longfist::types;
@@ -30,10 +30,7 @@ stream::~stream() {
   location_.reset();
 }
 
-uint64_t stream::get_stream_id(){
-  return stream_id_;
-};
-
+uint64_t stream::get_stream_id() { return stream_id_; };
 
 void stream::close_data() {
   if (current_frame_) {
@@ -75,7 +72,7 @@ session::session(web_agent_ptr agent, nng_stream *s, bool is_server)
   start_recv();
 }
 
-session::~session(){
+session::~session() {
   nng_aio_cancel(aio_recv_);
   nng_aio_wait(aio_recv_);
   nng_aio_cancel(aio_send_);
@@ -83,7 +80,7 @@ session::~session(){
   stream_.reset();
 }
 
-int session::send(const char *data, int len){
+int session::send(const char *data, int len) {
   nng_iov iov{};
   iov.iov_buf = (void *)data;
   iov.iov_len = len;
@@ -112,13 +109,13 @@ void session::recv_cb() {
   case NNG_ECLOSED: {
     SPDLOG_DEBUG("NNG_ECLOSED");
     agent_->onDisconnect();
-    //close_data();
-    //writer_->mark(time::now_in_nano(), NngDisconnect::tag);
-    //dispose_func_();
+    // close_data();
+    // writer_->mark(time::now_in_nano(), NngDisconnect::tag);
+    // dispose_func_();
     break;
   }
   default:
-    //such as NNG_ECANCELED by nng_cancel
+    // such as NNG_ECANCELED by nng_cancel
     SPDLOG_DEBUG("default:{}", rv);
     agent_->onDisconnect();
     break;
@@ -167,13 +164,11 @@ websocket_client::websocket_client(const std::string &address, const bool is_tex
 
 websocket_client::~websocket_client() {
   SPDLOG_DEBUG("~websocket_client");
-  //reader_.reset();
+  // reader_.reset();
   session_.reset();
 }
 
-uint64_t websocket_client::get_stream_id(){
-  return session_->get_stream_id();
-};
+uint64_t websocket_client::get_stream_id() { return session_->get_stream_id(); };
 
 void websocket_client::start() {
   nng_stream_dialer_dial(dialer_, aio_dialer_);
@@ -194,15 +189,14 @@ void websocket_client::start() {
   add_join(session_->get_location(), location::PUBLIC, time::now_in_nano());
   onConnect();
 }
-void websocket_client::stop(){
+void websocket_client::stop() {
   // have been released
-  if(!aio_dialer_ && !dialer_){
+  if (!aio_dialer_ && !dialer_) {
     onError();
-    return ;
+    return;
   }
 
-  if(aio_dialer_)
-  {
+  if (aio_dialer_) {
     nng_aio_cancel(aio_dialer_);
     nng_aio_wait(aio_dialer_);
     aio_dialer_.reset();
@@ -212,12 +206,10 @@ void websocket_client::stop(){
     dialer_.reset();
   }
   onDisconnect();
-  return ;
+  return;
 }
 
-int websocket_client::send(const char *data, int data_len) {
-  return session_->send(data, data_len);
-}
+int websocket_client::send(const char *data, int data_len) { return session_->send(data, data_len); }
 
 void websocket_client::onError() { SPDLOG_ERROR("websocket_client onError"); }
 
@@ -256,9 +248,9 @@ websocket_server::websocket_server(const nng_url *base_url, std::string path, co
 }
 
 websocket_server::~websocket_server() {
-  //nng_url_free(url_);
-  //reader_.reset();
-  std::erase_if(sessions_, [](const auto &){return true;});
+  // nng_url_free(url_);
+  // reader_.reset();
+  std::erase_if(sessions_, [](const auto &) { return true; });
   SPDLOG_DEBUG("~websocket_server");
 }
 
@@ -274,13 +266,12 @@ void websocket_server::start() {
 
 void websocket_server::stop() {
   // have been released
-  if(!aio_listener_ && !listener_){
+  if (!aio_listener_ && !listener_) {
     onError();
-    return ;
+    return;
   }
 
-  if(aio_listener_)
-  {
+  if (aio_listener_) {
     nng_aio_cancel(aio_listener_);
     nng_aio_wait(aio_listener_);
     aio_listener_.reset();
@@ -290,7 +281,7 @@ void websocket_server::stop() {
     listener_.reset();
   }
   onDisconnect();
-  return ;
+  return;
 }
 
 void websocket_server::start_accept() { nng_stream_listener_accept(listener_, aio_listener_); }
@@ -300,7 +291,7 @@ void websocket_server::accept_cb() {
   /*May be should deal aio_result,
     If a client dial to server,
     and the server received, but closed when process data
-  */  
+  */
   if (rv != 0) {
     return;
   }
@@ -375,14 +366,14 @@ void http_server::add_websocket(const std::string &path, bool is_text_mode, bool
 }
 
 void http_server::remove_websocket(const std::string &path) {
-  if(websockets_.contains(path)){
+  if (websockets_.contains(path)) {
     auto websocket = websockets_.at(path);
     websocket->stop();
     websockets_.erase(path);
-    return ;
+    return;
   }
   onError();
-  return ;
+  return;
 }
 
 void http_server::start() {
@@ -403,7 +394,7 @@ void http_server::stop() {
     return;
   }
   started_ = false;
-  std::erase_if(websockets_, [](const auto &){return true;});
+  std::erase_if(websockets_, [](const auto &) { return true; });
   if (server_ != nullptr) {
     nng_http_server_stop(server_);
     server_.reset();
@@ -430,23 +421,19 @@ int http_server::port() {
 }
 
 void web_agent::add_join(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest, int64_t begin_time) {
-  while (flag_write.test_and_set(std::memory_order_acquire)) {
-  }
+  std::lock_guard<std::mutex> lk(mtx_);
   SPDLOG_DEBUG("add_join");
   join_channels_.insert_or_assign({location, dest}, begin_time);
   flag_has.store(true, std::memory_order_release);
-  flag_write.clear(std::memory_order_acquire);
-  SPDLOG_DEBUG("end add_join:{} flag_write:{}",flag_has,flag_write);
+  SPDLOG_DEBUG("end add_join:{} ", flag_has);
 }
 
 void web_agent::add_disjion(const location_ptr &location, uint32_t dest) {
-  while (flag_write.test_and_set(std::memory_order_acquire)) {
-  }
+  std::lock_guard<std::mutex> lk(mtx_);
   SPDLOG_DEBUG("add_disjion");
   disjoin_channels_.insert({location, dest});
   flag_has.store(true, std::memory_order_release);
-  flag_write.clear(std::memory_order_acquire);
-  SPDLOG_DEBUG("end add_join:{} flag_write:{}",flag_has,flag_write);
+  SPDLOG_DEBUG("end add_join: {} ", flag_has);
 }
 
 void web_agent::cleanup_reader_disjoin() {
@@ -470,16 +457,14 @@ void web_agent::cleanup_reader_join() {
 web_agent::web_agent() : reader_(std::make_shared<reader>(true, true, std::make_shared<bus>(false))) {}
 
 void web_agent::on_frame() {
-  SPDLOG_DEBUG("start on_frame:{}",flag_has);
+  SPDLOG_DEBUG("start on_frame:{}", flag_has);
   if (flag_has.load()) {
     SPDLOG_DEBUG("flag_has");
-    while (flag_write.test_and_set(std::memory_order_acquire)) {
-    }
+    std::lock_guard<std::mutex> lk(mtx_);
     SPDLOG_DEBUG("flag_write");
     cleanup_reader_join();
     cleanup_reader_disjoin();
     flag_has.store(false, std::memory_order_release);
-    flag_write.clear(std::memory_order_acquire);
   }
 }
 bool web_agent::data_available() { return reader_->data_available(); }

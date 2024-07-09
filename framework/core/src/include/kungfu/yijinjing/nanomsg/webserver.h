@@ -29,7 +29,6 @@
 
 namespace kungfu::yijinjing::webserver {
 
-
 template <typename T> struct nng_data {
   char origin_data[sizeof(kungfu::longfist::types::frame_header) + sizeof(T)]{};
   size_t len;
@@ -55,13 +54,10 @@ template <typename T> struct nng_data {
     return reinterpret_cast<kungfu::longfist::types::frame_header *>(origin_data);
   }
 
-  T *data() {
-    return reinterpret_cast<T *>(origin_data + sizeof(kungfu::longfist::types::frame_header));
-  }
+  T *data() { return reinterpret_cast<T *>(origin_data + sizeof(kungfu::longfist::types::frame_header)); }
 
-  size_t length(){return len;}
+  size_t length() { return len; }
 };
-
 
 class webserver_error : public std::runtime_error {
 public:
@@ -152,8 +148,8 @@ public:
 
 private:
   journal::reader_ptr reader_;
-  std::atomic_flag flag_write; // 子线程竞争
-  std::atomic<bool> flag_has;  // 子线程和主线程
+  std::mutex mtx_;            // 子线程竞争
+  std::atomic<bool> flag_has; // 子线程和主线程
   std::map<std::pair<kungfu::yijinjing::data::location_ptr, uint32_t>, int64_t> join_channels_ = {};
   std::set<std::pair<kungfu::yijinjing::data::location_ptr, uint32_t>> disjoin_channels_ = {};
 };
@@ -168,6 +164,7 @@ public:
   const yijinjing::data::location_ptr &get_location() const;
 
   uint64_t get_stream_id();
+
 protected:
   void close_data();
 
@@ -221,7 +218,7 @@ public:
   void onError() override;
 
   void onDisconnect() override;
-  
+
   void onConnect() override;
 
 private:
@@ -257,7 +254,7 @@ public:
   void onError() override;
 
   void onDisconnect() override;
-  
+
   void onConnect() override;
 
 private:

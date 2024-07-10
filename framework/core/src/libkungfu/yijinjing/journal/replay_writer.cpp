@@ -19,7 +19,7 @@ replay_writer::replay_writer(const data::location_ptr &location, uint32_t dest_i
   }
 }
 
-frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t length) {
+frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, size_t length, uint64_t stream_id) {
   while (reader_for_write_->data_available()) {
     auto frame = reader_for_write_->current_frame();
     if (frame->msg_type() == msg_type) {
@@ -39,6 +39,7 @@ frame_ptr replay_writer::open_frame(int64_t trigger_time, int32_t msg_type, size
     cloned_frame_->set_source(journal_->location_->uid);
     cloned_frame_->set_initial_source(journal_->location_->uid);
     cloned_frame_->set_dest(journal_->dest_id_);
+    cloned_frame_->set_stream_id(stream_id);
     return cloned_frame_;
   }
 

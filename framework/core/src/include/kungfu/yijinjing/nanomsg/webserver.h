@@ -2,8 +2,8 @@
 #define KUNGFU_WEBSERVER_H
 
 #include <kungfu/common.h>
-#include <kungfu/yijinjing/journal/assemble.h>
-
+#include <kungfu/yijinjing/common.h>
+#include <kungfu/yijinjing/journal/journal.h>
 #include <nng/nng.h>
 #include <nng/supplemental/http/http.h>
 
@@ -11,6 +11,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 
 #include <sstream>
@@ -28,10 +29,45 @@
 
 namespace kungfu::yijinjing::webserver {
 
+template <typename T> struct nng_data {
+  char origin_data[sizeof(kungfu::longfist::types::frame_header) + sizeof(T)]{};
+  size_t len;
+
+  explicit nng_data(uint32_t msg_type, uint64_t stream_id) {
+    auto *header = reinterpret_cast<kungfu::longfist::types::frame_header *>(origin_data);
+    len = sizeof(kungfu::longfist::types::frame_header) + sizeof(T);
+    header->length = len;
+    header->header_length = sizeof(kungfu::longfist::types::frame_header);
+    header->trigger_time = time::now_in_nano();
+    header->gen_time = header->trigger_time;
+    header->msg_type = msg_type;
+    header->source = 0;
+    header->dest = 0;
+    header->data_type = kungfu::longfist::enums::FrameDataType::Raw;
+    header->initial_source = 0;
+    header->frame_uid = 0;
+    header->trigger_frame_uid = 0;
+    header->stream_id = stream_id;
+  }
+
+  kungfu::longfist::types::frame_header *header() {
+    return reinterpret_cast<kungfu::longfist::types::frame_header *>(origin_data);
+  }
+
+  T *data() { return reinterpret_cast<T *>(origin_data + sizeof(kungfu::longfist::types::frame_header)); }
+
+  size_t length() { return len; }
+};
+
+class webserver_error : public std::runtime_error {
+public:
+  explicit webserver_error(const std::string &message) : runtime_error(message) { SPDLOG_CRITICAL(message); }
+};
+
 static void fatal(const char *what, int rv) {
   std::stringstream ss;
   ss << what << ": " << nng_strerror(rv);
-  throw std::runtime_error(ss.str());
+  throw webserver_error(ss.str());
 }
 
 template <class nng_type> class nng_smart_ptr {
@@ -57,6 +93,11 @@ public:
     return *this;
   }
 
+  void reset(nng_type *new_obj = nullptr) {
+    release();
+    obj = new_obj;
+  }
+
   nng_type **operator&() { return &obj; }
 
   operator nng_type *() const { return obj; }
@@ -64,177 +105,226 @@ public:
   nng_type *operator->() { return obj; }
 };
 
-FORWARD_DECLARE_CLASS_PTR(stream_manage)
-
-// remote_ip:remote_port:local_port
-static uint64_t generate_stream_id(nng_stream *s) {
-  nng_sockaddr local_address, remote_address;
-  nng_stream_get_addr(s, NNG_OPT_REMADDR, &remote_address);
-  nng_stream_get_addr(s, NNG_OPT_LOCADDR, &local_address);
-  return (static_cast<uint64_t>(remote_address.s_in.sa_addr) << 32) |
-         (static_cast<uint64_t>(remote_address.s_in.sa_port) << 16) | local_address.s_in.sa_port;
+static uint64_t generate_stream_id(nng_stream *s, bool is_server) {
+  nng_sockaddr sockaddr;
+  if (is_server) {
+    nng_stream_get_addr(s, NNG_OPT_REMADDR, &sockaddr);
+    return (static_cast<uint64_t>(sockaddr.s_in.sa_addr) << 32) | (static_cast<uint64_t>(sockaddr.s_in.sa_port) << 16);
+  } else {
+    nng_stream_get_addr(s, NNG_OPT_LOCADDR, &sockaddr);
+    return (static_cast<uint64_t>(sockaddr.s_in.sa_addr) << 32) | (static_cast<uint64_t>(sockaddr.s_in.sa_port) << 16);
+  }
 }
 
-class stream {
-private:
-  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
-  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
-  nng_stream *s_;
-  std::vector<uint8_t> rec_buffer_;
-  uint64_t stream_id_;
-  void cancel();
-  std::mutex mtx_;
-
+class web_agent : public std::enable_shared_from_this<web_agent> {
 public:
-  // the first vector is used for callback function receive data, the second vector is used for cache the data have
-  // received when call get_data(), will return the
-  std::vector<std::string> data_received_; // used for receive data
-  // std::vector<std::string> data_received_cache_; // cache data_received, two buffer or just simple lock？
-  stream(nng_stream *s, uint64_t stream_id, uint32_t buffer_size = 32768);
+  explicit web_agent();
+
+  virtual void start(){};
+
+  virtual void stop(){};
+
+  virtual void onError(){};
+
+  virtual void onDisconnect(){};
+
+  virtual void onConnect(){};
+
+  kungfu::yijinjing::journal::frame_ptr current_frame() { return reader_->current_frame(); }
+
+  virtual bool data_available();
+
+  virtual void next();
+
+  virtual void on_frame();
+
+  virtual void add_join(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest, int64_t begin_time);
+
+  virtual void add_disjion(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest);
+
+  virtual void cleanup_reader_join();
+
+  virtual void cleanup_reader_disjoin();
+
+private:
+  journal::reader_ptr reader_;
+  std::mutex mtx_;            // 子线程竞争
+  std::atomic<bool> flag_has; // 子线程和主线程
+  std::map<std::pair<kungfu::yijinjing::data::location_ptr, uint32_t>, int64_t> join_channels_ = {};
+  std::set<std::pair<kungfu::yijinjing::data::location_ptr, uint32_t>> disjoin_channels_ = {};
+};
+DECLARE_PTR(web_agent)
+
+class stream {
+public:
+  stream(nng_stream *s, bool is_server);
 
   virtual ~stream();
 
-  void start_recv();
+  [[nodiscard]] const yijinjing::data::location_ptr &get_location() const;
 
-  void stream_recv_cb();
+  [[nodiscard]] uint64_t get_stream_id() const;
 
-  void stream_send(const std::string &data);
+protected:
+  void close_data();
 
-  int stream_send(const char *data, int len);
+  void open_data(nng_iov &iov);
 
-  uint64_t get_stream_id() const;
-
-  uint64_t get_opposite_stream_id();
-
-  std::vector<std::string> get_and_clear_data();
+private:
+  uint64_t stream_id_;
+  yijinjing::data::location_ptr location_ = nullptr;
+  journal::writer_ptr writer_ = nullptr;
+  journal::frame_ptr current_frame_ = nullptr;
 };
 DECLARE_PTR(stream)
 
-class webserver {
-private:
-  nng_stream_listener *listener{nullptr};
-  nng_smart_ptr<nng_aio> aio_accept{nng_aio_free};
-  const nng_url *base_url_;
-  std::string path_;
-  const bool is_text_mode_;
-  const size_t max_num_connections_;
-  size_t num_connected_;
-
+class session : public stream {
 public:
-  stream_manage_ptr stream_manager_;
-  // std::map<int, std::shared_ptr<stream>> streams_;
-  webserver(stream_manage_ptr stream_manager, const nng_url *base_url, std::string path, bool is_text_mode,
-            size_t max_num_connections);
-  virtual ~webserver();
+  session(web_agent_ptr agent, nng_stream *s, bool is_server);
 
-  void start_listening();
+  virtual ~session();
 
-  void stop_listening();
+  void start_recv();
+
+  int send(const char *data, int len);
+
+  void recv_cb();
+
+  void send_cb();
+
+private:
+  web_agent_ptr agent_;
+  uint64_t session_id;
+  nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
+  nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
+  nng_smart_ptr<nng_stream> stream_;
+};
+DECLARE_PTR(session)
+
+class websocket_client : public web_agent {
+public:
+  explicit websocket_client(const std::string &address, bool is_text_mode, const bool tcp_no_delay);
+
+  virtual ~websocket_client();
+
+  uint64_t get_stream_id();
+
+  void start() override;
+
+  void stop() override;
+
+  int send(const char *data, int len);
+
+  void onError() override;
+
+  void onDisconnect() override;
+
+  void onConnect() override;
+
+private:
+  nng_smart_ptr<nng_stream_dialer> dialer_{nng_stream_dialer_free};
+  nng_smart_ptr<nng_aio> aio_dialer_{nng_aio_free};
+  session_ptr session_;
+
+  bool tcp_no_delay_;
+};
+DECLARE_PTR(websocket_client)
+
+FORWARD_DECLARE_CLASS_PTR(http_server)
+class websocket_server : public web_agent {
+public:
+  explicit websocket_server(const nng_url *base_url, const std::string &path, bool is_text_mode, bool tcp_no_delay,
+                            size_t max_num_connections);
+
+  explicit websocket_server(http_server_ptr http_server, const nng_url *base_url, const std::string &path,
+                            bool is_text_mode, bool tcp_no_delay, size_t max_num_connections);
+
+  virtual ~websocket_server();
+
+  void start() override;
+
+  void stop() override;
 
   void start_accept();
 
   void accept_cb();
-};
-FORWARD_DECLARE_CLASS_PTR(webserver)
 
-// a http http_server
-class http_server {
+  void send(const char *data, int len, uint64_t session_id);
+
+  void add_session(nng_stream *stream);
+
+  void remove_session(uint64_t session_id);
+
+  session_ptr get_session(uint64_t session_id);
+
+  void onError() override;
+
+  void onDisconnect() override;
+
+  void onConnect() override;
+
+  bool data_available() override;
+
+  void next() override;
+
+  void on_frame() override;
+
+  void add_join(const data::location_ptr &location, uint32_t dest, int64_t begin_time) override;
+
+  void add_disjion(const data::location_ptr &location, uint32_t dest) override;
+
+  void cleanup_reader_join() override;
+
+  void cleanup_reader_disjoin() override;
+
 private:
-  nng_smart_ptr<nng_http_server> server_{nng_http_server_release};
-  bool started_{false};
-  nng_smart_ptr<nng_url> url_{nng_url_free};
+  const nng_url *url_;
+  const bool is_text_mode_;
+  const bool tcp_no_delay_;
+  const size_t session_max_;
+  http_server_ptr http_server_ = nullptr;
+  size_t session_num_;
+  nng_smart_ptr<nng_stream_listener> listener_{nng_stream_listener_free};
+  nng_smart_ptr<nng_aio> aio_listener_{nng_aio_free};
 
+  std::unordered_map<uint64_t, session_ptr> sessions_;
+  std::shared_mutex sessions_mtx_;
+};
+DECLARE_PTR(websocket_server)
+
+class http_server : public web_agent {
 public:
-  std::map<int, std::shared_ptr<webserver>> websockets_;
   explicit http_server(const std::string &address);
-  ~http_server();
-  void add_websocket(const stream_manage_ptr &stream_manager, const std::string &path, bool is_text_mode,
+
+  virtual ~http_server();
+
+  void add_websocket(const std::string &path, bool is_text_mode, bool tcp_no_delay = true,
                      size_t max_num_connections = 0);
-  void remove_websocket(int id);
-  void start();
+
+  void remove_websocket(const std::string &path);
+
   int port();
-};
-FORWARD_DECLARE_CLASS_PTR(http_server)
 
-/*
-class webclient {
-public:
-  webclient(const std::string &address, std::function<void(webclient &, const std::string &)> message,
-         std::function<void(webclient &)> open, std::function<void(webclient &, const std::string &)> error,
-         std::function<void(webclient &)> close, const bool is_text_mode);
-  ~webclient();
-  void send(const std::string &data);
-  void recv_cb();
-  void start_recv();
+  void start() override;
 
-private:
-  nng_smart_ptr<nng_stream_dialer> dialer{nng_stream_dialer_free};
-  nng_smart_ptr<nng_aio> aio_dialer{nng_aio_free};
-  std::function<void(webclient &, const std::string &)> on_message;
-  std::function<void(webclient &)> on_open;
-  std::function<void(webclient &, const std::string &)> on_error;
-  std::function<void(webclient &)> on_close;
-};
-*/
+  void stop() override;
 
-class webclient {
-public:
-  webclient(stream_manage_ptr stream_manager, const std::string &address,
-            std::function<void(webclient &, const std::string &)> message = nullptr,
-            std::function<void(webclient &)> open = nullptr,
-            std::function<void(webclient &, const std::string &)> error = nullptr,
-            std::function<void(webclient &)> close = nullptr, bool is_text_mode = true);
+  void onError() override;
 
-  virtual ~webclient();
+  void onDisconnect() override;
 
-  uint64_t get_stream_id();
+  void onConnect() override;
+
+  session_ptr get_session(uint64_t session_id);
 
 private:
-  stream_manage_ptr stream_manager_;
-  stream_ptr stream_;
-  nng_smart_ptr<nng_stream_dialer> dialer{nng_stream_dialer_free};
-  nng_smart_ptr<nng_aio> aio_dialer{nng_aio_free};
-  std::function<void(webclient &, const std::string &)> on_message;
-  std::function<void(webclient &)> on_open;
-  std::function<void(webclient &, const std::string &)> on_error;
-  std::function<void(webclient &)> on_close;
+  std::map<std::string, std::shared_ptr<websocket_server>> websockets_;
+  nng_smart_ptr<nng_http_server> server_{nng_http_server_release};
+  bool started_;
+  nng_smart_ptr<nng_url> url_{nng_url_free};
 };
-FORWARD_DECLARE_CLASS_PTR(webclient)
+DECLARE_PTR(http_server)
 
-class stream_manage {
-public:
-  stream_manage() = default;
-
-  virtual ~stream_manage() = default;
-
-  int publish(uint64_t stream_id, const std::string &msg);
-
-  int publish(uint64_t stream_id, const char *data, int len);
-
-  std::vector<std::string> get_notice(uint64_t stream_id);
-
-  void clear_notice(uint64_t stream_id);
-
-  stream_ptr get_stream_by_id(uint64_t stream_id);
-
-  std::unordered_map<uint64_t, stream_ptr> &get_all_streams();
-
-  void add_stream(nng_stream *s);
-
-  void add_stream(stream_ptr s);
-
-private:
-  std::unordered_map<uint64_t, stream_ptr> streams_;
-};
-
-/*
-std::shared_ptr<http_server> create_server(const std::string url);
-std::shared_ptr<webclient> connect_server(const std::string &uri, const bool is_text_mode = true,
-                                          std::function<void(webclient &, const std::string &)> on_message = nullptr,
-                                          std::function<void(webclient &)> on_open = nullptr,
-                                          std::function<void(webclient &, const std::string &)> on_error = nullptr,
-                                          std::function<void(webclient &)> on_close = nullptr);
-*/
 } // namespace kungfu::yijinjing::webserver
 
 #endif // KUNGFU_WEBSERVER_H

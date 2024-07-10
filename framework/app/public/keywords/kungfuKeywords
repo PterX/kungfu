@@ -72,6 +72,7 @@ header_length
 data_type
 initial_source
 frame_uid
+trigger_frame_uid
 version
 page_header_length
 page_size

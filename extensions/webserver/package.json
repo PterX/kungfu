@@ -1,0 +1,61 @@
+{
+  "name": "@kungfu-trader/kfx-service-webserver",
+  "author": {
+    "name": "kungfu-trader",
+    "email": "info@kungfu.link"
+  },
+  "version": "3.2.0-alpha.1",
+  "description": "Kungfu Extension - webserver",
+  "license": "UNLICENSED",
+  "main": "package.json",
+  "repository": {
+    "url": "https://github.com/kungfu-trader/kungfu-galaxy-derivatives.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "binary": {
+    "module_name": "kfx-service-webserver",
+    "module_path": "dist/webserver",
+    "remote_path": "{module_name}/v{major}/v{version}",
+    "package_name": "{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz",
+    "host": "https://prebuilt.libkungfu.cc"
+  },
+  "scripts": {
+    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
+    "build": "yarn clean && kfs extension build",
+    "clean": "kfs extension clean",
+    "format": "node ../../node_modules/@kungfu-trader/kungfu-core/.gyp/run-format-cpp.js src",
+    "dev": "kfs craft dev",
+    "package": "kfs project package"
+  },
+  "dependencies": {
+    "@kungfu-trader/kungfu-core": "^3.2.0-alpha.1"
+  },
+  "devDependencies": {
+    "@kungfu-trader/kungfu-cli": "^3.2.0-alpha.1",
+    "@kungfu-trader/kungfu-sdk": "^3.2.0-alpha.1"
+  },
+  "resolutions": {
+    "@kungfu-trader/kungfu-core": "^3.2.0-alpha.1",
+    "@kungfu-trader/kungfu-cli": "^3.2.0-alpha.1",
+    "@kungfu-trader/kungfu-sdk": "^3.2.0-alpha.1",
+    "nanopop": "~2.3.0"
+  },
+  "kungfuConfig": {
+    "key": "webserver",
+    "name": "远程数据传输服务",
+    "config": {
+      "system": {
+        "webserver": {
+          "type": "service",
+          "for": [
+            "ui",
+            "cli"
+          ],
+          "script": ""
+        }
+      }
+    }
+  }
+}

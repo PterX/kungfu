@@ -35,6 +35,8 @@ struct frame : event {
 
   [[nodiscard]] uint32_t dest() const override { return header_->dest; }
 
+  [[nodiscard]] uint64_t stream_id() const { return header_->stream_id; }
+
   [[nodiscard]] const void *data_address() const override {
     return reinterpret_cast<void *>(address() + header_length());
   }
@@ -103,6 +105,8 @@ struct frame : event {
   void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
 
   void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
+
+  void set_stream_id(uint64_t stream_id) { header_->stream_id = stream_id; }
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 

@@ -325,6 +325,7 @@ void websocket_server::add_session(nng_stream *stream) {
   auto session_p = std::make_shared<session>(std::shared_ptr<websocket_server>(this), stream, true);
   std::unique_lock<std::shared_mutex> lock(sessions_mtx_);
   sessions_.emplace(session_id, session_p);
+  SPDLOG_DEBUG("add_session:{}",session_id);
   //  reader_->join(session_p->get_location(), location::PUBLIC, time::now_in_nano());
   add_join(session_p->get_location(), location::PUBLIC, time::now_in_nano());
 }
@@ -343,6 +344,17 @@ void websocket_server::remove_session(uint64_t session_id) {
   //  reader_->disjoin(session_location, location::PUBLIC);
   add_disjion(session_location, location::PUBLIC);
   sessions_.erase(session_id);
+}
+
+session_ptr websocket_server::get_session(uint64_t session_id){
+  SPDLOG_DEBUG("get_session:{}", session_id);
+  std::shared_lock<std::shared_mutex> lock(sessions_mtx_);
+
+  if (!sessions_.contains(session_id)) {
+    SPDLOG_ERROR("stream:{} not exist!",session_id);
+    return nullptr;
+  }
+  return sessions_.at(session_id);
 }
 
 void websocket_server::onError() {
@@ -365,6 +377,7 @@ void websocket_server::onConnect() {
   }
   SPDLOG_INFO("websocket_server onConnect");
 }
+
 
 bool websocket_server::data_available() {
   if (http_server_) {
@@ -490,35 +503,40 @@ int http_server::port() {
   return ntohs(addr.s_in.sa_port);
 }
 
+session_ptr http_server::get_session(uint64_t session_id){
+  for(const auto& pair : websockets_){
+    auto session = pair.second->get_session(session_id);
+    SPDLOG_DEBUG("1");
+    if(session){
+      SPDLOG_DEBUG("2");
+      return session;
+    }
+  }
+  SPDLOG_DEBUG("3");
+  return nullptr;
+}
+
 void web_agent::add_join(const kungfu::yijinjing::data::location_ptr &location, uint32_t dest, int64_t begin_time) {
   std::lock_guard<std::mutex> lk(mtx_);
-  SPDLOG_DEBUG("add_join");
   join_channels_.insert_or_assign({location, dest}, begin_time);
   flag_has.store(true, std::memory_order_release);
-  SPDLOG_DEBUG("end add_join:{} ", flag_has);
 }
 
 void web_agent::add_disjion(const location_ptr &location, uint32_t dest) {
   std::lock_guard<std::mutex> lk(mtx_);
-  SPDLOG_DEBUG("add_disjion");
   disjoin_channels_.insert({location, dest});
   flag_has.store(true, std::memory_order_release);
-  SPDLOG_DEBUG("end add_join: {} ", flag_has);
 }
 
 void web_agent::cleanup_reader_disjoin() {
-  SPDLOG_DEBUG("cleanup_reader_disjoin");
   for (const auto &pair : disjoin_channels_) {
-    SPDLOG_DEBUG("disjion");
     reader_->disjoin(pair.first, pair.second);
   }
   disjoin_channels_.clear();
 }
 
 void web_agent::cleanup_reader_join() {
-  SPDLOG_DEBUG("cleanup_reader_disjoin");
   for (const auto &pair : join_channels_) {
-    SPDLOG_DEBUG("disjion");
     reader_->join(pair.first.first, pair.first.second, pair.second);
   }
   join_channels_.clear();
@@ -527,11 +545,8 @@ void web_agent::cleanup_reader_join() {
 web_agent::web_agent() : reader_(std::make_shared<reader>(true, true, std::make_shared<bus>(false))) {}
 
 void web_agent::on_frame() {
-  SPDLOG_DEBUG("start on_frame:{}", flag_has);
   if (flag_has.load()) {
-    SPDLOG_DEBUG("flag_has");
     std::lock_guard<std::mutex> lk(mtx_);
-    SPDLOG_DEBUG("flag_write");
     cleanup_reader_join();
     cleanup_reader_disjoin();
     flag_has.store(false, std::memory_order_release);

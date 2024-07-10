@@ -40,7 +40,7 @@ template <typename T> struct nng_data {
     header->header_length = sizeof(kungfu::longfist::types::frame_header);
     header->trigger_time = time::now_in_nano();
     header->gen_time = header->trigger_time;
-    header->msg_type = header->msg_type;
+    header->msg_type = msg_type;
     header->source = 0;
     header->dest = 0;
     header->data_type = kungfu::longfist::enums::FrameDataType::Raw;
@@ -255,6 +255,8 @@ public:
 
   void remove_session(uint64_t session_id);
 
+  session_ptr get_session(uint64_t session_id);
+
   void onError() override;
 
   void onDisconnect() override;
@@ -262,11 +264,17 @@ public:
   void onConnect() override;
 
   bool data_available() override;
+
   void next() override;
+  
   void on_frame() override;
+  
   void add_join(const data::location_ptr &location, uint32_t dest, int64_t begin_time) override;
+  
   void add_disjion(const data::location_ptr &location, uint32_t dest) override;
+  
   void cleanup_reader_join() override;
+  
   void cleanup_reader_disjoin() override;
 
 private:
@@ -306,6 +314,8 @@ public:
   void onDisconnect() override;
 
   void onConnect() override;
+
+  session_ptr get_session(uint64_t session_id);
 
 private:
   std::map<std::string, std::shared_ptr<websocket_server>> websockets_;

@@ -16,6 +16,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include "data_type.h"
 
 namespace kungfu::wingchun::broker {
 
@@ -42,7 +43,7 @@ struct ServerConfig {
 
 class ThreadWorker {
 public:
-  ThreadWorker(yijinjing::webserver::stream_ptr stream) : stream_(stream), ready_(false), live_(true) {}
+  ThreadWorker(yijinjing::webserver::session_ptr session) : session_(session), ready_(false), live_(true) {SPDLOG_DEBUG("ThreadWorker");}
 
   void wait() {
     std::unique_lock<std::mutex> lock(mtx);
@@ -65,14 +66,14 @@ public:
     notify();
   }
 
-  const yijinjing::webserver::stream_ptr &get_stream() { return stream_; }
+  const yijinjing::webserver::stream_ptr &get_session() { return session_; }
 
 private:
   std::mutex mtx;
   std::condition_variable cv;
   bool ready_;
   bool live_;
-  yijinjing::webserver::stream_ptr stream_;
+  yijinjing::webserver::session_ptr session_;
 };
 DECLARE_PTR(ThreadWorker)
 
@@ -120,18 +121,14 @@ public:
 protected:
   void on_start() override;
   bool drain(const rx::subscriber<event_ptr> &sb) override;
-  void deal_msg(const rx::subscriber<event_ptr> &sb);
+  void deal_msg();
 
 private:
   ServerConfig read_config(std::string filename) const;
 
 private:
   kungfu::wingchun::broker::TestClient broker_client_;
-  //  kungfu::yijinjing::webserver::web_agent_ptr web_agent_;
   kungfu::yijinjing::webserver::http_server_ptr web_agent_;
-  std::mutex asm_mutex_;
-  // ThreadPool *threadpool_;
-  // std::unordered_map<uint64_t, kungfu::yijinjing::journal::reader_ptr> stream_reader_map_;
   std::unordered_map<uint64_t, std::shared_ptr<std::thread>> stream_thread_map_;
   // std::unordered_map<uint64_t, std::future<void>> stream_task_map_;
   std::unordered_map<uint64_t, kungfu::yijinjing::journal::writer_ptr> stream_writer_map_;
@@ -159,15 +156,12 @@ private:
         }},
    };
  */
-  // void submit_read_read_assemble();
-  // void thread_read_data(const kungfu::yijinjing::journal::reader_ptr &reader, uint64_t stream_id);
-  // void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
-  // void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
-  // void write_data(uint32_t msg_type, const char *msg, uint64_t stream_id, uint64_t gen_time);
-  // bool custom_OnInitEvent(const char *ptr, uint64_t stream_id);
-  // bool custom_OnNewOrder(const char *ptr, uint64_t stream_id,uint64_t gen_time);
-  // bool custom_OnCancelOrder(const char *ptr, uint64_t stream_id);
-  // bool custom_OnQryAlgoParentOrder(const char *ptr);
+  void thread_read_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
+  void thread_send_data(const kungfu::yijinjing::data::location_ptr &location, ThreadWorker_ptr worker);
+  bool custom_OnInitEvent(const char *frame_data, uint64_t stream_id);
+  //bool custom_OnNewOrder(const char *frame_data, uint64_t stream_id,uint64_t gen_time);
+  bool custom_OnNewOrder(const char *frame_data, uint64_t stream_id);
+  bool custom_OnCancelOrder(const char *frame_data, uint64_t stream_id);
 };
 
 } // namespace kungfu::service

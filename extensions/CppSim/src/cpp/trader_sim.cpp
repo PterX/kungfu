@@ -54,7 +54,7 @@ void TraderSim::on_exit() {}
 bool TraderSim::insert_order(const event_ptr &event) {
   const auto &input = event->data<OrderInput>();
   SPDLOG_DEBUG("OrderInput: {}", input.to_string());
-
+  SPDLOG_DEBUG("stream_id:{}",event->stream_id());
   Order order{};
   order_from_input(input, order);
   order.external_order_id = std::to_string(input.order_id).c_str();

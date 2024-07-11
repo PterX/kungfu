@@ -201,11 +201,13 @@ void websocket_client::stop() {
 
 int websocket_client::send(const char *data, int data_len) { return session_->send(data, data_len); }
 
-void websocket_client::onError(uint64_t stream_id) { SPDLOG_ERROR("websocket_client onError"); }
+void websocket_client::onError(uint64_t stream_id) { SPDLOG_ERROR("websocket_client onError: {}", stream_id); }
 
-void websocket_client::onDisconnect(uint64_t stream_id) { SPDLOG_CRITICAL("websocket_client onDisconnect"); }
+void websocket_client::onDisconnect(uint64_t stream_id) {
+  SPDLOG_CRITICAL("websocket_client onDisconnect: {}", stream_id);
+}
 
-void websocket_client::onConnect(uint64_t stream_id) { SPDLOG_INFO("websocket_client onConnect"); }
+void websocket_client::onConnect(uint64_t stream_id) { SPDLOG_INFO("websocket_client onConnect: {}", stream_id); }
 
 websocket_server::websocket_server(const nng_url *base_url, const std::string &path, bool is_text_mode,
                                    bool tcp_no_delay, size_t session_max)
@@ -310,7 +312,7 @@ void websocket_server::add_session(nng_stream *stream) {
 }
 
 void websocket_server::remove_session(uint64_t stream_id) {
-  SPDLOG_DEBUG("remove_session:{}", stream_id);
+  SPDLOG_DEBUG("remove_session: {}", stream_id);
   std::unique_lock<std::shared_mutex> lock(sessions_mtx_);
 
   if (!sessions_.contains(stream_id)) {
@@ -337,21 +339,21 @@ void websocket_server::onError(uint64_t stream_id) {
   if (http_server_) {
     return http_server_->onError(stream_id);
   }
-  SPDLOG_ERROR("websocket_server onError");
+  SPDLOG_ERROR("websocket_server onError: {}", stream_id);
 }
 
 void websocket_server::onDisconnect(uint64_t stream_id) {
   if (http_server_) {
     return http_server_->onDisconnect(stream_id);
   }
-  SPDLOG_CRITICAL("websocket_server onDisconnect");
+  SPDLOG_CRITICAL("websocket_server onDisconnect: {}", stream_id);
 }
 
 void websocket_server::onConnect(uint64_t stream_id) {
   if (http_server_) {
     return http_server_->onConnect(stream_id);
   }
-  SPDLOG_INFO("websocket_server onConnect");
+  SPDLOG_INFO("websocket_server onConnect: {}", stream_id);
 }
 
 bool websocket_server::data_available() {
@@ -460,11 +462,11 @@ void http_server::stop() {
   url_.reset();
 }
 
-void http_server::onError(uint64_t stream_id) { SPDLOG_ERROR("http_server onError"); }
+void http_server::onError(uint64_t stream_id) { SPDLOG_ERROR("http_server onError: {}", stream_id); }
 
-void http_server::onDisconnect(uint64_t stream_id) { SPDLOG_CRITICAL("http_server onDisconnect"); }
+void http_server::onDisconnect(uint64_t stream_id) { SPDLOG_CRITICAL("http_server onDisconnect: {}", stream_id); }
 
-void http_server::onConnect(uint64_t stream_id) { SPDLOG_INFO("http_server onConnect"); }
+void http_server::onConnect(uint64_t stream_id) { SPDLOG_INFO("http_server onConnect: {}", stream_id); }
 
 int http_server::port() {
   if (!started_) {
@@ -481,13 +483,10 @@ int http_server::port() {
 session_ptr http_server::get_session(uint64_t stream_id) {
   for (const auto &pair : websockets_) {
     auto session = pair.second->get_session(stream_id);
-    SPDLOG_DEBUG("1");
     if (session) {
-      SPDLOG_DEBUG("2");
       return session;
     }
   }
-  SPDLOG_DEBUG("3");
   return nullptr;
 }
 

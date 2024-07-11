@@ -109,7 +109,7 @@ constexpr auto AllTypes = boost::hana::make_map( //
     TYPE_PAIR(TradingDay),                       // 10503
     TYPE_PAIR(TimeValue),                        // 10601
     TYPE_PAIR(TimeKeyValue),                     // 10602
-    TYPE_PAIR(NngDisconnect)                     // 10701
+    TYPE_PAIR(SocketData)                        // 10751
 );
 
 constexpr auto AllDataTypes = boost::hana::make_map( //

@@ -15,8 +15,7 @@ namespace kungfu::yijinjing::webserver {
 constexpr uint64_t PAGE_SIZE = 256;
 
 stream::stream(nng_stream *s, bool is_server) : stream_id_(generate_stream_id(s, is_server)) {
-  SPDLOG_DEBUG("stream");
-  auto group = is_server ? "webserver"s : "webclient"s;
+  const std::string group = is_server ? "webserver" : "webclient";
   location_ = location::make_shared(mode::LIVE, category::SYSTEM, group, std::to_string(stream_id_),
                                     std::make_shared<locator>(mode::LIVE));
   writer_ = std::make_shared<writer>(location_, location::PUBLIC, false, std::make_shared<noop_publisher>(), true,
@@ -24,7 +23,6 @@ stream::stream(nng_stream *s, bool is_server) : stream_id_(generate_stream_id(s,
 }
 
 stream::~stream() {
-  SPDLOG_DEBUG("~stream");
   close_data();
   writer_.reset();
   location_.reset();
@@ -40,7 +38,7 @@ void stream::close_data() {
 }
 
 void stream::open_data(nng_iov &iov) {
-  current_frame_ = writer_->open_frame_lock_free(time::now_in_nano(), 10001000, 1024);
+  current_frame_ = writer_->open_frame_lock_free(time::now_in_nano(), SocketData::tag, 1024);
   iov.iov_buf = const_cast<void *>(current_frame_->data_address());
   iov.iov_len = current_frame_->data_length();
 }
@@ -48,26 +46,26 @@ void stream::open_data(nng_iov &iov) {
 const yijinjing::data::location_ptr &stream::get_location() const { return location_; }
 
 session::session(web_agent_ptr agent, nng_stream *s, bool is_server)
-    : stream(s, is_server), stream_(s, nng_stream_free), agent_(std::move(agent)),
-      session_id(generate_stream_id(s, is_server)) {
-  int rv;
-  if ((rv = nng_aio_alloc(
-           &aio_recv_,
-           [](void *arg) {
-             auto *pThis = reinterpret_cast<session *>(arg);
-             pThis->recv_cb();
-           },
-           this)) != 0) {
+    : stream(s, is_server), stream_(s, nng_stream_free), agent_(std::move(agent)) {
+  int rv = nng_aio_alloc(
+      &aio_recv_,
+      [](void *arg) {
+        auto *pThis = reinterpret_cast<session *>(arg);
+        pThis->recv_cb();
+      },
+      this);
+  if (rv != 0) {
     fatal("nng_aio_alloc read", rv);
   }
 
-  if ((rv = nng_aio_alloc(
-           &aio_send_,
-           [](void *arg) {
-             auto *pThis = reinterpret_cast<session *>(arg);
-             pThis->send_cb();
-           },
-           this)) != 0) {
+  rv = nng_aio_alloc(
+      &aio_send_,
+      [](void *arg) {
+        auto *pThis = reinterpret_cast<session *>(arg);
+        pThis->send_cb();
+      },
+      this);
+  if (rv != 0) {
     fatal("nng_aio_alloc read", rv);
   }
   start_recv();
@@ -109,16 +107,13 @@ void session::recv_cb() {
   }
   case NNG_ECLOSED: {
     SPDLOG_DEBUG("NNG_ECLOSED");
-    agent_->onDisconnect();
-    // close_data();
-    // writer_->mark(time::now_in_nano(), NngDisconnect::tag);
-    // dispose_func_();
+    agent_->onDisconnect(0);
     break;
   }
   default:
     // such as NNG_ECANCELED by nng_cancel
     SPDLOG_DEBUG("default:{}", rv);
-    agent_->onDisconnect();
+    agent_->onDisconnect(0);
     break;
   }
 }
@@ -126,7 +121,7 @@ void session::recv_cb() {
 void session::send_cb() {
   int rv = nng_aio_result(aio_send_);
   if (rv) {
-    agent_->onError();
+    agent_->onError(0);
     fatal("stream_send_cb", rv);
   }
 }
@@ -139,9 +134,8 @@ void session::start_recv() {
   nng_stream_recv(stream_, aio_recv_);
 }
 
-websocket_client::websocket_client(const std::string &address, const bool is_text_mode, const bool tcp_no_delay)
+websocket_client::websocket_client(const std::string &address, bool is_text_mode, bool tcp_no_delay)
     : tcp_no_delay_(tcp_no_delay_) {
-  SPDLOG_DEBUG("websocket_client");
   int rv;
   nng_smart_ptr<nng_url> url{nng_url_free};
   rv = nng_url_parse(&url, address.c_str());
@@ -163,11 +157,7 @@ websocket_client::websocket_client(const std::string &address, const bool is_tex
   }
 }
 
-websocket_client::~websocket_client() {
-  SPDLOG_DEBUG("~websocket_client");
-  // reader_.reset();
-  session_.reset();
-}
+websocket_client::~websocket_client() { session_.reset(); }
 
 uint64_t websocket_client::get_stream_id() { return session_->get_stream_id(); };
 
@@ -188,12 +178,12 @@ void websocket_client::start() {
   session_ = std::make_shared<session>(self, stream, false);
   //  reader_->join(session_->get_location(), location::PUBLIC, time::now_in_nano());
   add_join(session_->get_location(), location::PUBLIC, time::now_in_nano());
-  onConnect();
+  onConnect(0);
 }
 void websocket_client::stop() {
   // have been released
   if (!aio_dialer_ && !dialer_) {
-    onError();
+    onError(0);
     return;
   }
 
@@ -206,16 +196,16 @@ void websocket_client::stop() {
     nng_stream_dialer_close(dialer_);
     dialer_.reset();
   }
-  onDisconnect();
+  onDisconnect(0);
 }
 
 int websocket_client::send(const char *data, int data_len) { return session_->send(data, data_len); }
 
-void websocket_client::onError() { SPDLOG_ERROR("websocket_client onError"); }
+void websocket_client::onError(uint64_t stream_id) { SPDLOG_ERROR("websocket_client onError"); }
 
-void websocket_client::onDisconnect() { SPDLOG_CRITICAL("websocket_client onDisconnect"); }
+void websocket_client::onDisconnect(uint64_t stream_id) { SPDLOG_CRITICAL("websocket_client onDisconnect"); }
 
-void websocket_client::onConnect() { SPDLOG_INFO("websocket_client onConnect"); }
+void websocket_client::onConnect(uint64_t stream_id) { SPDLOG_INFO("websocket_client onConnect"); }
 
 websocket_server::websocket_server(const nng_url *base_url, const std::string &path, bool is_text_mode,
                                    bool tcp_no_delay, size_t session_max)
@@ -225,8 +215,6 @@ websocket_server::websocket_server(http_server_ptr http_server, const nng_url *b
                                    bool is_text_mode, bool tcp_no_delay, size_t max_num_connections)
     : url_(base_url), is_text_mode_(is_text_mode), tcp_no_delay_(tcp_no_delay), session_max_(max_num_connections),
       http_server_(std::move(http_server)), session_num_(0) {
-  SPDLOG_DEBUG("websocket_server");
-
   int rv = nng_aio_alloc(
       &aio_listener_, [](void *arg) { ((websocket_server *)arg)->accept_cb(); }, this);
   if (rv != 0) {
@@ -252,10 +240,7 @@ websocket_server::websocket_server(http_server_ptr http_server, const nng_url *b
 }
 
 websocket_server::~websocket_server() {
-  // nng_url_free(url_);
-  // reader_.reset();
   std::erase_if(sessions_, [](const auto &) { return true; });
-  SPDLOG_DEBUG("~websocket_server");
 }
 
 void websocket_server::start() {
@@ -264,14 +249,13 @@ void websocket_server::start() {
   if (rv) {
     fatal("nng_stream_listener_listen", rv);
   }
-
   start_accept();
 }
 
 void websocket_server::stop() {
   // have been released
   if (!aio_listener_ && !listener_) {
-    onError();
+    onError(0);
     return;
   }
 
@@ -284,8 +268,7 @@ void websocket_server::stop() {
     nng_stream_listener_close(listener_);
     listener_.reset();
   }
-  onDisconnect();
-  return;
+  onDisconnect(0);
 }
 
 void websocket_server::start_accept() { nng_stream_listener_accept(listener_, aio_listener_); }
@@ -316,64 +299,57 @@ void websocket_server::accept_cb() {
   session_num_++;
 }
 
-void websocket_server::send(const char *data, int len, uint64_t session_id){};
+void websocket_server::send(const char *data, int len, uint64_t stream_id) { get_session(stream_id)->send(data, len); }
 
 void websocket_server::add_session(nng_stream *stream) {
-  SPDLOG_DEBUG("add_session");
-  auto session_id = generate_stream_id(stream, true);
-  //  auto self{this->shared_from_this()};
   auto session_p = std::make_shared<session>(std::shared_ptr<websocket_server>(this), stream, true);
   std::unique_lock<std::shared_mutex> lock(sessions_mtx_);
-  sessions_.emplace(session_id, session_p);
-  SPDLOG_DEBUG("add_session:{}", session_id);
-  //  reader_->join(session_p->get_location(), location::PUBLIC, time::now_in_nano());
+  sessions_.emplace(session_p->get_stream_id(), session_p);
+  SPDLOG_DEBUG("add_session:{}", session_p->get_stream_id());
   add_join(session_p->get_location(), location::PUBLIC, time::now_in_nano());
 }
 
-void websocket_server::remove_session(uint64_t session_id) {
-  SPDLOG_DEBUG("remove_session:{}", session_id);
+void websocket_server::remove_session(uint64_t stream_id) {
+  SPDLOG_DEBUG("remove_session:{}", stream_id);
   std::unique_lock<std::shared_mutex> lock(sessions_mtx_);
 
-  if (!sessions_.contains(session_id)) {
+  if (!sessions_.contains(stream_id)) {
     SPDLOG_ERROR("stream not exist!");
     return;
   }
-  // auto session_location = location::make_shared(mode::LIVE, category::SYSTEM, "webserver"s,
-  // std::to_string(session_id),std::make_shared<locator>(mode::LIVE));
-  auto session_location = sessions_.at(session_id)->get_location();
-  //  reader_->disjoin(session_location, location::PUBLIC);
+  auto session_location = sessions_.at(stream_id)->get_location();
   add_disjion(session_location, location::PUBLIC);
-  sessions_.erase(session_id);
+  sessions_.erase(stream_id);
 }
 
-session_ptr websocket_server::get_session(uint64_t session_id) {
-  SPDLOG_DEBUG("get_session:{}", session_id);
+session_ptr websocket_server::get_session(uint64_t stream_id) {
+  SPDLOG_DEBUG("get_session:{}", stream_id);
   std::shared_lock<std::shared_mutex> lock(sessions_mtx_);
 
-  if (!sessions_.contains(session_id)) {
-    SPDLOG_ERROR("stream:{} not exist!", session_id);
+  if (!sessions_.contains(stream_id)) {
+    SPDLOG_ERROR("stream:{} not exist!", stream_id);
     return nullptr;
   }
-  return sessions_.at(session_id);
+  return sessions_.at(stream_id);
 }
 
-void websocket_server::onError() {
+void websocket_server::onError(uint64_t stream_id) {
   if (http_server_) {
-    return http_server_->onError();
+    return http_server_->onError(0);
   }
   SPDLOG_ERROR("websocket_server onError");
 }
 
-void websocket_server::onDisconnect() {
+void websocket_server::onDisconnect(uint64_t stream_id) {
   if (http_server_) {
-    return http_server_->onDisconnect();
+    return http_server_->onDisconnect(0);
   }
   SPDLOG_CRITICAL("websocket_server onDisconnect");
 }
 
-void websocket_server::onConnect() {
+void websocket_server::onConnect(uint64_t stream_id) {
   if (http_server_) {
-    return http_server_->onConnect();
+    return http_server_->onConnect(0);
   }
   SPDLOG_INFO("websocket_server onConnect");
 }
@@ -455,7 +431,7 @@ void http_server::remove_websocket(const std::string &path) {
     websockets_.erase(path);
     return;
   }
-  onError();
+  onError(0);
 }
 
 void http_server::start() {
@@ -484,11 +460,11 @@ void http_server::stop() {
   url_.reset();
 }
 
-void http_server::onError() { SPDLOG_ERROR("http_server onError"); }
+void http_server::onError(uint64_t stream_id) { SPDLOG_ERROR("http_server onError"); }
 
-void http_server::onDisconnect() { SPDLOG_CRITICAL("http_server onDisconnect"); }
+void http_server::onDisconnect(uint64_t stream_id) { SPDLOG_CRITICAL("http_server onDisconnect"); }
 
-void http_server::onConnect() { SPDLOG_INFO("http_server onConnect"); }
+void http_server::onConnect(uint64_t stream_id) { SPDLOG_INFO("http_server onConnect"); }
 
 int http_server::port() {
   if (!started_) {
@@ -502,9 +478,9 @@ int http_server::port() {
   return ntohs(addr.s_in.sa_port);
 }
 
-session_ptr http_server::get_session(uint64_t session_id) {
+session_ptr http_server::get_session(uint64_t stream_id) {
   for (const auto &pair : websockets_) {
-    auto session = pair.second->get_session(session_id);
+    auto session = pair.second->get_session(stream_id);
     SPDLOG_DEBUG("1");
     if (session) {
       SPDLOG_DEBUG("2");

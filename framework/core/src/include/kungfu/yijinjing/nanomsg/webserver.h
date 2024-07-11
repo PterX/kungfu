@@ -33,7 +33,7 @@ template <typename T> struct nng_data {
   char origin_data[sizeof(kungfu::longfist::types::frame_header) + sizeof(T)]{};
   size_t len;
 
-  explicit nng_data(uint32_t msg_type, uint64_t stream_id) {
+  explicit nng_data(int32_t msg_type, uint64_t stream_id) {
     auto *header = reinterpret_cast<kungfu::longfist::types::frame_header *>(origin_data);
     len = sizeof(kungfu::longfist::types::frame_header) + sizeof(T);
     header->length = len;
@@ -120,15 +120,15 @@ class web_agent : public std::enable_shared_from_this<web_agent> {
 public:
   explicit web_agent();
 
-  virtual void start(){};
+  virtual void start() {}
 
-  virtual void stop(){};
+  virtual void stop() {}
 
-  virtual void onError(){};
+  virtual void onError(uint64_t stream_id) {}
 
-  virtual void onDisconnect(){};
+  virtual void onDisconnect(uint64_t stream_id) {}
 
-  virtual void onConnect(){};
+  virtual void onConnect(uint64_t stream_id) {}
 
   kungfu::yijinjing::journal::frame_ptr current_frame() { return reader_->current_frame(); }
 
@@ -182,7 +182,7 @@ class session : public stream {
 public:
   session(web_agent_ptr agent, nng_stream *s, bool is_server);
 
-  virtual ~session();
+  ~session() override;
 
   void start_recv();
 
@@ -194,7 +194,6 @@ public:
 
 private:
   web_agent_ptr agent_;
-  uint64_t session_id;
   nng_smart_ptr<nng_aio> aio_send_{nng_aio_free};
   nng_smart_ptr<nng_aio> aio_recv_{nng_aio_free};
   nng_smart_ptr<nng_stream> stream_;
@@ -203,7 +202,7 @@ DECLARE_PTR(session)
 
 class websocket_client : public web_agent {
 public:
-  explicit websocket_client(const std::string &address, bool is_text_mode, const bool tcp_no_delay);
+  explicit websocket_client(const std::string &address, bool is_text_mode, bool tcp_no_delay);
 
   virtual ~websocket_client();
 
@@ -215,11 +214,11 @@ public:
 
   int send(const char *data, int len);
 
-  void onError() override;
+  void onError(uint64_t stream_id) override;
 
-  void onDisconnect() override;
+  void onDisconnect(uint64_t stream_id) override;
 
-  void onConnect() override;
+  void onConnect(uint64_t stream_id) override;
 
 private:
   nng_smart_ptr<nng_stream_dialer> dialer_{nng_stream_dialer_free};
@@ -249,19 +248,19 @@ public:
 
   void accept_cb();
 
-  void send(const char *data, int len, uint64_t session_id);
+  void send(const char *data, int len, uint64_t stream_id);
 
   void add_session(nng_stream *stream);
 
-  void remove_session(uint64_t session_id);
+  void remove_session(uint64_t stream_id);
 
-  session_ptr get_session(uint64_t session_id);
+  session_ptr get_session(uint64_t stream_id);
 
-  void onError() override;
+  void onError(uint64_t stream_id) override;
 
-  void onDisconnect() override;
+  void onDisconnect(uint64_t stream_id) override;
 
-  void onConnect() override;
+  void onConnect(uint64_t stream_id) override;
 
   bool data_available() override;
 
@@ -309,13 +308,13 @@ public:
 
   void stop() override;
 
-  void onError() override;
+  void onError(uint64_t stream_id) override;
 
-  void onDisconnect() override;
+  void onDisconnect(uint64_t stream_id) override;
 
-  void onConnect() override;
+  void onConnect(uint64_t stream_id) override;
 
-  session_ptr get_session(uint64_t session_id);
+  session_ptr get_session(uint64_t stream_id);
 
 private:
   std::map<std::string, std::shared_ptr<websocket_server>> websockets_;

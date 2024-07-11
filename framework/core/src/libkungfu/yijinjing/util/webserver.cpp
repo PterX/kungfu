@@ -107,13 +107,13 @@ void session::recv_cb() {
   }
   case NNG_ECLOSED: {
     SPDLOG_DEBUG("NNG_ECLOSED");
-    agent_->onDisconnect(0);
+    agent_->onDisconnect(get_stream_id());
     break;
   }
   default:
     // such as NNG_ECANCELED by nng_cancel
     SPDLOG_DEBUG("default:{}", rv);
-    agent_->onDisconnect(0);
+    agent_->onDisconnect(get_stream_id());
     break;
   }
 }
@@ -121,7 +121,7 @@ void session::recv_cb() {
 void session::send_cb() {
   int rv = nng_aio_result(aio_send_);
   if (rv) {
-    agent_->onError(0);
+    agent_->onError(get_stream_id());
     fatal("stream_send_cb", rv);
   }
 }
@@ -178,12 +178,12 @@ void websocket_client::start() {
   session_ = std::make_shared<session>(self, stream, false);
   //  reader_->join(session_->get_location(), location::PUBLIC, time::now_in_nano());
   add_join(session_->get_location(), location::PUBLIC, time::now_in_nano());
-  onConnect(0);
+  onConnect(session_->get_stream_id());
 }
 void websocket_client::stop() {
   // have been released
   if (!aio_dialer_ && !dialer_) {
-    onError(0);
+    onError(session_->get_stream_id());
     return;
   }
 
@@ -196,7 +196,7 @@ void websocket_client::stop() {
     nng_stream_dialer_close(dialer_);
     dialer_.reset();
   }
-  onDisconnect(0);
+  onDisconnect(session_->get_stream_id());
 }
 
 int websocket_client::send(const char *data, int data_len) { return session_->send(data, data_len); }
@@ -335,21 +335,21 @@ session_ptr websocket_server::get_session(uint64_t stream_id) {
 
 void websocket_server::onError(uint64_t stream_id) {
   if (http_server_) {
-    return http_server_->onError(0);
+    return http_server_->onError(stream_id);
   }
   SPDLOG_ERROR("websocket_server onError");
 }
 
 void websocket_server::onDisconnect(uint64_t stream_id) {
   if (http_server_) {
-    return http_server_->onDisconnect(0);
+    return http_server_->onDisconnect(stream_id);
   }
   SPDLOG_CRITICAL("websocket_server onDisconnect");
 }
 
 void websocket_server::onConnect(uint64_t stream_id) {
   if (http_server_) {
-    return http_server_->onConnect(0);
+    return http_server_->onConnect(stream_id);
   }
   SPDLOG_INFO("websocket_server onConnect");
 }

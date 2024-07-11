@@ -28,7 +28,7 @@ stream::~stream() {
   location_.reset();
 }
 
-uint64_t stream::get_stream_id() const { return stream_id_; };
+uint64_t stream::get_stream_id() const { return stream_id_; }
 
 void stream::close_data() {
   if (current_frame_) {
@@ -135,7 +135,7 @@ void session::start_recv() {
 }
 
 websocket_client::websocket_client(const std::string &address, bool is_text_mode, bool tcp_no_delay)
-    : tcp_no_delay_(tcp_no_delay_) {
+    : tcp_no_delay_(tcp_no_delay) {
   int rv;
   nng_smart_ptr<nng_url> url{nng_url_free};
   rv = nng_url_parse(&url, address.c_str());
@@ -159,7 +159,7 @@ websocket_client::websocket_client(const std::string &address, bool is_text_mode
 
 websocket_client::~websocket_client() { session_.reset(); }
 
-uint64_t websocket_client::get_stream_id() { return session_->get_stream_id(); };
+uint64_t websocket_client::get_stream_id() { return session_->get_stream_id(); }
 
 void websocket_client::start() {
   nng_stream_dialer_dial(dialer_, aio_dialer_);

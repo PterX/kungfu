@@ -107,13 +107,6 @@ import VueI18n, {
 const { t } = VueI18n.global;
 import fse from 'fs-extra';
 import fsPromise from 'fs/promises';
-import md from 'markdown-it';
-import mdHljs from 'markdown-it-highlightjs';
-import mdCheckbox from 'markdown-it-task-checkbox-pro';
-import hlForCpp from 'highlight.js/lib/languages/cpp';
-import hlForPython from 'highlight.js/lib/languages/python';
-import hlForJs from 'highlight.js/lib/languages/javascript';
-import hlForTs from 'highlight.js/lib/languages/typescript';
 import Mark from 'mark.js';
 import { Router } from 'vue-router';
 import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
@@ -1908,73 +1901,6 @@ export const confirmModalSkippable = (
     : confirmModalByCustomArgs(title, rootVNode, args);
 
   return promise;
-};
-
-const markdown = md('commonmark');
-markdown.use(mdHljs, {
-  inline: true,
-  register: {
-    cpp: hlForCpp,
-    python: hlForPython,
-    js: hlForJs,
-    ts: hlForTs,
-  },
-});
-
-markdown.use(mdCheckbox, {
-  divWrap: true,
-  divClass: 'kf-md-checkbox',
-});
-export const compileMd2Html = (content: string): string => {
-  try {
-    return (
-      '<div class="kf-markdown__wrap markdown-body">' +
-      markdown.render(content) +
-      '</div>'
-    );
-  } catch (error) {
-    console.error(error);
-    return '';
-  }
-};
-
-export const compileMdFile2Html = (filePath: string): string => {
-  if (fse.existsSync(filePath)) {
-    const buffer = fse.readFileSync(filePath);
-    return compileMd2Html(buffer.toString());
-  }
-
-  return '';
-};
-
-export const openReadmeModal = (
-  readmePath: string,
-  extraConfig?: ModalFuncProps,
-) => {
-  if (fse.existsSync(readmePath)) {
-    return fse.readFile(readmePath).then((buffer) => {
-      const str = buffer.toString();
-      const mdHtml = markdown.render(str);
-      const content = h('div', {
-        class: 'kf-markdown__wrap markdown-body',
-        style: {
-          maxHeight: '60vh',
-          overflow: 'auto',
-        },
-        innerHTML: mdHtml,
-      });
-      return Modal.info({
-        content: content,
-        width: '60vw',
-        okText: t('confirm'),
-        cancelText: t('cancel'),
-        ...(extraConfig || {}),
-      });
-    });
-  } else {
-    messagePrompt().error(t('文件路径不存在'));
-    return Promise.reject();
-  }
 };
 
 export const useBoardFilter = () => {

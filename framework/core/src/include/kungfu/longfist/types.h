@@ -52,6 +52,7 @@ KF_DEFINE_MARK_TYPE(ResetBookRequest, 10451);
 KF_DEFINE_MARK_TYPE(MirrorPositionsRequest, 10452);
 KF_DEFINE_MARK_TYPE(KeepPositionsRequest, 10453);
 KF_DEFINE_MARK_TYPE(RebuildPositionsRequest, 10454);
+KF_DEFINE_MARK_TYPE(SocketData, 10751);
 
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
@@ -76,7 +77,9 @@ KF_DEFINE_PACK_TYPE(                                           //
     /** key of frame */                                        //
     (uint64_t, frame_uid),                                     //
     /** current_frame of reader when generate this frame */    //
-    (uint64_t, trigger_frame_uid)                              //
+    (uint64_t, trigger_frame_uid),                             //
+    /** stream_id */                                           //
+    (uint64_t, stream_id)                                      //
 );
 
 KF_DEFINE_PACK_TYPE(                          //
@@ -298,7 +301,6 @@ KF_DEFINE_PACK_TYPE(                                           //
     (enums::VolumeCondition, volume_condition), // 成交量类型
     (enums::TimeCondition, time_condition)      // 成交时间类型
 );
-
 KF_DEFINE_PACK_TYPE(                                   //
     Trade, 203, PK(trade_id), TIMESTAMP(restore_time), //
     (uint64_t, trade_id),                              // 成交ID

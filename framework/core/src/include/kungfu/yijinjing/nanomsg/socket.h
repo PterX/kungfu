@@ -186,6 +186,8 @@ struct nanomsg_json : event {
 
   [[nodiscard]] uint64_t trigger_frame_uid() const override { return header_.trigger_frame_uid; }
 
+  [[nodiscard]] uint64_t stream_id() const override { return header_.stream_id; }
+
 private:
   const nlohmann::json binding_;
   const std::string msg_;

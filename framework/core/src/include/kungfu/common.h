@@ -431,6 +431,7 @@ struct event {
 
   [[nodiscard]] virtual uint64_t trigger_frame_uid() const = 0;
 
+  [[nodiscard]] virtual uint64_t stream_id() const = 0;
   /**
    * Using auto with the return mess up the reference with the undlerying memory address, DO NOT USE it.
    * @tparam T

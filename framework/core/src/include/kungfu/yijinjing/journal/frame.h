@@ -72,6 +72,8 @@ struct frame : event {
 
   [[nodiscard]] uint64_t trigger_frame_uid() const override { return header_->trigger_frame_uid; }
 
+  [[nodiscard]] uint64_t stream_id() const override { return header_->stream_id; }
+
   template <typename T> size_t copy_data(const T &data) {
     size_t length = sizeof(T);
     memcpy(const_cast<void *>(data_address()), &data, length);
@@ -103,6 +105,8 @@ struct frame : event {
   void set_frame_uid(uint64_t frame_uid) { header_->frame_uid = frame_uid; }
 
   void set_trigger_frame_uid(uint64_t trigger_frame_uid) { header_->trigger_frame_uid = trigger_frame_uid; }
+
+  void set_stream_id(uint64_t stream_id) { header_->stream_id = stream_id; }
 
   void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
 

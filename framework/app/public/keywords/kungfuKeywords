@@ -72,6 +72,7 @@ header_length
 data_type
 initial_source
 frame_uid
+trigger_frame_uid
 version
 page_header_length
 page_size
@@ -633,6 +634,11 @@ SSE
 SZE
 MarketType
 Snapshot
+Entrust
+Transaction
+Tree
+Tick
+Depth
 SubscribeDataType
 Stock
 Future

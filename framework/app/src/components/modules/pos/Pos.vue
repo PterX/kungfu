@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  VTable,
-  ICustomActionOption,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
-
-import { dealCurrency } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+import { VTable } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 import {
   useDownloadHistoryTradingData,

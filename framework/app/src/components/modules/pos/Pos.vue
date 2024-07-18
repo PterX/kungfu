@@ -79,32 +79,6 @@ const { globalSetting } = storeToRefs(useGlobalStore());
 
 const canvasRef = ref();
 
-const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
-  return {
-    instrument_id_resolved: [
-      {
-        type: 'text',
-        dealValue: (record) => record.instrument_id_resolved,
-        fontSize: 12,
-        fill: '#ffffffd9',
-        boundsPadding: [7, 10, 5, 10],
-        key: 'instrument_id_resolved',
-      },
-      {
-        type: 'text',
-        dealValue: (record) =>
-          globalSetting.value?.currency?.instrumentCurrency
-            ? dealCurrency(record.currency || 0).name
-            : '',
-        fontSize: 12,
-        fill: '#faad14',
-        boundsPadding: [7, 10, 5, 10],
-        key: 'currency',
-      },
-    ],
-  };
-});
-
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -312,7 +286,6 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
         table-key="Pos"
         :columns="columns"
         :has-data="hasData"
-        :custom-layout="customLayout"
         column-resize-mode="header"
         drag-header-mode="all"
         cache-column-resizable

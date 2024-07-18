@@ -113,9 +113,9 @@ import { normalizePath } from '@kungfu-trader/kungfu-js-api/utils/osUtils';
 import { getDialogLogoPath } from '@kungfu-trader/kungfu-js-api/config/brand';
 import { keyShortMap } from '@kungfu-trader/kungfu-js-api/config/systemConfig';
 import {
-  VTable,
   ResizeColumn,
   ChangeHeaderPosition,
+  IVTableColumns,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
 
 // this utils file is only for ui components
@@ -2650,12 +2650,10 @@ export const useBrowserWindowMinimize = () => {
 
 export const useTableResizeControl = (
   tableName: string,
-  columnsRef:
-    | Ref<VTable.TYPES.ColumnDefine[]>
-    | ComputedRef<VTable.TYPES.ColumnDefine[]>,
+  columnsRef: Ref<IVTableColumns> | ComputedRef<IVTableColumns>,
   resizable = false,
 ) => {
-  const resizedColumns = ref<VTable.TYPES.ColumnDefine[]>([]);
+  const resizedColumns = ref<IVTableColumns>([]);
   const DEFAULT_KEY = 'tableResizeConfigMap';
   const app = getCurrentInstance();
   const tableKey = ref<string>(tableName);
@@ -2759,7 +2757,7 @@ export const useTableResizeControl = (
     }
   }
 
-  function getResizedColumns(columns: VTable.TYPES.ColumnDefine[]) {
+  function getResizedColumns(columns: IVTableColumns) {
     if (!resizable) {
       return columns;
     }
@@ -2781,7 +2779,7 @@ export const useTableResizeControl = (
     return resizedColumns;
   }
 
-  function initializeTableResizeConfig(columns: VTable.TYPES.ColumnDefine[]) {
+  function initializeTableResizeConfig(columns: IVTableColumns) {
     tableResizeConfig.value = {
       fields: [],
       columnsWidth: {},
@@ -2800,7 +2798,7 @@ export const useTableResizeControl = (
   }
 
   function updateTableResizeConfig(
-    columns: VTable.TYPES.ColumnDefine[],
+    columns: IVTableColumns,
     fields: string[],
     columnsWidth: Record<string, number>,
   ) {
@@ -2813,11 +2811,11 @@ export const useTableResizeControl = (
   }
 
   function buildResizedColumns(
-    columns: VTable.TYPES.ColumnDefine[],
+    columns: IVTableColumns,
     fields: string[],
     columnsWidth: Record<string, number>,
   ) {
-    const resizedColumns: VTable.TYPES.ColumnDefine[] = [];
+    const resizedColumns: IVTableColumns = [];
 
     fields.forEach((field, index) => {
       const column = columns.find((item) => item.field === field);

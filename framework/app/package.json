@@ -47,7 +47,7 @@
     "iconv-lite": "^0.6.3",
     "jschardet": "^3.0.0",
     "mark.js": "^8.11.1",
-    "markdown-it": "^13.0.1",
+    "markdown-it": "^14.1.0",
     "markdown-it-highlightjs": "^4.0.1",
     "markdown-it-task-checkbox-pro": "^1.0.0",
     "pinia": "^2.0.0",

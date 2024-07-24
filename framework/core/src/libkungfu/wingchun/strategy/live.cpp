@@ -346,7 +346,8 @@ std::vector<uint64_t> LiveContext::insert_batch_orders(
               instrument_ids.size() == sides.size() and        //
               instrument_ids.size() == offsets.size() and      //
               instrument_ids.size() == hedge_flags.size() and  //
-              instrument_ids.size() == is_swaps.size();
+              instrument_ids.size() == is_swaps.size() and     //
+              instrument_ids.size() == contract_ids.size();
   if (not flag) {
     SPDLOG_ERROR("Batch size not equals!");
     return order_ids;
@@ -384,10 +385,8 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
   auto writer = app_.get_writer(account_location_uid);
   writer->mark(now(), BatchOrderBegin::tag);
 
-  for (const OrderInput &input : order_inputs) {
-    uint64_t order_id = insert_order(input.instrument_id, input.exchange_id, source, account, input.limit_price,
-                                     input.volume, input.price_type, input.side, input.offset, input.hedge_flag,
-                                     input.is_swap, 0, 0, input.contract_id);
+  for (OrderInput &input : order_inputs) {
+    uint64_t order_id = insert_order_input(source, account, input);
     order_ids.push_back(order_id);
   }
 

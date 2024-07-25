@@ -364,7 +364,6 @@ std::vector<uint64_t> LiveContext::insert_batch_orders(
   }
 
   writer->mark(now(), BatchOrderEnd::tag);
-  writer->close_data();
   return order_ids;
 }
 
@@ -391,7 +390,6 @@ std::vector<uint64_t> LiveContext::insert_array_orders(const std::string &source
   }
 
   writer->mark(now(), BatchOrderEnd::tag);
-  writer->close_data();
   return order_ids;
 }
 

@@ -6,6 +6,7 @@
 
 #include "accounting/default/bond.hpp"
 #include "accounting/default/crypto.hpp"
+#include "accounting/default/cryptoufut.hpp"
 #include "accounting/default/future.hpp"
 #include "accounting/default/repo.hpp"
 #include "accounting/default/stock.hpp"
@@ -23,6 +24,7 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
   auto crypto_accounting_method = std::make_shared<CryptoAccountingMethod>();
 
   auto future_accounting_method = std::make_shared<FutureAccountingMethod>();
+  auto cryptoufuture_accounting_method = std::make_shared<CryptoUFutureAccountingMethod>();
 
   if (accounting_method_type == AccountingMethodType::OTC) {
     auto otc_stock_accounting_method = std::make_shared<OtcStockAccountingMethod>();
@@ -49,7 +51,7 @@ void AccountingMethod::setup_defaults(Bookkeeper &bookkeeper, const AccountingMe
   bookkeeper.set_accounting_method(InstrumentType::Repo, repo_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::Crypto, crypto_accounting_method);
   bookkeeper.set_accounting_method(InstrumentType::CryptoFuture, crypto_accounting_method);
-  bookkeeper.set_accounting_method(InstrumentType::CryptoUFuture, crypto_accounting_method);
+  bookkeeper.set_accounting_method(InstrumentType::CryptoUFuture, cryptoufuture_accounting_method);
 }
 
 bool AccountingMethod::guard_order_accounting(uint32_t source, uint32_t dest, Book_ptr book,

@@ -75,11 +75,11 @@ quote_column_names = [
     "total_bid_volume",
     "total_ask_volume",
     "total_trade_num",
-    "trading_phase_code",
     "bid_price",
     "ask_price",
     "bid_volume",
     "ask_volume",
+    "trading_phase_code",
 ]
 
 tree_column_names = [
@@ -104,11 +104,11 @@ tree_column_names = [
     "close_price",
     "bid_depth",
     "ask_depth",
-    "trading_phase_code",
     "bid_price",
     "ask_price",
     "bid_volume",
     "ask_volume",
+    "trading_phase_code",
 ]
 
 depth_column_names = [
@@ -127,8 +127,8 @@ tick_column_names = [
     "exchange_id",
     "instrument_type",
     "bid_price",
-    "ask_price",
     "bid_volume",
+    "ask_price",
     "ask_volume",
 ]
 
@@ -137,9 +137,6 @@ class PyStreamDataBatcher:
     def __init__(self, stream_data_batcher: wc.StreamDataBatcher):
         self.stream_data_batcher = stream_data_batcher
 
-    def merge_columns(self, row):
-        return row.tolist()
-
     def get_entrust_df(self, source, instrument_id, exchange_id):
         entrust_array = np.asarray(
             self.stream_data_batcher.get_entrust_buffer(
@@ -147,7 +144,8 @@ class PyStreamDataBatcher:
             )
         )
         entrust_df = pd.DataFrame(entrust_array)
-        entrust_df.columns = entrust_column_names
+        if not entrust_df.empty:
+            entrust_df.columns = entrust_column_names
         return entrust_df
 
     def get_transaction_df(self, source, instrument_id, exchange_id):
@@ -157,7 +155,8 @@ class PyStreamDataBatcher:
             )
         )
         transaction_df = pd.DataFrame(transaction_array)
-        transaction_df.columns = transaction_column_names
+        if not transaction_df.empty:
+            transaction_df.columns = transaction_column_names
         return transaction_df
 
     def get_quote_df(self, source, instrument_id, exchange_id):
@@ -166,37 +165,57 @@ class PyStreamDataBatcher:
                 source, instrument_id, exchange_id
             )
         )
-        quote_df = pd.DataFrame(quote_array)
 
-        for i in range(22, 62, 10):
-            start_col = i
-            end_col = i + 9
-            new_col_name = f"merged_column_{(i-22)//10 + 1}"
-            quote_df[new_col_name] = quote_df.iloc[:, start_col : end_col + 1].apply(
-                merge_columns, axis=1
-            )
+        if quote_array.size == 0:
+            return pd.DataFrame()
+        else:
 
-        quote_df = quote_df.drop(quote_df.columns[22:62], axis=1)
-        quote_df.columns = quote_column_names
-        return quote_df
+            def process_element(tuple_):
+                return (
+                    tuple_[:22]
+                    + (
+                        tuple_[22:32],
+                        tuple_[32:42],
+                        tuple_[42:52],
+                        tuple_[52:62],
+                    )
+                    + tuple_[-1:]
+                )
+
+            vectorized_function = np.frompyfunc(process_element, 1, 1)
+            result_array = vectorized_function(quote_array)
+            quote_df = pd.DataFrame(list(result_array))
+            if not quote_df.empty:
+                quote_df.columns = quote_column_names
+            return quote_df
 
     def get_tree_df(self, source, instrument_id, exchange_id):
         tree_array = np.asarray(
             self.stream_data_batcher.get_tree_buffer(source, instrument_id, exchange_id)
         )
-        tree_df = pd.DataFrame(tree_array)
 
-        for i in range(21, 61, 10):
-            start_col = i
-            end_col = i + 9
-            new_col_name = f"merged_column_{(i-21)//10 + 1}"
-            tree_df[new_col_name] = tree_df.iloc[:, start_col : end_col + 1].apply(
-                merge_columns, axis=1
-            )
+        if tree_array.size == 0:
+            return pd.DataFrame()
+        else:
 
-        tree_df = tree_df.drop(tree_df.columns[21:61], axis=1)
-        tree_df.columns = tree_column_names
-        return tree_df
+            def process_element(tuple_):
+                return (
+                    tuple_[:21]
+                    + (
+                        tuple_[21:31],
+                        tuple_[31:41],
+                        tuple_[41:51],
+                        tuple_[51:61],
+                    )
+                    + tuple_[-1:]
+                )
+
+            vectorized_function = np.frompyfunc(process_element, 1, 1)
+            result_array = vectorized_function(tree_array)
+            tree_df = pd.DataFrame(list(result_array))
+            if not tree_df.empty:
+                tree_df.columns = tree_column_names
+            return tree_df
 
     def get_depth_df(self, source, instrument_id, exchange_id):
         depth_array = np.asarray(
@@ -205,7 +224,8 @@ class PyStreamDataBatcher:
             )
         )
         depth_df = pd.DataFrame(depth_array)
-        depth_df.columns = depth_column_names
+        if not depth_df.empty:
+            depth_df.columns = depth_column_names
         return depth_df
 
     def get_tick_df(self, source, instrument_id, exchange_id):
@@ -213,7 +233,8 @@ class PyStreamDataBatcher:
             self.stream_data_batcher.get_tick_buffer(source, instrument_id, exchange_id)
         )
         tick_df = pd.DataFrame(tick_array)
-        tick_df.columns = tick_column_names
+        if not tick_df.empty:
+            tick_df.columns = tick_column_names
         return tick_df
 
     def pop_batched_entrust_until(self, until_time, instrument_id, exchange_id):

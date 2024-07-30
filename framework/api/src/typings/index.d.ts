@@ -9,6 +9,11 @@ type AnyPromiseFunction = (...args: unknown[]) => Promise<unknown>;
 
 type TradingDataKeeperListType = 'all' | 'common' | 'unfinished';
 
+type ColumnsSetting = {
+  fields: string[];
+  columnsWidth: Record<string, number>;
+};
+
 declare module 'tasklist' {
   function tasklist(options: {
     verbose: boolean;
@@ -683,10 +688,6 @@ declare namespace KungfuApi {
     frozen_fee: number; //冻结手续费(期货)
     position_pnl: number; //持仓盈亏(期货)
     close_pnl: number; //平仓盈亏(期货)
-
-    update_time: bigint; //更新时间
-    holder_uid: number;
-    ledger_category: LedgerCategoryEnum;
 
     total_asset: number; //总资产
     avail_margin: number; //可用保证金

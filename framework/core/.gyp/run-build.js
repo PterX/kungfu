@@ -5,9 +5,20 @@ const glob = require('glob');
 const path = require('path');
 const { prebuilt, shell } = require('../lib');
 
+function cpVsDependencies() {
+  const isWin = process.platform === 'win32';
+  if (!isWin) return;
+  core_dir = path.dirname(
+    require.resolve('@kungfu-trader/kungfu-core/package.json'),
+  );
+  vs_dir = path.join(core_dir, '.deps', 'vs');
+  kfc_dist = path.join(core_dir, 'dist', 'kfc');
+  fs.cpSync(vs_dir, kfc_dist, { recursive: true });
+}
+
 function build() {
   shell.showAutoConfig();
-  callPrebuilt(['configure', 'build']);
+  callPrebuilt(['configure', 'build']).onSuccess(cpVsDependencies);
 }
 
 function clean() {

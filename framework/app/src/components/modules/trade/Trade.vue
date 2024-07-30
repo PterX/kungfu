@@ -41,11 +41,14 @@ import { getColumns } from './config';
 import type { Dayjs } from 'dayjs';
 import {
   showTradingDataDetail,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import TradeStatisticModal from './TradeStatisticModal.vue';
 import { HistoryDateEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const app = getCurrentInstance();
@@ -64,9 +67,6 @@ const {
   getCurrentGlobalKfLocationId,
 } = useCurrentGlobalKfLocation(window.watcher);
 
-const { handleDownload } = useDownloadHistoryTradingData();
-const statisticModalVisible = ref<boolean>(false);
-
 const columns = computed(() => {
   if (!currentGlobalKfLocation.value) {
     return getColumns({
@@ -75,10 +75,13 @@ const columns = computed(() => {
       name: '*',
       mode: '*',
     });
+  } else {
+    return getColumns(currentGlobalKfLocation.value);
   }
-
-  return getColumns(currentGlobalKfLocation.value);
 });
+
+const { handleDownload } = useDownloadHistoryTradingData();
+const statisticModalVisible = ref<boolean>(false);
 
 const needProcessTradingData = ref<boolean>(true);
 const isRendering = ref<boolean>(false);
@@ -301,8 +304,13 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
+        table-key="Trade"
         :columns="columns"
         :hasData="hasData"
+        column-resize-mode="header"
+        drag-header-mode="all"
+        cache-column-resizable
+        cache-column-change
         @right-click-row="handleShowTradingDataDetail"
       />
     </KfDashboard>

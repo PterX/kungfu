@@ -44,6 +44,7 @@ import KfProcessStatus from '@kungfu-trader/kungfu-app/src/renderer/components/p
 import {
   playSound,
   useAddUpdateRemoveKfConfig,
+  useCoreBindPage,
   useCurrentGlobalKfLocation,
   useExtConfigsRelated,
   useProcessStatusDetailData,
@@ -57,6 +58,8 @@ import { ProcessStatusTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { storeToRefs } from 'pinia';
 import { BuiltinComponentInjectKeysMap } from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/symbols';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 

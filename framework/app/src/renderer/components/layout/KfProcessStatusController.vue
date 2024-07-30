@@ -43,12 +43,14 @@ import {
   handleSwitchProcessStatusGenerator,
   useAllKfConfigData,
   useExtConfigsRelated,
+  usePreStartAndQuitApp,
   useProcessStatusDetailData,
   useReplay,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import loadingGif from '@kungfu-trader/kungfu-app/src/renderer/assets/imgs/loading.gif';
 
 const { t } = VueI18n.global;
 
@@ -71,6 +73,7 @@ const {
   processStatusDetailData,
   getProcessStatusName,
 } = useProcessStatusDetailData();
+const { preStartSystemLoading, preQuitSystemLoading } = usePreStartAndQuitApp();
 
 const {
   replayConfig,
@@ -91,6 +94,10 @@ let hasAlertLedgerStop = false;
 const getNotificationType = (flag: number) => {
   return flag ? 'warning' : 'error';
 };
+
+const systemLoading = computed(
+  () => preStartSystemLoading.value || preQuitSystemLoading.value,
+);
 
 watch(processStatusData, (newPSD, oldPSD) => {
   if (isClosingWindow) return;
@@ -239,9 +246,13 @@ onMounted(() => {
     }"
     @click="handleOpenProcessControllerBoard"
   >
-    <ClusterOutlined style="font-size: 14px; padding-right: 4px" />
-    <span class="title">{{ $t('baseConfig.control_center') }}</span>
-
+    <div v-if="systemLoading" class="process-loading">
+      <img :src="loadingGif" width="56" height="6" />
+    </div>
+    <div v-else>
+      <ClusterOutlined style="font-size: 14px; padding-right: 4px" />
+      <span class="title">{{ $t('baseConfig.control_center') }}</span>
+    </div>
     <a-drawer
       v-model:visible="processControllerBoardVisible"
       :width="650"
@@ -386,6 +397,7 @@ onMounted(() => {
         </template>
       </div>
     </a-drawer>
+
     <KfReplaySettingModal
       v-if="setReplayModalVisible"
       :width="720"
@@ -418,6 +430,14 @@ onMounted(() => {
     .anticon {
       color: lighten(@red2-base, 10%);
     }
+  }
+
+  .process-loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 }
 

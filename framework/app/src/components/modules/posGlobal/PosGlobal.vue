@@ -42,13 +42,15 @@ import {
   useDealDataWithCaches,
   showTradingDataDetail,
   getPosClosableVolumeByOffset,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { dealPosition } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
 import { useGlobalStore } from '@kungfu-trader/kungfu-app/src/renderer/pages/index/store/global';
 import { resolveTriggerOffset } from '../pos/utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { ExchangeIds } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 
@@ -93,11 +95,7 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     instrument_id: [
       {
         type: 'text',
-        dealValue: (record) => {
-          return `${record.instrument_id}${
-            ExchangeIds[record.exchange_id]?.name
-          }`;
-        },
+        dealValue: (record) => record.instrument_id_resolved,
         fontSize: 12,
         fill: '#ffffffd9',
         boundsPadding: [7, 10, 5, 10],
@@ -132,7 +130,9 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions) return getColumns();
+  if (!posTableColumnsOptions || !selectedOptions) {
+    return getColumns();
+  }
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
@@ -143,6 +143,7 @@ const columns = computed(() => {
     return !notSelectedOptions.includes(item.field as string);
   });
 });
+
 const hasData = computed(() => pos.value.length > 0);
 
 const setTableData = () => {
@@ -323,9 +324,14 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
+        table-key="PosGlobal"
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
+        column-resize-mode="header"
+        drag-header-mode="all"
+        cache-column-resizable
+        cache-column-change
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

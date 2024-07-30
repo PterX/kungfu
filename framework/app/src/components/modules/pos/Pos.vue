@@ -44,11 +44,14 @@ import {
   useActiveInstruments,
   showTradingDataDetail,
   getPosClosableVolumeByOffset,
+  useCoreBindPage,
 } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/actionsUtils';
 import { messagePrompt } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
 import VueI18n from '@kungfu-trader/kungfu-js-api/language';
 import { resolveTriggerOffset } from './utils';
 import { getKfGlobalSettings } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
+
+useCoreBindPage();
 
 const { t } = VueI18n.global;
 const { success, error } = messagePrompt();
@@ -67,7 +70,7 @@ const { handleDownload } = useDownloadHistoryTradingData();
 const { triggerOrderBook, triggerMakeOrder } = useTriggerMakeOrder();
 const { instruments } = useInstruments();
 
-const { getInstrumentCurrency } = useActiveInstruments();
+const { getInstrumentCurrency, getInstrumentName } = useActiveInstruments();
 const { dealDataWithCache } = useDealDataWithCaches<
   KungfuApi.Position,
   KungfuApi.PositionResolved
@@ -101,6 +104,7 @@ const customLayout = computed<Record<string, ICustomActionOption[]>>(() => {
     ],
   };
 });
+
 const columns = computed(() => {
   const defaultLocation = {
     category: 'td',
@@ -117,8 +121,10 @@ const columns = computed(() => {
     .filter((item) => item.key === 'posTableColumns')[0]
     .options?.map((item) => item.value);
   const selectedOptions: string[] = globalSetting.value?.trade?.posTableColumns;
-  if (!posTableColumnsOptions || !selectedOptions)
+  if (!posTableColumnsOptions || !selectedOptions) {
     return getColumns(currentGlobalKfLocation.value || defaultLocation);
+  }
+
   const notSelectedOptions = posTableColumnsOptions.filter((item) => {
     return !selectedOptions.includes(item as string);
   });
@@ -166,15 +172,25 @@ onActivated(() => {
         ) as KungfuApi.Position[];
 
       pos.value = toRaw(
-        positions.reverse().map((item) => {
+        positions.reverse().map((position) => {
           const currency = getInstrumentCurrency(
-            item.instrument_id,
-            item.exchange_id,
+            position.instrument_id,
+            position.exchange_id,
           );
 
-          return dealDataWithCache(item, () => dealPosition(watcher, item), {
-            currency,
-          });
+          const instrumentName = getInstrumentName(
+            position.instrument_id,
+            position.exchange_id,
+            position.instrument_type,
+          );
+
+          return dealDataWithCache(
+            position,
+            () => dealPosition(watcher, position, instrumentName),
+            {
+              currency,
+            },
+          );
         }),
       );
 
@@ -293,9 +309,14 @@ function handleShowTradingDataDetail(args: VTable.MousePointerCellEvent) {
       </template>
       <KfCanvasTradingDataTable
         ref="canvasRef"
+        table-key="Pos"
         :columns="columns"
         :has-data="hasData"
         :custom-layout="customLayout"
+        column-resize-mode="header"
+        drag-header-mode="all"
+        cache-column-resizable
+        cache-column-change
         @click-cell="handleClickRow"
         @right-click-row="handleShowTradingDataDetail"
       />

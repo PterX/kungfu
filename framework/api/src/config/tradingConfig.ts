@@ -1026,6 +1026,14 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.IPM'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
   },
+  'BINANCE-UFUT': {
+    name: t('tradingConfig.BINANCE-UFUT'),
+    color: InstrumentType[InstrumentTypeEnum.cryptoufuture].color,
+  },
+  'BINANCE-CFUT': {
+    name: t('tradingConfig.BINANCE-CFUT'),
+    color: InstrumentType[InstrumentTypeEnum.cryptofuture].color,
+  },
 };
 
 export const FutureArbitrageCodes: Record<

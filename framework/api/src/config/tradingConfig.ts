@@ -1026,16 +1026,12 @@ export const ExchangeIds: Record<string, KungfuApi.KfTradeValueCommonData> = {
     name: t('tradingConfig.IPM'),
     color: InstrumentType[InstrumentTypeEnum.future].color,
   },
-  'OKX-SPOT': {
-    name: t('tradingConfig.OKX_SPOT'),
-    color: InstrumentType[InstrumentTypeEnum.crypto].color,
-  },
-  'OKX-UFUT': {
-    name: t('tradingConfig.OKX_USD_FUTURE'),
+  'BINANCE-UFUT': {
+    name: t('tradingConfig.BINANCE-UFUT'),
     color: InstrumentType[InstrumentTypeEnum.cryptoufuture].color,
   },
-  'OKX-CFUT': {
-    name: t('tradingConfig.OKX_COIN_FUTURE'),
+  'BINANCE-CFUT': {
+    name: t('tradingConfig.BINANCE-CFUT'),
     color: InstrumentType[InstrumentTypeEnum.cryptofuture].color,
   },
 };

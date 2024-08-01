@@ -251,7 +251,7 @@ void print_stack_trace(FILE *out) {
       // __cxa_demangle():
       int status = 0;
       size_t funcnamesize = 8192;
-      auto funcname = reinterpret_cast<char*>(std::malloc(funcnamesize ));
+      auto funcname = reinterpret_cast<char *>(std::malloc(funcnamesize));
       char *ret = abi::__cxa_demangle(begin_name, funcname, &funcnamesize, &status);
       if (console_count >= 0) {
         KF_LOG_CRITICAL("{:<30} ({:<40}+{}) {}", symbollist[i], status == 0 ? ret : begin_name,

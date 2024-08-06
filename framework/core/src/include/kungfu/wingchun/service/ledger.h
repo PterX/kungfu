@@ -66,7 +66,9 @@ private:
   void keep_positions([[maybe_unused]] int64_t trigger_time, uint32_t strategy_uid);
 
   void rebuild_positions(int64_t trigger_time, uint32_t strategy_uid);
-  int getDecimalPlaces(double num);
+
+  int get_decimal_places(double num);
+
   double translate_by_price_tick(const char *exchange_id, const char *instrument_id, double price);
 
   template <typename AppStateMap, typename AppStateUpdate>

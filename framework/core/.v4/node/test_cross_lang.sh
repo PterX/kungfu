@@ -4,8 +4,18 @@
 set -euo pipefail
 
 V4_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PY=/opt/homebrew/opt/python@3.13/bin/python3.13
-NODE=/opt/homebrew/opt/node@22/bin/node
+
+# 跨平台工具链：可用 KFV4_PYTHON / KFV4_NODE 覆盖；否则按 OS 取默认。
+# macOS 需 arch -arm64 前缀(Rosetta shell)；Linux 原生无需。
+if [ "$(uname)" = "Darwin" ]; then
+  PY="${KFV4_PYTHON:-/opt/homebrew/opt/python@3.13/bin/python3.13}"
+  NODE="${KFV4_NODE:-/opt/homebrew/opt/node@22/bin/node}"
+  ARCH_PREFIX=(arch -arm64)
+else
+  PY="${KFV4_PYTHON:-python3}"
+  NODE="${KFV4_NODE:-node}"
+  ARCH_PREFIX=()
+fi
 
 BASE="$(mktemp -d -t kfv4_xlang_XXXXXX)"
 export KFV4_JOURNAL_DIR="$BASE"
@@ -14,9 +24,9 @@ export KF_RUNTIME_DIR="$BASE"
 echo "=== 共享 journal 目录：$BASE ==="
 
 echo "--- [1/2] Python 写入 ---"
-arch -arm64 "$PY" "$V4_DIR/python/test_journal_roundtrip.py"
+"${ARCH_PREFIX[@]}" "$PY" "$V4_DIR/python/test_journal_roundtrip.py"
 
 echo "--- [2/2] Node 读取 ---"
-arch -arm64 "$NODE" "$V4_DIR/node/test_journal_read.js"
+"${ARCH_PREFIX[@]}" "$NODE" "$V4_DIR/node/test_journal_read.js"
 
 echo "=== 跨语言点亮通过：Python 写、Node 读，同一条 journal ==="

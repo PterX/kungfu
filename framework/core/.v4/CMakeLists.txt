@@ -71,6 +71,14 @@ link_libraries(${CONAN_LIBS})
 add_subdirectory(${CORE_DIR}/src/libkungfu ${CMAKE_BINARY_DIR}/libkungfu)
 
 ##########################################################################
+# 跨平台 rpath 起点：macOS=@loader_path，Linux=$ORIGIN(指向 .so 自身所在目录)。
+if(APPLE)
+  set(KFV4_RPATH_ORIGIN "@loader_path")
+else()
+  set(KFV4_RPATH_ORIGIN "$ORIGIN")
+endif()
+
+##########################################################################
 # Step 2: 精简 pybind11 模块 pykungfu(只 longfist + yijinjing)，链 Step 1 的 libkungfu。
 option(KFV4_BUILD_PYTHON "构建最小点亮的 Python 绑定" OFF)
 # Step 4: pykungfu 内嵌 libnode(node::Start 进程内启 Node)。需 -DKFV4_LIBNODE_DIR=<已 --shared 编出
@@ -95,17 +103,21 @@ if(KFV4_BUILD_PYTHON)
     if(NOT KFV4_LIBNODE_DIR)
       message(FATAL_ERROR "KFV4_BUILD_LIBNODE=ON 需 -DKFV4_LIBNODE_DIR=<Node 源码树(已 --shared 编出 libnode)>")
     endif()
-    file(GLOB KFV4_LIBNODE_DYLIB ${KFV4_LIBNODE_DIR}/out/Release/libnode.*.dylib)
+    if(APPLE)
+      file(GLOB KFV4_LIBNODE_DYLIB ${KFV4_LIBNODE_DIR}/out/Release/libnode.*.dylib)
+    else()
+      file(GLOB KFV4_LIBNODE_DYLIB ${KFV4_LIBNODE_DIR}/out/Release/libnode.so.*)
+    endif()
     message(STATUS "libnode: ${KFV4_LIBNODE_DYLIB}")
     target_compile_definitions(pykungfu PRIVATE KFV4_WITH_LIBNODE)
     target_include_directories(pykungfu PRIVATE
         ${KFV4_LIBNODE_DIR}/src ${KFV4_LIBNODE_DIR}/deps/v8/include ${KFV4_LIBNODE_DIR}/deps/uv/include)
     target_link_libraries(pykungfu PRIVATE ${KFV4_LIBNODE_DYLIB})
   endif()
-  # pykungfu.so 与 libkungfu.dylib 同在 build/Release/，rpath 用 @loader_path；libnode 另加其目录。
+  # pykungfu 与 libkungfu 同在 build/Release/，rpath 用 origin；libnode 另加其目录。
   set_target_properties(pykungfu PROPERTIES
       BUILD_WITH_INSTALL_RPATH ON
-      INSTALL_RPATH "@loader_path")
+      INSTALL_RPATH "${KFV4_RPATH_ORIGIN}")
   if(KFV4_BUILD_LIBNODE)
     set_property(TARGET pykungfu APPEND PROPERTY INSTALL_RPATH ${KFV4_LIBNODE_DIR}/out/Release)
   endif()
@@ -145,9 +157,12 @@ if(KFV4_BUILD_NODE)
       ${NODE_BINDING_DIR} ${NODE_ADDON_API_DIR} ${NODE_INCLUDE_DIR})
   target_compile_definitions(kungfu_node PRIVATE NAPI_VERSION=8 NAPI_EXPERIMENTAL)
   target_link_libraries(kungfu_node PRIVATE ${LIBKUNGFU_NAME})
-  # N-API 符号在加载时由宿主 node 解析；macOS 用 dynamic_lookup 允许未定义符号。
-  target_link_options(kungfu_node PRIVATE -undefined dynamic_lookup)
+  # N-API 符号在加载时由宿主 node 解析：macOS 需 -undefined dynamic_lookup 放行未定义符号；
+  # Linux 共享对象默认即允许未定义符号，无需额外 flag。
+  if(APPLE)
+    target_link_options(kungfu_node PRIVATE -undefined dynamic_lookup)
+  endif()
   set_target_properties(kungfu_node PROPERTIES
       BUILD_WITH_INSTALL_RPATH ON
-      INSTALL_RPATH "@loader_path")
+      INSTALL_RPATH "${KFV4_RPATH_ORIGIN}")
 endif()

@@ -44,11 +44,31 @@ arch -arm64 cmake --build build -j8
 # 产物：build/Release/libkungfu.dylib（arm64）
 ```
 
+## 构建（Step 2：Python 绑定 pykungfu）
+
+精简 pybind11 模块 `pykungfu`，只绑 longfist + yijinjing（复用 `../src/bindings/python/binding/py-longfist*.cpp` + `py-yijinjing.cpp`），
+跳过 libnode(Step3)/wingchun。pybind11 走 conan2 的 `pybind11/2.13.6`（Py3.13 需 ≥2.11），不用 vendored 旧版。
+
+```bash
+cd framework/core/.v4
+arch -arm64 conan install . --output-folder=build -s build_type=Release --build=missing
+arch -arm64 cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DKFV4_BUILD_PYTHON=ON
+arch -arm64 cmake --build build -j8 --target pykungfu
+# 产物：build/Release/pykungfu.cpython-313-darwin.so
+arch -arm64 /opt/homebrew/opt/python@3.13/bin/python3.13 python/test_journal_roundtrip.py
+```
+
+> 坑：`publisher` 间接继承 `resource`，纯虚共 4 个；共享 trampoline `PyPublisher` 只覆盖 notify/publish，
+> Python 子类化抽象基类会报 `No constructor defined`。解法＝在 `python/pykungfu_lightup.cpp` 用 C++ 定义具体
+> `noop_publisher`（实现全部纯虚）并 `py::init<>()` 绑到 yijinjing 子模块，不改共享 trampoline。
+> （`writer::close_frame` 末尾无条件 `publisher_->notify()`，单进程写读 demo 无 master 故需 noop。）
+
 ## 进度
 
 - [x] **Step 1**：arm64 编出 C++ 内核 `libkungfu.dylib`。fmt 8.1.1→10.2.1 + spdlog→1.14.1（clang21 拒编 fmt8 的 consteval）；
       源码移植：`common.h` 给 `kungfu::array` 加 `fmt::ostream_formatter` formatter + `fmt/std.h`；`enums.h` 加 ADL `format_as`。
-- [ ] **Step 2**：pybind11 绑定 `pykungfu`（Python 3.13）——需先升 vendored `.deps/pybind11-2.9.0`(太旧)；里程碑：Python 读到 C++ 写的同一帧 journal。
+- [x] **Step 2**：pybind11 绑定 `pykungfu`（Python 3.13），conan2 装 `pybind11/2.13.6`。里程碑达成：
+      Python 经 journal 写一帧 Quote 再读回，字段一致（`python/test_journal_roundtrip.py`）。
 - [ ] **Step 3**：N-API 绑定 `kungfu_node` + arm64 重编 libnode（Node 22）；里程碑：Node 读到同一帧。
 - [ ] **Step 4**：Python 经 `node::Start()` 内嵌 Node，单进程三语言联动点亮。
 

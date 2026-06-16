@@ -10,6 +10,7 @@ rxcpp/4.1.1
 sqlite3/3.39.2
 rocksdb/6.29.5
 tabulate/1.4
+pybind11/2.13.6
 
 [generators]
 CMakeDeps

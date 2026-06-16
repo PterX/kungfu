@@ -69,3 +69,23 @@ link_directories(${KUNGFU_BUILD_LIBRARY_DIR})
 link_libraries(${CONAN_LIBS})
 
 add_subdirectory(${CORE_DIR}/src/libkungfu ${CMAKE_BINARY_DIR}/libkungfu)
+
+##########################################################################
+# Step 2: 精简 pybind11 模块 pykungfu(只 longfist + yijinjing)，链 Step 1 的 libkungfu。
+option(KFV4_BUILD_PYTHON "构建最小点亮的 Python 绑定" OFF)
+if(KFV4_BUILD_PYTHON)
+  find_package(pybind11 REQUIRED)
+  set(PY_BINDING_DIR ${CORE_DIR}/src/bindings/python/binding)
+  pybind11_add_module(pykungfu
+      ${PY_BINDING_DIR}/py-longfist.cpp
+      ${PY_BINDING_DIR}/py-longfist-types.cpp
+      ${PY_BINDING_DIR}/py-longfist-enums.cpp
+      ${PY_BINDING_DIR}/py-yijinjing.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/python/pykungfu_lightup.cpp)
+  target_include_directories(pykungfu PRIVATE ${PY_BINDING_DIR})
+  target_link_libraries(pykungfu PRIVATE ${LIBKUNGFU_NAME})
+  # pykungfu.so 与 libkungfu.dylib 同在 build/Release/，rpath 用 @loader_path 即可。
+  set_target_properties(pykungfu PROPERTIES
+      BUILD_WITH_INSTALL_RPATH ON
+      INSTALL_RPATH "@loader_path")
+endif()

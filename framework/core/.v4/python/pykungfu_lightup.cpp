@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Kungfu 4.0 最小点亮：精简版 pykungfu，只绑 longfist + yijinjing(journal)，
-// 跳过 libnode(Step 3) 与 wingchun。证明 Python 能读写 C++ 的 journal/longfist。
+// Kungfu 4.0 最小点亮：精简版 pykungfu，绑 longfist + yijinjing(journal)，跳过 wingchun。
+// 证明 Python 能读写 C++ 的 journal/longfist；Step 4 起(KFV4_WITH_LIBNODE)再加 libnode
+// 子模块(node::Start 进程内启 Node)，做单进程三语言联动。
 #include "py-longfist.h"
 #include "py-yijinjing.h"
+#ifdef KFV4_WITH_LIBNODE
+#include "py-libnode.h"
+#endif
 
 #include <kungfu/yijinjing/common.h>
 
@@ -31,4 +35,8 @@ PYBIND11_MODULE(pykungfu, m) {
   py::class_<kungfu::yijinjing::noop_publisher, kungfu::yijinjing::publisher,
              std::shared_ptr<kungfu::yijinjing::noop_publisher>>(yjj, "noop_publisher")
       .def(py::init<>());
+#ifdef KFV4_WITH_LIBNODE
+  // Step 4: pykungfu.libnode.run("node", "script.js") → node::Start 进程内启 Node。
+  kungfu::libnode::bind(m.def_submodule("libnode"));
+#endif
 }

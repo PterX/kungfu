@@ -84,7 +84,50 @@ bash node/test_cross_lang.sh
 > 故读自定义目录的 journal 时，须设 `KF_RUNTIME_DIR` 指向写入目录（编排器已处理）。
 > 另：`NODE_API_MODULE(mod, regfunc)` 对 regfunc 做 token 粘贴，须传未限定标识符。
 
+## 构建（Step 4：进程内嵌 libnode，单进程三语言联动）
+
+技术终点：同一进程内 Python 写一帧 → `node::Start()` 在本进程启真正的 Node → Node 读回同一帧。
+内嵌机制＝`../src/bindings/python/binding/py-libnode.cpp` 的 `node::Start(argc,argv)`（Node 22 的
+`node.h` 仍导出 `__ZN4node5StartEiPPc`，**未改一行**）。需先从源码 `--shared` 编出 arm64 的 libnode。
+
+**① 编 libnode（Node 22，arm64，~9 分钟 @ M1 Ultra）**——源码走域内镜像，不碰旧仓 11GB 子模块：
+
+```bash
+# 关键：Node 构建要 Python 3.12(3.13/3.14 太新)；shell 是 Rosetta x86_64，必须 arch -arm64 否则编成 x64
+curl -L -o node-v22.22.3.tar.gz https://cdn.npmmirror.com/binaries/node/v22.22.3/node-v22.22.3.tar.gz
+tar xzf node-v22.22.3.tar.gz && cd node-v22.22.3
+arch -arm64 $(command -v python3.12) configure --shared
+arch -arm64 make -j$(sysctl -n hw.ncpu)
+# 产物：out/Release/libnode.127.dylib(arm64, ABI 127)
+```
+
+**② 编内嵌 libnode 的 pykungfu + 跑单进程联动**（`KFV4_LIBNODE_DIR` 指向上面的 Node 源码树）：
+
+```bash
+cd framework/core/.v4
+arch -arm64 cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
+    -DKFV4_BUILD_PYTHON=ON -DKFV4_BUILD_NODE=ON \
+    -DKFV4_BUILD_LIBNODE=ON -DKFV4_LIBNODE_DIR=<上面的 node-v22.22.3 绝对路径>
+arch -arm64 cmake --build build -j8 --target pykungfu --target kungfu_node
+BASE=$(mktemp -d); KFV4_JOURNAL_DIR=$BASE KF_RUNTIME_DIR=$BASE \
+    arch -arm64 /opt/homebrew/opt/python@3.13/bin/python3.13 python/test_single_process.py
+```
+
+> 注：pykungfu(host) 与内嵌 Node 各自链一份 libkungfu，但 yijinjing journal 是 mmap 文件、本就跨实例/跨进程
+> 安全，故同进程内两份 libkungfu 读同一条 journal 天然成立。`node::Start` 在脚本事件循环排空后干净返回
+> Python（同一 pid），不 `process.exit`。`KFV4_LIBNODE_DIR` 不写死进仓库，由 configure 传入。
+
 ## 进度
+
+- [x] **Step 1**：arm64 编出 C++ 内核 `libkungfu.dylib`。fmt 8.1.1→10.2.1 + spdlog→1.14.1（clang21 拒编 fmt8 的 consteval）；
+      源码移植：`common.h` 给 `kungfu::array` 加 `fmt::ostream_formatter` formatter + `fmt/std.h`；`enums.h` 加 ADL `format_as`。
+- [x] **Step 2**：pybind11 绑定 `pykungfu`（Python 3.13），conan2 装 `pybind11/2.13.6`。里程碑达成：
+      Python 经 journal 写一帧 Quote 再读回，字段一致（`python/test_journal_roundtrip.py`）。
+- [x] **Step 3**：标准 N-API addon `kungfu_node`（系统 Node 22 + node-addon-api 8，**不依赖 libnode**）。里程碑达成：
+      Python 写、Node 读同一条 journal，`genTime` 完全一致（`node/test_cross_lang.sh`）。三语言（C++/Py/Node）共享 journal 打通。
+- [x] **Step 4 ✅ 技术终点**：arm64 从源码 `--shared` 编出 Node 22 libnode(ABI 127)，pykungfu 内嵌 `node::Start`。
+      里程碑达成：**单进程内**(同一 pid) Python 写、Node 读同一条 journal（`python/test_single_process.py`）。
+      → objective 达成：arm64 原生、C++/Python/Node 单进程零拷贝、共享同一条 journal 的数据流运行时。
 
 - [x] **Step 1**：arm64 编出 C++ 内核 `libkungfu.dylib`。fmt 8.1.1→10.2.1 + spdlog→1.14.1（clang21 拒编 fmt8 的 consteval）；
       源码移植：`common.h` 给 `kungfu::array` 加 `fmt::ostream_formatter` formatter + `fmt/std.h`；`enums.h` 加 ADL `format_as`。

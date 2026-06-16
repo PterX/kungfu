@@ -73,21 +73,42 @@ add_subdirectory(${CORE_DIR}/src/libkungfu ${CMAKE_BINARY_DIR}/libkungfu)
 ##########################################################################
 # Step 2: 精简 pybind11 模块 pykungfu(只 longfist + yijinjing)，链 Step 1 的 libkungfu。
 option(KFV4_BUILD_PYTHON "构建最小点亮的 Python 绑定" OFF)
+# Step 4: pykungfu 内嵌 libnode(node::Start 进程内启 Node)。需 -DKFV4_LIBNODE_DIR=<已 --shared 编出
+# libnode 的 Node 源码树>(含 out/Release/libnode.*.dylib + src/ + deps/{v8,uv}/include)。
+option(KFV4_BUILD_LIBNODE "Step 4: pykungfu 内嵌 libnode(单进程三语言联动)" OFF)
 if(KFV4_BUILD_PYTHON)
   find_package(pybind11 REQUIRED)
   set(PY_BINDING_DIR ${CORE_DIR}/src/bindings/python/binding)
-  pybind11_add_module(pykungfu
+  set(PYKUNGFU_SOURCES
       ${PY_BINDING_DIR}/py-longfist.cpp
       ${PY_BINDING_DIR}/py-longfist-types.cpp
       ${PY_BINDING_DIR}/py-longfist-enums.cpp
       ${PY_BINDING_DIR}/py-yijinjing.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/python/pykungfu_lightup.cpp)
+  if(KFV4_BUILD_LIBNODE)
+    list(APPEND PYKUNGFU_SOURCES ${PY_BINDING_DIR}/py-libnode.cpp)
+  endif()
+  pybind11_add_module(pykungfu ${PYKUNGFU_SOURCES})
   target_include_directories(pykungfu PRIVATE ${PY_BINDING_DIR})
   target_link_libraries(pykungfu PRIVATE ${LIBKUNGFU_NAME})
-  # pykungfu.so 与 libkungfu.dylib 同在 build/Release/，rpath 用 @loader_path 即可。
+  if(KFV4_BUILD_LIBNODE)
+    if(NOT KFV4_LIBNODE_DIR)
+      message(FATAL_ERROR "KFV4_BUILD_LIBNODE=ON 需 -DKFV4_LIBNODE_DIR=<Node 源码树(已 --shared 编出 libnode)>")
+    endif()
+    file(GLOB KFV4_LIBNODE_DYLIB ${KFV4_LIBNODE_DIR}/out/Release/libnode.*.dylib)
+    message(STATUS "libnode: ${KFV4_LIBNODE_DYLIB}")
+    target_compile_definitions(pykungfu PRIVATE KFV4_WITH_LIBNODE)
+    target_include_directories(pykungfu PRIVATE
+        ${KFV4_LIBNODE_DIR}/src ${KFV4_LIBNODE_DIR}/deps/v8/include ${KFV4_LIBNODE_DIR}/deps/uv/include)
+    target_link_libraries(pykungfu PRIVATE ${KFV4_LIBNODE_DYLIB})
+  endif()
+  # pykungfu.so 与 libkungfu.dylib 同在 build/Release/，rpath 用 @loader_path；libnode 另加其目录。
   set_target_properties(pykungfu PROPERTIES
       BUILD_WITH_INSTALL_RPATH ON
       INSTALL_RPATH "@loader_path")
+  if(KFV4_BUILD_LIBNODE)
+    set_property(TARGET pykungfu APPEND PROPERTY INSTALL_RPATH ${KFV4_LIBNODE_DIR}/out/Release)
+  endif()
 endif()
 
 ##########################################################################

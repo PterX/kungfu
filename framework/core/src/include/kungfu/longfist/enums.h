@@ -35,6 +35,13 @@
   }
 
 namespace kungfu::longfist::enums {
+// fmt 10 不再隐式格式化枚举；通过 ADL 友元 format_as 把本命名空间所有枚举
+// 按底层整数格式化（与既有 operator<< 输出 int32_t 一致）。
+template <typename E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
+constexpr int32_t format_as(E e) {
+  return static_cast<int32_t>(e);
+}
+
 enum class mode : int8_t { LIVE, DATA, REPLAY, BACKTEST };
 
 KF_JSON_SERIALIZE_ENUM(mode, {

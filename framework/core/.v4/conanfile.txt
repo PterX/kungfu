@@ -1,0 +1,33 @@
+# Kungfu 4.0 — 最小点亮内核依赖（conan 2）
+# 仅 libkungfu(longfist + yijinjing) 所需 C++ 依赖；gtest(测试)暂不纳入。
+# 旧 conanfile.py(conan 1.x 全量编排器) 暂留作参考，绑定/打包阶段再正式迁移。
+[requires]
+fmt/10.2.1
+spdlog/1.14.1
+nlohmann_json/3.11.2
+nng/1.6.0
+rxcpp/4.1.1
+sqlite3/3.39.2
+rocksdb/6.29.5
+tabulate/1.4
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[options]
+fmt/*:header_only=True
+spdlog/*:header_only=True
+sqlite3/*:enable_column_metadata=True
+sqlite3/*:enable_json1=True
+nng/*:http=False
+rocksdb/*:lite=False
+rocksdb/*:shared=False
+rocksdb/*:use_rtti=False
+rocksdb/*:with_lz4=False
+rocksdb/*:with_zlib=False
+rocksdb/*:with_zstd=False
+rocksdb/*:with_snappy=False
+rocksdb/*:with_gflags=False
+rocksdb/*:with_jemalloc=False
+rocksdb/*:with_tbb=False

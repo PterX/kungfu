@@ -16,6 +16,8 @@
 #include <utility>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <fmt/std.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -494,5 +496,10 @@ template <typename DataType> struct state {
 };
 
 } // namespace kungfu
+
+// fmt 10 移除了对带 operator<< 类型的隐式格式化；kungfu::array 有 operator<<，
+// 通过继承 fmt::ostream_formatter 提供 formatter 特化以恢复 "{}" 格式化能力。
+template <typename T, size_t N>
+struct fmt::formatter<kungfu::array<T, N>> : fmt::ostream_formatter {};
 
 #endif // KUNGFU_COMMON_H

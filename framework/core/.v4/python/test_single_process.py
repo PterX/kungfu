@@ -8,6 +8,13 @@ import sys, os
 
 V4 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(V4, "build", "Release"))
+
+# Linux：默认以 RTLD_LOCAL 载入扩展模块，pykungfu 经 DT_NEEDED 带入的 libnode 的 napi_*
+# 符号不会进入全局符号域，导致内嵌 Node dlopen kungfu_node.node 时报 undefined symbol:
+# napi_*。这里改用 RTLD_GLOBAL 载入，让 libnode 的 N-API 符号全局可见。
+# macOS 的 dyld(平面查找 + addon 的 -undefined dynamic_lookup)已处理，无需此设置。
+if sys.platform.startswith("linux"):
+    sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
 import pykungfu as kf
 
 lf, yjj = kf.longfist, kf.yijinjing

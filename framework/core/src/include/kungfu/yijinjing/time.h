@@ -3,6 +3,7 @@
 #ifndef YIJINJING_TIME_H
 #define YIJINJING_TIME_H
 
+#include <cstdint>
 #include <string>
 #include <time.h>
 

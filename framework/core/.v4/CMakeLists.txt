@@ -89,3 +89,44 @@ if(KFV4_BUILD_PYTHON)
       BUILD_WITH_INSTALL_RPATH ON
       INSTALL_RPATH "@loader_path")
 endif()
+
+##########################################################################
+# Step 3: 精简 N-API addon kungfu_node(只 longfist + journal 读取)，链 Step 1 的 libkungfu。
+# 标准 N-API addon，对系统 Node 22 编(不依赖 libnode；进程内嵌 Node 是 Step 4 的事)。
+option(KFV4_BUILD_NODE "构建最小点亮的 Node.js 绑定" OFF)
+if(KFV4_BUILD_NODE)
+  # node-addon-api 头(.v4/node/node_modules，header-only)与系统 node 头(node@22)。
+  # include_dir 是相对 cwd 的路径，故指定 cwd 为 .v4/node 后再补成绝对路径。
+  execute_process(
+      COMMAND node -p "require('node-addon-api').include_dir"
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/node
+      OUTPUT_VARIABLE NODE_ADDON_API_REL OUTPUT_STRIP_TRAILING_WHITESPACE)
+  get_filename_component(NODE_ADDON_API_DIR
+      ${CMAKE_CURRENT_SOURCE_DIR}/node/${NODE_ADDON_API_REL} ABSOLUTE)
+  execute_process(
+      COMMAND node -p "process.execPath"
+      OUTPUT_VARIABLE NODE_EXEC_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+  get_filename_component(NODE_BIN_DIR ${NODE_EXEC_PATH} DIRECTORY)
+  get_filename_component(NODE_PREFIX ${NODE_BIN_DIR} DIRECTORY)
+  set(NODE_INCLUDE_DIR ${NODE_PREFIX}/include/node)
+  message(STATUS "node-addon-api headers: ${NODE_ADDON_API_DIR}")
+  message(STATUS "node headers: ${NODE_INCLUDE_DIR}")
+
+  set(NODE_BINDING_DIR ${CORE_DIR}/src/bindings/node/binding)
+  add_library(kungfu_node SHARED
+      ${NODE_BINDING_DIR}/longfist.cpp
+      ${NODE_BINDING_DIR}/journal.cpp
+      ${NODE_BINDING_DIR}/io.cpp
+      ${NODE_BINDING_DIR}/operators.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/node/kungfu_node_lightup.cpp)
+  set_target_properties(kungfu_node PROPERTIES PREFIX "" SUFFIX ".node")
+  target_include_directories(kungfu_node PRIVATE
+      ${NODE_BINDING_DIR} ${NODE_ADDON_API_DIR} ${NODE_INCLUDE_DIR})
+  target_compile_definitions(kungfu_node PRIVATE NAPI_VERSION=8 NAPI_EXPERIMENTAL)
+  target_link_libraries(kungfu_node PRIVATE ${LIBKUNGFU_NAME})
+  # N-API 符号在加载时由宿主 node 解析；macOS 用 dynamic_lookup 允许未定义符号。
+  target_link_options(kungfu_node PRIVATE -undefined dynamic_lookup)
+  set_target_properties(kungfu_node PROPERTIES
+      BUILD_WITH_INSTALL_RPATH ON
+      INSTALL_RPATH "@loader_path")
+endif()

@@ -15,7 +15,10 @@ def field(obj, name):
     return v() if callable(v) else v
 
 
-base = tempfile.mkdtemp(prefix="kfv4_journal_")
+# 跨语言场景下由 KFV4_JOURNAL_DIR 指定共享目录（Node 端读同一条 journal）；
+# 否则自建临时目录做 Python 自洽往返。
+base = os.environ.get("KFV4_JOURNAL_DIR") or tempfile.mkdtemp(prefix="kfv4_journal_")
+os.makedirs(base, exist_ok=True)
 print("journal dir:", base)
 
 print("step: locator"); sys.stdout.flush()

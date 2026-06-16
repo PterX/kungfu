@@ -63,14 +63,36 @@ arch -arm64 /opt/homebrew/opt/python@3.13/bin/python3.13 python/test_journal_rou
 > `noop_publisher`（实现全部纯虚）并 `py::init<>()` 绑到 yijinjing 子模块，不改共享 trampoline。
 > （`writer::close_frame` 末尾无条件 `publisher_->notify()`，单进程写读 demo 无 master 故需 noop。）
 
+## 构建（Step 3：Node 绑定 kungfu_node）
+
+精简 **标准 N-API addon** `kungfu_node`，只绑 longfist + journal 读取（复用 `../src/bindings/node/binding/`
+的 `longfist.cpp`/`journal.cpp`/`io.cpp`/`operators.cpp`），入口 `node/kungfu_node_lightup.cpp`。
+**关键认知：标准 N-API addon 不依赖 libnode**，对系统 Node 22 头 + node-addon-api 编即可；libnode（进程内嵌
+Node 的 shared lib）是 Step 4 才需要的东西。N-API 符号加载时由宿主 node 解析，macOS 用 `-undefined dynamic_lookup`。
+
+```bash
+cd framework/core/.v4/node && arch -arm64 npm install   # 取 node-addon-api 头(header-only)
+cd .. && arch -arm64 cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DKFV4_BUILD_NODE=ON
+arch -arm64 cmake --build build -j8 --target kungfu_node
+# 产物：build/Release/kungfu_node.node
+# 跨语言点亮：Python 写一帧 Quote → Node 读回同一帧
+bash node/test_cross_lang.sh
+```
+
+> 坑：现有 Node 绑定的 `Reader` 构造写死 `IODevice::GetDefaultRuntimeLocator()`，即只认环境变量
+> **`KF_RUNTIME_DIR`**（默认 `~/.../runtime`），**不认** `openReader()` 所属 io_device 的 base。
+> 故读自定义目录的 journal 时，须设 `KF_RUNTIME_DIR` 指向写入目录（编排器已处理）。
+> 另：`NODE_API_MODULE(mod, regfunc)` 对 regfunc 做 token 粘贴，须传未限定标识符。
+
 ## 进度
 
 - [x] **Step 1**：arm64 编出 C++ 内核 `libkungfu.dylib`。fmt 8.1.1→10.2.1 + spdlog→1.14.1（clang21 拒编 fmt8 的 consteval）；
       源码移植：`common.h` 给 `kungfu::array` 加 `fmt::ostream_formatter` formatter + `fmt/std.h`；`enums.h` 加 ADL `format_as`。
 - [x] **Step 2**：pybind11 绑定 `pykungfu`（Python 3.13），conan2 装 `pybind11/2.13.6`。里程碑达成：
       Python 经 journal 写一帧 Quote 再读回，字段一致（`python/test_journal_roundtrip.py`）。
-- [ ] **Step 3**：N-API 绑定 `kungfu_node` + arm64 重编 libnode（Node 22）；里程碑：Node 读到同一帧。
-- [ ] **Step 4**：Python 经 `node::Start()` 内嵌 Node，单进程三语言联动点亮。
+- [x] **Step 3**：标准 N-API addon `kungfu_node`（系统 Node 22 + node-addon-api 8，**不依赖 libnode**）。里程碑达成：
+      Python 写、Node 读同一条 journal，`genTime` 完全一致（`node/test_cross_lang.sh`）。三语言（C++/Py/Node）共享 journal 打通。
+- [ ] **Step 4**：arm64 从源码重建 libnode（16→22 LTS）→ Python/C++ 经 `node::Start()` 进程内嵌 Node，单进程三语言联动点亮。
 
 ## 待办（现代化欠债）
 

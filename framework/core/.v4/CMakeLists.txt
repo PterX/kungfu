@@ -36,9 +36,9 @@ set(CONAN_LIBS
 
 ##########################################################################
 add_compile_definitions(HAVE_USLEEP=1)
-# fmt 8.1.1 的 consteval 格式串检查在 clang 21 上报错；关掉编译期检查以最小代价点亮。
-# TODO(4.0): 后续把 fmt/spdlog 升到现代版本，去掉此 workaround。
-add_compile_definitions(FMT_USE_CONSTEVAL=0)
+# 注：fmt 8.1.1 的 consteval 格式串检查曾在 clang21 报错，故 Step 1 临时加过
+# FMT_USE_CONSTEVAL=0。升级到 fmt 10.2.1 后该问题消失，已去掉 workaround，
+# 恢复 fmt 的编译期格式串检查(clang21 + gcc13 双平台验证通过)。
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_LOG_LEVEL_COMPILE})
 add_compile_definitions(SPDLOG_NO_NAME)
 add_compile_definitions(SPDLOG_NO_ATOMIC_LEVELS)

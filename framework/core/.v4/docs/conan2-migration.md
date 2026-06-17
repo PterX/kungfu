@@ -262,6 +262,33 @@ PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
   验证 freeze 主路径，web 栈单独修。④certifi cacert.pem 已 --include-package-data=certifi。
 - **freeze 入口**：当前直接 `python -m nuitka`(脱离 conan2 package()，符合 D6)。正式化时封装成脚本/run-conan freeze 子命令。
 
-**Stage C 剩余**：①Nuitka freeze 调通(上述卡点) → dist/kfc 独立运行。②**Ubuntu 装 python3.13**(deadsnakes/源码)+ Linux
-pykungfu 从 3.12 重编 3.13 + Linux env bootstrap + freeze。③双平台各产 kfc。④kungfubuildinfo.json 生成补进 cmake-js 后置步骤。
+**Stage C Nuitka freeze 调通 ✅(2026-06-17 Mac，kfc.bin 干净独立运行)**：
+- **certifi 卡点真因(推翻原假设)**：用最小 probe(standalone 冻结) 实证——**冻结后 `sys.version_info` 正确是 (3,13,13)、`>=3.11` 为
+  True、`importlib.resources` 的 files/path/read_text 全在**。certifi 并非「冻结后版本变 <3.11」，而是 **Nuitka 2.5.9 的
+  anti-bloat 配置 (`standard.nuitka-package.config.yml` 的 `certifi.core`) 对新版 certifi 失效**：它把源码里 `sys.version_info`
+  文本替换成 `(0,)`(→`if (0,)>=(3,11)` 恒 False，强制走 else 分支)、再把 else 分支那行 `from importlib.resources import
+  path as get_path, read_text` 替换成 `raise ImportError`。这套替换是为**老 certifi**(else 分支带 try/except 文件兜底)写的；
+  certifi 2026.05.20 的 else 分支是裸 import 无兜底 → `raise ImportError` 未被捕获 → 整个 `import certifi` 崩。`import warnings
+  failed` 噪声则由 `--python-flag=no_warnings` 引起(probe 去掉即消失)。
+- **修复＝升级 Nuitka 2.5.9→4.1.2**：4.1.2 的 `certifi.core` 同样替换但加了 `when: 'version("certifi") < (2025,)'` 门控；
+  我们 certifi 2026.x ≥2025 → 替换不再应用，**保留 anti-bloat 的同时干净修好 certifi**(probe 实证 + 全量 kfc 验证)。2.5.9 的
+  user-package-config 不允许覆盖已存在 module-name(`update` 断言)，故走升级而非 yaml 覆盖。`pyproject.toml` nuitka pin `~2.5→~4.1`。
+- **kfc.py 选项随 4.x 调整**：去 `--python-flag=no_warnings`(清启动噪声)；去 `--enable-plugin=numpy`(4.x 自动处理、且 deprecated)
+  与 `--enable-plugin=anti-bloat`(4.x 恒开，显式启用会 WARNING)；`--noinclude-custom-mode=distutils:nofollow`(4.x 废弃 `:mode`
+  语法，FATAL)→`--nofollow-import-to=distutils`。
+- **mypyc 包次生坑(4.x 比 2.5.9 严)**：2.5.9 能编入随包发 mypyc `.so` 的包，4.1.2 拒绝把包的 `__init__.cpython-313-darwin.so`
+  当源码解析(SyntaxError invalid encoding)。命中 ①chardet 7.x(requests 可选探测器，缺失回退 charset_normalizer，已 nofollow)
+  ②`kfc engage` 的 dev 工具桥接 black/pdm/SCons/scons/nuitka(全 mypyc，且把 Nuitka/SCons 自身打进冻结 kfc 不合理)。bridging 全是
+  函数内懒加载，nofollow 不影响 kfc 启动与核心命令；`kfc engage <tool>` 留作 engage 打包另案(见 Stage C 剩余⑤)。均在 kfc.py 加
+  `--nofollow-import-to=`。
+- **产物 & 验证**：`/tmp/kfc-nuitka/kfc.dist/`(910M)：kfc.bin(277M)+pykungfu.so+libkungfu.dylib(419M)+libnode.127.dylib(110M)。
+  补 `kungfubuildinfo.json` 进 dist 后，`env -u PYTHONPATH kfc.dist/kfc.bin --help` 在干净环境**完整输出 CLI**(assemble/cli/login/
+  run/backtest/journal/slicetool/tool/engage)、**无 warnings 噪声、无 certifi 报错**(--help 已加载 login 等全部命令模块，证明 certifi
+  运行期 import 成功)。Stage C Mac freeze 主路径打通。
+
+**Stage C 剩余**：①✅ Mac Nuitka freeze 调通 + kfc.bin 独立运行(本轮完成)。②**Ubuntu 装 python3.13**(deadsnakes/源码)+ Linux
+pykungfu 从 3.12 重编 3.13 + Linux env bootstrap + freeze(Linux 侧 nuitka 也升 4.1.2、复核 mypyc 包 nofollow 是否同样命中)。③双平台
+各产 kfc。④kungfubuildinfo.json 生成补进 cmake-js 后置步骤(目前 freeze 后手动 cp 进 dist)。⑤`kfc engage` dev 工具桥接(black/pdm/
+scons/nuitka)在冻结版的打包策略另案(非 P1 必需；可能改为 dev 环境另装或 bytecode 方式，而非 Nuitka 编译)。⑥freeze 入口正式化为脚本/
+run-conan freeze 子命令。⑦体积优化(910M)留后。
 </content>

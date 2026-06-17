@@ -231,10 +231,21 @@ PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
 - `Pipfile`：pip `23.2.1`→`24.3.1`、setuptools→`75.6.0`、virtualenv→`20.28.0`、wheel→`0.45.1`、poetry `1.6.1`→`1.8.5`、
   urllib3→`2.2.3`、xattr→`1.1.4`、cffi→`1.17.1`、pycparser→`2.22`、cryptography→`43.0.3`、pywin32-ctypes→`0.2.3`；加 `[requires] python_version="3.13"`。
 
-**Stage C 剩余(长迭代，下次起点)**：①env bootstrap：`pipenv install`(Pipfile，造 3.13 venv，本机标准 poetry 损坏须经 pipenv
-内的 poetry)→`pipenv run poetry lock`(解析 3.13 数据栈，**预计需迭代修版本冲突**)→`poetry install`(numpy/pandas/scipy/
-statsmodels/plotly… + nuitka)。可能需给 poetry/pipenv 配 LAN 源(devpi `192.168.100.222:3141`)。②**Ubuntu 装 python3.13**
-(deadsnakes/源码) + Linux pykungfu 从 3.12 重编为 3.13。③freeze 入口脱离 conan2 package()：直接驱动 Nuitka(kfc.py 内嵌配置)
-产 dist/kfc，验证 `kfc` 独立运行(import pykungfu + numpy/pandas)。④双平台各产 kfc。⑤本轮未验证 env 解析(标准 poetry venv 损坏，
-需经 pipenv)，pyproject/Pipfile 版本为最佳实践估值，lock 时按冲突微调。
+**Stage C env bootstrap + kfc 运行验证完成(2026-06-17，Mac)**：
+- **pipenv 升级**：旧 pipenv 2022.8.15(自身在 py3.7)在 3.12+ venv 缺 `pkg_resources`(setuptools 不再自带)崩溃 →
+  `pipx uninstall pipenv && pipx install pipenv --python <py3.13>` 装 **2026.6.2**。
+- **bootstrap**：`pipenv --python /opt/homebrew/opt/python@3.13/bin/python3.13 install`(造 3.13 venv `core-wguTdosw` +
+  poetry 1.8.5)→ `pipenv run poetry lock`(**3 轮修冲突**：railroad-diagrams `~3.1`不存在→`*`、certifi `~2023`被 pdm 要求
+  `≥2024.8.30`→`*`、一批传递/工具类 pin 放宽 `*`)→ `pipenv run poetry install`(65 装)。pyproject 加 `[[tool.poetry.source]]`
+  aliyun 国内源(避免占出海链路)。**验证**：numpy 2.1.3 / pandas 2.2.3 / scipy 1.14.1 / nuitka 2.5.9 全在 py3.13。
+- **kfc 运行验证**：`PYTHONPATH=<pykungfu Release dir> pipenv run python src/python/kfc.py --help` 输出完整 kungfu CLI
+  (assemble/login/run/backtest/journal/slicetool/tool/engage)。full pykungfu(longfist/yijinjing/wingchun/libnode)import 成功。
+  **改 1 处源码**：`kungfu/console/commands/__init__.py` 的 `from click.decorators import F as CLI` → 本地 TypeVar(click 8.1.7+
+  移除私有 F)。**坑**：`kungfu/__init__` 读 pykungfu 同目录的 `kungfubuildinfo.json`(version 字段)；conanfile.build() 的
+  `__gen_build_info` 才生成它，**cmake-js 直编路径不生成**——freeze/运行前需补生成(本轮手造最小 json 验证)。
+
+**Stage C 剩余(下次起点)**：①**Nuitka freeze**(长编译、迭代)：脱离 conan2 package()，`pipenv run python -m nuitka`(kfc.py 内嵌
+`--standalone --include-package=numpy/pandas/plotly --enable-plugin=anti-bloat,numpy`)产 `dist/kfc`，验证独立运行(不依赖系统 Python)。
+需先解决 kungfubuildinfo.json 生成(加到 cmake-js 后置步骤或 freeze 前置)。②**Ubuntu 装 python3.13**(deadsnakes/源码)+ Linux
+pykungfu 从 3.12 重编 3.13 + Linux env bootstrap + freeze。③双平台各产 kfc。
 </content>

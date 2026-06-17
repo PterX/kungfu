@@ -147,4 +147,19 @@ conanfile.py(conan1)
   ln -sfn libnode.* dist/node/libnode.{dylib|so}`。**下一步 A-2b**：kungfu-core package.json devDep
   `@kungfu-trader/libnode 16.15.0→22.22.3`(dev 用 local link 指向本机 libnode 仓)+`electron 19.1.8→37.x`，npm/yarn
   install 让 use_libnode 解析→ run-conan.js flags conan2 化 → 完整 bindings build(真 pykungfu 内嵌 libnode + kungfu_node)。
+- 2026-06-17 A-2b 进行中(消费端接通 + 真实绑定首编)：
+  - kungfu-core `package.json` devDep：`electron 19.1.8→^37.10.3`(最佳实践选 Electron 37 LTS-line，捆绑 Node22；域内镜像
+    最新 37.10.3)、`node-addon-api ^5→^8`、删 `nan`(已被 node-addon-api 取代)；**`@kungfu-trader/libnode` 不进 committed
+    package.json**(未发布、且两机 dist 路径不同)，dev 走 **npm link**(机器本地不提交)。
+  - **dev npm 摩擦(重要)**：`npm install` 会全树 reconcile，撞未发布的 libnode 版本(ETARGET)并清掉 npm link 符号链接。
+    故 dev bootstrap＝①`npm install`(registry deps，但 kungfu-core 是 lerna monorepo 含多内部 @kungfu-trader/* 包，全量
+    install 本身是更大未决项)②`npm link @kungfu-trader/libnode`(指向本机 libnode 仓)③node-addon-api 铺入 node_modules。
+    **当前用最小 node_modules**(cp node-addon-api + link libnode)验证，未做全量 monorepo install。
+  - **验证**：完整 configure(libkungfu+kungfu_node+pykungfu 全 enabled，node-addon-api/libnode 头解析✓)；手动 cmake 实编
+    出真实 **libkungfu.dylib + pykungfu**(含 py-libnode 内嵌，otool 链 `@rpath/libnode.127.dylib`✓，Mac arm64)。
+  - **两个构建驱动待办(非 blocker，是驱动细节)**：①kungfu_node 需 `NODE_RUNTIME=node/electron` 才触发 build_node_binding；
+    且 build() 的 pure-cmake node 分支历史上**显式 skip kungfu_node+pykungfu 只编 libkungfu**——真实双绑定走 **cmake-js
+    (with_yarn) 路径**(历史成因#2)。②pykungfu 误链 Python 3.14(Mac 默认)，需 `-DPYTHON_EXECUTABLE` 钉到受控 3.13。
+  - **下一步**：run-conan.js conan1 flags→conan2 + 跑通 cmake-js(with_yarn) 路径(yarn+cmake-js，需 JS 工具链/monorepo
+    bootstrap)出 kungfu_node(node+electron 双 runtime) + pin Python；或先验证 conan build 端到端。Linux 侧同步重做。
 </content>

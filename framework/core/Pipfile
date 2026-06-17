@@ -1,25 +1,29 @@
 # SPDX-License-Identifier: Apache-2.0
 # Use pipenv to make a virtualenv and ensure python version.
 # Then let poetry to manage the other dependencies.
+# v4 现代化(2026)：统一 Python 3.13；pip/setuptools/poetry/cffi/cryptography 等升到 3.13 兼容版。
 
 [packages]
 ##########################################################################
-pip = "==23.2.1"
-setuptools = "==68.2.2"
-virtualenv = "==20.24.4"
-wheel = "==0.41.3"
+pip = "==24.3.1"
+setuptools = "==75.6.0"
+virtualenv = "==20.28.0"
+wheel = "==0.45.1"
 ##########################################################################
-poetry = "==1.6.1"
+poetry = "==1.8.5"
 # required by poetry on linux
-urllib3 = "==1.26.16"
+urllib3 = "==2.2.3"
 # required by poetry on macos
-xattr = {version = "==0.10.1", markers = "sys_platform != 'win32'"}
+xattr = {version = "==1.1.4", markers = "sys_platform != 'win32'"}
 ##########################################################################
 # os related deps
-cffi = {version = "==1.15.1", markers = "sys_platform != 'win32'"}
-pycparser = {version = "==2.21", markers = "sys_platform != 'win32'"}
+cffi = {version = "==1.17.1", markers = "sys_platform != 'win32'"}
+pycparser = {version = "==2.22", markers = "sys_platform != 'win32'"}
 colorama = {version = "==0.4.6", markers = "os_name == 'nt'"}
-pywin32-ctypes = {version = "==0.2.2", markers = "sys_platform == 'win32'"}
-cryptography = {version = "==41.0.4", markers = "sys_platform == 'linux'"}
+pywin32-ctypes = {version = "==0.2.3", markers = "sys_platform == 'win32'"}
+cryptography = {version = "==43.0.3", markers = "sys_platform == 'linux'"}
 jeepney = {version = "==0.8.0", markers = "sys_platform == 'linux'"}
 secretstorage = {version = "==3.3.3", markers = "sys_platform == 'linux'"}
+
+[requires]
+python_version = "3.13"

@@ -220,6 +220,21 @@ Nuitka(`src/python/kfc.py` 内嵌 `--standalone --include-package=numpy/pandas/p
    或 conan export-pkg)。dist/kfc 产物路径。
 5. **env bootstrap**：pipenv(造 venv+Python)+ poetry(装数据栈)+ pykungfu 可导入。本机有 pipenv/poetry(`~/.local/bin`)，无 venv。
 
-**待可人决策**：①freeze Python 版本(统一 3.13 / 按平台) ②freezer(Nuitka 2.x / PyInstaller) ③数据栈升级范围。
-记录于此作 Stage C 起点；本轮到此 checkpoint(C 是新现代化战线，宜独立推进)。
+**决策(可人 2026-06-17)**：①统一 Python **3.13** 双平台(Ubuntu 也装 python3.13) ②freezer **Nuitka 2.x**(不行回退
+PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
+
+**Stage C 基础已落(2026-06-17)**：依赖现代化(决策驱动、可提交)——
+- `pyproject.toml`：python `>=3.9,<3.12`→`>=3.13,<3.14`；numpy `~1.25`→`~2.1`、pandas `~2.0`→`~2.2`、scipy `~1.12`→`~1.14`、
+  statsmodels→`~0.14.4`、nuitka `~1.5`→`~2.5`、pyinstaller `~5.13`→`~6.11`(dev fallback)、black/pdm/scons/click/psutil/
+  tabulate/wcmatch/urllib3/websockets/boto3/keyring/zstandard/setuptools/virtualenv/wheel 等同步升 3.13 兼容；**移除 vestigial
+  conan ~1.60 dev-dep**(conan2 由系统 pipx 提供)；dev-deps 段 `[tool.poetry.dev-dependencies]`→`[tool.poetry.group.dev.dependencies]`。
+- `Pipfile`：pip `23.2.1`→`24.3.1`、setuptools→`75.6.0`、virtualenv→`20.28.0`、wheel→`0.45.1`、poetry `1.6.1`→`1.8.5`、
+  urllib3→`2.2.3`、xattr→`1.1.4`、cffi→`1.17.1`、pycparser→`2.22`、cryptography→`43.0.3`、pywin32-ctypes→`0.2.3`；加 `[requires] python_version="3.13"`。
+
+**Stage C 剩余(长迭代，下次起点)**：①env bootstrap：`pipenv install`(Pipfile，造 3.13 venv，本机标准 poetry 损坏须经 pipenv
+内的 poetry)→`pipenv run poetry lock`(解析 3.13 数据栈，**预计需迭代修版本冲突**)→`poetry install`(numpy/pandas/scipy/
+statsmodels/plotly… + nuitka)。可能需给 poetry/pipenv 配 LAN 源(devpi `192.168.100.222:3141`)。②**Ubuntu 装 python3.13**
+(deadsnakes/源码) + Linux pykungfu 从 3.12 重编为 3.13。③freeze 入口脱离 conan2 package()：直接驱动 Nuitka(kfc.py 内嵌配置)
+产 dist/kfc，验证 `kfc` 独立运行(import pykungfu + numpy/pandas)。④双平台各产 kfc。⑤本轮未验证 env 解析(标准 poetry venv 损坏，
+需经 pipenv)，pyproject/Pipfile 版本为最佳实践估值，lock 时按冲突微调。
 </content>

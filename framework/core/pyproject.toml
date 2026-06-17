@@ -13,61 +13,62 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.12"
+# v4 现代化：Python 3.13(统一 Mac/Linux，= pykungfu 构建 Python)。
+python = ">=3.13, <3.14"
 
 #### Compiler #############################################
-black = "~23.3.0"
-nuitka = "~1.5.0"
-pdm = "~2.5.0"
+black = "~24.10.0"
+nuitka = "~2.5.0"
+pdm = "~2.21.0"
 pdm-pep517 = "~1.1.0"
-poetry-core = "~1.7.0"
-scons = "~4.5.0"
+poetry-core = "~1.9.0"
+scons = "~4.8.0"
 tomli-w = "~1.0.0"
-tomlkit = "~0.12.3"
+tomlkit = "~0.13.0"
 
 #### Console ##############################################
-click = "8.1.3"
-psutil = "~5.9.0"
-tabulate = "~0.8.10"
-wcmatch = "~8.0.0"
+click = "~8.1.7"
+psutil = "~6.1.0"
+tabulate = "~0.9.0"
+wcmatch = "~10.0.0"
 
 #### Numeric ##############################################
-numpy = "~1.25.0"
-pandas = "~2.0.0"
-scipy = "~1.12.0"
-statsmodels = "~0.14.0"
-openpyxl = "~3.1.2"
+numpy = "~2.1.0"
+pandas = "~2.2.0"
+scipy = "~1.14.0"
+statsmodels = "~0.14.4"
+openpyxl = "~3.1.5"
 
 #### Dependencies #########################################
 certifi = "~2023.7.22"
 chardet = "~5.1.0"
 charset-normalizer = "~3.3.2"
-importlib-metadata = "~6.8.0"
-msgpack = "~1.0.7"
-filelock = "~3.13.1"
+importlib-metadata = "~8.5.0"
+msgpack = "~1.1.0"
+filelock = "~3.16.0"
 ordered-set = "~4.1.0"
-packaging = "~23.2"
-platformdirs = "~3.11.0"
-pluggy = "~1.3.0"
-pytest = "~7.1.0"
-railroad-diagrams = "~2.0.0"
-shellingham = "~1.5.3"
-zipp = "~3.19.1"
+packaging = "~24.2"
+platformdirs = "~4.3.0"
+pluggy = "~1.5.0"
+pytest = "~8.3.0"
+railroad-diagrams = "~3.1.0"
+shellingham = "~1.5.4"
+zipp = "~3.21.0"
 authing = "~5.1.0"
-urllib3 = "~1.26.16"
-websockets = "~12.0.0"
-boto3 = "~1.34.39"
-keyring = "~24.3.0"
-zstandard = "~0.21.0"
+urllib3 = "~2.2.0"
+websockets = "~13.1.0"
+boto3 = "~1.35.0"
+keyring = "~25.5.0"
+zstandard = "~0.23.0"
 
 #### Sync Pipfile #########################################
-setuptools = "68.2.2"
-virtualenv = "20.24.4"
-wheel = "0.41.3"
+setuptools = "~75.6.0"
+virtualenv = "~20.28.0"
+wheel = "~0.45.0"
 
-[tool.poetry.dev-dependencies]
-conan = "~1.60.0"
-pyinstaller = "~5.13.2"
+[tool.poetry.group.dev.dependencies]
+# conan 由系统 pipx 提供(2.x)，不再经 poetry 装 conan1。
+pyinstaller = "~6.11.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

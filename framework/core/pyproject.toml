@@ -66,6 +66,7 @@ zstandard = "~0.23.0"
 setuptools = "~75.6.0"
 virtualenv = "~20.28.0"
 wheel = "~0.45.0"
+plotly = "^6.8.0"
 
 [tool.poetry.group.dev.dependencies]
 # conan 由系统 pipx 提供(2.x)，不再经 poetry 装 conan1。

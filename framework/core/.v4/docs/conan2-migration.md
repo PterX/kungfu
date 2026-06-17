@@ -200,4 +200,26 @@ conanfile.py(conan1)
   - **遗留小项**：Mac/Linux pykungfu Python minor 分歧(3.13/3.12，待统一)；kungfu-core 全量 JS monorepo install 仍未做(当前用最小
     node_modules：node-addon-api + link libnode)；orchestrated 端到端(yarn→run-conan→conan build→build()→cmake-js)未跑通(需
     pipenv + monorepo bootstrap)，但底层能力已由直接 cmake-js 验证。
+
+## 4c. Stage C(freeze + kfc)分析（2026-06-17 摸清，是 Python 栈现代化子工程）
+
+kfc＝把 `kungfu` Python 包(`src/python/kungfu`，入口 `__main__.main()`→console select)+ numpy/pandas/plotly 等
+冻成**独立可执行**(用户无需装 Python)。两条 freezer 路径都在：PyInstaller(`src/python/kfc.spec`，详细 spec)、
+Nuitka(`src/python/kfc.py` 内嵌 `--standalone --include-package=numpy/pandas/plotly --enable-plugin=anti-bloat/numpy`)。
+构建哲学：**pipenv 造 venv + 定 Python 版本；poetry 管其余依赖**(`pyproject.toml` packages=kungfu from src/python)。
+
+**前置冲突/现代化点(动手前必解)**：
+1. **Python 版本**：`pyproject.toml` 钉 `python = ">=3.9, <3.12"`，与 v4 runtime(Mac pykungfu 3.13 / Linux 3.12)冲突。
+   **且 kfc 冻的 Python 必须＝pykungfu 的构建 Python**(kfc 进程 import pykungfu)。故 freeze Python 要么统一(两平台都
+   3.13，需 Ubuntu 装 python3.13)，要么按平台冻(Mac3.13/Linux3.12)。
+2. **数据栈版本旧**：numpy ~1.25(不支持 3.13)、pandas ~2.0、scipy ~1.12、nuitka ~1.5.0(2026 是 2.x)、pyinstaller ~5.13.2
+   ——配 Python 3.13 需整体升级(numpy≥1.26/2.x 等)。
+3. **freezer 选择**：可人倾向 Nuitka(若 2026 成熟)。Nuitka 2.x 在 2026 已成熟(standalone + numpy/pandas plugin 可用)，
+   产出真编译二进制(更独立、更难逆向)；PyInstaller 5→6 更快但是 bundle 非编译。
+4. **conan2 freeze 入口**：conan2 无独立 `conan package`，freeze 需脱离 conanfile.package()(直接驱动 Nuitka/PyInstaller，
+   或 conan export-pkg)。dist/kfc 产物路径。
+5. **env bootstrap**：pipenv(造 venv+Python)+ poetry(装数据栈)+ pykungfu 可导入。本机有 pipenv/poetry(`~/.local/bin`)，无 venv。
+
+**待可人决策**：①freeze Python 版本(统一 3.13 / 按平台) ②freezer(Nuitka 2.x / PyInstaller) ③数据栈升级范围。
+记录于此作 Stage C 起点；本轮到此 checkpoint(C 是新现代化战线，宜独立推进)。
 </content>

@@ -94,4 +94,13 @@ conanfile.py(conan1)
 
 - 2026-06-17：建立本文档。完成对构建编排全景的通读理解（conanfile.py / 主 CMakeLists / .gyp/run-conan.js /
   run-build.js / package.json / libnode.cmake），可人确认 §2 历史成因，定 §3 决策、§4 分阶段规格。下一步＝Stage A。
+- 2026-06-17 Stage A-1：`conanfile.py` 由 conan1 端口到 conan2。关键 API 映射：`from conans`→`from conan`；
+  `generators="cmake"`+`imports()`→`generate()`(CMakeDeps+CMakeToolchain，generator=Ninja，透传 SPDLOG_LOG_LEVEL_COMPILE)；
+  `tools.detected_os()`→`_detected_os()`(platform.system 包装)；`self.copy`→`conan.tools.files.copy(self,…)`；
+  `tools.Git`→subprocess git；`tools.mkdir/chdir/which`→`os.makedirs`/`os.chdir`/`shutil.which`；options 用 `pkg/*:opt`
+  形式；deps 升 fmt10.2.1+spdlog1.14.1。`imports()` 删除——其「拷 Python headers/lib」职责移到 package()(对 kfx
+  开发者导出)，内部构建改 CMake FindPython（决策 D6）。验证：`conan inspect` 加载成功(10 requires/options 正确)；
+  `conan install -o &:with_yarn=False` 成功，generate() 产出 conan_toolchain.cmake + 各 *Config.cmake(Mac arm64)。
+  **待验证**：build()/package()/freeze 的运行逻辑尚未跑通(下一步随主 CMakeLists conan2 适配 + libkungfu 构建验证)；
+  configure() 里 libcxx 设定暂留空(交给 conan profile，避免与 LAN 缓存包不一致)，待 Windows 阶段复核 vs_toolset。
 </content>

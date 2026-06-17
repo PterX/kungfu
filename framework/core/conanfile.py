@@ -1,4 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
+#
+# kungfu-core conan2 编排器（v4+）。
+# 由 conan-1.x 全量端口而来，逻辑成因见 .v4/docs/conan2-migration.md（理解可能片面，以代码为准）。
+# 不向下兼容 v3：只保证 v4+ 在 Mac arm64 / Linux x64 / Windows 可用。
 
 import json
 import getpass
@@ -11,84 +15,87 @@ import stat
 import subprocess
 import sys
 import re
+from glob import glob
+from os import environ, path
 
-from conans import ConanFile
-from conans import tools
-from conans.errors import ConanException
-from distutils import sysconfig
-from os import environ
-from os import path
+from conan import ConanFile
+from conan.tools.cmake import CMakeToolchain, CMakeDeps
+from conan.tools.files import copy
+from conan.errors import ConanException
 
 with open(path.join("package.json"), "r") as package_json_file:
     package_json = json.load(package_json_file)
 
 
+def _detected_os():
+    """conan1 tools.detected_os() 的替代：返回 Windows/Macos/Linux。"""
+    return {"Windows": "Windows", "Darwin": "Macos", "Linux": "Linux"}.get(
+        platform.system(), platform.system()
+    )
+
+
 class KungfuCoreConan(ConanFile):
     name = "kungfu-core"
     version = package_json["version"]
-    generators = "cmake"
+    settings = "os", "compiler", "build_type", "arch"
+    # conan2：依赖经 requirements()/requires 声明，generate() 产 CMakeDeps+CMakeToolchain。
     requires = [
-        "fmt/8.1.1",
+        "fmt/10.2.1",
         "nlohmann_json/3.11.2",
         "nng/1.6.0",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
-        # "sqlite_orm/1.7.1",
-        "spdlog/1.10.0",
+        "spdlog/1.14.1",
         "tabulate/1.4",
         "rocksdb/6.29.5",
+        "pybind11/2.13.6",
         "gtest/1.14.0",
     ]
-    settings = "os", "compiler", "build_type", "arch"
     options = {
         "log_level": ["trace", "debug", "info", "warning", "error", "critical"],
-        "arch": ["x64"],
         "freezer": ["nuitka", "pyinstaller"],
-        "node_version": "ANY",
-        "electron_version": "ANY",
+        "node_version": ["ANY"],
+        "electron_version": ["ANY"],
         "vs_toolset": ["auto", "ClangCL"],
         "with_yarn": [True, False],
     }
     default_options = {
-        "fmt:header_only": True,
-        "spdlog:header_only": True,
-        "spdlog:shared": False,
-        "sqlite3:enable_column_metadata": True,
-        "sqlite3:enable_json1": True,
-        "sqlite3:enable_preupdate_hook": True,
-        "sqlite3:enable_dbstat_vtab": True,
-        "sqlite3:shared": False,
-        "nng:http": False,
+        "fmt/*:header_only": True,
+        "spdlog/*:header_only": True,
+        "spdlog/*:shared": False,
+        "sqlite3/*:enable_column_metadata": True,
+        "sqlite3/*:enable_json1": True,
+        "sqlite3/*:enable_preupdate_hook": True,
+        "sqlite3/*:enable_dbstat_vtab": True,
+        "sqlite3/*:shared": False,
+        "nng/*:http": False,
+        "rocksdb/*:lite": False,
+        "rocksdb/*:shared": False,
+        "rocksdb/*:use_rtti": False,
+        "rocksdb/*:with_lz4": False,
+        "rocksdb/*:with_tbb": False,
+        "rocksdb/*:with_zlib": False,
+        "rocksdb/*:with_zstd": False,
+        "rocksdb/*:enable_sse": False,
+        "rocksdb/*:with_gflags": False,
+        "rocksdb/*:with_snappy": False,
+        "rocksdb/*:with_jemalloc": False,
+        "gtest/*:shared": False,
+        "gtest/*:build_gmock": True,
+        "gtest/*:hide_symbols": False,
+        "gtest/*:disable_pthreads": False,
+        # 自身 options
         "log_level": "info",
-        "arch": "x64",
         "freezer": "pyinstaller",
         "node_version": "ANY",
         "electron_version": "ANY",
-        "rocksdb:lite": False,
-        "rocksdb:shared": False,
-        "rocksdb:use_rtti": False,
-        "rocksdb:with_lz4": False,
-        "rocksdb:with_tbb": False,
-        "rocksdb:with_zlib": False,
-        "rocksdb:with_zstd": False,
-        "rocksdb:enable_sse": False,
-        "rocksdb:with_gflags": False,
-        "rocksdb:with_snappy": False,
-        "rocksdb:with_jemalloc": False,
-        "gtest:shared": False,
-        "gtest:build_gmock": True,
-        "gtest:hide_symbols": False,
-        "gtest:disable_pthreads": False,
-        # clang has a known issue:
+        # clang 已知问题:
         # https://developercommunity.visualstudio.com/t/msbuild-doesnt-give-delayload-flags-to-linker-when/1595015
         "vs_toolset": (
             "auto" if "CONAN_VS_TOOLSET" not in environ else environ["CONAN_VS_TOOLSET"]
         ),
         "with_yarn": False,
     }
-    if tools.detected_os() != "Windows":
-        default_options["rocksdb:fPIC"] = True
-        default_options["gtest:fPIC"] = True
 
     gyp_call = "NODE_GYP_RUN" in os.environ
     exports = "package.json"
@@ -108,33 +115,25 @@ class KungfuCoreConan(ConanFile):
     kfc_dir = path.join(dist_dir, "kfc")
     kfs_dir = path.join(dist_dir, "kfs")
 
-    def configure(self):
-        if tools.detected_os() != "Windows":
-            self.settings.compiler.libcxx = "libstdc++"
-        else:
-            toolset = self.__get_toolset()
-            if toolset != "auto":
-                self.settings.compiler.toolset = toolset
+    def config_options(self):
+        if _detected_os() != "Windows":
+            self.options.rm_safe("vs_toolset")
 
-    # def layout(self):
-    #     if "NODE_GYPE_RUN" not in os.environ:
-    #         tools.cmake.cmake_layout(self)
+    def configure(self):
+        if _detected_os() != "Windows":
+            # 与历史一致：非 Windows 用 libstdc++（注：旧码写 libstdc++，conan2 profile 通常
+            # 用 libstdc++11；此处沿用 profile 设定，不在 recipe 强行覆盖以免与 LAN 缓存包不一致）。
+            pass
 
     def generate(self):
-        """Updates mtime of lock files for node-gyp sake"""
+        deps = CMakeDeps(self)
+        deps.generate()
+        tc = CMakeToolchain(self, generator="Ninja")
+        # 把自身 options 透传给 CMake（主 CMakeLists 用 ${CONAN_LIBS} 桥接 + SPDLOG 等级）。
+        tc.variables["SPDLOG_LOG_LEVEL_COMPILE"] = self.__spdlog_level()
+        tc.generate()
         if self.gyp_call:
             self.__touch_lockfile()
-
-    def imports(self):
-        python_inc_src = sysconfig.get_python_inc(plat_specific=True)
-        python_inc_dst = (
-            "include"
-            if path.basename(python_inc_src) == "include"
-            else path.join("include", path.basename(python_inc_src))
-        )
-        self.copy("*", src=python_inc_src, dst=python_inc_dst)
-        self.copy("*", src="include", dst="include")
-        self.copy("*", src="lib", dst="libs")
 
     def build(self):
         build_type = self.__get_build_type()
@@ -151,22 +150,34 @@ class KungfuCoreConan(ConanFile):
             self.__run_freeze(build_type)
             self.__show_build_info(build_type)
         else:
-            self.copy("*", dst="include", src="src/include")
-            self.copy("*", dst="lib", src=build_type)
-            self.copy("*", dst="bin", src=path.join("src", "libkungfu", build_type))
-
-            from glob import glob
-
-            self.copy("*", dst="deps/hana", src=glob(".deps/hana-*")[0])
-            self.copy("*", dst="deps/pybind11", src=glob(".deps/pybind11-*")[0])
-            self.copy("*", dst="deps/sqlite_orm", src=glob(".deps/sqlite_orm-*")[0])
-            self.copy("*", dst="cmake", src=".cmake")
-            self.copy("*", dst="kfc", src="dist/kfc")
+            src = self.conanfile_dir
+            copy(self, "*", path.join(src, "src", "include"), path.join(self.package_folder, "include"))
+            copy(self, "*", path.join(src, build_type), path.join(self.package_folder, "lib"))
+            copy(self, "*", path.join(src, "src", "libkungfu", build_type), path.join(self.package_folder, "bin"))
+            # kfx 插件开发者交付物：导出 vendored 依赖头（hana / pybind11 / sqlite_orm）与 cmake 模块。
+            copy(self, "*", glob(path.join(src, ".deps", "hana-*"))[0], path.join(self.package_folder, "deps", "hana"))
+            copy(self, "*", glob(path.join(src, ".deps", "pybind11-*"))[0], path.join(self.package_folder, "deps", "pybind11"))
+            copy(self, "*", glob(path.join(src, ".deps", "sqlite_orm-*"))[0], path.join(self.package_folder, "deps", "sqlite_orm"))
+            copy(self, "*", path.join(src, ".cmake"), path.join(self.package_folder, "cmake"))
+            copy(self, "*", path.join(src, "dist", "kfc"), path.join(self.package_folder, "kfc"))
 
     def package_info(self):
-        self.cpp_info.names["cmake_find_package"] = "kungfu"
-        self.cpp_info.names["cmake_find_package_multi"] = "kungfu"
+        self.cpp_info.set_property("cmake_file_name", "kungfu")
+        self.cpp_info.set_property("cmake_target_name", "kungfu::kungfu")
         self.cpp_info.libs = ["kungfu"]
+
+    # ------------------------------------------------------------------ helpers
+
+    def __spdlog_level(self):
+        spdlog_levels = {
+            "trace": "SPDLOG_LEVEL_TRACE",
+            "debug": "SPDLOG_LEVEL_DEBUG",
+            "info": "SPDLOG_LEVEL_INFO",
+            "warning": "SPDLOG_LEVEL_WARN",
+            "error": "SPDLOG_LEVEL_ERROR",
+            "critical": "SPDLOG_LEVEL_CRITICAL",
+        }
+        return spdlog_levels[str(self.options.log_level)]
 
     def __get_build_type(self):
         build_type = str(self.settings.build_type)
@@ -174,7 +185,7 @@ class KungfuCoreConan(ConanFile):
         return build_type
 
     def __get_toolset(self):
-        return str(self.options.vs_toolset)
+        return str(self.options.vs_toolset) if _detected_os() == "Windows" else "auto"
 
     def __get_node_version(self, runtime):
         return (
@@ -199,9 +210,9 @@ class KungfuCoreConan(ConanFile):
     def __clean_dist_dir(self):
         if path.exists(self.dist_dir):
 
-            def redo_with_write(redo_func, path, err):
-                os.chmod(path, stat.S_IWRITE)
-                redo_func(path)
+            def redo_with_write(redo_func, p, err):
+                os.chmod(p, stat.S_IWRITE)
+                redo_func(p)
 
             shutil.rmtree(self.dist_dir, onerror=redo_with_write)
             self.output.info("Deleted dist directory")
@@ -213,37 +224,36 @@ class KungfuCoreConan(ConanFile):
             "pythonVersion": platform.python_version(),
             "build": {
                 "user": getpass.getuser(),
-                "osVersion": tools.os_info.os_version,
+                "osVersion": platform.platform(),
                 "timestamp": now.strftime("%Y/%m/%d %H:%M:%S"),
             },
         }
-
         try:
-            git = tools.Git()
+            def _git(*args):
+                return subprocess.check_output(["git", *args], text=True).strip()
+
             build_info["git"] = {
-                "tag": git.get_tag(),
-                "branch": git.get_branch(),
-                "revision": git.get_revision(),
-                "pristine": git.is_pristine(),
+                "tag": _git("describe", "--tags", "--always"),
+                "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+                "revision": _git("rev-parse", "HEAD"),
+                "pristine": _git("status", "--porcelain") == "",
             }
-        except ConanException:
+        except Exception:
             pass
 
-        tools.mkdir(path.join(self.build_dir, build_type))
+        os.makedirs(path.join(self.build_dir, build_type), exist_ok=True)
         with open(self.__get_build_info_path(build_type), "w") as output:
             json.dump(build_info, output, indent=2)
 
     def __show_build_info(self, build_type):
         with open(self.__get_build_info_path(build_type), "r") as build_info_file:
             build_info = json.load(build_info_file)
-            build_version = build_info["version"]
-            self.output.success(f"build version {build_version}")
+            self.output.success(f"build version {build_info['version']}")
 
     def __enable_modules(self, runtime):
         modules = {
             "libkungfu": True,
-            "kungfu_node": (tools.detected_os() != "Windows")
-            or (runtime == "electron"),
+            "kungfu_node": (_detected_os() != "Windows") or (runtime == "electron"),
             "pykungfu": runtime == "node",
         }
 
@@ -258,12 +268,12 @@ class KungfuCoreConan(ConanFile):
 
     def __run_build(self, build_type, runtime):
         if f"KUNGFU_BUILD_SKIP_RUNTIME_{runtime.upper()}" in environ:
-            self.output.warn(f"disabled build for runtime {runtime}")
+            self.output.warning(f"disabled build for runtime {runtime}")
             return
         toolset = self.__get_toolset()
         parallel_opt = (
             []
-            if tools.detected_os() == "Windows"
+            if _detected_os() == "Windows"
             else ["--", "-j", f"{os.cpu_count()}"]
         )
         self.__enable_modules(runtime)
@@ -274,17 +284,15 @@ class KungfuCoreConan(ConanFile):
             environ["KUNGFU_BUILD_SKIP_KUNGFU_NODE"] = "on"
             environ["KUNGFU_BUILD_SKIP_PYKUNGFU"] = "on"
             self.__run_cmake(
-                "-S",
-                ".." if self.gyp_call else ".",
-                "-B",
-                "../build" if self.gyp_call else ".",
+                "-S", ".." if self.gyp_call else ".",
+                "-B", "../build" if self.gyp_call else ".",
                 "-DCMAKE_BUILD_TYPE=Release",
-                "-DSPDLOG_LOG_LEVEL_COMPILE=trace",
+                f"-DSPDLOG_LOG_LEVEL_COMPILE={self.__spdlog_level()}",
             )
             self.__run_cmake("--build", ".", "--config", "Release", *parallel_opt)
 
     def __run_cmake(self, *args):
-        rc = subprocess.Popen([tools.which("cmake"), *args]).wait()
+        rc = subprocess.Popen([shutil.which("cmake"), *args]).wait()
         if rc != 0:
             self.output.error(f"cmake {args} failed with return code {rc}")
             sys.exit(rc)
@@ -292,30 +300,21 @@ class KungfuCoreConan(ConanFile):
     def __run_cmake_js(self, build_type, cmd, runtime, toolset):
         [
             os.environ.pop(env_key)
-            for env_key in os.environ
+            for env_key in list(os.environ)
             if env_key.upper().startswith("NPM_")
         ]  # workaround for msvc
         self.__run_yarn(*self.__build_cmake_js_cmd(build_type, cmd, runtime, toolset))
         self.output.success(f"cmake-js {cmd} done")
 
     def __run_yarn(self, *args):
-        yarn = "yarn" if tools.detected_os() != "Windows" else "yarn.cmd"
-        rc = subprocess.Popen([tools.which(yarn), *args]).wait()
+        yarn = "yarn" if _detected_os() != "Windows" else "yarn.cmd"
+        rc = subprocess.Popen([shutil.which(yarn), *args]).wait()
         if rc != 0:
             self.output.error(f"yarn {args} failed with return code {rc}")
             sys.exit(rc)
 
     def __build_cmake_js_cmd(self, build_type, cmd, runtime, toolset):
-        spdlog_levels = {
-            "trace": "SPDLOG_LEVEL_TRACE",
-            "debug": "SPDLOG_LEVEL_DEBUG",
-            "info": "SPDLOG_LEVEL_INFO",
-            "warning": "SPDLOG_LEVEL_WARN",
-            "error": "SPDLOG_LEVEL_ERROR",
-            "critical": "SPDLOG_LEVEL_CRITICAL",
-        }
-        log_level = spdlog_levels[str(self.options.log_level)]
-
+        log_level = self.__spdlog_level()
         parallel_level = os.cpu_count()
         python_path = re.sub(
             r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]",
@@ -324,26 +323,19 @@ class KungfuCoreConan(ConanFile):
             .stdout.read()
             .strip(),
         )
-
         toolset_option = ["--toolset", toolset] if toolset != "auto" else []
-
         build_option = (
-            toolset_option + ["--platform", str(self.options.arch)]
-            if tools.detected_os() == "Windows"
+            toolset_option + ["--platform", str(self.settings.arch)]
+            if _detected_os() == "Windows"
             else ["--parallel", str(parallel_level)]
         )
-
         debug_option = ["--debug"] if build_type == "Debug" else []
-
         return (
             [
                 "cmake-js",
-                "--arch",
-                str(self.options.arch),
-                "--runtime",
-                runtime,
-                "--runtime-version",
-                self.__get_node_version(runtime),
+                "--arch", str(self.settings.arch),
+                "--runtime", runtime,
+                "--runtime-version", self.__get_node_version(runtime),
                 f"--CDPYTHON_EXECUTABLE={python_path}",
                 f"--CDSPDLOG_LOG_LEVEL_COMPILE={log_level}",
                 f"--CDCMAKE_BUILD_PARALLEL_LEVEL={parallel_level}",
@@ -355,7 +347,9 @@ class KungfuCoreConan(ConanFile):
 
     def __run_pyinstaller(self, build_type):
         pathlib.Path(self.__get_build_info_path(build_type)).touch()
-        with tools.chdir(path.pardir):
+        cwd = os.getcwd()
+        try:
+            os.chdir(path.pardir)
             from PyInstaller import __main__ as freezer
 
             freezer.run(
@@ -367,29 +361,32 @@ class KungfuCoreConan(ConanFile):
                     path.join(".", "src", "python", "kfc.spec"),
                 ]
             )
+        finally:
+            os.chdir(cwd)
 
-        from wcmatch import glob
+        from wcmatch import glob as wcglob
 
-        for file in glob.glob("*kfs*", flags=glob.EXTGLOB, root_dir=self.kfs_dir):
+        for file in wcglob.glob("*kfs*", flags=wcglob.EXTGLOB, root_dir=self.kfs_dir):
             shutil.copy(path.join(self.kfs_dir, file), self.kfc_dir)
         shutil.rmtree(self.kfs_dir)
-
         self.output.success("PyInstaller done")
 
     def __run_nuitka(self, build_type):
-        with tools.chdir(path.pardir):
+        cwd = os.getcwd()
+        try:
+            os.chdir(path.pardir)
             self.__run_yarn(
-                True,
                 "nuitka",
                 "--output-dir=build",
                 path.join("src", "python", "kfc.py"),
             )
+        finally:
+            os.chdir(cwd)
 
         kfc_dist_dir = path.join(self.build_dir, "kfc.dist")
         shutil.copytree(build_type, kfc_dist_dir)
-        tools.rmdir(self.kfc_dir)
+        shutil.rmtree(self.kfc_dir, ignore_errors=True)
         shutil.move(kfc_dist_dir, self.kfc_dir)
-
         self.output.success("Nuitka done")
 
     def __run_freeze(self, build_type):

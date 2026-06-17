@@ -162,4 +162,16 @@ conanfile.py(conan1)
     (with_yarn) 路径**(历史成因#2)。②pykungfu 误链 Python 3.14(Mac 默认)，需 `-DPYTHON_EXECUTABLE` 钉到受控 3.13。
   - **下一步**：run-conan.js conan1 flags→conan2 + 跑通 cmake-js(with_yarn) 路径(yarn+cmake-js，需 JS 工具链/monorepo
     bootstrap)出 kungfu_node(node+electron 双 runtime) + pin Python；或先验证 conan build 端到端。Linux 侧同步重做。
+- 2026-06-17 A-2b cmake-js+conan2 集成打通(Mac，**最大不确定项已验证**)：
+  - cmake-js 独立装(7.4.0，`/tmp/cmjs`，LAN registry `--ignore-scripts`)；从 kungfu-core 跑(node_modules 有 node-addon-api
+    + npm-link libnode)。**关键集成法**：`cmake-js configure/build --runtime node --runtime-version 22.22.3 --arch arm64
+    --out <dir> --CDCMAKE_TOOLCHAIN_FILE=<conan_toolchain> --CDCMAKE_BUILD_TYPE=Release --CDSPDLOG_LOG_LEVEL_COMPILE=...`
+    cmake-js 传 `-DNODE_RUNTIME=node` + 透传 conan toolchain → 二者共存无冲突。设 `NODEJS_ORG_MIRROR=https://cdn.npmmirror.com/binaries/node`
+    让 cmake-js 经域内镜像下 runtime headers(node/electron 都快)。
+  - **验证(Mac arm64)**：runtime=node 编出真实 **kungfu_node.node**(含 watcher/全 store)+ drone.node，零错误，链 libkungfu✓；
+    runtime=electron configure 通过(下 electron 37.10.3 headers、`NODE_RUNTIME=electron`、目标 kungfu_electron 解析、configure
+    done)→ **B 阶段已 de-risk**。
+  - **A-2b 剩余**：①pykungfu pin Python 3.13(`--CDPYTHON_EXECUTABLE` 或 cmake -DPYTHON_EXECUTABLE，现误抓 Mac 默认 3.14)；
+    ②run-conan.js 的 conan1 flags(-if/-bf/-pf + getNodeVersionOptions 读 libnode devDep——已移出 package.json 需改读源)→conan2；
+    ③electron full build(kungfu_electron) + ④Linux 侧整条 cmake-js 路径重做。cmake-js 产物在 /tmp(非仓)。
 </content>

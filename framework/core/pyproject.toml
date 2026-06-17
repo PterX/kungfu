@@ -40,20 +40,21 @@ statsmodels = "~0.14.4"
 openpyxl = "~3.1.5"
 
 #### Dependencies #########################################
-certifi = "~2023.7.22"
-chardet = "~5.1.0"
-charset-normalizer = "~3.3.2"
-importlib-metadata = "~8.5.0"
-msgpack = "~1.1.0"
-filelock = "~3.16.0"
-ordered-set = "~4.1.0"
-packaging = "~24.2"
-platformdirs = "~4.3.0"
-pluggy = "~1.5.0"
+# 传递/工具类依赖放宽，让 poetry 在 3.13 下自解析兼容版本(避免与 pdm/poetry 等工具的版本要求冲突)。
+certifi = "*"
+chardet = "*"
+charset-normalizer = "*"
+importlib-metadata = "*"
+msgpack = "*"
+filelock = "*"
+ordered-set = "*"
+packaging = "*"
+platformdirs = "*"
+pluggy = "*"
 pytest = "~8.3.0"
-railroad-diagrams = "~3.1.0"
-shellingham = "~1.5.4"
-zipp = "~3.21.0"
+railroad-diagrams = "*"
+shellingham = "*"
+zipp = "*"
 authing = "~5.1.0"
 urllib3 = "~2.2.0"
 websockets = "~13.1.0"
@@ -73,3 +74,10 @@ pyinstaller = "~6.11.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+# v4：默认走国内 PyPI 镜像(aliyun)加速依赖解析/下载，避免占用办公室出海链路。
+# 可按环境覆盖；prebuilt/发布阶段再评估。
+[[tool.poetry.source]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+priority = "primary"

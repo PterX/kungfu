@@ -189,13 +189,13 @@ reference = "aliyun"
 
 [[package]]
 name = "certifi"
-version = "2026.5.20"
+version = "2026.6.17"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "certifi-2026.5.20-py3-none-any.whl", hash = "sha256:3c52e209ba0a4ad7aebe60436a4ab349c39e1e602e8c134221e546902ad25897"},
-    {file = "certifi-2026.5.20.tar.gz", hash = "sha256:69dea482ab64caa7b9f6aba1c6bf48bb6a5448d1c0f1b17ab42ad8c763a5344d"},
+    {file = "certifi-2026.6.17-py3-none-any.whl", hash = "sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db"},
+    {file = "certifi-2026.6.17.tar.gz", hash = "sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432"},
 ]
 
 [package.source]
@@ -1213,17 +1213,20 @@ reference = "aliyun"
 
 [[package]]
 name = "nuitka"
-version = "2.5.9"
+version = "4.1.2"
 description = "Python compiler with full language support and CPython compatibility"
 optional = false
 python-versions = "*"
 files = [
-    {file = "Nuitka-2.5.9.tar.gz", hash = "sha256:6cfb37449c9dd60bf6e9f79e420198019f44bb5154e3d6a40d3124d5cc26edf1"},
+    {file = "nuitka-4.1.2.tar.gz", hash = "sha256:efc2359b171d7b63046ca8ec8dee57015c3466a9df74b68a049c2c1a7e93ecee"},
 ]
 
-[package.dependencies]
-ordered-set = ">=4.1.0"
-zstandard = ">=0.15"
+[package.extras]
+all = ["imageio", "setuptools (>=42)", "toml", "zstandard (>=0.15)"]
+app = ["zstandard (>=0.15)"]
+build-wheel = ["setuptools (>=42)", "toml", "wheel"]
+icon-conversion = ["imageio"]
+onefile = ["zstandard (>=0.15)"]
 
 [package.source]
 type = "legacy"
@@ -2713,4 +2716,4 @@ reference = "aliyun"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.13, <3.14"
-content-hash = "3d48f3321f157290a8533494aa985cb9d4186c1d2ed827a605c6c6a4db1a2b51"
+content-hash = "81fc3c1f77c6ae6c88d2f4d522638ecc38697fa9d569b2f8682fa2960156e960"

@@ -103,4 +103,11 @@ conanfile.py(conan1)
   `conan install -o &:with_yarn=False` 成功，generate() 产出 conan_toolchain.cmake + 各 *Config.cmake(Mac arm64)。
   **待验证**：build()/package()/freeze 的运行逻辑尚未跑通(下一步随主 CMakeLists conan2 适配 + libkungfu 构建验证)；
   configure() 里 libcxx 设定暂留空(交给 conan profile，避免与 LAN 缓存包不一致)，待 Windows 阶段复核 vs_toolset。
+- 2026-06-17 Stage A-2a：主 `CMakeLists.txt` 的 conan2 桥接。`include(conanbuildinfo.cmake)+conan_basic_setup(...)`
+  →conan2 `find_package(fmt/spdlog/nlohmann_json/nng/rxcpp/SQLite3/RocksDB/tabulate/pybind11)` + `set(CONAN_LIBS …)`
+  + `link_libraries(${CONAN_LIBS})`(照 .v4 已验证桥接)，使 `src/libkungfu/CMakeLists.txt` 的
+  `target_link_libraries(... ${CONAN_LIBS})` 零改动复用。`add_subdirectory(.deps/pybind11-2.9.0)`→
+  `find_package(pybind11)`(conan 2.13.6，旧 2.9.0 不支持 Py3.13)。验证：configure-only 全目标(含 pybind11)解析成功；
+  libkungfu-only 实编 `libkungfu.dylib` 链接成功(Mac arm64)。**待验证**：node/python 绑定子目录(use_libnode→需 libnode)
+  与 `conan build` 全流程；run-conan.js 的 conan1 flags(-if/-bf/-pf)→conan2(--output-folder/CMake helper 传 toolchain)。
 </content>

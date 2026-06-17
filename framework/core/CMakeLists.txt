@@ -8,8 +8,35 @@ project(kungfu)
 include(${PROJECT_SOURCE_DIR}/.cmake/editor.cmake)
 include(${PROJECT_SOURCE_DIR}/.cmake/compiler.cmake)
 include(${PROJECT_SOURCE_DIR}/.cmake/libnode.cmake)
-include(${CONANBUILDINFO_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD SKIP_FPIC)
+
+##########################################################################
+# conan 2：依赖经 CMakeToolchain(工具链) + CMakeDeps(find_package 目标) 提供，
+# 取代 conan 1.x 的 conanbuildinfo.cmake + conan_basic_setup。
+# 用 CONAN_LIBS 列出 conan2 目标，使 src/libkungfu/CMakeLists.txt 的
+# target_link_libraries(... ${CONAN_LIBS}) 与下方 link_libraries 零改动复用。
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(nng REQUIRED)
+find_package(rxcpp REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(RocksDB REQUIRED)
+find_package(tabulate REQUIRED)
+find_package(pybind11 REQUIRED)
+
+set(CONAN_LIBS
+    fmt::fmt-header-only
+    spdlog::spdlog_header_only
+    nlohmann_json::nlohmann_json
+    nng::nng
+    rxcpp::rxcpp
+    SQLite::SQLite3
+    RocksDB::rocksdb
+    tabulate::tabulate)
+
+# conan2 的 object 库靠 target usage-requirement 传播 include；libkungfu 走 OBJECT
+# 库分别编译，需在定义 target 前全局挂上依赖 include（复刻旧 conan_basic_setup 行为）。
+link_libraries(${CONAN_LIBS})
 
 ##########################################################################
 
@@ -62,7 +89,8 @@ endif()
 
 if (NOT DEFINED ENV{KUNGFU_BUILD_SKIP_PYKUNGFU} OR NOT $ENV{KUNGFU_BUILD_SKIP_PYKUNGFU})
   message(STATUS "Enabled pykungfu")
-  add_subdirectory(.deps/pybind11-2.9.0)
+  # pybind11 由 conan2 提供（find_package 已在顶部声明），取代 vendored .deps/pybind11-2.9.0
+  # （旧版 2.9.0 不支持 Python 3.13；conan 用 2.13.6）。
   add_subdirectory(src/bindings/python)
 endif()
 

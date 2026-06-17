@@ -1,0 +1,5 @@
+# conan2 / cmake 构建工件（v4 现代化，本地生成，不入仓）
+CMakeUserPresets.json
+CMakePresets.json
+build-conan2/
+node_modules/

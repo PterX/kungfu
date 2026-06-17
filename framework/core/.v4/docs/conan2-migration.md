@@ -174,4 +174,16 @@ conanfile.py(conan1)
   - **A-2b 剩余**：①pykungfu pin Python 3.13(`--CDPYTHON_EXECUTABLE` 或 cmake -DPYTHON_EXECUTABLE，现误抓 Mac 默认 3.14)；
     ②run-conan.js 的 conan1 flags(-if/-bf/-pf + getNodeVersionOptions 读 libnode devDep——已移出 package.json 需改读源)→conan2；
     ③electron full build(kungfu_electron) + ④Linux 侧整条 cmake-js 路径重做。cmake-js 产物在 /tmp(非仓)。
+- 2026-06-17 A-2b Mac 侧 ①②③ 全绿：
+  - **①Python pin**：cmake-js `--CDPYTHON_EXECUTABLE=/opt/homebrew/opt/python@3.13/bin/python3.13` → pybind11 FindPython
+    锁 3.13.13，pykungfu 产物变 **cpython-313**(原误抓 Mac 默认 3.14)。kungfu-core `config.python_version` 3.9→3.13。
+  - **②run-conan.js conan2 化**：`-if/-bf/-pf`→`--output-folder build` + `--build=missing`；`makeConanOptions` 去掉
+    `arch`(conan2 arch 是 setting 由 profile 自测，非 -o)；`getNodeVersionOptions` 改：electron 从 devDep 去 ^/~、
+    node_version 从 `config.node_version`(22.22.3，因 libnode 移出 devDep)。conanPackage 暂用 conan build 占位(freeze
+    属 Stage C，conan2 无独立 conan package，需 export-pkg 重构)。conanfile `__build_cmake_js_cmd` 补：conan arch
+    (armv8/x86_64)→node arch(arm64/x64) 映射 + **透传 conan_toolchain.cmake(--CDCMAKE_TOOLCHAIN_FILE)+CMAKE_BUILD_TYPE**
+    给 cmake-js(orchestrated 路径必需，编码我手动验证过的集成法)。config.arch(硬编 x64)删除。
+  - **③electron full build**：cmake-js `--runtime electron --runtime-version 37.10.3` 编出 **kungfu_electron.node**(arm64)，
+    零错误 → B 阶段 Mac 完整验证(非仅 configure)。
+  - 验证：conanfile py_compile + conan inspect、run-conan.js `node -c` 全过。**剩 ④Linux 侧整条重做**(node+electron+Python pin)。
 </content>

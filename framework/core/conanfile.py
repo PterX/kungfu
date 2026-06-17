@@ -323,19 +323,25 @@ class KungfuCoreConan(ConanFile):
             .stdout.read()
             .strip(),
         )
+        node_arch = self.__node_arch()
         toolset_option = ["--toolset", toolset] if toolset != "auto" else []
         build_option = (
-            toolset_option + ["--platform", str(self.settings.arch)]
+            toolset_option + ["--platform", node_arch]
             if _detected_os() == "Windows"
             else ["--parallel", str(parallel_level)]
         )
         debug_option = ["--debug"] if build_type == "Debug" else []
+        # conan2：把生成的 conan_toolchain.cmake 透传给 cmake-js，让 conan 依赖(CMakeDeps)与
+        # cmake-js 的 runtime headers 共存(取代 conan1 的 conanbuildinfo.cmake 自动注入)。
+        toolchain = path.join(self.generators_folder, "conan_toolchain.cmake")
         return (
             [
                 "cmake-js",
-                "--arch", str(self.settings.arch),
+                "--arch", node_arch,
                 "--runtime", runtime,
                 "--runtime-version", self.__get_node_version(runtime),
+                f"--CDCMAKE_TOOLCHAIN_FILE={toolchain}",
+                f"--CDCMAKE_BUILD_TYPE={build_type}",
                 f"--CDPYTHON_EXECUTABLE={python_path}",
                 f"--CDSPDLOG_LOG_LEVEL_COMPILE={log_level}",
                 f"--CDCMAKE_BUILD_PARALLEL_LEVEL={parallel_level}",
@@ -344,6 +350,16 @@ class KungfuCoreConan(ConanFile):
             + debug_option
             + [cmd]
         )
+
+    @staticmethod
+    def __node_arch():
+        # conan settings.arch(armv8 / x86_64) → node/cmake-js arch(arm64 / x64)。
+        import platform as _pf
+
+        machine = _pf.machine().lower()
+        if machine in ("arm64", "aarch64", "armv8"):
+            return "arm64"
+        return "x64"
 
     def __run_pyinstaller(self, build_type):
         pathlib.Path(self.__get_build_info_path(build_type)).touch()

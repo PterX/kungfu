@@ -81,6 +81,26 @@ conanfile.py(conan1)
 
 **收尾**：`.v4/` 折叠退役；本文档与记忆更新。
 
+## 4b. 欠债② libnode→dist 的真实形态（2026-06-17 摸清，比预想复杂）
+
+`src/bindings/python/CMakeLists.txt` 与 node 绑定经 `use_libnode()`(`.cmake/libnode.cmake`) 解析
+`require('@kungfu-trader/libnode').include/.libpath` → 即从 **npm 包** `@kungfu-trader/libnode` 的
+`dist/node/{include, libnode.*}` 取头与库。因此「Stage A 完整 bindings build」**依赖②先完成**。
+
+② 不是单纯拷贝，而是一条现代化链：
+1. **libnode 独立仓**(`/Users/dkr/Code/kungfu-trader/libnode`，现 `dev/v16.x`/version 16.15.0)：
+   - `dist/` **未被 git 跟踪**(纯本地构建产物，0 tracked)，`.git` 1.1G(含 node 子模块历史)。
+   - dist 装配逻辑＝`.gyp/node-dist.js`：拷 `libnode.*` + 三处 headers(`node/src`、`node/deps/v8/include`、
+     `node/deps/uv/include`，flatten 进 `dist/node/include/`) + 建 `libnode.dylib`/`.so` 软链。
+   - 现 `dist/node/libnode.83.dylib` 是 **stale x86_64 / Node16.15**(2021)，要换 Node22。
+   - 我们的 Node22 源码树：Mac=`.node22-scratch/node-v22.22.3`、Linux=`~/Code/kungfu-worktrees/node22-src/node-v22.22.3`。
+2. **跨机(plan a)**：两机各自 libnode 仓铺各自平台 dist(Mac .dylib / Linux .so.127)。Ubuntu 现无 libnode 仓 →
+   需同步(建议给 libnode 仓也建 NAS bare 仓，类比 kungfu；但 dist 是本地 untracked，只需同步源码部分)。
+3. **kungfu-core 消费端**：`package.json` devDep `@kungfu-trader/libnode: 16.15.0`→22.x、`electron: 19.1.8`→现代版；
+   node_modules 未装；dev 阶段(D5)用 **local link/file 依赖**指向本机 libnode 仓(Node22 dist)，prebuilt 分发留后。
+
+**决策(可人 2026-06-17)**：覆盖旧 dist；plan a(两机各自铺)。**待定**：electron 目标版本(见 §5⑤)；libnode 仓是否建 NAS bare 仓。
+
 ## 5. 待验证假设（动手前/动手中需确认，勿当既定事实）
 
 1. **一份 N-API 二进制能否同时供 node 与现代 electron**？N-API ABI 稳定，理论上 `NAPI_VERSION=8` 的
@@ -88,7 +108,10 @@ conanfile.py(conan1)
 2. **Nuitka 2026 能否快速完整生成可执行 kfc**？需实测；决定 D5 默认 freezer。
 3. **poetry/uv 能否冻出独立、不依赖用户 Python 的 kfc**？能则迁，否则保留 pipenv（§2.6）。
 4. pybind11：.v4 用 conan `pybind11/2.13.6`；主构建历史用 vendored `.deps/pybind11`(旧 2.9.0，Py3.13 不够)。
-   迁移后统一用 conan pybind11（待确认主 CMakeLists/bindings 对 pybind11 的取用方式）。
+   迁移后统一用 conan pybind11（A-2a 已把主 CMakeLists 的 `add_subdirectory(.deps/pybind11-2.9.0)` 换成
+   `find_package(pybind11)`；待 bindings 子目录实编验证 pybind11 target 名是否匹配）。
+5. **electron 目标版本**：现 kungfu-core devDep `electron: 19.1.8`(EOL)。Node22 现代化需配套现代 electron
+   （且 N-API ABI 跨 electron 版本稳定）。目标版本待可人定。
 
 ## 6. 变更记录（逐次理解/决策追加于此）
 
@@ -110,4 +133,8 @@ conanfile.py(conan1)
   `find_package(pybind11)`(conan 2.13.6，旧 2.9.0 不支持 Py3.13)。验证：configure-only 全目标(含 pybind11)解析成功；
   libkungfu-only 实编 `libkungfu.dylib` 链接成功(Mac arm64)。**待验证**：node/python 绑定子目录(use_libnode→需 libnode)
   与 `conan build` 全流程；run-conan.js 的 conan1 flags(-if/-bf/-pf)→conan2(--output-folder/CMake helper 传 toolchain)。
+- 2026-06-17 摸清欠债②真实形态(见 §4b)：发现 Stage A 完整 bindings build 依赖②(libnode→dist 经 use_libnode)，
+  且②是一条现代化链(libnode 仓 dist+版本升+跨机同步 + kungfu-core devDep electron/libnode 升级 + npm link)，非单纯拷贝。
+  可人定：覆盖旧 dist、plan a。下一步排序：先做② → 再回 A-2b 完整 bindings → B/C/D。**下一会话起点**＝②(electron 版本与
+  libnode 仓 NAS 同步待定，见 §4b/§5⑤)。
 </content>

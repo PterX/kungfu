@@ -244,8 +244,24 @@ PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
   移除私有 F)。**坑**：`kungfu/__init__` 读 pykungfu 同目录的 `kungfubuildinfo.json`(version 字段)；conanfile.build() 的
   `__gen_build_info` 才生成它，**cmake-js 直编路径不生成**——freeze/运行前需补生成(本轮手造最小 json 验证)。
 
-**Stage C 剩余(下次起点)**：①**Nuitka freeze**(长编译、迭代)：脱离 conan2 package()，`pipenv run python -m nuitka`(kfc.py 内嵌
-`--standalone --include-package=numpy/pandas/plotly --enable-plugin=anti-bloat,numpy`)产 `dist/kfc`，验证独立运行(不依赖系统 Python)。
-需先解决 kungfubuildinfo.json 生成(加到 cmake-js 后置步骤或 freeze 前置)。②**Ubuntu 装 python3.13**(deadsnakes/源码)+ Linux
-pykungfu 从 3.12 重编 3.13 + Linux env bootstrap + freeze。③双平台各产 kfc。
+**Stage C Nuitka freeze 进行中(2026-06-17 Mac，已出 bundle，卡在 stdlib/hook 迭代)**：
+- **freeze 命令**：`cd framework/core && PYTHONPATH=<pykungfu Release dir> pipenv run python -m nuitka --output-dir=/tmp/kfc-nuitka
+  --assume-yes-for-downloads --include-package-data=certifi src/python/kfc.py`(kfc.py 内嵌 --standalone + include numpy/pandas/plotly
+  + anti-bloat)。**产物**：`/tmp/kfc-nuitka/kfc.dist/`(1.0G)：`kfc.bin`(380M) + `Python` + **pykungfu.so + libkungfu.dylib +
+  libnode.127.dylib 全打进来**(✓ native 库打包成功)。
+- **已解坑**：①pykungfu 链 `@rpath/libnode.127.dylib` 但该 dylib 不在 pykungfu 同目录 → Nuitka FATAL。修：把
+  `libnode.127.dylib` 从 libnode dist 拷到 pykungfu 旁(Release dir)，三 native 库同目录后 Nuitka 正常打包。
+  ②`kungfubuildinfo.json`(kungfu/__init__ 读 pykungfu 同目录的它)cmake-js 路径不生成 → 需手造/补生成(freeze 后还要拷进 kfc.dist)。
+- **当前卡点(下次起点)**：kfc.bin 干净环境运行，过了解释器启动+kfc.py+kungfu init+命令注册，**卡在 certifi**：
+  certifi 2026.05.20 core.py 用 `if sys.version_info>=(3,11)` 选分支，但**冻结二进制走了 else(<3.11)分支**(line 51
+  `from importlib.resources import path,read_text`，3.13 已移除这两符号)→ ImportError。同时启动期反复 `import warnings failed:
+  No module named 'warnings'`。**两者同源＝Nuitka 的 stdlib 打包/分支处理异常**。**修复假设**(下次试)：①去掉过度精简的
+  `--python-flag=no_warnings` 与已废弃的 `--enable-plugin=numpy`(Nuitka 警告其 deprecated)、评估 anti-bloat 是否过度剥 stdlib；
+  ②certifi else-branch 误入暗示 Nuitka 版本分支处理 bug，试 `--include-module=importlib.resources` 或针对 certifi 的 nuitka 选项；
+  ③这条 certifi/authing/requests 是 login(serverless SSO)拉进来的外围 web 栈，P1 Journal Inspector 不需要——必要时可先用更小入口
+  验证 freeze 主路径，web 栈单独修。④certifi cacert.pem 已 --include-package-data=certifi。
+- **freeze 入口**：当前直接 `python -m nuitka`(脱离 conan2 package()，符合 D6)。正式化时封装成脚本/run-conan freeze 子命令。
+
+**Stage C 剩余**：①Nuitka freeze 调通(上述卡点) → dist/kfc 独立运行。②**Ubuntu 装 python3.13**(deadsnakes/源码)+ Linux
+pykungfu 从 3.12 重编 3.13 + Linux env bootstrap + freeze。③双平台各产 kfc。④kungfubuildinfo.json 生成补进 cmake-js 后置步骤。
 </content>

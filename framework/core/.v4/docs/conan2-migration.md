@@ -186,4 +186,18 @@ conanfile.py(conan1)
   - **③electron full build**：cmake-js `--runtime electron --runtime-version 37.10.3` 编出 **kungfu_electron.node**(arm64)，
     零错误 → B 阶段 Mac 完整验证(非仅 configure)。
   - 验证：conanfile py_compile + conan inspect、run-conan.js `node -c` 全过。**剩 ④Linux 侧整条重做**(node+electron+Python pin)。
+- 2026-06-17 **A-2b 双平台闭环完成** ✅：
+  - **④Linux 侧**：Ubuntu 装 python3.12-dev(无 python3.13，Linux pykungfu 用 3.12；Mac 用 3.13，分歧记为后续统一项，kfc
+    freeze 本就按平台)、cmake-js 7.4.0(`/tmp/cmjs`)；node_modules＝cp node-addon-api + `npm link @kungfu-trader/libnode`
+    (先 `cd ~/Code/libnode && npm link` 注册全局再链接，否则报 module not found)；主 conanfile.py `conan install --output-folder
+    build-conan2`(gtest 源码编)。cmake-js 集成同 Mac，但 **`--disturl https://cdn.npmmirror.com/binaries/node`**(cmake-js 不认
+    NODEJS_ORG_MIRROR；electron headers 仍走 electronjs.org，~30MB 一次性)。
+  - **产物**：Linux node runtime 编出 kungfu_node + drone + **kungfu_kfc**(Linux 专属，链 libnode) + pykungfu.cpython-312；
+    electron runtime 编出 kungfu_electron.node(ELF x86-64)。Mac arm64：kungfu_node + kungfu_electron + pykungfu.cpython-313
+    + drone。**全部经 conan2 + cmake-js + Node22 libnode 跑通，零源码错误**。
+  - **A-2b 完成**。P0 剩：**C(freeze+kfc，先评 Nuitka 2026 成熟度 + conan2 无独立 conan package 需 export-pkg 重构 freeze 入口)**、
+    **D(windows，agent 端口 + DARKHERO 实测)**、然后 .v4 退役。
+  - **遗留小项**：Mac/Linux pykungfu Python minor 分歧(3.13/3.12，待统一)；kungfu-core 全量 JS monorepo install 仍未做(当前用最小
+    node_modules：node-addon-api + link libnode)；orchestrated 端到端(yarn→run-conan→conan build→build()→cmake-js)未跑通(需
+    pipenv + monorepo bootstrap)，但底层能力已由直接 cmake-js 验证。
 </content>

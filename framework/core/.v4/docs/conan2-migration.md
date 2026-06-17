@@ -135,6 +135,16 @@ conanfile.py(conan1)
   与 `conan build` 全流程；run-conan.js 的 conan1 flags(-if/-bf/-pf)→conan2(--output-folder/CMake helper 传 toolchain)。
 - 2026-06-17 摸清欠债②真实形态(见 §4b)：发现 Stage A 完整 bindings build 依赖②(libnode→dist 经 use_libnode)，
   且②是一条现代化链(libnode 仓 dist+版本升+跨机同步 + kungfu-core devDep electron/libnode 升级 + npm link)，非单纯拷贝。
-  可人定：覆盖旧 dist、plan a。下一步排序：先做② → 再回 A-2b 完整 bindings → B/C/D。**下一会话起点**＝②(electron 版本与
-  libnode 仓 NAS 同步待定，见 §4b/§5⑤)。
+  可人定：覆盖旧 dist、plan a。下一步排序：先做② → 再回 A-2b 完整 bindings → B/C/D。
+- 2026-06-17 ②双平台 dist 落位完成：可人定 electron→agent 选 **Electron 37.x**(捆绑 Node22+V8 13.7，N-API/ABI 与
+  libnode 22.22.3/ABI127 对齐；具体补丁号接 devDep 时核实)；libnode 仓建 NAS bare 仓(同意)。
+  执行：①NAS `…/Drive/git/libnode.git` 建好，Mac libnode 接 nas remote 推 dev/v16.x + 新建 **dev/v22.x**(version
+  16.15.0→22.22.3、node-addon-api ^5→^8，commit `f5d495b5`，仅 NAS 不推 github；node 子模块 retarget 暂缓——dist 已
+  Node22，v4 不经子模块重编)。②Mac dist/node 铺 Node22 arm64(libnode.127.dylib+333头+软链)，npm shell 解析✓。
+  ③Ubuntu 从 NAS clone libnode(dev/v22.x，无子模块)，dist 铺 Node22 x64(libnode.so.127+333头+软链)，解析✓。
+  **dist 铺法**(两机通用，照 node-dist.js)：`rm -rf dist/node; cp out/Release/libnode.{127.dylib|so.127} dist/node/;
+  rsync -am --include='*/' --include='*.h' --exclude='*' {src/,deps/v8/include/,deps/uv/include/} dist/node/include/;
+  ln -sfn libnode.* dist/node/libnode.{dylib|so}`。**下一步 A-2b**：kungfu-core package.json devDep
+  `@kungfu-trader/libnode 16.15.0→22.22.3`(dev 用 local link 指向本机 libnode 仓)+`electron 19.1.8→37.x`，npm/yarn
+  install 让 use_libnode 解析→ run-conan.js flags conan2 化 → 完整 bindings build(真 pykungfu 内嵌 libnode + kungfu_node)。
 </content>

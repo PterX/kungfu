@@ -40,6 +40,13 @@ function makeConanSettings(names) {
   return names.map(makeConanSetting).flat();
 }
 
+// Windows 端口固化：conan profile detect 在 MSVC 上把 compiler.cppstd 探成 14，
+// 但本项目是 C++17，rocksdb 等无 cppstd=14 的 prebuilt(只 17/20/23)，conan install 会失败。
+// 显式钉 17 仅在 Windows 加(Mac/Linux profile 本就 gnu17，强制 17 会改 package id 致缓存失效，故不动)。
+function platformConanSettings() {
+  return process.platform === 'win32' ? ['-s', 'compiler.cppstd=17'] : [];
+}
+
 function makeConanOption(name) {
   return ['-o', `${name}=${shell.getConfigValue(name)}`];
 }
@@ -50,7 +57,7 @@ function makeConanOptions(names) {
 
 // conan2：-if/-bf → --output-folder；arch 是 setting 由 profile 自测，不再作 -o 选项。
 function conanInstall() {
-  const settings = makeConanSettings(['build_type']);
+  const settings = [...makeConanSettings(['build_type']), ...platformConanSettings()];
   const options = makeConanOptions(['log_level', 'freezer']);
   conan([
     'install',
@@ -64,7 +71,7 @@ function conanInstall() {
 }
 
 function conanBuild() {
-  const settings = makeConanSettings(['build_type']);
+  const settings = [...makeConanSettings(['build_type']), ...platformConanSettings()];
   const options = makeConanOptions(['log_level', 'freezer']);
   conan(['build', '.', '--output-folder', 'build', ...settings, ...options]);
 }
@@ -74,7 +81,7 @@ function conanBuild() {
 // docs/conan2-migration.md。此处暂保留 conan build 触发(build() 仅编译,不 freeze)，
 // freeze 入口在 Stage C 单独接通。
 function conanPackage() {
-  const settings = makeConanSettings(['build_type']);
+  const settings = [...makeConanSettings(['build_type']), ...platformConanSettings()];
   const options = makeConanOptions(['log_level', 'freezer']);
   conan(['build', '.', '--output-folder', 'build', ...settings, ...options]);
 }

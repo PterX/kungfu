@@ -354,5 +354,26 @@ electron/node/pykungfu/kfc 在 **Mac arm64 / Linux x64 / Windows x64** 三平台
 (conanfile.txt + .v4/CMakeLists + KFV4_* 开关 + node/python lightup + tests)已无主构建依赖(`KFV4_` 不出现在主构建文件)，**已删除退役**；
 本文档与 `v4-product-roadmap.md`、`v4-dev-log.md`(原 .v4/README) 迁至 `framework/core/docs/`。主构建注释中的 `.v4/docs/` 引用同步改为 `docs/`。
 
-**P0 剩余(收尾/优化，非阻塞)**：Stage C ⑤(engage 冻结版打包)/⑦(体积)；Windows port 固化进 run-conan.js。**下一步 → P1 Journal Inspector**。
+## P0 收尾项处置（2026-06-18）
+
+- **Windows port 固化进 run-conan.js（部分完成）**：`.gyp/run-conan.js` 新增 `platformConanSettings()`——**仅 Windows** 给 conan
+  install/build/package 加 `-s compiler.cppstd=17`（MSVC profile detect 误判 14；Mac/Linux profile 本就 `gnu17`，强制 17 会改
+  package id 致缓存失效，故 platform-conditional 只动 Windows）。libkungfu WIN32 STATIC 已在 `src/libkungfu/CMakeLists.txt`(ddbaf32b2)。
+  **仍手动/待固化**：electron headers disturl（cmake-js 默认 electronjs.org，npmmirror 无 v 前缀不兼容）、node 源码 `deps/v8/test/torque`
+  补解压（仅 Windows libnode 源码编译时一次性，非常规 build 路径）——这两项属 libnode/electron 取材，非 run-conan 主流程，留作 Windows
+  构建文档说明。
+
+- **⑤ `kfc engage` dev 工具冻结版打包 — 决策落定（不打包，by design）**：engage 的 black/pdm/scons/nuitka 桥接是给 kfx 开发者的
+  开发工具，且均为 mypyc 编译包。结论：**冻结版 kfc 不内嵌这些 dev 工具**（kfc.py 已 `--nofollow-import-to` 掉它们；把 Nuitka/SCons
+  自身打进 Nuitka 冻结二进制不合理）。bridging 全是函数内懒加载，不影响 kfc 启动与核心命令；`kfc engage <tool>` 仅在装了这些工具的
+  **开发环境**下可用。未来若需在冻结版提供，方向是 dev 环境另装或 bytecode 收录，而非 Nuitka 编译。本项视为**设计闭环**，非待办。
+
+- **⑦ 体积优化 — 分析 + 计划（延后到专门 size pass）**：dist 三平台 Mac 910M / Linux 1.1G / Windows kfc.dist 更大；kfc.bin(Mac 277M)+
+  libkungfu(Mac dylib 401M)+libnode(110M)+pykungfu(15M)+数据。**实测 `strip -x` libkungfu.dylib 401M→365M(~9%)**，`strip -S` 无效
+  (无独立调试段)——说明 **401M 主要是合法编译代码**(rocksdb + boost::hana + sqlite_orm + 大量模板实例化静态链接)，非可剥调试符号，
+  易得收益有限。**计划**：①freeze 后对 dist 原生库 `strip -x`(mac)/`--strip-unneeded`(linux) 省 ~9%(需重验冻结二进制仍可运行)；
+  ②试 Nuitka `--lto=yes`；③评估剔除 plotly/数据栈中 P1 不需要的可视化件(plotly 22 数据集 / pytz 604 zoneinfo)——待 P1 明确可视化
+  需求后再定，避免误删。本项非正确性问题，留作独立 size pass，不阻塞 P1。
+
+**P0 状态**：核心达成 + 收尾项已处置(Windows port 主项固化 / ⑤ 设计闭环 / ⑦ 分析+计划)。**下一步 → P1 Journal Inspector**。
 </content>

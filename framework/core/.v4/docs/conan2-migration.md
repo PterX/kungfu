@@ -315,4 +315,30 @@ PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
 **⑤ `kfc engage` dev 工具(black/pdm/scons/nuitka)冻结版打包**＝设计另案，非 P1 必需(这些是 kfx 开发者工具、且 mypyc 编译；
 方向：dev 环境另装或 bytecode 收录，而非让 Nuitka 编译)，留到需要 engage 能力时再定。**⑦ 体积优化(Mac 910M/Linux 1.1G)**＝优化项，
 非正确性，留后(可试 lto/strip/裁 plotly 数据)。**→ Stage C 核心 + 可复现收尾完成。下一步 Stage D(Windows) 或 .v4 退役 → P1 Journal Inspector。**
+
+## Stage D — Windows（2026-06-18，GUI 路径在 DARKHERO 跑通）
+
+环境＝DARKHERO(`192.168.100.100`，Win11/VS Community 2026 18.7/MSVC19.5/SDK10.0.26100、Node24、Python3.14+uv、CMake4.3.3、
+Ninja)。LAN 缓存已配(pip→devpi `192.168.100.222:3141`、npm→Verdaccio `192.168.100.222:4873`)。补装(经 LAN)：conan2.29.1、pipenv、
+python3.13.14(uv)、cmake-js/node-addon-api(Verdaccio)。kungfu 从 NAS clone(`C:\Users\dkr\Code\kungfu`)、libnode 仓 clone。
+
+**✅ GUI 路径跑通**：`conan2 install` + `cmake-js --runtime electron` 编出 **kungfu_node.node(9.75MB) + drone.node**，MSVC19.5 编 kungfu
+全部 C++17 源零错误。两处真实端口修复：
+1. **conan `-s compiler.cppstd=17`**：Windows `conan profile detect` 把 MSVC 默认探成 cppstd=14，导致 rocksdb 缺该配置 binary
+   (服务器只有 17/20/23 prebuilt)→install 失败(exit6)。项目实际 C++17，加 `-s compiler.cppstd=17` 即解(Mac/Linux profile 本就 17)。
+2. **libkungfu WIN32 改 STATIC**(`src/libkungfu/CMakeLists.txt`)：SHARED + `CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS` 自动导出 >65535 符号
+   撞 `LNK1189`。改 STATIC 由 binding 链接；journal 是 mmap 文件跨实例共享，不破坏多语言共享模型。已提交。
+   (试过 `/Zc:dllexportInlines-`，但 MSVC19.5 报 D9002 未知选项、无效，已弃。)
+
+**坑/经验**：①electron headers 走 cmake-js 默认 electronjs.org(npmmirror 的 electron 用无 v 前缀目录，与 cmake-js `v<ver>` 不兼容)；
+出海链路被占满时 `node.lib` 会下崩(266KB 截断→`LNK1106`)，curl 重下到 1.44MB 正常。②cmake-js **能识别 VS2026**(VS18 2026 generator)，
+不像 Node vcbuild 只认 ≤VS2022。③ssh 进 DARKHERO 是 PowerShell：复杂命令用 `powershell -EncodedCommand`(base64/UTF-16LE)避免引号地狱；
+`npm` 裸命令在该上下文无输出，须 `cmd /c npm`；后台 `*> file` 重定向会让 MSBuild 死锁，改 `cmake --build` 同步(管道喂 Select-Object)且增量可续。
+libnode 用 junction 链入 node_modules(npm install 会清，需重建)。
+
+**Stage D 剩余(阻塞/延后)**：
+- **libnode.dll + pykungfu + kfc-freeze**：需 **VS2022/v143 工具链**——Node 22.22.3 vcbuild 只认 ≤VS2022，VS2026/MSVC19.5 太新
+  ("Failed to find a suitable Visual Studio installation")，且即便绕过版本门 V8 很可能编不过。待装 VS2022 Build Tools 后做(可人定)。
+- electron full GUI app(kungfu_electron + React 前端)：P1 阶段事。
+- 把 cppstd=17 + STATIC 等固化进 run-conan.js 的 Windows 路径(目前手动)。
 </content>

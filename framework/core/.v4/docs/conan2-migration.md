@@ -302,9 +302,17 @@ PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
 - **验证**：补 kungfubuildinfo.json(注意 shell 写 json 要加引号防花括号展开)后 `env -u PYTHONPATH kfc.dist/kfc.bin --help`
   干净环境**完整输出 CLI、无 warnings/certifi 报错**。
 
-**Stage C 剩余**：①✅ Mac freeze。②✅ Linux freeze(python3.13/pykungfu313/env/freeze 全通)。③✅ 双平台各产 kfc 独立运行。
-④kungfubuildinfo.json 生成补进 cmake-js 后置步骤(现 freeze 后手动 cp 进 dist；两平台都需)。⑤`kfc engage` dev 工具桥接(black/pdm/
-scons/nuitka)冻结版打包另案(非 P1 必需；dev 环境另装或 bytecode，而非 Nuitka 编译)。⑥freeze 入口正式化为脚本/run-conan freeze 子命令。
-⑦体积优化(Mac 910M/Linux 1.1G)留后。**→ Stage C 核心(双平台 kfc 独立运行)完成；剩 ④⑤⑥⑦ 为收尾/优化项。下一步 Stage D(Windows) 或
-先收 ④⑥ 再 .v4 退役 → P1 Journal Inspector。**
+**Stage C 收尾 ④⑥ 完成 ✅(2026-06-18，freeze 入口正式化 + buildinfo 自动化)**：
+- 新增 `.gyp/freeze-kfc.sh`(两平台通用 freeze 入口) + `.gyp/gen_kungfubuildinfo.py`(复刻 conanfile `__gen_build_info`，
+  供 cmake-js 直编/freeze 路径补 buildinfo)。脚本三步：①生成 kungfubuildinfo.json 到 pykungfu 同目录(venv python，
+  pythonVersion 字段正确)②确保 libnode 与 pykungfu 同目录③nuitka freeze 用 `--include-data-files=<buildinfo>=kungfubuildinfo.json`
+  **把 buildinfo 自动放进 dist 根，消除此前手动 cp**。用法 `bash .gyp/freeze-kfc.sh <pykungfu-release-dir> [out-dir]`。
+- Mac 端到端验证：`kfc.dist/kungfubuildinfo.json` 自动就位、`kfc.bin --version`→3.2.0-alpha.1、`--help` 完整 CLI、干净无报错。
+- ⑥ 标注：当前为独立脚本，未来可折进 run-conan freeze 子命令(D6 路线)；④ 仍可进一步在 cmake-js 后置自动生成 buildinfo(让任何
+  直编而非仅 freeze 都带它)，但 freeze 路径已自洽。
+
+**Stage C 剩余(延后项)**：①✅Mac freeze ②✅Linux freeze ③✅双平台各产 kfc ④✅buildinfo 自动化(freeze 路径) ⑥✅freeze 入口脚本化。
+**⑤ `kfc engage` dev 工具(black/pdm/scons/nuitka)冻结版打包**＝设计另案，非 P1 必需(这些是 kfx 开发者工具、且 mypyc 编译；
+方向：dev 环境另装或 bytecode 收录，而非让 Nuitka 编译)，留到需要 engage 能力时再定。**⑦ 体积优化(Mac 910M/Linux 1.1G)**＝优化项，
+非正确性，留后(可试 lto/strip/裁 plotly 数据)。**→ Stage C 核心 + 可复现收尾完成。下一步 Stage D(Windows) 或 .v4 退役 → P1 Journal Inspector。**
 </content>

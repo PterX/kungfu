@@ -286,9 +286,25 @@ PyInstaller) ③数据栈升到 **3.13 兼容最新稳定**。
   run/backtest/journal/slicetool/tool/engage)、**无 warnings 噪声、无 certifi 报错**(--help 已加载 login 等全部命令模块，证明 certifi
   运行期 import 成功)。Stage C Mac freeze 主路径打通。
 
-**Stage C 剩余**：①✅ Mac Nuitka freeze 调通 + kfc.bin 独立运行(本轮完成)。②**Ubuntu 装 python3.13**(deadsnakes/源码)+ Linux
-pykungfu 从 3.12 重编 3.13 + Linux env bootstrap + freeze(Linux 侧 nuitka 也升 4.1.2、复核 mypyc 包 nofollow 是否同样命中)。③双平台
-各产 kfc。④kungfubuildinfo.json 生成补进 cmake-js 后置步骤(目前 freeze 后手动 cp 进 dist)。⑤`kfc engage` dev 工具桥接(black/pdm/
-scons/nuitka)在冻结版的打包策略另案(非 P1 必需；可能改为 dev 环境另装或 bytecode 方式，而非 Nuitka 编译)。⑥freeze 入口正式化为脚本/
-run-conan freeze 子命令。⑦体积优化(910M)留后。
+**Stage C Linux freeze 调通 ✅(2026-06-18 Ubuntu noble x64，kfc.bin 干净独立运行)——Stage C 双平台完成**：
+- **Ubuntu 装 python3.13**：deadsnakes PPA 原为 jammy+disabled，`add-apt-repository -y ppa:deadsnakes/ppa` 按 noble 重登记
+  → `apt install python3.13 python3.13-dev python3.13-venv`，得 3.13.14(与 Mac 3.13.13 同 minor)，与系统 python3.12 并存不冲突。
+- **Linux pykungfu 重编 3.13**：cmake-js(node runtime 22.22.3) 用 `--CDPYTHON_EXECUTABLE=/usr/bin/python3.13` 重编出
+  `pykungfu.cpython-313-x86_64-linux-gnu.so`(原 cpython-312)+ libkungfu.so，零错误。libnode 用**直接 symlink**接入
+  (`ln -sfn ~/Code/libnode node_modules/@kungfu-trader/libnode`，绕开系统 node v24 在 `/opt/workhub` 不可写的 npm 全局 prefix)。
+- **Linux env bootstrap**：`pipenv --python /usr/bin/python3.13 install` + `poetry lock`(重锁匹配 nuitka ~4.1，一次成功，
+  因 pyproject 已带 relaxations，提交 `4e4127d88`) + `poetry install`。**坑：poetry install 在 headless ssh 下被 keyring 卡死**
+  (gnome-keyring 无 dbus 会话)→ 加 `PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring` + `POETRY_NO_INTERACTION=1` 后秒过。
+  numpy 2.1.3/pandas 2.2.3/scipy 1.14.1/nuitka 4.1.2 全 3.13。venv=`core-w3mCBY2x`。
+- **Linux Nuitka freeze**：`PYTHONPATH=<Release> pipenv run python -m nuitka ... src/python/kfc.py`(kfc.py 选项已随 28f4f9cad
+  同步，含 chardet/dev 工具 nofollow)。**坑：Linux standalone 需 `patchelf`**(`apt install patchelf`)。Release 目录需含 pykungfu+
+  libkungfu.so+libnode.so.127(RUNPATH `$ORIGIN` 找同目录)+kungfubuildinfo.json。产物 kfc.bin(322M)/dist 1.1G。
+- **验证**：补 kungfubuildinfo.json(注意 shell 写 json 要加引号防花括号展开)后 `env -u PYTHONPATH kfc.dist/kfc.bin --help`
+  干净环境**完整输出 CLI、无 warnings/certifi 报错**。
+
+**Stage C 剩余**：①✅ Mac freeze。②✅ Linux freeze(python3.13/pykungfu313/env/freeze 全通)。③✅ 双平台各产 kfc 独立运行。
+④kungfubuildinfo.json 生成补进 cmake-js 后置步骤(现 freeze 后手动 cp 进 dist；两平台都需)。⑤`kfc engage` dev 工具桥接(black/pdm/
+scons/nuitka)冻结版打包另案(非 P1 必需；dev 环境另装或 bytecode，而非 Nuitka 编译)。⑥freeze 入口正式化为脚本/run-conan freeze 子命令。
+⑦体积优化(Mac 910M/Linux 1.1G)留后。**→ Stage C 核心(双平台 kfc 独立运行)完成；剩 ④⑤⑥⑦ 为收尾/优化项。下一步 Stage D(Windows) 或
+先收 ④⑥ 再 .v4 退役 → P1 Journal Inspector。**
 </content>

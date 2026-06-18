@@ -16,7 +16,7 @@ function getNodeVersionOptions() {
     path.resolve(path.dirname(__dirname), 'package.json'),
   );
   // electron 从 devDependencies 读并去掉 ^/~ 前缀；node_version 从 config 读
-  // (v4 起 @kungfu-trader/libnode 不再列为 devDep，dev 走 npm link，见 .v4/docs/conan2-migration.md)。
+  // (v4 起 @kungfu-trader/libnode 不再列为 devDep，dev 走 npm link，见 docs/conan2-migration.md)。
   const electronVersion = String(packageJson.devDependencies['electron']).replace(
     /^[\^~]/,
     '',
@@ -71,7 +71,7 @@ function conanBuild() {
 
 // conan2 移除了独立的 `conan package` 本地命令(package() 经 conan create/export-pkg 触发)。
 // freeze→kfc 打包到 dist/kfc 的流程属 Stage C，需用 conan2 export-pkg/重构,见
-// .v4/docs/conan2-migration.md。此处暂保留 conan build 触发(build() 仅编译,不 freeze)，
+// docs/conan2-migration.md。此处暂保留 conan build 触发(build() 仅编译,不 freeze)，
 // freeze 入口在 Stage C 单独接通。
 function conanPackage() {
   const settings = makeConanSettings(['build_type']);

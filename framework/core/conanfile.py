@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # kungfu-core conan2 编排器（v4+）。
-# 由 conan-1.x 全量端口而来，逻辑成因见 .v4/docs/conan2-migration.md（理解可能片面，以代码为准）。
+# 由 conan-1.x 全量端口而来，逻辑成因见 docs/conan2-migration.md（理解可能片面，以代码为准）。
 # 不向下兼容 v3：只保证 v4+ 在 Mac arm64 / Linux x64 / Windows 可用。
 
 import json

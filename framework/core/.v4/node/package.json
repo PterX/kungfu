@@ -1,9 +1,0 @@
-{
-  "name": "kfv4-node-lightup",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Kungfu 4.0 Step 3 最小点亮：Node N-API addon 读同一条 journal",
-  "dependencies": {
-    "node-addon-api": "^8.0.0"
-  }
-}

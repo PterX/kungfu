@@ -89,10 +89,12 @@ Web/小程序当时多为「入口壳」未完整承载核心;多个云仓为 sh
 ## 6. 当前状态（恢复指针）
 
 - **数据平面(支柱1)**：✅ Step1-4 双平台点亮(Mac arm64 + Linux x64)。详见 `kungfu-4.0-kickoff.md` 记忆。
-- **P0 现代化地基**：🔄 进行中＝conan2 全量迁移。详见 `conan2-migration.md`。进度：① FMT workaround 清除✅；
-  conanfile.py 端口✅(A-1)；主 CMakeLists 桥接✅(A-2a)；② libnode→dist 双平台落位✅。
-  **下一步 A-2b**：kungfu-core `package.json` devDep(`@kungfu-trader/libnode 16.15.0→22.22.3` local link +
-  `electron 19.1.8→37.x`) + npm install 让 use_libnode 解析 + run-conan.js conan2 化 + 完整 bindings build 双平台
-  → B(electron)/C(freeze+kfc)/D(windows) → .v4 退役。
-- **P1+ 产品层**：⬜ 未启动,待 P0 完成。
+- **P0 现代化地基**：✅ **核心达成**(2026-06-18)。conan2 全量迁移完成，详见 `conan2-migration.md`。
+  Stage A(conan2 核心)/B(electron)/C(freeze+kfc)/D(Windows) 全通：electron/node/pykungfu/kfc 在 **Mac arm64 / Linux x64 /
+  Windows x64** 三平台全可构建，**kfc 三平台 Nuitka freeze 独立运行**(`--version`/`--help` 干净)。`.v4/` bootstrap 已删除退役，
+  文档迁至 `framework/core/docs/`。
+  **P0 剩余(收尾/优化，非阻塞)**：Stage C ⑤(engage 冻结版打包)/⑦(体积优化)；Windows port(cppstd17/libkungfu STATIC/electron
+  disturl/test-torque 补解压)固化进 run-conan.js 的 Windows 路径(目前手动)。
+- **P1 产品层**：⬜ 待启动＝**Journal Inspector MVP**(TS 核心 over kungfu_node + Ink TUI + Electron/React GUI；静态检视/过滤/hex/
+  longfist 字段/导出 + location 管理)。P0 核心已达成，可进 P1。
 </content>

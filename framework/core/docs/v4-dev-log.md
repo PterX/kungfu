@@ -1,5 +1,11 @@
 # Kungfu 4.0 开发台账（最小点亮 → 个人工具）
 
+> **历史归档说明（2026-06-18，`.v4` 已退役）**：本文原为 `framework/core/.v4/README.md`，是 Step1-4 最小点亮
+> bootstrap 期的开发台账。conan2 全量迁移完成后，`.v4/` 的成果已提升为正式 `framework/core/conanfile.py` +
+> 主 `CMakeLists.txt`（三平台 Mac/Linux/Windows 全可构建、kfc 三平台 freeze 独立运行），`.v4/` 目录已删除退役。
+> **下文 `cd framework/core/.v4`、conanfile.txt、KFV4_* 开关等均为 bootstrap 期历史命令，已不再适用**；
+> 当前权威构建见 `docs/conan2-migration.md`、产品规划见 `docs/v4-product-roadmap.md`、恢复点规则仍有效（见下）。
+
 本目录是 Kungfu 4.0 的开发脚手架与台账。4.0 不再做量化交易，而是在 Kungfu 的技术资产
 （C++/Python/Node.js 无缝联动：longfist 跨语言类型 + yijinjing 共享内存 journal + libnode 内嵌运行时）
 上开新产品线，先做成「可人自己桌面上用的个人工具」，再按需增量加功能。

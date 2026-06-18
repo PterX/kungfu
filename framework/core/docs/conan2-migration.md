@@ -336,9 +336,23 @@ python3.13.14(uv)、cmake-js/node-addon-api(Verdaccio)。kungfu 从 NAS clone(`C
 `npm` 裸命令在该上下文无输出，须 `cmd /c npm`；后台 `*> file` 重定向会让 MSBuild 死锁，改 `cmake --build` 同步(管道喂 Select-Object)且增量可续。
 libnode 用 junction 链入 node_modules(npm install 会清，需重建)。
 
-**Stage D 剩余(阻塞/延后)**：
-- **libnode.dll + pykungfu + kfc-freeze**：需 **VS2022/v143 工具链**——Node 22.22.3 vcbuild 只认 ≤VS2022，VS2026/MSVC19.5 太新
-  ("Failed to find a suitable Visual Studio installation")，且即便绕过版本门 V8 很可能编不过。待装 VS2022 Build Tools 后做(可人定)。
-- electron full GUI app(kungfu_electron + React 前端)：P1 阶段事。
-- 把 cppstd=17 + STATIC 等固化进 run-conan.js 的 Windows 路径(目前手动)。
+**Stage D Windows 完整完成 ✅(2026-06-18，装 VS2022 后)——kfc 三平台全 freeze 独立运行**：
+- **VS2022 Build Tools(v143 14.44)**：Node22 vcbuild 只认 ≤VS2022，VS2026/MSVC19.5 太新("Failed to find a suitable VS")。装 VS2022 解。
+- **libnode.dll(110.7M)+libnode.lib**：node 22.22.3 源码 `vcbuild dll release x64 openssl-no-asm`(python3.13 PATH 前置；`deps/v8/test/torque/
+  test-torque.tq` 窄路径补解压；dh-primes.h/maybe.h 是 build 时生成不在 tarball)。铺进 libnode 仓 dist/node，require 解析✓。
+- **pykungfu.cp313-win_amd64.pyd**：cmake-js node runtime(VS2026 编 binding + 链 VS2022 的 libnode.lib，跨工具集 C ABI OK)，import✓。
+- **kfc.exe(213M)**：pipenv 3.13 venv(uv py3.13)+poetry install(复用 Linux 重锁 lock，keyring null)+Nuitka 4.1.2 freeze(cl14.5)。
+  干净环境 `--version`=3.2.0-alpha.1 / `--help` 完整 CLI、无 certifi/warnings。**Windows 长任务全经 Task Scheduler(脱离 ssh)**。
+
+**Stage D 剩余(延后，非阻塞)**：electron full GUI app(kungfu_electron + React)＝P1 事；把 cppstd=17 + libkungfu STATIC + electron disturl +
+test-torque 补解压等固化进 run-conan.js 的 Windows 路径(目前手动)。
+
+## 收尾 — `.v4` 退役完成（2026-06-18）
+
+P0 核心达成：conan2 迁移把 `.v4/` 的 Step1-4 最小点亮成果提升为正式 `framework/core/conanfile.py` + 主 `CMakeLists.txt`，
+electron/node/pykungfu/kfc 在 **Mac arm64 / Linux x64 / Windows x64** 三平台全可构建、kfc 三平台 freeze 独立运行。`.v4/` bootstrap
+(conanfile.txt + .v4/CMakeLists + KFV4_* 开关 + node/python lightup + tests)已无主构建依赖(`KFV4_` 不出现在主构建文件)，**已删除退役**；
+本文档与 `v4-product-roadmap.md`、`v4-dev-log.md`(原 .v4/README) 迁至 `framework/core/docs/`。主构建注释中的 `.v4/docs/` 引用同步改为 `docs/`。
+
+**P0 剩余(收尾/优化，非阻塞)**：Stage C ⑤(engage 冻结版打包)/⑦(体积)；Windows port 固化进 run-conan.js。**下一步 → P1 Journal Inspector**。
 </content>

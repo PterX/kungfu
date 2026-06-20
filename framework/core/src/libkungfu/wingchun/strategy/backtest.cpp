@@ -387,8 +387,8 @@ uint64_t BacktestContext::insert_order(const std::string &instrument_id, const s
   uint32_t td_dest = find_td_location(source, account)->uid;
   OrderInput input{};
   input.order_id = get_order_id(writer, td_dest);
-  strcpy(input.instrument_id, instrument_id.c_str());
-  strcpy(input.exchange_id, exchange_id.c_str());
+  kungfu::copy_string(input.instrument_id, instrument_id.c_str());
+  kungfu::copy_string(input.exchange_id, exchange_id.c_str());
   input.instrument_type = instrument_type;
   input.limit_price = limit_price;
   input.frozen_price = limit_price;

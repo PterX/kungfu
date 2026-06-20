@@ -119,8 +119,8 @@ Commission CommissionStore::ExtractCommission(const Napi::CallbackInfo &info) {
   Commission commission = {};
   try {
     if (info[0].IsString()) {
-      strcpy(commission.product_id, info[0].ToString().Utf8Value().c_str());
-      strcpy(commission.exchange_id, info[1].ToString().Utf8Value().c_str());
+      kungfu::copy_string(commission.product_id, info[0].ToString().Utf8Value().c_str());
+      kungfu::copy_string(commission.exchange_id, info[1].ToString().Utf8Value().c_str());
     }
     if (info[0].IsObject()) {
       get(info[0].ToObject(), commission);

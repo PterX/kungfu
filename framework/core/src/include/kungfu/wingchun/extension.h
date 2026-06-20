@@ -167,7 +167,7 @@ template <size_t Size> struct type_caster<kungfu::array<char, Size>> {
     std::string &&s = reinterpret_borrow<str>(src);
     if (s.length() > Size)
       return false;
-    strcpy(value.value, s.c_str());
+    kungfu::copy_string(value.value, s.c_str());
     return true;
   }
 

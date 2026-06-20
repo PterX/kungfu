@@ -636,9 +636,9 @@ inline uint64_t get_source_op_id(uint32_t holder_uid, uint32_t source_id) {
 inline void order_from_input(const longfist::types::OrderInput &input, longfist::types::Order &order) {
   order.order_id = input.order_id;
 
-  strcpy(order.instrument_id, input.instrument_id);
-  strcpy(order.exchange_id, input.exchange_id);
-  strcpy(order.contract_id, input.contract_id);
+  kungfu::copy_string(order.instrument_id, input.instrument_id);
+  kungfu::copy_string(order.exchange_id, input.exchange_id);
+  kungfu::copy_string(order.contract_id, input.contract_id);
 
   order.instrument_type = input.instrument_type;
 
@@ -664,10 +664,10 @@ inline void order_from_input(const longfist::types::OrderInput &input, longfist:
 
 inline void trade_from_order(const longfist::types::Order &order, longfist::types::Trade &trade) {
   trade.order_id = order.order_id;
-  strcpy(trade.instrument_id, order.instrument_id);
-  strcpy(trade.exchange_id, order.exchange_id);
-  strcpy(trade.external_order_id, order.external_order_id);
-  strcpy(trade.contract_id, order.contract_id);
+  kungfu::copy_string(trade.instrument_id, order.instrument_id);
+  kungfu::copy_string(trade.exchange_id, order.exchange_id);
+  kungfu::copy_string(trade.external_order_id, order.external_order_id);
+  kungfu::copy_string(trade.contract_id, order.contract_id);
   trade.instrument_type = order.instrument_type;
   trade.side = order.side;
   trade.offset = order.offset;
@@ -678,8 +678,8 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
                                      longfist::types::OrderTrigger &trigger) {
   trigger.trigger_id = input.trigger_id;
 
-  strcpy(trigger.instrument_id, input.instrument_id);
-  strcpy(trigger.exchange_id, input.exchange_id);
+  kungfu::copy_string(trigger.instrument_id, input.instrument_id);
+  kungfu::copy_string(trigger.exchange_id, input.exchange_id);
   trigger.instrument_type = input.instrument_type;
 
   trigger.limit_price = input.limit_price;
@@ -702,9 +702,9 @@ inline void order_trigger_from_input(const longfist::types::OrderTriggerInput &i
 
 inline void order_trigger_from_order(const longfist::types::Order &order, longfist::types::OrderTrigger &trigger) {
   trigger.order_id = order.order_id;
-  strcpy(trigger.instrument_id, order.instrument_id);
-  strcpy(trigger.exchange_id, order.exchange_id);
-  strcpy(trigger.external_order_id, order.external_order_id);
+  kungfu::copy_string(trigger.instrument_id, order.instrument_id);
+  kungfu::copy_string(trigger.exchange_id, order.exchange_id);
+  kungfu::copy_string(trigger.external_order_id, order.external_order_id);
   trigger.instrument_type = order.instrument_type;
   trigger.limit_price = order.limit_price;
   trigger.frozen_price = order.frozen_price;
@@ -724,8 +724,8 @@ inline void order_trigger_from_order(const longfist::types::Order &order, longfi
 inline void order_input_from_trigger_order(const longfist::types::OrderTriggerInput &trigger_input,
                                            longfist::types::OrderInput &order_input) {
   order_input.order_id = trigger_input.trigger_id;
-  strcpy(order_input.instrument_id, trigger_input.instrument_id);
-  strcpy(order_input.exchange_id, trigger_input.exchange_id);
+  kungfu::copy_string(order_input.instrument_id, trigger_input.instrument_id);
+  kungfu::copy_string(order_input.exchange_id, trigger_input.exchange_id);
   order_input.instrument_type = trigger_input.instrument_type;
   order_input.limit_price = trigger_input.limit_price;
   order_input.frozen_price = trigger_input.frozen_price;
@@ -745,8 +745,8 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.end_time = algo_order_input.end_time;
   algo_order.insert_time = algo_order_input.insert_time;
 
-  strcpy(algo_order.instrument_id, algo_order_input.instrument_id);
-  strcpy(algo_order.exchange_id, algo_order_input.exchange_id);
+  kungfu::copy_string(algo_order.instrument_id, algo_order_input.instrument_id);
+  kungfu::copy_string(algo_order.exchange_id, algo_order_input.exchange_id);
   algo_order.instrument_type = algo_order_input.instrument_type;
 
   algo_order.side = algo_order_input.side;
@@ -761,8 +761,8 @@ inline void algo_order_from_input(const longfist::types::AlgoOrderInput &algo_or
   algo_order.is_local = algo_order_input.is_local;
   algo_order.basket_uid = algo_order_input.basket_uid;
 
-  strcpy(algo_order.algo_type_id, algo_order_input.algo_type_id);
-  strcpy(algo_order.algo_id, algo_order_input.algo_id);
+  kungfu::copy_string(algo_order.algo_type_id, algo_order_input.algo_type_id);
+  kungfu::copy_string(algo_order.algo_id, algo_order_input.algo_id);
 
   algo_order.status = longfist::enums::OrderStatus::Pending;
 }

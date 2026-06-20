@@ -119,8 +119,8 @@ void Client::subscribe(const std::string &exchange_id, const std::string &instru
   }
   InstrumentKey instrument_key = {};
   instrument_key.key = key;
-  strcpy(instrument_key.instrument_id, instrument_id.c_str());
-  strcpy(instrument_key.exchange_id, exchange_id.c_str());
+  kungfu::copy_string(instrument_key.instrument_id, instrument_id.c_str());
+  kungfu::copy_string(instrument_key.exchange_id, exchange_id.c_str());
   instrument_key.instrument_type = get_instrument_type(exchange_id, instrument_id);
   subscribe(instrument_key);
 }

@@ -46,8 +46,6 @@ using namespace boost::hana::literals;
 //------------------------------------------------------------------------
 // pack struct for fixing data length in journal
 #ifdef _WINDOWS
-#define strcpy(dest, src) strcpy_s(dest, sizeof(dest), src)
-#define strncpy(dest, src, max_length) strncpy_s(dest, sizeof(dest), src, max_length)
 #define KF_PACK_TYPE_BEGIN __pragma(pack(push, 8))
 #define KF_PACK_TYPE_END                                                                                               \
   ;                                                                                                                    \
@@ -133,6 +131,26 @@ template <typename V, size_t N> struct array_to_string<V, N, std::enable_if_t<no
   };
 };
 
+// 安全定长字符串拷贝（跨平台）。替代此前 _WINDOWS 下全局 `#define strcpy/strncpy → _s 安全版`：
+// 旧宏会污染随后 include 的系统/三方头里的 strcpy/strncpy（如 <tchar.h> 内联 _strncpy_l），
+// 且对裸指针目标用 sizeof(指针) 取容量会误判。此函数显式传 size，限定在 dest[0,size) 内：
+// 从 src 复制至多 min(count,size) 个非 NUL 字节，余下补 '\0'（与定长字段语义一致，不依赖 NUL 结尾）。
+inline void copy_string(char *dest, size_t size, const char *src, size_t count) {
+  if (size == 0) {
+    return;
+  }
+  size_t n = count < size ? count : size;
+  size_t i = 0;
+  if (src != nullptr) {
+    for (; i < n && src[i] != '\0'; ++i) {
+      dest[i] = src[i];
+    }
+  }
+  for (; i < size; ++i) {
+    dest[i] = '\0';
+  }
+}
+
 KF_PACK_TYPE_BEGIN
 template <typename T, size_t N> struct array {
   static constexpr size_t length = N;
@@ -171,7 +189,7 @@ template <typename T, size_t N> struct array {
       return *this;
     }
     if constexpr (std::is_same_v<T, char>) {
-      strncpy(value, data, N);
+      copy_string(value, N, data, N);
     } else {
       memcpy(value, data, sizeof(value));
     }
@@ -180,6 +198,13 @@ template <typename T, size_t N> struct array {
 
   array<T, N> &operator=(const array<T, N> &other) { return operator=(other.value); }
 } KF_PACK_TYPE_END;
+
+// copy_string 便捷重载：定长字符串字段（array<char,N> 或裸 char[N]）拷贝，编译期取容量 N。
+// 数组引用形参在编译期拒绝裸指针，杜绝旧宏 sizeof(指针) 误用；裸指针目标须用上面显式 size 的 4 参版。
+template <size_t N> inline void copy_string(array<char, N> &dest, const char *src) {
+  copy_string(dest.value, N, src, N);
+}
+template <size_t N> inline void copy_string(char (&dest)[N], const char *src) { copy_string(dest, N, src, N); }
 
 template <typename T, size_t N> void to_json(nlohmann::json &j, const array<T, N> &value) { j = value.value; }
 

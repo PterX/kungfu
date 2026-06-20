@@ -369,8 +369,8 @@ Napi::Value Watcher::RequestMarketData(const Napi::CallbackInfo &info) {
   uint32_t key = hash_instrument(exchange_id.c_str(), instrument_id.c_str());
   InstrumentKey instrument_key = {};
   instrument_key.key = key;
-  strcpy(instrument_key.instrument_id, instrument_id.c_str());
-  strcpy(instrument_key.exchange_id, exchange_id.c_str());
+  kungfu::copy_string(instrument_key.instrument_id, instrument_id.c_str());
+  kungfu::copy_string(instrument_key.exchange_id, exchange_id.c_str());
   instrument_key.instrument_type = get_instrument_type(exchange_id, instrument_id);
   writer->write(now(), instrument_key);
   subscribed_instruments_.emplace(key, instrument_key);

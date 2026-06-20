@@ -192,7 +192,7 @@ uint64_t LiveContext::insert_block_message(const std::string &source, const std:
   auto writer = app_.get_writer(account_location_uid);
   page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   BlockMessage &msg = writer->open_data<BlockMessage>(now());
-  strncpy(msg.opponent_seat, opponent_seat.c_str(), opponent_seat.length());
+  kungfu::copy_string(msg.opponent_seat, opponent_seat.c_str());
   msg.match_number = match_number;
   msg.is_specific = is_specific;
   msg.block_id = writer->current_frame_uid();
@@ -226,8 +226,8 @@ uint64_t LiveContext::insert_order_trigger(const std::string &instrument_id, con
   page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderTriggerInput &input = writer->open_data<OrderTriggerInput>(now());
   input.trigger_id = writer->current_frame_uid();
-  strcpy(input.instrument_id, instrument_id.c_str());
-  strcpy(input.exchange_id, exchange_id.c_str());
+  kungfu::copy_string(input.instrument_id, instrument_id.c_str());
+  kungfu::copy_string(input.exchange_id, exchange_id.c_str());
   input.instrument_type = instrument_type;
   input.limit_price = limit_price;
   input.frozen_price = limit_price;
@@ -268,8 +268,8 @@ uint64_t LiveContext::insert_order(const std::string &instrument_id, const std::
   page_ptr page = writer->get_current_page(); // prevent that page released after close_data
   OrderInput &input = writer->open_data<OrderInput>(now());
   input.order_id = writer->current_frame_uid();
-  strcpy(input.instrument_id, instrument_id.c_str());
-  strcpy(input.exchange_id, exchange_id.c_str());
+  kungfu::copy_string(input.instrument_id, instrument_id.c_str());
+  kungfu::copy_string(input.exchange_id, exchange_id.c_str());
   input.instrument_type = instrument_type;
   input.limit_price = limit_price;
   input.frozen_price = limit_price;
@@ -417,8 +417,8 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   input.insert_time = now();
   input.begin_time = begin_time;
   input.end_time = end_time;
-  strcpy(input.instrument_id, instrument_id.c_str());
-  strcpy(input.exchange_id, exchange_id.c_str());
+  kungfu::copy_string(input.instrument_id, instrument_id.c_str());
+  kungfu::copy_string(input.exchange_id, exchange_id.c_str());
   input.instrument_type = get_instrument_type(exchange_id, instrument_id);
   input.basket_uid = basket_uid;
   input.side = side;
@@ -427,8 +427,8 @@ uint64_t LiveContext::insert_algo_order(const std::string &instrument_id, const 
   input.price_level = price_level;
   input.price_offset = price_offset;
   input.volume = volume;
-  strcpy(input.algo_type_id, algo_type_id.c_str());
-  strcpy(input.algo_id, algo_id.c_str());
+  kungfu::copy_string(input.algo_type_id, algo_type_id.c_str());
+  kungfu::copy_string(input.algo_id, algo_id.c_str());
   input.args = args;
   input.is_local = is_local;
   writer->write(now(), input);

@@ -92,14 +92,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-// kungfu/common.h（上方）在 _WINDOWS 下把 strcpy/strncpy 宏重定义为 _s 安全版；
-// 这会污染随后 <tchar.h> 内联 _strcpy_l/_strncpy_l（它们调用真实 strcpy/strncpy，
-// 经 SDK 10.0.26100 servicing 新增），导致返回类型不匹配 C2440。此处先撤销宏，
-// 让 tchar.h 用标准签名；StackWalker 自身用真实 strncpy_s/MyStrCpy，不依赖该宏。
-#ifdef _WINDOWS
-#undef strcpy
-#undef strncpy
-#endif
 #include <tchar.h>
 #include <windows.h>
 

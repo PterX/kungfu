@@ -18,6 +18,7 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(nng REQUIRED)
+find_package(flatbuffers REQUIRED)
 find_package(rxcpp REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(RocksDB REQUIRED)
@@ -29,6 +30,7 @@ set(CONAN_LIBS
     spdlog::spdlog_header_only
     nlohmann_json::nlohmann_json
     nng::nng
+    flatbuffers::flatbuffers
     rxcpp::rxcpp
     SQLite::SQLite3
     RocksDB::rocksdb

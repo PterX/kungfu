@@ -42,7 +42,8 @@ class KungfuCoreConan(ConanFile):
     requires = [
         "fmt/10.2.1",
         "nlohmann_json/3.11.2",
-        "nng/1.6.0",
+        "nng/1.11.0",
+        "flatbuffers/25.9.23",
         "rxcpp/4.1.1",
         "sqlite3/3.39.2",
         "spdlog/1.14.1",

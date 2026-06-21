@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <kungfu/longfist/fb/order_fb_builder.h>
+#include <kungfu/longfist/fb/trade_fb_builder.h>
 #include <kungfu/wingchun/strategy/matcher.h>
 #include <kungfu/wingchun/strategy/runner.h>
 #include <kungfu/yijinjing/log.h>
@@ -44,6 +45,14 @@ void Matcher::update_trade(const Trade &trade) {
     auto writer = app_->get_writer(location::PUBLIC);
     auto [source, dest] = get_source_dest(trade.order_id);
     writer->write_raw_at_as(now(), now(), dest, source, trade.tag, reinterpret_cast<uintptr_t>(&trade), sizeof(trade));
+    // born-FB 写侧(Order 同法第二类型,默认 OFF):仅当环境变量 KF_TRADE_BORN_FB 设定时,在 POD 写之外额外写一条
+    // born-FB Trade 帧(longfist::fb::TRADE_FB_TAG),与 POD Trade(tag 203)并存;flag 未设=POD-only,实盘/仿真零变化。
+    static const bool born_fb = std::getenv("KF_TRADE_BORN_FB") != nullptr;
+    if (born_fb) {
+      auto fb = longfist::fb::build_fb_trade(trade);
+      writer->write_raw_at_as(now(), now(), dest, source, longfist::fb::TRADE_FB_TAG,
+                              reinterpret_cast<uintptr_t>(fb.data()), static_cast<uint32_t>(fb.size()));
+    }
   } catch (std::out_of_range &e) {
     throw std::out_of_range(
         fmt::format("order_id {} not found, it might already cancelled or filled.", trade.order_id));

@@ -44,6 +44,7 @@ cached::cached(const yijinjing::io_device_ptr &io_device)
     try {
       open_layer_ = std::make_unique<open_layer_projector>();
       auto n = open_layer_->setup(schemas_dir, std::string(schemas_dir) + "/open_layer.db");
+      open_layer_->start_worker(); // 后台异步批量 flush，feed() 不在 reader 热路径同步写 sqlite
       SPDLOG_INFO("open-layer projector enabled: {} type(s) from {}", n, schemas_dir);
     } catch (const std::exception &e) {
       SPDLOG_ERROR("open-layer projector setup failed, disabled: {}", e.what());

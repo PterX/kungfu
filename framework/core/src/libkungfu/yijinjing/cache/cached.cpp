@@ -3,6 +3,7 @@
 #include <kungfu/common.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/yijinjing/cache/cached.h>
+#include <kungfu/yijinjing/cache/open_layer_projector.h>
 #include <kungfu/yijinjing/practice/hero.h>
 #include <kungfu/yijinjing/time.h>
 
@@ -36,6 +37,18 @@ cached::cached(const yijinjing::io_device_ptr &io_device)
   std::string yes_str = "1";
   if (is_otc != nullptr && strcmp(is_otc, yes_str.c_str()) == 0) {
     is_otc_ = true;
+  }
+
+  // 开放层 FB 投影器（默认 OFF，与 hana 闭集并存）：仅当 KF_OPEN_LAYER_SCHEMAS 指向 schemas 目录时启用。
+  if (const char *schemas_dir = std::getenv("KF_OPEN_LAYER_SCHEMAS"); schemas_dir != nullptr) {
+    try {
+      open_layer_ = std::make_unique<open_layer_projector>();
+      auto n = open_layer_->setup(schemas_dir, std::string(schemas_dir) + "/open_layer.db");
+      SPDLOG_INFO("open-layer projector enabled: {} type(s) from {}", n, schemas_dir);
+    } catch (const std::exception &e) {
+      SPDLOG_ERROR("open-layer projector setup failed, disabled: {}", e.what());
+      open_layer_.reset();
+    }
   }
 }
 
@@ -250,6 +263,11 @@ void cached::feed(const event_ptr &event) {
 
   if (not bypass_cached_ and event->msg_type() != Instrument::tag) {
     feed_state_data(event, states_feed_bank_);
+  }
+
+  // 开放层 FB 帧（msg_type 不在 longfist 闭集）：路由到 FB 投影器；未启用或未注册类型时 no-op，不影响 hana 路径。
+  if (open_layer_) {
+    open_layer_->feed(event);
   }
 }
 

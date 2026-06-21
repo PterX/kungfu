@@ -66,8 +66,11 @@ inline std::string create_ddl(const reflection::Schema *s, const std::string &ta
     if (c.pk)
       pk.push_back(c.name);
   }
+  // 瘦索引的 journal 回环坐标：kf_gen_time 是 reader::seek_to_time 的唯一 seek key，
+  // kf_frame_uid 用于 seek 落点后的精确帧匹配，kf_stream_id 用于流过滤。
+  // （不存 mmap offset：reader 无按 offset/uid seek 的 API，address() 是进程内绝对地址、持久化无意义。）
   if (thin)
-    ddl += "kf_frame_uid INTEGER, kf_stream_id INTEGER, kf_offset INTEGER, ";
+    ddl += "kf_gen_time INTEGER, kf_frame_uid INTEGER, kf_stream_id INTEGER, ";
   ddl += "PRIMARY KEY(";
   for (size_t i = 0; i < pk.size(); ++i)
     ddl += (i ? "," : "") + pk[i];
@@ -85,7 +88,7 @@ inline std::string insert_sql(const std::vector<ColPlan> &cols, const std::strin
     ph += (i ? ",?" : "?");
   }
   if (thin) {
-    sql += ",kf_frame_uid,kf_stream_id,kf_offset";
+    sql += ",kf_gen_time,kf_frame_uid,kf_stream_id";
     ph += ",?,?,?";
   }
   return sql + ph + ")";

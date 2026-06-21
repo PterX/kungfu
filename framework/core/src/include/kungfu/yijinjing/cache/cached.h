@@ -9,7 +9,12 @@
 #include <kungfu/yijinjing/io.h>
 #include <kungfu/yijinjing/log.h>
 
+#include <memory>
+
 namespace kungfu::yijinjing::cache {
+
+// 开放层运行时投影器（与 hana 闭集并存，默认 OFF）；完整定义见 open_layer_projector.h，仅在 cached.cpp include。
+class open_layer_projector;
 
 using ProfileDataTypesType = decltype(longfist::ProfileDataTypes);
 using ProfileStateMapType = decltype(longfist::build_state_map(longfist::ProfileDataTypes));
@@ -138,6 +143,9 @@ private:
   bool is_otc_ = false;
 
   yijinjing::data::location_ptr ledger_home_location_;
+
+  // 开放层 FB 投影器：仅当环境变量 KF_OPEN_LAYER_SCHEMAS 设定时由 ctor 启用；为空表示未启用，feed() 不投影。
+  std::unique_ptr<open_layer_projector> open_layer_;
 
   static constexpr auto profile_get_all = [](auto &profile, auto &receiver) {
     boost::hana::for_each(longfist::ProfileDataTypes, [&](auto it) {

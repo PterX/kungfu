@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+// born-FB Order schema(R3 一 schema 同驱 journal 载荷 + SQLite 投影)。
+// char-array/enum 表示口径(2026-06-21):array<char,N>→string(TEXT)、enum class:int8_t→FB enum:byte(INTEGER) 镜像 longfist enums.h。
+// 首切为 longfist Order 可查询列 + 代表性 payload 子集;放量时补全字段。演进规则:尾部追加、不重排/删 id。
+namespace kungfu.longfist.fb;
+
+attribute "pk";
+attribute "ts";
+attribute "status";
+
+// 镜像 longfist enums.h:599 OrderStatus(int8_t)。
+enum OrderStatus : byte {
+  Unknown = 0, Submitted = 1, Pending = 2, Cancelled = 3, Error = 4, Filled = 5,
+  PartialFilledNotActive = 6, PartialFilledActive = 7, Lost = 8, Cancelling = 9,
+  Pause = 10, PendingSettlement = 11
+}
+
+table Order {
+  order_id:ulong (pk);
+  restore_time:long (ts);
+  status:OrderStatus (status);
+  instrument_id:string;
+  limit_price:double;
+  volume:double;
+  volume_left:double;
+}
+root_type Order;

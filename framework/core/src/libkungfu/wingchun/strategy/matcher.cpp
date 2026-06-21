@@ -2,10 +2,13 @@
 
 #include <fmt/format.h>
 
+#include <kungfu/longfist/fb/order_fb_builder.h>
 #include <kungfu/wingchun/strategy/matcher.h>
 #include <kungfu/wingchun/strategy/runner.h>
 #include <kungfu/yijinjing/log.h>
 #include <kungfu/yijinjing/time.h>
+
+#include <cstdlib>
 
 // using namespace kungfu::yijinjing::practice;
 using namespace kungfu::rx;
@@ -22,6 +25,14 @@ void Matcher::update_order(const Order &order) {
     auto writer = app_->get_writer(location::PUBLIC);
     auto [source, dest] = get_source_dest(order.order_id);
     writer->write_raw_at_as(now(), now(), dest, source, order.tag, reinterpret_cast<uintptr_t>(&order), sizeof(order));
+    // born-FB 写侧首切(仿真 Matcher,默认 OFF):仅当环境变量 KF_ORDER_BORN_FB 设定时,在 POD 写之外额外写一条
+    // born-FB Order 帧(longfist::fb::ORDER_FB_TAG),与 POD Order(tag 202)并存;flag 未设=POD-only,实盘/仿真零变化。
+    static const bool born_fb = std::getenv("KF_ORDER_BORN_FB") != nullptr;
+    if (born_fb) {
+      auto fb = longfist::fb::build_fb_order(order);
+      writer->write_raw_at_as(now(), now(), dest, source, longfist::fb::ORDER_FB_TAG,
+                              reinterpret_cast<uintptr_t>(fb.data()), static_cast<uint32_t>(fb.size()));
+    }
   } catch (std::out_of_range &e) {
     throw std::out_of_range(
         fmt::format("order_id {} not found, it might already cancelled or filled.", order.order_id));

@@ -41,3 +41,8 @@ debug-example/
 *.csv
 *.xls
 *.xlsx
+
+# flatc 构建期生成物(由 framework/core/CMakeLists longfist_fb_codegen 在 build 期生成,不入仓;
+# 手写源 *.fbs / *_fb_builder.h 仍跟踪)
+framework/core/src/include/kungfu/longfist/fb/*_generated.h
+framework/core/src/include/kungfu/longfist/fb/*.bfbs

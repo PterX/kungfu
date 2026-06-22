@@ -5,6 +5,8 @@
 //
 
 #include <kungfu/common.h>
+#include <kungfu/longfist/fb/asset_fb_builder.h>
+#include <kungfu/longfist/fb/position_fb_builder.h>
 #include <kungfu/longfist/longfist.h>
 #include <kungfu/wingchun/common.h>
 #include <kungfu/wingchun/service/ledger.h>
@@ -31,7 +33,37 @@ Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string 
       broker_client_(*this), bookkeeper_(*this, broker_client_, true, true) {
   sync_asset_ = std::getenv("KF_BYPASS_SYNC_ASSET") == nullptr;
   sync_position_ = std::getenv("KF_BYPASS_SYNC_POSITION") == nullptr;
+  // born-FB 写侧开关(默认 OFF);设定时 ledger 在 POD Position/Asset 写之外额外写 born-FB 帧并存,POD 路径零变化。
+  position_born_fb_ = std::getenv("KF_POSITION_BORN_FB") != nullptr;
+  asset_born_fb_ = std::getenv("KF_ASSET_BORN_FB") != nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
+}
+
+void Ledger::write_position_born_fb(int64_t trigger_time, const Position &position, uint32_t dest) {
+  if (not position_born_fb_ or not has_writer(dest)) {
+    return;
+  }
+  auto fb = longfist::fb::build_fb_position(position);
+  get_writer(dest)->write_raw(trigger_time, longfist::fb::POSITION_FB_TAG, reinterpret_cast<uintptr_t>(fb.data()),
+                              static_cast<uint32_t>(fb.size()));
+}
+
+void Ledger::write_position_born_fb_as(int64_t trigger_time, const Position &position, uint32_t source, uint32_t dest) {
+  if (not position_born_fb_ or not has_writer(dest)) {
+    return;
+  }
+  auto fb = longfist::fb::build_fb_position(position);
+  get_writer(dest)->write_raw_at_as(trigger_time, trigger_time, source, dest, longfist::fb::POSITION_FB_TAG,
+                                    reinterpret_cast<uintptr_t>(fb.data()), static_cast<uint32_t>(fb.size()));
+}
+
+void Ledger::write_asset_born_fb(int64_t trigger_time, const Asset &asset, uint32_t dest) {
+  if (not asset_born_fb_ or not has_writer(dest)) {
+    return;
+  }
+  auto fb = longfist::fb::build_fb_asset(asset);
+  get_writer(dest)->write_raw(trigger_time, longfist::fb::ASSET_FB_TAG, reinterpret_cast<uintptr_t>(fb.data()),
+                              static_cast<uint32_t>(fb.size()));
 }
 
 void Ledger::on_exit() {}
@@ -208,6 +240,7 @@ void Ledger::update_account_book(int64_t trigger_time, uint32_t account_uid) {
   write_positions(trigger_time, account_uid, book->long_positions);
   write_positions(trigger_time, account_uid, book->short_positions);
   try_write_to(trigger_time, book->asset, account_uid);
+  write_asset_born_fb(trigger_time, book->asset, account_uid); // born-FB twin(flag-gated)
   PositionEnd end{};
   end.holder_uid = account_uid;
   try_write_to(trigger_time, end, account_uid);
@@ -319,6 +352,7 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
       write_positions(trigger_time, strategy_uid, book->long_positions);
       write_positions(trigger_time, strategy_uid, book->short_positions);
       try_write_to(trigger_time, asset, strategy_uid);
+      write_asset_born_fb(trigger_time, asset, strategy_uid); // born-FB twin(flag-gated)
     }
   }
   PositionEnd end{};
@@ -329,6 +363,8 @@ void Ledger::write_strategy_data(int64_t trigger_time, uint32_t strategy_uid) {
 void Ledger::write_positions(int64_t trigger_time, uint32_t dest, PositionMap &positions) {
   for (const auto &pair : positions) {
     try_write_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
+    // born-FB twin(flag-gated):与 POD 同 source(live_home)/dest(holder_uid) 路由。
+    write_position_born_fb_as(trigger_time, pair.second, get_live_home_uid(), pair.second.holder_uid);
   }
 }
 

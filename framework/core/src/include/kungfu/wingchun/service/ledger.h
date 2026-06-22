@@ -33,6 +33,15 @@ public:
 protected:
   void on_start() override;
 
+  // born-FB dual-write helper(protected 便于 TestLedger e2e 驱动真实写侧;flag 判断内置,FB builder include 仅 ledger.cpp):
+  // _to=默认路由(对应 try_write_to/write_to)、_as=显式 source/dest(对应 write_positions 的 try_write_as)。
+  void write_position_born_fb(int64_t trigger_time, const longfist::types::Position &position, uint32_t dest);
+
+  void write_position_born_fb_as(int64_t trigger_time, const longfist::types::Position &position, uint32_t source,
+                                 uint32_t dest);
+
+  void write_asset_born_fb(int64_t trigger_time, const longfist::types::Asset &asset, uint32_t dest);
+
 private:
   broker::AutoClient broker_client_;
   book::Bookkeeper bookkeeper_;
@@ -42,6 +51,10 @@ private:
   OperatorStateMap operator_states_ = {};
   bool sync_asset_ = false;
   bool sync_position_ = false;
+  // born-FB 写侧(Order/Trade matcher 同法,默认 OFF):KF_POSITION_BORN_FB / KF_ASSET_BORN_FB 设定时,
+  // 在 POD Position(103)/Asset(101) 写之外额外写一条 born-FB 帧(tag 30103/30101)并存;flag 未设=POD-only,零变化。
+  bool position_born_fb_ = false;
+  bool asset_born_fb_ = false;
 
   static bool bypass_refresh_book();
 
@@ -117,9 +130,13 @@ private:
       return;
     }
     auto book = bookkeeper_.get_book(book_uid);
-    auto apply = [&](auto &position) { try_write_to(trigger_time, position, book_uid); };
+    auto apply = [&](auto &position) {
+      try_write_to(trigger_time, position, book_uid);
+      write_position_born_fb(trigger_time, position, book_uid); // born-FB twin(flag-gated)
+    };
     book->apply_position_for(data, apply);
     write_to(trigger_time, book->asset, book_uid);
+    write_asset_born_fb(trigger_time, book->asset, book_uid); // born-FB twin(flag-gated)
   }
 };
 } // namespace kungfu::wingchun::service

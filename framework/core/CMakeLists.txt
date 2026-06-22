@@ -84,9 +84,18 @@ add_custom_command(
   DEPENDS ${LONGFIST_FB_DIR}/trade.fbs ${LONGFIST_FB_DIR}/order.fbs
   COMMENT "flatc: trade.fbs -> trade_generated.h + trade.bfbs"
   VERBATIM)
+# position.fbs include order.fbs(复用 InstrumentType),故也依赖 order.fbs。
+add_custom_command(
+  OUTPUT ${LONGFIST_FB_DIR}/position_generated.h ${LONGFIST_FB_DIR}/position.bfbs
+  COMMAND flatbuffers::flatc --cpp --gen-mutable --scoped-enums -I ${LONGFIST_FB_DIR} -o ${LONGFIST_FB_DIR} ${LONGFIST_FB_DIR}/position.fbs
+  COMMAND flatbuffers::flatc -b --schema -I ${LONGFIST_FB_DIR} -o ${LONGFIST_FB_DIR} ${LONGFIST_FB_DIR}/position.fbs
+  DEPENDS ${LONGFIST_FB_DIR}/position.fbs ${LONGFIST_FB_DIR}/order.fbs
+  COMMENT "flatc: position.fbs -> position_generated.h + position.bfbs"
+  VERBATIM)
 add_custom_target(longfist_fb_codegen DEPENDS
   ${LONGFIST_FB_DIR}/order_generated.h ${LONGFIST_FB_DIR}/order.bfbs
-  ${LONGFIST_FB_DIR}/trade_generated.h ${LONGFIST_FB_DIR}/trade.bfbs)
+  ${LONGFIST_FB_DIR}/trade_generated.h ${LONGFIST_FB_DIR}/trade.bfbs
+  ${LONGFIST_FB_DIR}/position_generated.h ${LONGFIST_FB_DIR}/position.bfbs)
 
 ##########################################################################
 

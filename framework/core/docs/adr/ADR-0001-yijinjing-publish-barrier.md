@@ -1,6 +1,6 @@
 # ADR-0001: yijinjing journal 帧发布协议改用 atomic_ref release/acquire
 
-- 状态: accepted（实现见本分支；ARM 对抗压测已通过，见「闸门产出」；真实 kungfu-core 在树编译待补）
+- 状态: accepted（实现见本分支；ARM 对抗压测 + 真实树编译均已通过，见「闸门产出」）
 - 日期: 2026-06-23
 - 类别: (b) 改进 + latent bug（并发正确性）
 - 子系统: yijinjing journal —— 单写多读、mmap `MAP_SHARED` 跨进程帧总线
@@ -93,7 +93,10 @@ payload load 重排。读者据此在 payload 尚不可见时判定「有帧」�
   1. 撕裂是**真实可复现**的——ARM 弱序下 volatile 协议每秒数百万次撕裂（令牌可见但 payload 未可见）。
   2. **x86-TSO 印证**：同一 volatile 协议在 x86 上零撕裂——这正是该 latent bug 在生产（x86 部署）从未暴雷的原因，也确证了「平台偶然正确」判词。
   3. atomic_ref release/acquire 在 ARM 与 x86 上均零撕裂，无功能回退；ARM 上代价是每帧一次 `stlr`/`ldar`，吞吐仍达千万帧/秒级。
-- **待补**：真实 kungfu-core 在树编译（验证 types.h/frame.h/writer.cpp 在完整 conan 构建上下文无编译错误），是进 final 前最后一道门。
+- **在树编译（已过）**：用 v4 warm 构建的精确编译标志，对 `writer.cpp`/`reader.cpp`/`journal.cpp`
+  三个 frame.h 消费者在真实树做 `-fsyntax-only`（arm64，gnu++20，完整 conan 依赖）——0 error，
+  且 `static_assert(offsetof(frame_header,length)==0)` 由编译器证实成立。(仅前端语义编译；
+  完整 object/link 走 node/.gyp 编排,对纯 header+inline 改动风险极低。)
 - **下一段方向**：①是否同等审视 `close_page`/页切换路径的可见性；②与 ADR-0002 born-FB 发布路径是否共用同一 `publish_data_length`/`acquire_length` atomic_ref 封装。
 
 > harness 源码与可复现命令见 Atlas:`agent-journal/goals/2026-06-23-kungfu-adr0001-yijinjing-barrier/validation/journal_publish_race.cpp`。

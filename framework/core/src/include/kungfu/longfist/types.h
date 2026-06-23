@@ -56,16 +56,21 @@ KF_DEFINE_MARK_TYPE(SocketData, 10751);
 
 KF_DEFINE_PACK_TYPE(                                           //
     frame_header, 0, PK(gen_time), TIMESTAMP(gen_time),        //
-    /** total frame length (including header and data body) */ //
-    (volatile uint32_t, length),                               //
+    /** total frame length (including header and data body);                //
+     *  ADR-0001: serves as the frame publication token. Written last with   //
+     *  std::atomic_ref release by the writer and read with acquire by the    //
+     *  reader (see frame.h). NOT volatile: volatile gives no cross-thread    //
+     *  ordering on weak-memory (ARM) targets. */                            //
+    (uint32_t, length),                                        //
     /** header length */                                       //
     (uint32_t, header_length),                                 //
     /** generate time of the frame data */                     //
     (int64_t, gen_time),                                       //
     /** trigger time for this frame, use for latency stats */  //
     (int64_t, trigger_time),                                   //
-    /** msg type of the data in frame */                       //
-    (volatile int32_t, msg_type),                              //
+    /** msg type of the data in frame (ADR-0001: no longer volatile;          //
+     *  visibility is guaranteed by the length release/acquire token) */      //
+    (int32_t, msg_type),                                       //
     /** source of this frame */                                //
     (uint32_t, source),                                        //
     /** dest of this frame */                                  //

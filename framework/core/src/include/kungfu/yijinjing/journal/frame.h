@@ -5,6 +5,9 @@
 
 #include <kungfu/yijinjing/journal/common.h>
 
+#include <atomic>
+#include <cstddef>
+
 namespace kungfu::yijinjing::journal {
 /**
  * Basic memory unit,
@@ -13,7 +16,12 @@ namespace kungfu::yijinjing::journal {
 struct frame : event {
   ~frame() override = default;
 
-  [[nodiscard]] bool has_data() const { return header_->length > 0 && header_->msg_type > 0; }
+  // ADR-0001: `length` is the frame publication token. Read it with acquire so
+  // that, once a non-zero length is observed, all of the writer's prior stores
+  // (payload, gen_time, frame_uid, the zeroed next-frame header) are visible.
+  // This replaces the previous `volatile` field, which gave no cross-thread
+  // ordering on weak-memory (ARM) targets.
+  [[nodiscard]] bool has_data() const { return acquire_length() > 0 && header_->msg_type > 0; }
 
   [[nodiscard]] uintptr_t address() const { return reinterpret_cast<uintptr_t>(header_); }
 
@@ -86,7 +94,21 @@ struct frame : event {
 
   void set_header_length() { header_->header_length = sizeof(longfist::types::frame_header); }
 
+  // Non-publishing write of the length field (e.g. to mark a page-end frame as
+  // empty with length 0). Does NOT establish release ordering; use
+  // publish_data_length() to make a frame visible to readers.
   void set_data_length(uint32_t length) { header_->length = header_length() + length; }
+
+  // ADR-0001: publish the frame with a release store on `length`. Must be the
+  // LAST write of the frame; it pairs with acquire_length() on the reader side.
+  void publish_data_length(uint32_t length) {
+    std::atomic_ref<uint32_t>(header_->length).store(header_length() + length, std::memory_order_release);
+  }
+
+  // ADR-0001: acquire-load of the publication token.
+  [[nodiscard]] uint32_t acquire_length() const {
+    return std::atomic_ref<uint32_t>(header_->length).load(std::memory_order_acquire);
+  }
 
   void set_gen_time(int64_t gen_time) { header_->gen_time = gen_time; }
 
@@ -108,7 +130,18 @@ struct frame : event {
 
   void set_stream_id(uint64_t stream_id) { header_->stream_id = stream_id; }
 
-  void copy(const frame &source) { memcpy(header_, source.header_, source.frame_length()); }
+  // ADR-0001: copy the header + payload but leave the `length` publication token
+  // unwritten (it stays 0 from the prior next-header memset). The caller must
+  // publish it last via publish_data_length() so a polling reader never observes
+  // the token ahead of the copied payload. Relies on `length` being the first
+  // field of frame_header (offset 0).
+  void copy(const frame &source) {
+    static_assert(offsetof(longfist::types::frame_header, length) == 0,
+                  "length must be frame_header's first field for publish-safe copy");
+    auto total = source.frame_length();
+    memcpy(reinterpret_cast<char *>(header_) + sizeof(uint32_t),
+           reinterpret_cast<const char *>(source.header_) + sizeof(uint32_t), total - sizeof(uint32_t));
+  }
 
   frame() = default;
 

@@ -55,6 +55,8 @@ private:
   // 在 POD Position(103)/Asset(101) 写之外额外写一条 born-FB 帧(tag 30103/30101)并存;flag 未设=POD-only,零变化。
   bool position_born_fb_ = false;
   bool asset_born_fb_ = false;
+  // 迁移 cutover 开关(KF_SKIP_POD_WRITE,默认 OFF):设定时 write_book 跳过 POD Position/Asset 写,只走 born-FB(终态)。
+  bool skip_pod_write_ = false;
 
   static bool bypass_refresh_book();
 
@@ -131,11 +133,15 @@ private:
     }
     auto book = bookkeeper_.get_book(book_uid);
     auto apply = [&](auto &position) {
-      try_write_to(trigger_time, position, book_uid);
+      if (not skip_pod_write_) {
+        try_write_to(trigger_time, position, book_uid); // POD Position(103)(KF_SKIP_POD_WRITE 时跳过=终态 FB-only)
+      }
       write_position_born_fb(trigger_time, position, book_uid); // born-FB twin(flag-gated)
     };
     book->apply_position_for(data, apply);
-    write_to(trigger_time, book->asset, book_uid);
+    if (not skip_pod_write_) {
+      write_to(trigger_time, book->asset, book_uid); // POD Asset(101)(KF_SKIP_POD_WRITE 时跳过=终态 FB-only)
+    }
     write_asset_born_fb(trigger_time, book->asset, book_uid); // born-FB twin(flag-gated)
   }
 };

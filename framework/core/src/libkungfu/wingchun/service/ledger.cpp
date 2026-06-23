@@ -36,6 +36,9 @@ Ledger::Ledger(locator_ptr locator, const std::string &group, const std::string 
   // born-FB 写侧开关(默认 OFF);设定时 ledger 在 POD Position/Asset 写之外额外写 born-FB 帧并存,POD 路径零变化。
   position_born_fb_ = std::getenv("KF_POSITION_BORN_FB") != nullptr;
   asset_born_fb_ = std::getenv("KF_ASSET_BORN_FB") != nullptr;
+  // 迁移 cutover 开关(默认 OFF):设定时 write_book 跳过 POD Position/Asset 写,只走 born-FB(终态形态)。
+  // 与 born-FB flag 配合:POD-only=两 flag 全不设;dual-write=born-FB 设、skip 不设;FB-only=born-FB 设 + skip 设。
+  skip_pod_write_ = std::getenv("KF_SKIP_POD_WRITE") != nullptr;
   SPDLOG_DEBUG("sync_asset_: {},  sync_position_: {}", sync_asset_, sync_position_);
 }
 

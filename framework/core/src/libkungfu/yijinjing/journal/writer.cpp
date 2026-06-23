@@ -89,11 +89,14 @@ void writer::close_frame_lock_free(size_t data_length, int64_t gen_time) {
   memset(reinterpret_cast<void *>(next_frame_address), 0, sizeof(frame_header));
   frame->set_gen_time(gen_time);
   last_gen_time_ = gen_time;
-  frame->set_data_length(data_length);
   frame->set_frame_uid(current_frame_uid());
   frame->set_trigger_frame_uid(journal_->bus_->get_trigger_frame_uid());
   size_to_write_ = 0;
   journal_->page_->set_last_frame_position(frame->address() - journal_->page_->address());
+  // ADR-0001: publish the frame as the LAST step with a release store on `length`.
+  // Every store above happens-before a reader's acquire-load of `length` in
+  // frame::has_data(), so the frame is never observed with stale payload/header.
+  frame->publish_data_length(data_length);
   journal_->next();
 }
 
@@ -110,11 +113,14 @@ void writer::copy_frame(const frame_ptr &source) {
   }
 
   auto frame = journal_->current_frame();
+  // ADR-0001: copy() leaves `length` unwritten; compute the next-frame address
+  // from the source size, zero the next header, then publish `length` last.
   frame->copy(*source);
 
-  auto next_frame_address = frame->address() + frame->header_length() + frame->data_length();
+  auto next_frame_address = frame->address() + source->frame_length();
   memset(reinterpret_cast<void *>(next_frame_address), 0, sizeof(frame_header));
   journal_->page_->set_last_frame_position(frame->address() - journal_->page_->address());
+  frame->publish_data_length(source->data_length());
   journal_->next();
   publisher_->notify();
 }

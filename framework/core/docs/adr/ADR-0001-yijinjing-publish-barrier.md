@@ -1,6 +1,6 @@
 # ADR-0001: yijinjing journal 帧发布协议改用 atomic_ref release/acquire
 
-- 状态: accepted（实现见本分支；ARM 压测在 S4 收口后回填数据）
+- 状态: accepted（实现见本分支；ARM 对抗压测已通过，见「闸门产出」；真实 kungfu-core 在树编译待补）
 - 日期: 2026-06-23
 - 类别: (b) 改进 + latent bug（并发正确性）
 - 子系统: yijinjing journal —— 单写多读、mmap `MAP_SHARED` 跨进程帧总线
@@ -80,11 +80,23 @@ payload load 重排。读者据此在 payload 尚不可见时判定「有帧」�
 - **Chronicle Queue**：header word release 写 + acquire 读做记录提交。
 - 结论：release/acquire 单令牌发布是该类 mmap SPMC/SPSC 总线的业界标准；原 `volatile` 落后于 SOTA。
 
-## 闸门产出（S4/S5 收口回填）
+## 闸门产出（S4 回填）
 
-- 学到什么: __（ARM 压测：修复前是否复现撕裂、修复后是否清零；release/acquire 实测开销）__
-- 下一段方向: __（是否需同等审视 `close_page`/页切换路径；是否与 ADR-0002 born-FB 发布路径
-  共用同一 atomic_ref 封装）__
+**对抗压测（独立 harness 镜像发布协议:token+payload、append-only ring、单写多读、背压防套圈）：**
+
+| 平台 | volatile（原实现） | atomic_ref（修复） |
+|---|---|---|
+| Mac arm64 (Apple M1 Ultra) | **14,630,379 撕裂 / 75M 读**（rc=1） | **0 撕裂 / 290M+ 读**（rc=0） |
+| Linux x86_64 (i9-13900K, TSO) | **0 撕裂 / 180M 读**（rc=0） | **0 撕裂 / 148M 读**（rc=0） |
+
+- **学到什么**：
+  1. 撕裂是**真实可复现**的——ARM 弱序下 volatile 协议每秒数百万次撕裂（令牌可见但 payload 未可见）。
+  2. **x86-TSO 印证**：同一 volatile 协议在 x86 上零撕裂——这正是该 latent bug 在生产（x86 部署）从未暴雷的原因，也确证了「平台偶然正确」判词。
+  3. atomic_ref release/acquire 在 ARM 与 x86 上均零撕裂，无功能回退；ARM 上代价是每帧一次 `stlr`/`ldar`，吞吐仍达千万帧/秒级。
+- **待补**：真实 kungfu-core 在树编译（验证 types.h/frame.h/writer.cpp 在完整 conan 构建上下文无编译错误），是进 final 前最后一道门。
+- **下一段方向**：①是否同等审视 `close_page`/页切换路径的可见性；②与 ADR-0002 born-FB 发布路径是否共用同一 `publish_data_length`/`acquire_length` atomic_ref 封装。
+
+> harness 源码与可复现命令见 Atlas:`agent-journal/goals/2026-06-23-kungfu-adr0001-yijinjing-barrier/validation/journal_publish_race.cpp`。
 
 ## 实现位点
 

@@ -4,7 +4,12 @@ enable_windows_export_all_symbols()
 
 file(GLOB_RECURSE KUNGFU_OPTIM_SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE KUNGFU_CACHE_SOURCE_FILES ${PROJECT_SOURCE_DIR}/yijinjing/cache/*.cpp)
+# tracing-foundation Phase 1(goal 2026-06-25-kungfu-v4-tracing-foundation):
+# 把 wingchun(交易语义)移出 libkungfu 编译流程,清出干净 core 作为 LLM tracing 基石。
+# 核心(journal/longfist/yijinjing)对 wingchun include = 0,故仅排除其 .cpp 即可。
+file(GLOB_RECURSE KUNGFU_WINGCHUN_SOURCE_FILES ${PROJECT_SOURCE_DIR}/wingchun/*.cpp)
 list(REMOVE_ITEM KUNGFU_OPTIM_SOURCE_FILES ${KUNGFU_CACHE_SOURCE_FILES})
+list(REMOVE_ITEM KUNGFU_OPTIM_SOURCE_FILES ${KUNGFU_WINGCHUN_SOURCE_FILES})
 
 add_library_object(kungfu_cache "${KUNGFU_CACHE_SOURCE_FILES}" "${COMPILER_OPTIMIZE_OFF_OPTIONS}" "${KUNGFU_BUILD_DIR}")
 add_library_object(kungfu_optim "${KUNGFU_OPTIM_SOURCE_FILES}" "${COMPILER_OPTIMIZE_ON_OPTIONS}" "${KUNGFU_BUILD_DIR}")

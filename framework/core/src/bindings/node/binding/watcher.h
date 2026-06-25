@@ -14,8 +14,8 @@
 #include "io.h"
 #include "journal.h"
 #include "operators.h"
-#include <kungfu/wingchun/book/bookkeeper.h>
-#include <kungfu/wingchun/broker/client.h>
+// tracing-foundation Phase 1(goal 2026-06-25):wingchun(book/broker)已脱出。
+// 交易记账(bookkeeper/Book/SilentAutoClient/BookListener)随之移除,留 Phase 2「喂 agent 事件」新 Watcher 重建。
 #include <kungfu/yijinjing/cache/runtime.h>
 #include <kungfu/yijinjing/practice/apprentice.h>
 
@@ -24,20 +24,6 @@ constexpr uint64_t ID_TRANC = 0x00000000FFFFFFFF;
 constexpr uint32_t PAGE_ID_MASK = 0x80000000;
 constexpr uint32_t TRANSFER_STATIC_DATA_LIMIT = 2000;
 constexpr uint32_t TRANSFER_TRADING_DATA_LIMIT = 2000;
-
-class WatcherAutoClient : public wingchun::broker::SilentAutoClient {
-public:
-  explicit WatcherAutoClient(yijinjing::practice::apprentice &app, bool bypass_trading_data);
-
-  ~WatcherAutoClient() = default;
-
-  void connect(const event_ptr &event, const longfist::types::Register &register_data) override;
-  void connect(const event_ptr &event, const longfist::types::Band &band) override;
-  bool should_connect_system(const yijinjing::data::location_ptr &system_location) const override;
-
-private:
-  bool bypass_trading_data_;
-};
 
 class Watcher : public Napi::ObjectWrap<Watcher>, public yijinjing::practice::apprentice {
   typedef std::unordered_map<uint32_t, longfist::types::InstrumentKey> InstrumentKeyMap;
@@ -148,8 +134,6 @@ private:
   bool uv_work_live_ = false;
   bool quit_ = false;
 
-  WatcherAutoClient broker_client_;
-  wingchun::book::Bookkeeper bookkeeper_;
   Napi::ObjectReference ledger_ref_;
   Napi::ObjectReference app_states_ref_;
   Napi::ObjectReference strategy_states_ref_;
@@ -224,12 +208,6 @@ private:
 
   void UpdateStrategyState(uint32_t strategy_uid, const longfist::types::StrategyStateUpdate &state);
 
-  void UpdateAsset(const event_ptr &event, uint32_t book_uid);
-
-  void UpdateBook(const event_ptr &event, const longfist::types::Quote &quote);
-
-  void UpdateBook(const event_ptr &event, const longfist::types::Position &position);
-
   void SyncLedger();
 
   void TryRefreshTradingData();
@@ -252,86 +230,10 @@ private:
 
   void ResetTradingDataCount() { trading_data_count_by_step_ = 0; };
 
-  void refresh_books();
-
-  void refresh_account_book(int64_t trigger_time, uint32_t account_uid);
-
-  template <typename DataType>
-  void feed_state_data_bank(const state<DataType> &state, yijinjing::cache::bank &receiver) {
-    boost::hana::for_each(longfist::StateDataTypes, [&](auto it) {
-      using DataTypeItem = typename decltype(+boost::hana::second(it))::type;
-      if (std::is_same<DataType, DataTypeItem>::value) {
-        receiver << state;
-      }
-    });
-  };
-
-  template <typename TradingData> void UpdateBook(const event_ptr &event, const TradingData &data) {
-    auto update = [&](uint32_t source, uint32_t dest) {
-      if (source == yijinjing::data::location::PUBLIC) {
-        return;
-      }
-      auto location = get_location(source);
-      auto book = bookkeeper_.get_book(source);
-
-      auto apply = [&](auto &position) {
-        state<longfist::types::Position> cache_state_position(source, dest, event->gen_time(), position);
-        feed_state_data_bank(cache_state_position, data_bank_);
-      };
-
-      book->apply_position_for(data, apply);
-      book->apply_opposite_position_for(data, apply);
-
-      state<longfist::types::Asset> cache_state_asset(source, dest, event->gen_time(), book->asset);
-      feed_state_data_bank(cache_state_asset, data_bank_);
-    };
-    update(event->source(), event->dest());
-    update(event->dest(), event->source());
-  }
-
-  template <typename TradingData>
-  std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderTriggerInput>>
-  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<longfist::types::OrderTriggerInput> cache_state_order_trigger_input(source, dest, now(), data);
-    data_bank_ << cache_state_order_trigger_input;
-  }
-
-  template <typename TradingData>
-  std::enable_if_t<std::is_same_v<TradingData, longfist::types::OrderInput>> UpdateBook(uint32_t source, uint32_t dest,
-                                                                                        const TradingData &data) {
-    bookkeeper_.on_order_input(now(), source, dest, data);
-    state<longfist::types::OrderInput> cache_state_order_input(source, dest, now(), data);
-    trading_data_bank_ << cache_state_order_input;
-  }
-
-  template <typename TradingData>
-  std::enable_if_t<std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
-  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {
-    state<longfist::types::AlgoOrderInput> cache_state_algo_order_input(source, dest, now(), data);
-    data_bank_ << cache_state_algo_order_input;
-  }
-
-  template <typename TradingData>
-  std::enable_if_t<not std::is_same_v<TradingData, longfist::types::OrderTriggerInput> and
-                   not std::is_same_v<TradingData, longfist::types::OrderInput> and
-                   not std::is_same_v<TradingData, longfist::types::AlgoOrderInput>>
-  UpdateBook(uint32_t source, uint32_t dest, const TradingData &data) {}
-
   uint64_t MakeInstructionUID(yijinjing::journal::writer_ptr &writer, uint32_t dest, uint32_t client_id = 0) {
     uint64_t id_left = (uint64_t)(client_id xor dest) << 32u;
     uint64_t id_right = (ID_TRANC & writer->current_frame_uid()) | PAGE_ID_MASK;
     return id_left | id_right;
-  }
-
-  template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
-  uint64_t WriteInstruction(int64_t trigger_time, Instruction instruction, IdPtrType id_ptr,
-                            const yijinjing::data::location_ptr &account_location,
-                            const yijinjing::data::location_ptr &strategy_location) {
-    auto account_writer = get_writer(account_location->uid);
-    instruction.*id_ptr = MakeInstructionUID(account_writer, account_location->uid, strategy_location->uid);
-    account_writer->write_as(trigger_time, instruction, strategy_location->uid, account_location->uid);
-    UpdateBook(strategy_location->uid, account_location->uid, instruction);
-    return instruction.*id_ptr;
   }
 
   template <typename DataType> void UpdateLedger(const boost::hana::basic_type<DataType> &type) {
@@ -351,28 +253,8 @@ private:
     }
   }
 
-  template <typename DataType> void UpdateTradingData(const boost::hana::basic_type<DataType> &type) {
-    using DataTypeMap = std::unordered_map<uint64_t, state<DataType>>;
-    auto &target_map = const_cast<DataTypeMap &>(trading_data_bank_[type]);
-    auto iter = target_map.begin();
-    while (iter != target_map.end()) {
-      const auto &state = iter->second;
-      update_ledger(state.update_time, state.source, state.dest, state.data);
-      iter++;
-    }
-    target_map.clear();
-  }
-
-  template <typename DataType> void UpdateTradingDataFromCacheD(const boost::hana::basic_type<DataType> &type) {
-    using DataTypeDeque = std::deque<state<DataType>>;
-    auto &target_deque = const_cast<DataTypeDeque &>(trading_data_cached_bank_[type]);
-    auto count = 0;
-    while (not target_deque.empty() and count++ < TRANSFER_TRADING_DATA_LIMIT) {
-      const auto &state = target_deque.front();
-      update_ledger(state.update_time, state.source, state.dest, state.data);
-      target_deque.pop_front();
-    }
-  }
+  // tracing-foundation Phase 1:UpdateTradingData / UpdateTradingDataFromCacheD(交易 longfist 类型已移出
+  // StateDataTypes 闭集,trading_data_bank_ 无法 at_key)已移除;交易数据 sync 留 Phase 2 新 Watcher。
 
   template <typename Instruction>
   Napi::Value InteractWithLocation(const Napi::CallbackInfo &info, const Napi::Object &instruction_object) {
@@ -405,92 +287,6 @@ private:
     }
   }
 
-  template <typename Instruction, typename IdPtrType = uint64_t Instruction::*>
-  Napi::Value InteractWithTD(const Napi::CallbackInfo &info, const Napi::Object &instruction_object, IdPtrType id_ptr) {
-    std::lock_guard<std::mutex> guard(feed_mutex_);
-    try {
-      auto account_location = IODevice::ExtractLocation(info, 1, get_locator());
-      if (not is_location_live(account_location->uid) or not has_writer(account_location->uid)) {
-        SPDLOG_ERROR("no writer or not live for account_location {} {} ", account_location->uid,
-                     account_location->uname);
-        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-      }
-
-      if (not has_writer(get_master_command_uid())) {
-        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-      }
-
-      auto trigger_time = yijinjing::time::now_in_nano();
-      auto account_writer = get_writer(account_location->uid);
-      auto master_cmd_writer = get_writer(get_master_command_uid());
-      Instruction instruction = {};
-      serialize::JsGet{}(instruction_object, instruction);
-
-      if (info.Length() == 2) {
-        instruction.*id_ptr = MakeInstructionUID(account_writer, account_location->uid);
-        account_writer->write(trigger_time, instruction);
-        UpdateBook(get_live_home_uid(), account_location->uid, instruction);
-        return Napi::BigInt::New(info.Env(), instruction.*id_ptr);
-      }
-
-      auto strategy_location = IODevice::ExtractLocation(info, 2, get_locator());
-
-      if (not strategy_location) {
-        return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-      }
-
-      if (not has_location(strategy_location->uid)) {
-        add_location(trigger_time, strategy_location);
-        master_cmd_writer->write(trigger_time,
-                                 *std::dynamic_pointer_cast<longfist::types::Location>(strategy_location));
-      }
-
-      if (has_channel(account_location->uid, strategy_location->uid)) {
-        uint64_t id = WriteInstruction(trigger_time, instruction, id_ptr, account_location, strategy_location);
-        return Napi::BigInt::New(info.Env(), id);
-      }
-
-      longfist::types::ChannelRequest request = {};
-      request.dest_id = strategy_location->uid;
-      request.source_id = ledger_home_location_->uid;
-      master_cmd_writer->write(trigger_time, request);
-      request.source_id = account_location->uid;
-      master_cmd_writer->write(trigger_time, request);
-
-      events_ | rx::is(longfist::types::Channel::tag) |
-          rx::filter([account_location, strategy_location](const event_ptr &event) {
-            const longfist::types::Channel &channel = event->data<longfist::types::Channel>();
-            return channel.source_id == account_location->uid and channel.dest_id == strategy_location->uid;
-          }) |
-          rx::first() |
-          rx::$([this, trigger_time, instruction, id_ptr, account_location, strategy_location](auto event) {
-            // TODO: async make order / order action
-            WriteInstruction(trigger_time, instruction, id_ptr, account_location, strategy_location);
-          });
-
-      return Napi::BigInt::New(info.Env(), std::uint64_t(0));
-    } catch (const std::exception &ex) {
-      throw Napi::Error::New(info.Env(), fmt::format("invalid instruction arguments: {}", ex.what()));
-    } catch (...) {
-      throw Napi::Error::New(info.Env(), "invalid instruction arguments");
-    }
-  };
-
-  class BookListener : public wingchun::book::BookListener {
-  public:
-    explicit BookListener(Watcher &watcher);
-
-    ~BookListener() = default;
-
-    void on_position_sync_reset(const wingchun::book::Book &old_book, const wingchun::book::Book &new_book) override;
-
-    void on_asset_sync_reset(const longfist::types::Asset &old_asset, const longfist::types::Asset &new_asset) override;
-
-  private:
-    Watcher &watcher_;
-  };
-
-  DECLARE_PTR(BookListener);
 };
 
 } // namespace kungfu::node

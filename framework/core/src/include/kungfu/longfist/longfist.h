@@ -194,29 +194,11 @@ constexpr auto SessionDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Session)                                   // 10103
 );
 
+// tracing-foundation Phase 1 (goal 2026-06-25-kungfu-v4-tracing-foundation):
+// 交易类型拆出 StateDataTypes(sqlite_orm cache 实例化驱动)。只留非交易内核/运行时状态,
+// 砍掉 sqlite_orm 在交易类型上的实例化(22% __text / ~3.47 万符号)。交易类型仍定义于
+// types.h(死源,未进闭集 cache),AllTypes/AllDataTypes 暂保留(hana 序列化另议)。
 constexpr auto StateDataTypes = boost::hana::make_map( //
-    TYPE_PAIR(Asset),                                  // 101
-    TYPE_PAIR(Contract),                               // 102
-    TYPE_PAIR(Position),                               // 103
-    TYPE_PAIR(InstrumentFactor),                       // 105
-    TYPE_PAIR(OrderInput),                             // 201
-    TYPE_PAIR(Order),                                  // 202
-    TYPE_PAIR(Trade),                                  // 203
-    TYPE_PAIR(OrderAction),                            // 204
-    TYPE_PAIR(OrderActionError),                       // 205
-    TYPE_PAIR(BlockMessage),                           // 206
-    TYPE_PAIR(OrderStat),                              // 207
-    TYPE_PAIR(OrderTriggerInput),                      // 209
-    TYPE_PAIR(OrderTrigger),                           // 210
-    TYPE_PAIR(OrderTriggerAction),                     // 211
-    TYPE_PAIR(OrderTriggerActionError),                // 212
-    TYPE_PAIR(AlgoOrderInput),                         // 213
-    TYPE_PAIR(AlgoOrder),                              // 214
-    TYPE_PAIR(AlgoOrderAction),                        // 215
-    TYPE_PAIR(AlgoOrderActionError),                   // 216
-    TYPE_PAIR(Quote),                                  // 401
-    TYPE_PAIR(Tree),                                   // 404
-    TYPE_PAIR(SyntheticData),                          // 601
     TYPE_PAIR(StrategyStateUpdate),                    // 10104
     TYPE_PAIR(OperatorStateUpdate),                    // 10105
     TYPE_PAIR(Config),                                 // 10201
@@ -250,17 +232,16 @@ constexpr auto MarketDataTypes = boost::hana::make_map( //
     TYPE_PAIR(Depth)                                    //
 );
 
+// tracing-foundation Phase 1: 须 ⊆ StateDataTypes(同一 StateStoragePtr)。去交易型 InstrumentFactor。
 constexpr auto StaticDataTypes = boost::hana::make_map( //
-    TYPE_PAIR(InstrumentFactor),                        // 105
     TYPE_PAIR(Commission),                              // 10203
     TYPE_PAIR(Instrument),                              // 10204
     TYPE_PAIR(Basket),                                  // 10206
     TYPE_PAIR(BasketInstrument)                         // 10207
 );
 
-constexpr auto StatisticDataTypes = boost::hana::make_map( //
-    TYPE_PAIR(OrderStat)                                   // 207
-);
+// tracing-foundation Phase 1: OrderStat(交易统计)拆死源,本闭集清空(restore_to 迭代 no-op)。
+constexpr auto StatisticDataTypes = boost::hana::make_map();
 
 constexpr auto RefreshRequiredDataTypes = boost::hana::make_map( //
     TYPE_PAIR(OrderInput),                                       // 201

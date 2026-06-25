@@ -16,10 +16,14 @@ dependencies, extras = SdistBuilder.convert_dependencies(package, package.requir
 install_requires = []
 white_list = ["click"]
 for r in package.requires:
-    if r.name in white_list:
-        install_requires.append(f"{r.name}=={r.constraint.flatten()[0].min}")
+    _min = r.constraint.flatten()[0].min
+    if _min is None:
+        # 无下限约束(如 "*")没有 min,生成裸包名,避免非法的 "name>=None"
+        install_requires.append(r.name)
+    elif r.name in white_list:
+        install_requires.append(f"{r.name}=={_min}")
     else:
-        install_requires.append(f"{r.name}>={r.constraint.flatten()[0].min}")
+        install_requires.append(f"{r.name}>={_min}")
 
 build_info_path = path.join(path.dirname(__file__), "kungfubuildinfo.json")
 with open(build_info_path, "r") as build_info_file:

@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@kungfu-trader/kungfu-toolchain": "^4.0.0-alpha.0",
-    "electron": "^37.10.3",
+    "electron": "^42.5.0",
     "node-addon-api": "^8.0.0"
   }
 }

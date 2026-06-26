@@ -1,0 +1,34 @@
+#!/bin/sh
+# kungfu-code — kungfu 开发/构建编排「起手式」(macOS / Linux)
+#
+# 一条命令,在仓库钉定的 node(.node-version)下执行任意构建/开发任务:
+#   ./kungfu-code app          # = yarn app(启 Electron 版 kungfu)
+#   ./kungfu-code build:core   # = yarn build:core
+#   ./kungfu-code build:app    # = yarn build:app
+#   ./kungfu-code <任意 yarn 任务/参数>
+#
+# 机制:fnm 选 node(.node-version=22.22.3)→ node 自带 corepack 派发 yarn
+# (版本由 package.json "packageManager" 钉)。node / npm / yarn 全部由 fnm+corepack
+# 提供,使用者只需一次性安装 fnm 这一个前置;不再依赖系统 node 版本,也不需 --ignore-engines。
+#
+# CN 机器经镜像取 node / 包,避免直连 nodejs.org / npmjs 踩坑(可用环境变量覆盖)。
+set -eu
+cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+
+# node 发行版镜像(fnm 取 node 用);默认 npmmirror,可外部覆盖或指向 LAN 缓存
+: "${FNM_NODE_DIST_MIRROR:=https://npmmirror.com/mirrors/node/}"
+export FNM_NODE_DIST_MIRROR
+# corepack 取 yarn 用的 registry;默认 LAN Verdaccio
+: "${COREPACK_NPM_REGISTRY:=http://192.168.100.222:4873}"
+export COREPACK_NPM_REGISTRY
+
+if ! command -v fnm >/dev/null 2>&1; then
+  echo "kungfu-code: 需先一次性安装 fnm —— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2
+  exit 127
+fi
+
+# 幂等:确保 .node-version 指定的 node 已安装
+fnm install >/dev/null 2>&1 || true
+
+# 在钉定 node 下,经 corepack 跑 packageManager 钉定的 yarn
+exec fnm exec --using-file -- corepack yarn "$@"

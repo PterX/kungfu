@@ -15,8 +15,9 @@
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
-# node 发行版镜像(fnm 取 node 用);默认 npmmirror,可外部覆盖或指向 LAN 缓存
-: "${FNM_NODE_DIST_MIRROR:=https://npmmirror.com/mirrors/node/}"
+# node 发行版镜像(fnm 取 node 用);默认 LAN 8088 缓存(node 22 已 publish);
+# 离开局域网时用 FNM_NODE_DIST_MIRROR=https://npmmirror.com/mirrors/node/ 覆盖
+: "${FNM_NODE_DIST_MIRROR:=http://192.168.100.222:8088/node/}"
 export FNM_NODE_DIST_MIRROR
 # corepack 取 yarn 用的 registry;默认 LAN Verdaccio
 : "${COREPACK_NPM_REGISTRY:=http://192.168.100.222:4873}"

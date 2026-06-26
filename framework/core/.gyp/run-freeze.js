@@ -4,17 +4,17 @@
 //
 // 背景：conan2 移除了独立 `conan package` 本地命令，原 `freeze`→run-conan.js package
 // 只触发 `conan build`（占位，不跑 freezer）。本脚本把 freeze 做成 `./kungfu-code freeze`
-// 一步可复现：
-//   1. staging   : src/include → build/include；确保 build/libs 存在（kfc.spec datas 依赖）
-//   2. buildinfo : 确保 build/<type>/kungfubuildinfo.json 存在（缺则用 gen_kungfubuildinfo.py 生成）
-//   3. pyinstaller: 在 framework/core 下跑 kfc.spec → dist/kfc（onedir，内容落在 _internal/）
-//   4. kfs 合并  : dist/kfs 的 *kfs* 拷进 dist/kfc 后删除 dist/kfs（复刻 conanfile.__run_pyinstaller）
-//   5. promote   : dist/kfc/_internal/* → dist/kfc 顶层（Unix 符号链 / Windows 拷贝），
-//                  让 app/cli/api 栈对 dist/kfc 扁平布局的假设成立（getKfcDir / require.resolve）
+// 一步可复现，并据 `config.freezer` 选择 Nuitka（默认）或 PyInstaller（fallback）。
 //
-// PyInstaller 6.x onedir 把数据/库放进 _internal/，而 kfc exe 运行时也依赖该布局，
-// 故不摊平 _internal，只在顶层补一层 promote 视图（kfc exe 自身仍从 _internal 加载）。
-// kfc.spec 的 contents_directory='.' 在 MERGE 下实测无效，不走该路。
+// 两条 freezer 路径（可人 2026-06-17 决策 Nuitka 2.x，不行回退 PyInstaller；
+// .v4 线 Nuitka 三平台已跑通，见 docs/conan2-migration.md §4c）：
+//
+// - nuitka（默认）：编译成 C，产物 kfc.dist 本就扁平（无 _internal），移到 dist/kfc 即可，
+//   不需要 promote。kfc.py 内嵌 nuitka-project 选项（--standalone 等）。Nuitka 只跟随
+//   kfc.py 的 import，故 app/electron 侧 node native（drone.node / kungfu_node.node /
+//   kungfu_electron.node）需 freeze 后从 build/<type> 补拷（kfc python 进程不 import 它们）。
+// - pyinstaller（fallback）：onedir 把数据/库放进 _internal/，而 app 栈假设 dist/kfc 扁平，
+//   故 freeze 后 promote（_internal/*→顶层，Unix 符号链/Win 拷贝）。
 
 const fs = require('fs');
 const path = require('path');
@@ -27,23 +27,26 @@ function buildType() {
   return shell.getConfigValue('build_type') || 'Release';
 }
 
-// 1. staging：kfc.spec 的 datas 引用 build/include 与 build/libs。
+function freezer() {
+  return shell.getConfigValue('freezer') || 'nuitka';
+}
+
+// kfc.spec datas 引用 build/include 与 build/libs（仅 pyinstaller 路径需要）。
 function stage() {
   const srcInc = path.join(CORE, 'src', 'include');
   const buildInc = path.join(CORE, 'build', 'include');
-  console.log('[freeze] 1/5 staging: src/include → build/include');
+  console.log('[freeze] staging: src/include → build/include');
   fs.rmSync(buildInc, { recursive: true, force: true });
   fs.cpSync(srcInc, buildInc, { recursive: true });
-  // Windows 产 *.lib 进 build/libs；Mac/Linux 常为空，但 spec datas 需目录存在。
   fs.mkdirSync(path.join(CORE, 'build', 'libs'), { recursive: true });
 }
 
-// 2. buildinfo：kungfu/__init__ 读它取 version；缺则用与 conanfile 同源的脚本生成。
+// kungfu/__init__ 读 pykungfu 同目录的 kungfubuildinfo.json 取 version；缺则生成。
 function ensureBuildInfo(bt) {
   const dir = path.join(CORE, 'build', bt);
   const info = path.join(dir, 'kungfubuildinfo.json');
-  if (fs.existsSync(info)) return;
-  console.log(`[freeze] 2/5 buildinfo 缺失，生成 → ${info}`);
+  if (fs.existsSync(info)) return info;
+  console.log(`[freeze] buildinfo 缺失，生成 → ${info}`);
   fs.mkdirSync(dir, { recursive: true });
   shell.run(
     'pipenv',
@@ -51,11 +54,85 @@ function ensureBuildInfo(bt) {
     true,
     { cwd: CORE },
   );
+  return info;
 }
 
-// 3. pyinstaller：在 core 下跑 kfc.spec（cwd 决定 spec 内 .cmake/.deps/build 等路径解析）。
-function runPyinstaller(bt) {
-  console.log(`[freeze] 3/5 pyinstaller kfc.spec (CMAKE_BUILD_TYPE=${bt})`);
+// app/electron 侧 node native：kfc python 进程不 import，Nuitka 不带，需从 build/<type> 补拷。
+// app 栈通过 @kungfu-trader/kungfu-core/dist/kfc/<x> 解析它们（getKfcDir / webpack require.resolve）。
+const APP_NATIVE = [
+  'drone.node',
+  'kungfu_node.node',
+  'kungfu_electron.node',
+  'link_node.node',
+];
+
+function copyAppNative(bt) {
+  const rel = path.join(CORE, 'build', bt);
+  const distKfc = path.join(CORE, 'dist', 'kfc');
+  let n = 0;
+  for (const f of APP_NATIVE) {
+    const from = path.join(rel, f);
+    if (!fs.existsSync(from)) continue;
+    fs.copyFileSync(from, path.join(distKfc, f));
+    n++;
+  }
+  console.log(`[freeze] 补拷 app native：${n}/${APP_NATIVE.length} 项`);
+}
+
+// ----------------------------------------------------------------- nuitka
+
+function freezeNuitka(bt) {
+  const rel = path.join(CORE, 'build', bt); // 三 native（pykungfu/libkungfu/libnode）同目录
+  const out = path.join(CORE, 'build', 'kfc-nuitka');
+  const distKfc = path.join(CORE, 'dist', 'kfc');
+  const info = ensureBuildInfo(bt);
+
+  console.log(`[freeze] nuitka kfc.py（PYTHONPATH=${path.relative(CORE, rel)}）`);
+  fs.rmSync(out, { recursive: true, force: true });
+  shell.run(
+    'pipenv',
+    [
+      'run',
+      'python',
+      '-m',
+      'nuitka',
+      '--output-dir=build/kfc-nuitka',
+      `--include-data-files=${info}=kungfubuildinfo.json`,
+      path.join('src', 'python', 'kfc.py'),
+    ],
+    true,
+    { cwd: CORE, env: { ...process.env, PYTHONPATH: rel } },
+  );
+
+  // Nuitka standalone 产物 kfc.dist 本就扁平 → 直接移到 dist/kfc（无 _internal、无 promote）。
+  const kfcDist = path.join(out, 'kfc.dist');
+  if (!fs.existsSync(kfcDist)) {
+    console.error(`[freeze] 错误：未找到 ${kfcDist}（nuitka 产物布局变化？）`);
+    process.exit(1);
+  }
+  fs.rmSync(distKfc, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(distKfc), { recursive: true });
+  fs.renameSync(kfcDist, distKfc);
+
+  // nuitka standalone 入口名为 kfc.bin(Unix)/kfc.exe(Win)；app 栈按 'kfc'(Unix)/'kfc.exe'(Win)
+  // 定位可执行（framework/api pathConfig/processUtils 的 kfcName）。Win 已匹配；Unix 把
+  // kfc.bin 重命名为 kfc（用 rename 不用符号链，保持 nuitka 产物无符号链、electron-builder 打包干净）。
+  if (!isWin) {
+    const binPath = path.join(distKfc, 'kfc.bin');
+    const kfcPath = path.join(distKfc, 'kfc');
+    if (fs.existsSync(binPath)) fs.renameSync(binPath, kfcPath);
+  }
+
+  copyAppNative(bt);
+  console.log('[freeze] ✅ dist/kfc 就绪（nuitka 扁平产物 + app native）');
+}
+
+// ------------------------------------------------------------- pyinstaller
+
+function freezePyinstaller(bt) {
+  stage();
+  ensureBuildInfo(bt);
+  console.log(`[freeze] pyinstaller kfc.spec (CMAKE_BUILD_TYPE=${bt})`);
   fs.rmSync(path.join(CORE, 'dist'), { recursive: true, force: true });
   shell.run(
     'pipenv',
@@ -78,14 +155,17 @@ function runPyinstaller(bt) {
       },
     },
   );
+  mergeKfs();
+  promote();
+  console.log('[freeze] ✅ dist/kfc 就绪（pyinstaller 扁平视图 + _internal 真身）');
 }
 
-// 4. kfs 合并：MERGE 模式下 kfs 与 kfc 共享 _internal，dist/kfs 仅余 kfs 入口，拷进 kfc 后删除。
+// MERGE 模式下 kfs 与 kfc 共享 _internal，dist/kfs 仅余 kfs 入口，拷进 kfc 后删除。
 function mergeKfs() {
   const distKfc = path.join(CORE, 'dist', 'kfc');
   const distKfs = path.join(CORE, 'dist', 'kfs');
   if (!fs.existsSync(distKfs)) return;
-  console.log('[freeze] 4/5 合并 kfs → kfc');
+  console.log('[freeze] 合并 kfs → kfc');
   for (const f of fs.readdirSync(distKfs)) {
     if (!f.includes('kfs')) continue;
     const from = path.join(distKfs, f);
@@ -95,7 +175,7 @@ function mergeKfs() {
   fs.rmSync(distKfs, { recursive: true, force: true });
 }
 
-// 5. promote：_internal/* 在 dist/kfc 顶层补一层视图，满足 app 栈的扁平布局假设。
+// _internal/* 在 dist/kfc 顶层补一层视图，满足 app 栈的扁平布局假设（仅 pyinstaller 路径）。
 function promote() {
   const distKfc = path.join(CORE, 'dist', 'kfc');
   const internal = path.join(distKfc, '_internal');
@@ -106,7 +186,7 @@ function promote() {
     process.exit(1);
   }
   console.log(
-    `[freeze] 5/5 promote _internal/* → 顶层（${isWin ? '拷贝' : '符号链'}）`,
+    `[freeze] promote _internal/* → 顶层（${isWin ? '拷贝' : '符号链'}）`,
   );
   let n = 0;
   for (const entry of fs.readdirSync(internal)) {
@@ -115,7 +195,6 @@ function promote() {
     if (isWin) {
       fs.cpSync(path.join(internal, entry), top, { recursive: true });
     } else {
-      // 相对链接（指向同目录下的 _internal/<entry>），便于整个 dist/kfc 搬迁。
       fs.symlinkSync(path.join('_internal', entry), top);
     }
     n++;
@@ -134,12 +213,16 @@ function existsLstat(p) {
 
 function main() {
   const bt = buildType();
-  stage();
-  ensureBuildInfo(bt);
-  runPyinstaller(bt);
-  mergeKfs();
-  promote();
-  console.log('[freeze] ✅ dist/kfc 就绪（扁平视图 + _internal 真身）');
+  const fz = freezer();
+  console.log(`[freeze] freezer=${fz} build_type=${bt}`);
+  if (fz === 'nuitka') {
+    freezeNuitka(bt);
+  } else if (fz === 'pyinstaller') {
+    freezePyinstaller(bt);
+  } else {
+    console.error(`[freeze] 未知 freezer: ${fz}（应为 nuitka 或 pyinstaller）`);
+    process.exit(1);
+  }
 }
 
 main();

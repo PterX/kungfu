@@ -22,7 +22,7 @@
     "log_level": "trace",
     "python_version": "3.13",
     "node_version": "22.22.3",
-    "freezer": "pyinstaller",
+    "freezer": "nuitka",
     "pypi_mirror": "https://mirrors.aliyun.com/pypi/simple"
   },
   "configGithub": {

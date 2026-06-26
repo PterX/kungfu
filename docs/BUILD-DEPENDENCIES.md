@@ -66,15 +66,19 @@ libnode 仓 `node` 子模块 pin 到对应 Node tag(v4 线 = **v22.22.3**;`.gitm
 
 ## 5. Electron app 构建 + electron 镜像/缓存（v4，重要）
 
-- **electron 版本统一 = 42.5.0**(最新 stable;可人 2026-06-26 定)。声明两处:`framework/core/package.json` devDep(构建源,run-conan.js 读它给 cmake-js)+ `framework/app/package.json`(运行时)。
+- **electron 版本统一 = 42.5.0**(最新 stable;可人 2026-06-26 定)。声明**三处**须一致:`framework/core/package.json` devDep(构建源,run-conan.js 读它给 cmake-js)、`framework/app/package.json`(运行时)、`developer/toolchain/package.json`(kfs craft/打包;漏改会回退老版触发 404)。
   - electron 42 自带 **node 24.17**,与 libnode v22.22.3(kfc 运行时)node 大版本不同;N-API(NAPI_VERSION=8)ABI 稳定故 kungfu_electron.node 跨 node 版本通用,功能无碍。
   - node-22 线最后一个 electron 是 38;39+ 都是 node 24。若要 node 对齐则选 38,要最新则 42。
 - **electron 头(cmake-js 编 kungfu_electron 用)**:**npmmirror 头镜像不稳**(`SHASUMS256.txt` 504、URL 拼接易畸形)。改用**官方 `https://artifacts.electronjs.org`**(走本机代理可达)——即**不设** `ELECTRON_MIRROR` 让 cmake-js 用默认 dist。
 - **electron 二进制(`yarn app` 运行时,@electron/get 下 ~120MB)**:CN CDN(github/npmmirror)持续超时。已**缓存到 LAN 大文件缓存**:
   - URL:`http://192.168.100.222:8088/electron/v42.5.0/`(zip + SHASUMS256.txt;289 MB/s LAN)。
   - 发布脚本:`infra/download-accelerators/scripts/publish-large-file-cache.sh --apply --namespace electron/v<ver> -- <zip> <SHASUMS256.txt>`(Atlas 仓)。
-  - **未来构建用 LAN 取 electron 二进制**:`ELECTRON_MIRROR=http://192.168.100.222:8088/electron/ ELECTRON_CUSTOM_DIR='v{{ version }}' yarn install`(@electron/get 拼 `<mirror><dir>/electron-v<ver>-<plat>-<arch>.zip`)。
+  - **未来构建用 LAN 取 electron 二进制**:只设 `ELECTRON_MIRROR=http://192.168.100.222:8088/electron/`(**不要**设 `ELECTRON_CUSTOM_DIR='v{{ version }}'`——@electron/get 不展开该模板,会拼出 `v%7B%7B` 404;其默认目录已是 `v<version>`,正好匹配 LAN 布局)。
   - 校验:下载的 zip sha256 须与官方 SHASUMS 一致(实测 v42.5.0 darwin-arm64 = `5e392f66…a1e6`)。
+- **node driver(构建/dev)+ yarn:kungfu-code 起手式收敛到 node 22**(去 `--ignore-engines` 补丁):
+  - `.node-version=22.22.3`(fnm)+ `package.json packageManager=yarn@1.22.22`(corepack)+ 跨平台 `kungfu-code`/`.cmd` wrapper(`./kungfu-code <yarn 任务>` → `fnm exec → corepack yarn`)。一次性装 fnm 即可,node/npm/yarn 级联派发。
+  - **node 22 也在 LAN 缓存**(三平台 dist + SHASUMS):`http://192.168.100.222:8088/node/v22.22.3/`,wrapper 默认 `FNM_NODE_DIST_MIRROR=http://192.168.100.222:8088/node/`(离网用 `https://npmmirror.com/mirrors/node/` 覆盖);corepack 取 yarn 用 `COREPACK_NPM_REGISTRY=http://192.168.100.222:4873`(LAN Verdaccio,**末尾不要带斜杠**,否则 `//yarn` 404)。
+  - 至此构建三大输入(node / yarn / electron)+ libnode 全部 LAN 化,CN 机器零踩坑。
 - **kfc freeze 布局 ↔ app 消费(Stage C 未完)**:PyInstaller 6.x onedir 把内容放进 `dist/kfc/_internal/`,但 app(`lib/kfc.js`、`framework/api/toolkit/utils.js` 经 `dist/kfc/<X>` 解析 `drone.node`/`kungfubuildinfo.json`/headers)预期**扁平** `dist/kfc/`。
   - `kfc.spec` COLLECT 加 `contents_directory='.'` **实测在 MERGE 下不生效**(`_internal/` 仍在),待解。
   - 临时解锁(gate 验证):freeze 后把 `dist/kfc/_internal/*` 符号链到 `dist/kfc/` 顶层(exe 照用 _internal、app 经符号链找到)。正式 Stage C 应:修好 contents_directory,或在 conanfile freeze 流程加 promote/flatten,或改 app resolver 走 `_internal/`。

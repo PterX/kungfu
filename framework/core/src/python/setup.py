@@ -1,33 +1,57 @@
 #  SPDX-License-Identifier: Apache-2.0
+#
+# S1 阶段 B：脱 poetry-core，改读 [project]（PEP 621）做单一真相源。
+# - version 仍来自 kungfubuildinfo.json（构建期信息，非 pyproject 静态字段）。
+# - setup.py 在 build/python 下运行（run-wheel.js copy src/python→build/python，不含
+#   pyproject），故向上递归查找 pyproject.toml（沿用旧 poetry Factory 的向上查找行为，
+#   实测它命中 framework/core/pyproject.toml）。
 
 import json
+import sys
 
 from os import path
 from pathlib import Path
-from poetry.core.factory import Factory
-from poetry.core.masonry.builders.sdist import SdistBuilder
-from setuptools import find_packages
-from setuptools import setup
+from setuptools import find_packages, setup
 from setuptools.dist import Distribution
 
-package = Factory().create_poetry(Path(".").resolve()).package
-dependencies, extras = SdistBuilder.convert_dependencies(package, package.requires)
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover - 运行环境为 py3.13；此分支仅作兜底
+    import tomli as tomllib
 
-install_requires = []
-white_list = ["click"]
-for r in package.requires:
-    _min = r.constraint.flatten()[0].min
-    if _min is None:
-        # 无下限约束(如 "*")没有 min,生成裸包名,避免非法的 "name>=None"
-        install_requires.append(r.name)
-    elif r.name in white_list:
-        install_requires.append(f"{r.name}=={_min}")
-    else:
-        install_requires.append(f"{r.name}>={_min}")
 
-build_info_path = path.join(path.dirname(__file__), "kungfubuildinfo.json")
-with open(build_info_path, "r") as build_info_file:
+def _find_pyproject(start):
+    here = Path(start).resolve()
+    for candidate_dir in (here, *here.parents):
+        pyproject = candidate_dir / "pyproject.toml"
+        if pyproject.is_file():
+            return pyproject
+    raise FileNotFoundError(f"pyproject.toml not found upward from {here}")
+
+
+_here = path.dirname(path.abspath(__file__))
+with open(_find_pyproject(_here), "rb") as pyproject_file:
+    project = tomllib.load(pyproject_file)["project"]
+
+with open(path.join(_here, "kungfubuildinfo.json"), "r") as build_info_file:
     build_info = json.load(build_info_file)
+
+
+def _author():
+    authors = project.get("authors") or [{}]
+    name = authors[0].get("name", "")
+    email = authors[0].get("email", "")
+    return f"{name} <{email}>" if email else name
+
+
+def _license():
+    lic = project.get("license")
+    if isinstance(lic, dict):
+        return lic.get("text", "")
+    return lic or ""
+
+
+urls = project.get("urls", {})
 
 
 class BinaryDistribution(Distribution):
@@ -38,16 +62,18 @@ class BinaryDistribution(Distribution):
 
 
 setup(
-    name=package.name,
+    name=project["name"],
     version=build_info["version"],
-    license=package.license.id,
-    author=package.authors[0],
-    url=package.homepage,
-    project_urls={"repository": package.repository_url},
+    license=_license(),
+    author=_author(),
+    url=urls.get("homepage"),
+    project_urls={"repository": urls["repository"]} if "repository" in urls else {},
     packages=[""] + find_packages(exclude=["test"]),
     package_data={"": ["*.dll", "*.dylib", "*.pyd", "*.so", "*.so.*", "*.json"]},
     include_package_data=True,
-    install_requires=install_requires,
+    # [project].dependencies 已是 PEP 508 完整约束（含平台 marker），直接作为 wheel
+    # 的 install_requires；与旧 poetry 把全部 deps 注入 install_requires 行为等价。
+    install_requires=project.get("dependencies", []),
     entry_points={"console_scripts": ["kfc = kungfu.__main__:main"]},
     distclass=BinaryDistribution,
     has_ext_modules=lambda: True,

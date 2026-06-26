@@ -11,7 +11,7 @@
 #     output-dir           : 默认 /tmp/kfc-nuitka
 #
 # 前置:
-#   - 当前 pipenv venv 已装 nuitka(4.x) + numpy/pandas/scipy/plotly 数据栈（见 Pipfile/pyproject）
+#   - uv 项目 venv 已装 nuitka(4.x) + numpy/pandas/scipy/plotly 数据栈（见 pyproject/uv.lock）
 #   - pykungfu 的构建 Python 与 freeze 的 venv Python 同 minor（统一 3.13）
 #   - Linux 需 patchelf（apt install patchelf）；Nuitka standalone 依赖它
 #
@@ -31,8 +31,8 @@ BUILDINFO="$RELEASE/kungfubuildinfo.json"
 cd "$CORE"
 
 echo "[freeze] 1/3 生成 kungfubuildinfo.json -> $BUILDINFO"
-# 用 venv python（与 freeze/pykungfu 同一 3.13），保证 pythonVersion 字段正确
-pipenv run python3 "$GYP/gen_kungfubuildinfo.py" "$BUILDINFO"
+# 用 uv 项目 venv 的 python（与 freeze/pykungfu 同一 3.13），保证 pythonVersion 字段正确
+uv run --frozen python3 "$GYP/gen_kungfubuildinfo.py" "$BUILDINFO"
 
 echo "[freeze] 2/3 确保 libnode 与 pykungfu 同目录"
 shopt -s nullglob
@@ -53,7 +53,7 @@ fi
 
 echo "[freeze] 3/3 Nuitka freeze -> $OUTDIR"
 rm -rf "$OUTDIR"
-PYTHONPATH="$RELEASE" pipenv run python -m nuitka \
+PYTHONPATH="$RELEASE" uv run --frozen python -m nuitka \
   --output-dir="$OUTDIR" \
   --assume-yes-for-downloads \
   --include-package-data=certifi \

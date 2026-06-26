@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # ============================================================================
-# uv 迁移(阶段 A，goal 2026-06-26-kungfu-buildchain-modernization S1)
-# - [project]/[tool.uv] = uv 接管 env+lock+install（替 pipenv+poetry 双轨）。
-# - 下方 [tool.poetry] 暂保留：src/python/setup.py 经 poetry-core Factory 读它做
-#   wheel build。阶段 B 让 setup.py 脱 poetry-core 后删除 [tool.poetry]，单一真相源。
-# - 两表 dependencies 暂重复，过渡期债务，阶段 B 收敛。
+# uv 迁移(goal 2026-06-26-kungfu-buildchain-modernization S1，阶段 A+B 完成)
+# 单一真相源 = [project](PEP 621) + [tool.uv]：uv 接管 env+lock+install；
+# wheel 由 setuptools 后端 + src/python/setup.py(读 [project]) 承担(已脱 poetry-core)。
 # ============================================================================
 
 [project]
@@ -21,7 +19,6 @@ dependencies = [
     "nuitka~=4.1.0",
     "pdm~=2.21.0",
     "pdm-pep517~=1.1.0",
-    "poetry-core~=1.9.0",
     "scons~=4.8.0",
     "tomli-w~=1.0.0",
     "tomlkit~=0.13.0",
@@ -74,6 +71,10 @@ dependencies = [
     "secretstorage==3.3.3 ; sys_platform == 'linux'",
 ]
 
+[project.urls]
+homepage = "https://www.kungfu-trader.com"
+repository = "https://github.com/kungfu-trader/kungfu.git"
+
 [dependency-groups]
 dev = ["pyinstaller~=6.11.0"]
 
@@ -84,74 +85,8 @@ name = "aliyun"
 url = "https://mirrors.aliyun.com/pypi/simple/"
 default = true
 
-# ============================================================================
-# 过渡期保留：setup.py(wheel build)经 poetry-core Factory 读取 [tool.poetry]。
-# 阶段 B 让 setup.py 改读 [project] 后，整段连同 [build-system]/[[tool.poetry.source]] 删除。
-# ============================================================================
-[tool.poetry]
-name = "kungfu"
-version = "0.0.0"
-description = "Kungfu Core Library"
-license = "Apache-2.0"
-authors = ["Kungfu Trader <info@kungfu.link>"]
-homepage = "https://www.kungfu-trader.com"
-repository = "https://github.com/kungfu-trader/kungfu.git"
-packages = [
-    { include = "kungfu", from = "src/python" },
-]
-
-[tool.poetry.dependencies]
-python = ">=3.13, <3.14"
-black = "~24.10.0"
-nuitka = "~4.1.0"
-pdm = "~2.21.0"
-pdm-pep517 = "~1.1.0"
-poetry-core = "~1.9.0"
-scons = "~4.8.0"
-tomli-w = "~1.0.0"
-tomlkit = "~0.13.0"
-click = "~8.1.7"
-psutil = "~6.1.0"
-tabulate = "~0.9.0"
-wcmatch = "~10.0.0"
-numpy = "~2.1.0"
-pandas = "~2.2.0"
-scipy = "~1.14.0"
-statsmodels = "~0.14.4"
-openpyxl = "~3.1.5"
-certifi = "*"
-chardet = "*"
-charset-normalizer = "*"
-importlib-metadata = "*"
-msgpack = "*"
-filelock = "*"
-ordered-set = "*"
-packaging = "*"
-platformdirs = "*"
-pluggy = "*"
-pytest = "~8.3.0"
-railroad-diagrams = "*"
-shellingham = "*"
-zipp = "*"
-authing = "~5.1.0"
-urllib3 = "~2.2.0"
-websockets = "~13.1.0"
-boto3 = "~1.35.0"
-keyring = "~25.5.0"
-zstandard = "~0.23.0"
-setuptools = "~75.6.0"
-virtualenv = "~20.28.0"
-wheel = "~0.45.0"
-plotly = "^6.8.0"
-
-[tool.poetry.group.dev.dependencies]
-pyinstaller = "~6.11.0"
-
+# S1 阶段 B：脱 poetry-core，单一真相源收敛到 [project]/[tool.uv]。
+# wheel build 由 setuptools 后端 + src/python/setup.py（读 [project]）承担。
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[[tool.poetry.source]]
-name = "aliyun"
-url = "https://mirrors.aliyun.com/pypi/simple/"
-priority = "primary"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"

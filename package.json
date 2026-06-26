@@ -40,9 +40,7 @@
     "build:core": "yarn workspace @kungfu-trader/kungfu-core build",
     "freeze": "yarn workspace @kungfu-trader/kungfu-core freeze",
     "rebuild:core": "yarn workspace @kungfu-trader/kungfu-core rebuild",
-    "package:app": "yarn workspace @kungfu-trader/artifact-kungfu package",
-    "poetry:clear": "yarn workspace @kungfu-trader/kungfu-core poetry:clear",
-    "poetry:lock": "yarn workspace @kungfu-trader/kungfu-core poetry:lock"
+    "package:app": "yarn workspace @kungfu-trader/artifact-kungfu package"
   },
   "dependencies": {
     "core-js": "^3.20.0",

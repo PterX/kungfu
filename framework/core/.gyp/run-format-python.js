@@ -14,11 +14,16 @@ function main(argv) {
   }
 
   process.chdir(coreDir);
-  const pipenvPath = path.resolve(
-    shell.runAndCollect('pipenv', ['--py'], { silent: true }).out,
+  // uv 接管 env（S1 阶段 A）：取 uv 项目 venv 的 python，替代 `pipenv --py`。
+  const venvPython = path.resolve(
+    shell.runAndCollect(
+      'uv',
+      ['run', '--frozen', 'python', '-c', 'import sys; print(sys.executable)'],
+      { silent: true },
+    ).out,
   );
   const blackBin = process.platform === 'win32' ? 'black.exe' : 'black';
-  const blackPath = path.resolve(path.dirname(pipenvPath), blackBin);
+  const blackPath = path.resolve(path.dirname(venvPython), blackBin);
 
   if (fs.existsSync(blackPath)) {
     process.chdir(cwd);

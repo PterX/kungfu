@@ -317,10 +317,15 @@ class KungfuCoreConan(ConanFile):
     def __build_cmake_js_cmd(self, build_type, cmd, runtime, toolset):
         log_level = self.__spdlog_level()
         parallel_level = os.cpu_count()
+        # uv 接管 env（S1 阶段 A）：取 uv 项目 venv 的 python，替代 `pipenv --py`。
         python_path = re.sub(
             r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]",
             "",
-            subprocess.Popen(["pipenv", "--py"], stdout=subprocess.PIPE, text=True)
+            subprocess.Popen(
+                ["uv", "run", "--frozen", "python", "-c", "import sys; print(sys.executable)"],
+                stdout=subprocess.PIPE,
+                text=True,
+            )
             .stdout.read()
             .strip(),
         )

@@ -5,8 +5,9 @@ const path = require('path');
 const { shell } = require('../lib');
 
 function conan(cmd) {
-  const pipenv_args = ['run', 'conan', ...cmd];
-  shell.run('pipenv', pipenv_args, true, {
+  // uv 接管 env（S1 阶段 A）：在 uv 项目 venv 中运行全局 conan2；--frozen 不偷改 uv.lock。
+  const uv_args = ['run', '--frozen', 'conan', ...cmd];
+  shell.run('uv', uv_args, true, {
     env: { NODE_GYP_RUN: 'on', ...process.env },
   });
 }

@@ -21,11 +21,13 @@ if (process.platform == 'win32') {
   fse.copySync(vsDir, wheelDir);
 }
 
-const pipenv_args = ['run', 'python', 'setup.py', 'bdist_wheel'];
+// uv 接管 env（S1 阶段 A）：从 build/python 子目录运行，uv 向上发现 framework/core 的
+// pyproject + .venv；--frozen 不偷改 uv.lock。setup.py 仍走 poetry-core(阶段 B 再脱)。
+const uv_args = ['run', '--frozen', 'python', 'setup.py', 'bdist_wheel'];
 
-console.log(`$ pipenv ${pipenv_args.join(' ')}`);
+console.log(`$ uv ${uv_args.join(' ')}`);
 
-const result = spawnSync('pipenv', pipenv_args, {
+const result = spawnSync('uv', uv_args, {
   shell: true,
   stdio: 'inherit',
   windowsHide: true,

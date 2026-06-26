@@ -35,7 +35,31 @@ function makePackage() {
   fs.copyFileSync(wheel[0], path.join(packageDir, wheelFileName));
 }
 
+// uv 接管 env（S1 阶段 A）：node-gyp 默认按 PATH 找 python3，可能选到无 distutils 的系统
+// python（如 Homebrew python@3.14）→ gyp configure 在 `from distutils...` 处失败。显式把
+// node-gyp 的 python 钉到 uv 项目 venv 的 python（setuptools 提供 _distutils shim），根治
+// “node native 编译用哪个 python 不确定”的脆弱点。uv 不可用时静默跳过，回退默认查找。
+function useUvPython() {
+  const isWin = process.platform === 'win32';
+  // 直接定位 uv 项目 venv 的 python（__dirname=.gyp → 上一级=core 根 → .venv）。
+  // 不解 realpath：venv 的 python 是指向 base python 的 symlink，靠“在 .venv/bin 下”这一
+  // 路径语义才会启用 venv site-packages（setuptools 的 _distutils shim）；解到真身就丢了。
+  const venvPy = path.join(
+    __dirname,
+    '..',
+    '.venv',
+    isWin ? 'Scripts' : 'bin',
+    isWin ? 'python.exe' : 'python3',
+  );
+  if (fs.existsSync(venvPy)) {
+    // PYTHON 是 node-gyp findPython 必查项；npm_config_python 双保险。
+    process.env.PYTHON = venvPy;
+    process.env.npm_config_python = venvPy;
+  }
+}
+
 function callPrebuilt(args, check = true) {
+  useUvPython();
   const buildType = process.env.npm_package_config_build_type;
   const buildTypeOpt = buildType === 'Debug' ? ['--debug'] : [];
   return prebuilt(...buildTypeOpt, ...args);

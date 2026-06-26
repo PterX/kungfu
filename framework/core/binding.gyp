@@ -1,15 +1,12 @@
 {
   "variables": {
     "gyp_dir": "<(module_root_dir)/.gyp",
-    "pipenv_inputs": [
-      "<(module_root_dir)/Pipfile"
-    ],
-    "poetry_inputs": [
-      "<@(pipenv_inputs)",
-      "<(module_root_dir)/pyproject.toml"
+    "uv_inputs": [
+      "<(module_root_dir)/pyproject.toml",
+      "<(module_root_dir)/uv.lock"
     ],
     "conan_inputs": [
-      "<@(poetry_inputs)",
+      "<@(uv_inputs)",
       "<(module_root_dir)/conanfile.py"
     ],
     "module_inputs": [
@@ -21,7 +18,7 @@
       "<!@(node -p \"require('glob').sync('src/bindings/drone/**/*.cpp').join(' ');\")"
     ],
     "wheel_inputs": [
-      "<@(poetry_inputs)",
+      "<@(uv_inputs)",
       "<@(module_inputs)",
       "<!@(node -p \"require('glob').sync('src/python/**/*.*(py|spec)').join(' ');\")"
     ],
@@ -31,42 +28,20 @@
   },
   "targets": [
     {
-      "target_name": "pipenv",
+      "target_name": "uv",
       "type": "none",
       "actions": [
         {
-          "action_name": "install",
+          "action_name": "sync",
           "inputs": [
-            "<@(pipenv_inputs)"
+            "<(module_root_dir)/pyproject.toml"
           ],
           "outputs": [
-            "<(module_root_dir)/Pipfile.lock"
+            "<(module_root_dir)/uv.lock"
           ],
           "action": [
             "python",
-            "<(gyp_dir)/gyp_action_pipenv.py"
-          ]
-        }
-      ]
-    },
-    {
-      "target_name": "poetry",
-      "type": "none",
-      "dependencies": [
-        "pipenv"
-      ],
-      "actions": [
-        {
-          "action_name": "install",
-          "inputs": [
-            "<@(poetry_inputs)"
-          ],
-          "outputs": [
-            "<(module_root_dir)/poetry.lock"
-          ],
-          "action": [
-            "python",
-            "<(gyp_dir)/gyp_action_poetry.py"
+            "<(gyp_dir)/gyp_action_uv.py"
           ]
         }
       ]
@@ -75,7 +50,7 @@
       "target_name": "conan",
       "type": "none",
       "dependencies": [
-        "poetry"
+        "uv"
       ],
       "actions": [
         {
@@ -144,7 +119,7 @@
       "target_name": "wheel",
       "type": "none",
       "dependencies": [
-        "poetry",
+        "uv",
         "<(module_name)",
         "node_link"
       ],

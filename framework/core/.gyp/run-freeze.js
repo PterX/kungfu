@@ -49,8 +49,8 @@ function ensureBuildInfo(bt) {
   console.log(`[freeze] buildinfo 缺失，生成 → ${info}`);
   fs.mkdirSync(dir, { recursive: true });
   shell.run(
-    'pipenv',
-    ['run', 'python3', path.join(CORE, '.gyp', 'gen_kungfubuildinfo.py'), info],
+    'uv',
+    ['run', '--frozen', 'python3', path.join(CORE, '.gyp', 'gen_kungfubuildinfo.py'), info],
     true,
     { cwd: CORE },
   );
@@ -90,9 +90,10 @@ function freezeNuitka(bt) {
   console.log(`[freeze] nuitka kfc.py（PYTHONPATH=${path.relative(CORE, rel)}）`);
   fs.rmSync(out, { recursive: true, force: true });
   shell.run(
-    'pipenv',
+    'uv',
     [
       'run',
+      '--frozen',
       'python',
       '-m',
       'nuitka',
@@ -135,9 +136,10 @@ function freezePyinstaller(bt) {
   console.log(`[freeze] pyinstaller kfc.spec (CMAKE_BUILD_TYPE=${bt})`);
   fs.rmSync(path.join(CORE, 'dist'), { recursive: true, force: true });
   shell.run(
-    'pipenv',
+    'uv',
     [
       'run',
+      '--frozen',
       'pyinstaller',
       '--workpath=build',
       '--distpath=dist',

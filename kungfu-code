@@ -21,6 +21,10 @@ export FNM_NODE_DIST_MIRROR
 # corepack 取 yarn 用的 registry;默认 LAN Verdaccio
 : "${COREPACK_NPM_REGISTRY:=http://192.168.100.222:4873}"
 export COREPACK_NPM_REGISTRY
+# electron 二进制镜像(@electron/get 取 ~120MB zip 用);默认 LAN 8088 缓存,避免 CN CDN 踩坑
+: "${ELECTRON_MIRROR:=http://192.168.100.222:8088/electron/}"
+: "${ELECTRON_CUSTOM_DIR:=v{{ version }}}"
+export ELECTRON_MIRROR ELECTRON_CUSTOM_DIR
 
 if ! command -v fnm >/dev/null 2>&1; then
   echo "kungfu-code: 需先一次性安装 fnm —— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2

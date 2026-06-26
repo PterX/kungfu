@@ -7,6 +7,8 @@ setlocal
 cd /d "%~dp0"
 if not defined FNM_NODE_DIST_MIRROR set "FNM_NODE_DIST_MIRROR=https://npmmirror.com/mirrors/node/"
 if not defined COREPACK_NPM_REGISTRY set "COREPACK_NPM_REGISTRY=http://192.168.100.222:4873"
+if not defined ELECTRON_MIRROR set "ELECTRON_MIRROR=http://192.168.100.222:8088/electron/"
+if not defined ELECTRON_CUSTOM_DIR set "ELECTRON_CUSTOM_DIR=v{{ version }}"
 where fnm >nul 2>nul || (
   echo kungfu-code: 需先一次性安装 fnm —— winget install Schniz.fnm ^(或见 https://github.com/Schniz/fnm^)
   exit /b 127

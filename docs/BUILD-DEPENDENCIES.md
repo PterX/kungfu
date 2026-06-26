@@ -63,3 +63,19 @@ libnode 仓 `node` 子模块 pin 到对应 Node tag(v4 线 = **v22.22.3**;`.gitm
 - 二进制:各平台本地构建出 `*-Release.tar.gz` + `.md5-checksum`(33 字节,hash + 换行)→ `aws s3 cp` 到 `s3://kungfu-prebuilt/libnode/v{major}/v{version}/`(CN 区凭据)→ 经 `prebuilt.libkungfu.cc` CDN 服务。Linux/Win 无 aws 凭据时,tarball 中转到有凭据的机器(Mac)再传。
 - npm 壳:`npm publish`;**注意 `.npmrc` 的 `@kungfu-trader:registry` 会静默覆盖 `--registry`**(默认发到 GitHub Packages)。发私有 Verdaccio 须 `npm publish --@kungfu-trader:registry=http://192.168.100.222:4873/`;验证必须直接 `curl` Verdaccio API,不能信 npm 的 scoped 命令。
 - 正式公开发布走官方 CI(`release-new-version.yml`,PR 合 `release/v*.x` → 全平台 + US/CN S3 + npm),前提是 node 子模块 pin 已提交为目标版本。
+
+## 5. Electron app 构建 + electron 镜像/缓存（v4，重要）
+
+- **electron 版本统一 = 42.5.0**(最新 stable;可人 2026-06-26 定)。声明两处:`framework/core/package.json` devDep(构建源,run-conan.js 读它给 cmake-js)+ `framework/app/package.json`(运行时)。
+  - electron 42 自带 **node 24.17**,与 libnode v22.22.3(kfc 运行时)node 大版本不同;N-API(NAPI_VERSION=8)ABI 稳定故 kungfu_electron.node 跨 node 版本通用,功能无碍。
+  - node-22 线最后一个 electron 是 38;39+ 都是 node 24。若要 node 对齐则选 38,要最新则 42。
+- **electron 头(cmake-js 编 kungfu_electron 用)**:**npmmirror 头镜像不稳**(`SHASUMS256.txt` 504、URL 拼接易畸形)。改用**官方 `https://artifacts.electronjs.org`**(走本机代理可达)——即**不设** `ELECTRON_MIRROR` 让 cmake-js 用默认 dist。
+- **electron 二进制(`yarn app` 运行时,@electron/get 下 ~120MB)**:CN CDN(github/npmmirror)持续超时。已**缓存到 LAN 大文件缓存**:
+  - URL:`http://192.168.100.222:8088/electron/v42.5.0/`(zip + SHASUMS256.txt;289 MB/s LAN)。
+  - 发布脚本:`infra/download-accelerators/scripts/publish-large-file-cache.sh --apply --namespace electron/v<ver> -- <zip> <SHASUMS256.txt>`(Atlas 仓)。
+  - **未来构建用 LAN 取 electron 二进制**:`ELECTRON_MIRROR=http://192.168.100.222:8088/electron/ ELECTRON_CUSTOM_DIR='v{{ version }}' yarn install`(@electron/get 拼 `<mirror><dir>/electron-v<ver>-<plat>-<arch>.zip`)。
+  - 校验:下载的 zip sha256 须与官方 SHASUMS 一致(实测 v42.5.0 darwin-arm64 = `5e392f66…a1e6`)。
+- **kfc freeze 布局 ↔ app 消费(Stage C 未完)**:PyInstaller 6.x onedir 把内容放进 `dist/kfc/_internal/`,但 app(`lib/kfc.js`、`framework/api/toolkit/utils.js` 经 `dist/kfc/<X>` 解析 `drone.node`/`kungfubuildinfo.json`/headers)预期**扁平** `dist/kfc/`。
+  - `kfc.spec` COLLECT 加 `contents_directory='.'` **实测在 MERGE 下不生效**(`_internal/` 仍在),待解。
+  - 临时解锁(gate 验证):freeze 后把 `dist/kfc/_internal/*` 符号链到 `dist/kfc/` 顶层(exe 照用 _internal、app 经符号链找到)。正式 Stage C 应:修好 contents_directory,或在 conanfile freeze 流程加 promote/flatten,或改 app resolver 走 `_internal/`。
+- **app 构建/启动**:`yarn build:app`(kungfu-app webpack)→ `yarn app`(= artifact `kfs craft dev`,启 Electron GUI)。

@@ -125,7 +125,13 @@ const shell = {
   },
 
   getTargetArch: function () {
-    return shell.getPackageJson('@kungfu-trader/kungfu-core').config.arch;
+    // tracing-foundation Phase 1: config.arch 未显式设置时回退到宿主架构(process.arch)。
+    // 原 config 硬编码 'x64'(x64 时代),在 arm64 机器上会误判;回退使本机构建自动匹配
+    // (Mac arm64 / Linux·Win x64),同时保留显式 config.arch 以支持交叉编译目标。
+    return (
+      shell.getPackageJson('@kungfu-trader/kungfu-core').config.arch ||
+      process.arch
+    );
   },
 
   getPackageJson: function (packageName) {

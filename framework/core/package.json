@@ -46,7 +46,7 @@
     "rebuild": "node .gyp/run-build.js rebuild",
     "configure": "node .gyp/run-conan.js install",
     "compile": "node .gyp/run-conan.js build",
-    "freeze": "node .gyp/run-conan.js package",
+    "freeze": "node .gyp/run-freeze.js",
     "link-node": "node .gyp/run-link-node.js",
     "wheel": "node .gyp/run-wheel.js",
     "pipenv": "node .gyp/run-pipenv.js",

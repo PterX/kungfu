@@ -38,6 +38,7 @@
     "build:app": "yarn workspace @kungfu-trader/kungfu-app build",
     "build:cli": "yarn workspace @kungfu-trader/kungfu-cli build",
     "build:core": "yarn workspace @kungfu-trader/kungfu-core build",
+    "freeze": "yarn workspace @kungfu-trader/kungfu-core freeze",
     "rebuild:core": "yarn workspace @kungfu-trader/kungfu-core rebuild",
     "package:app": "yarn workspace @kungfu-trader/artifact-kungfu package",
     "poetry:clear": "yarn workspace @kungfu-trader/kungfu-core poetry:clear",

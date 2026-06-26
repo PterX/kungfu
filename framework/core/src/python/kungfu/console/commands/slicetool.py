@@ -12,7 +12,12 @@ from kungfu.console import site
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import journal as kfj
-from kungfu.wingchun import sliceindexer
+# tracing-foundation Phase 1: wingchun 交易运行时已 carve;sliceindexer 降级为 lazy 占位,
+# 使 slicetool 命令可被注册表导入(仅在真正执行 slicetool 时才用到,Phase 1 不走)。
+try:
+    from kungfu.wingchun import sliceindexer
+except (ImportError, AttributeError):
+    sliceindexer = None
 
 
 lf = kungfu.__binding__.longfist

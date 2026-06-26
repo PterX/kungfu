@@ -18,10 +18,17 @@ from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
-from kungfu.wingchun.strategy import Runner, Strategy
-from kungfu.wingchun.sliceindexer import SliceIndexer
-from kungfu.wingchun.report import Report
-from kungfu.wingchun.operator import OpRunner, Operator
+# tracing-foundation Phase 1: wingchun 交易运行时(strategy/sliceindexer/report/operator)
+# 已从 C++ 核心 carve;此处降级为 lazy 占位,使 executor 可被命令注册表导入(kfc 起得来)。
+# 这些符号仅在真正执行 run/strategy/operator 交易路径时才被用到(StrategyRunner/OperatorRunner
+# 的方法内),Phase 1 不走交易路径;Python 交易运行时的正式处置见 goal Phase 1「Python 半」。
+try:
+    from kungfu.wingchun.strategy import Runner, Strategy
+    from kungfu.wingchun.sliceindexer import SliceIndexer
+    from kungfu.wingchun.report import Report
+    from kungfu.wingchun.operator import OpRunner, Operator
+except (ImportError, AttributeError):
+    Runner = Strategy = SliceIndexer = Report = OpRunner = Operator = None
 
 from collections import deque
 from importlib.util import module_from_spec, spec_from_file_location

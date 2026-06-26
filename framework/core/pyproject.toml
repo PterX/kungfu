@@ -1,5 +1,93 @@
 # SPDX-License-Identifier: Apache-2.0
 
+# ============================================================================
+# uv 迁移(阶段 A，goal 2026-06-26-kungfu-buildchain-modernization S1)
+# - [project]/[tool.uv] = uv 接管 env+lock+install（替 pipenv+poetry 双轨）。
+# - 下方 [tool.poetry] 暂保留：src/python/setup.py 经 poetry-core Factory 读它做
+#   wheel build。阶段 B 让 setup.py 脱 poetry-core 后删除 [tool.poetry]，单一真相源。
+# - 两表 dependencies 暂重复，过渡期债务，阶段 B 收敛。
+# ============================================================================
+
+[project]
+name = "kungfu"
+version = "0.0.0"
+description = "Kungfu Core Library"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Kungfu Trader", email = "info@kungfu.link" }]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    # Compiler
+    "black~=24.10.0",
+    "nuitka~=4.1.0",
+    "pdm~=2.21.0",
+    "pdm-pep517~=1.1.0",
+    "poetry-core~=1.9.0",
+    "scons~=4.8.0",
+    "tomli-w~=1.0.0",
+    "tomlkit~=0.13.0",
+    # Console
+    "click~=8.1.7",
+    "psutil~=6.1.0",
+    "tabulate~=0.9.0",
+    "wcmatch~=10.0.0",
+    # Numeric
+    "numpy~=2.1.0",
+    "pandas~=2.2.0",
+    "scipy~=1.14.0",
+    "statsmodels~=0.14.4",
+    "openpyxl~=3.1.5",
+    # Loose / transitive(放宽，3.13 自解析)
+    "certifi",
+    "chardet",
+    "charset-normalizer",
+    "importlib-metadata",
+    "msgpack",
+    "filelock",
+    "ordered-set",
+    "packaging",
+    "platformdirs",
+    "pluggy",
+    "pytest~=8.3.0",
+    "railroad-diagrams",
+    "shellingham",
+    "zipp",
+    "authing~=5.1.0",
+    "urllib3~=2.2.0",
+    "websockets~=13.1.0",
+    "boto3~=1.35.0",
+    "keyring~=25.5.0",
+    "zstandard~=0.23.0",
+    # was Pipfile [packages] seed
+    "setuptools~=75.6.0",
+    "virtualenv~=20.28.0",
+    "wheel~=0.45.0",
+    "pip~=24.3.0",
+    "plotly>=6.8.0,<7.0.0",
+    # was Pipfile [packages] os-specific（带平台 marker）
+    "xattr==1.1.4 ; sys_platform != 'win32'",
+    "cffi==1.17.1 ; sys_platform != 'win32'",
+    "pycparser==2.22 ; sys_platform != 'win32'",
+    "colorama==0.4.6 ; os_name == 'nt'",
+    "pywin32-ctypes==0.2.3 ; sys_platform == 'win32'",
+    "cryptography==43.0.3 ; sys_platform == 'linux'",
+    "jeepney==0.8.0 ; sys_platform == 'linux'",
+    "secretstorage==3.3.3 ; sys_platform == 'linux'",
+]
+
+[dependency-groups]
+dev = ["pyinstaller~=6.11.0"]
+
+[tool.uv]
+# aliyun 国内镜像(替 poetry source / Pipfile pypi_mirror)，避免占用出海链路。
+[[tool.uv.index]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+# ============================================================================
+# 过渡期保留：setup.py(wheel build)经 poetry-core Factory 读取 [tool.poetry]。
+# 阶段 B 让 setup.py 改读 [project] 后，整段连同 [build-system]/[[tool.poetry.source]] 删除。
+# ============================================================================
 [tool.poetry]
 name = "kungfu"
 version = "0.0.0"
@@ -13,10 +101,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-# v4 现代化：Python 3.13(统一 Mac/Linux，= pykungfu 构建 Python)。
 python = ">=3.13, <3.14"
-
-#### Compiler #############################################
 black = "~24.10.0"
 nuitka = "~4.1.0"
 pdm = "~2.21.0"
@@ -25,22 +110,15 @@ poetry-core = "~1.9.0"
 scons = "~4.8.0"
 tomli-w = "~1.0.0"
 tomlkit = "~0.13.0"
-
-#### Console ##############################################
 click = "~8.1.7"
 psutil = "~6.1.0"
 tabulate = "~0.9.0"
 wcmatch = "~10.0.0"
-
-#### Numeric ##############################################
 numpy = "~2.1.0"
 pandas = "~2.2.0"
 scipy = "~1.14.0"
 statsmodels = "~0.14.4"
 openpyxl = "~3.1.5"
-
-#### Dependencies #########################################
-# 传递/工具类依赖放宽，让 poetry 在 3.13 下自解析兼容版本(避免与 pdm/poetry 等工具的版本要求冲突)。
 certifi = "*"
 chardet = "*"
 charset-normalizer = "*"
@@ -61,23 +139,18 @@ websockets = "~13.1.0"
 boto3 = "~1.35.0"
 keyring = "~25.5.0"
 zstandard = "~0.23.0"
-
-#### Sync Pipfile #########################################
 setuptools = "~75.6.0"
 virtualenv = "~20.28.0"
 wheel = "~0.45.0"
 plotly = "^6.8.0"
 
 [tool.poetry.group.dev.dependencies]
-# conan 由系统 pipx 提供(2.x)，不再经 poetry 装 conan1。
 pyinstaller = "~6.11.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-# v4：默认走国内 PyPI 镜像(aliyun)加速依赖解析/下载，避免占用办公室出海链路。
-# 可按环境覆盖；prebuilt/发布阶段再评估。
 [[tool.poetry.source]]
 name = "aliyun"
 url = "https://mirrors.aliyun.com/pypi/simple/"

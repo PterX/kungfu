@@ -7,11 +7,14 @@
 #   ./kungfu-code build:app    # = yarn build:app
 #   ./kungfu-code <任意 yarn 任务/参数>
 #
-# 机制:fnm 选 node(.node-version=22.22.3)→ node 自带 corepack 派发 yarn
-# (版本由 package.json "packageManager" 钉)。node / npm / yarn 全部由 fnm+corepack
-# 提供,使用者只需一次性安装 fnm 这一个前置;不再依赖系统 node 版本,也不需 --ignore-engines。
-#
-# CN 机器经镜像取 node / 包,避免直连 nodejs.org / npmjs 踩坑(可用环境变量覆盖)。
+# 机制(双驱动起手式,node 侧 + python 侧对称):
+#   node 侧:fnm 选 node(.node-version=22.22.3)→ node 自带 corepack 派发 yarn
+#           (版本由 package.json "packageManager" 钉);node/npm/yarn 全由 fnm+corepack 提供。
+#   python 侧:uv 管 standalone CPython(framework/core/pyproject.toml [tool.uv]
+#           python-preference=only-managed)+ uv.lock 依赖 + `uv run` 跑 conan/nuitka 等构建
+#           工具(见各 .gyp 脚本)。uv 之于 python ≈ fnm 之于 node。
+# 使用者只需一次性装两个前置:fnm(node 侧)+ uv(python 侧);不依赖系统 node/python 版本,
+# 也不需 --ignore-engines。CN 机器经镜像取上游,避免直连踩坑(见下方镜像总览,可 env 覆盖)。
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
@@ -34,6 +37,7 @@ export ELECTRON_MIRROR
 #   yarn(corepack)   COREPACK_NPM_REGISTRY  ← 本文件(上)   env 可覆盖
 #   electron 二进制  ELECTRON_MIRROR        ← 本文件(上)   env 可覆盖
 #   pypi(uv)         [[tool.uv.index]]      ← framework/core/pyproject.toml(uv 原生,不经 env)
+#   uv standalone py UV_PYTHON_INSTALL_MIRROR ← env 覆盖(一次性下载解释器);默认走 upstream,LAN 发布待 B1b
 #   libnode 预编译   binary.host/binaryGithub.host
 #                                           ← framework/core/package.json(本地 .cc / CI .io,有意分流)
 #   npm 包安装       (暂未统一)             ← yarn install 仍走公网;LAN Verdaccio 透明回源 = B1b(基建,未做)
@@ -41,7 +45,14 @@ export ELECTRON_MIRROR
 # ──────────────────────────────────────────────────────────────────────
 
 if ! command -v fnm >/dev/null 2>&1; then
-  echo "kungfu-code: 需先一次性安装 fnm —— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2
+  echo "kungfu-code: 需先一次性安装 fnm(node 侧前置)—— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2
+  exit 127
+fi
+
+# python 侧前置:uv 管 standalone CPython + venv + uv.lock + 跑 conan/nuitka(与 fnm 对称)。
+# CN 机器可设 UV_PYTHON_INSTALL_MIRROR 加速一次性的解释器下载(默认走 upstream)。
+if ! command -v uv >/dev/null 2>&1; then
+  echo "kungfu-code: 需先一次性安装 uv(python 侧前置)—— 'brew install uv'(或 'curl -LsSf https://astral.sh/uv/install.sh | sh';见 https://docs.astral.sh/uv/)" >&2
   exit 127
 fi
 

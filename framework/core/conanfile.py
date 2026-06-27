@@ -341,12 +341,13 @@ class KungfuCoreConan(ConanFile):
             .strip(),
         )
         node_arch = self.__node_arch()
-        toolset_option = ["--toolset", toolset] if toolset != "auto" else []
-        build_option = (
-            toolset_option + ["--platform", node_arch]
-            if _detected_os() == "Windows"
+        # Windows 改用 Ninja 生成器(取代 VS/MSBuild):VS 生成器忽略 CMAKE_CXX_COMPILER_LAUNCHER,
+        # sccache 无法缓存 MSVC(Phase1 DARKHERO 实证:VS gen 0 compile requests / Ninja round2 命中)。
+        # Ninja 下 cl 需 MSVC env(vcvars)激活——构建须在 Developer 环境跑(CI runner / 本地 vcvars)。
+        # toolset 仅 VS 生成器用,Ninja 下不传。
+        build_option = ["--generator", "Ninja", "--parallel", str(parallel_level)] \
+            if _detected_os() == "Windows" \
             else ["--parallel", str(parallel_level)]
-        )
         debug_option = ["--debug"] if build_type == "Debug" else []
         # conan2：把生成的 conan_toolchain.cmake 透传给 cmake-js，让 conan 依赖(CMakeDeps)与
         # cmake-js 的 runtime headers 共存(取代 conan1 的 conanbuildinfo.cmake 自动注入)。

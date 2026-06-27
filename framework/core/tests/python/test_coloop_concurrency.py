@@ -184,3 +184,52 @@ def test_timer_fires_at_exact_due_time():
     assert fired == [when], (
         f"到期时刻定时器未触发(now={hero.now()}, when={when}): {fired}"
     )
+
+
+def test_pending_future_does_not_self_resolve():
+    """P1 连带:新 coloop 下 await 一个永不 set_result 的 future 会正确挂起,不靠忙轮询自动跑完。
+
+    旧 post_step 靠'无条件重新入队'重复驱动协程,使 AsyncOrderAction 那种'永不完成 future +
+    每轮重新轮询订单状态'的忙轮询得以推进。移除重排后该假设不再成立 => 依赖它的
+    AsyncOrderAction 必须改成事件驱动 set_result(否则 await ctx.buy() 死锁)。
+    """
+    loop, hero, ctx = make_loop()
+    done = []
+
+    async def cb():
+        fut = loop.create_future()
+        await fut  # 永不 set_result
+        done.append("resolved")
+
+    call_proxy(loop, cb)
+    rounds = drive(loop, max_rounds=20)
+    assert done == [], f"未完成 future 不应让协程跑完(忙轮询残留?): {done}"
+    # drive 在无待处理回调时提前退出(rounds<20)=协程挂起在 future 上、事件循环无事可做。
+    # 这正说明 AsyncOrderAction 的'永不完成 future'会让 await ctx.buy() 彻底挂死,
+    # 必须改成 on_order 回调里 set_result 的事件驱动(见 test_future_resolves_when_set_result)。
+    assert rounds < 20, f"应在无待处理回调时提前退出(挂起=预期),实际跑满 {rounds}"
+
+
+def test_future_resolves_when_set_result():
+    """P1 修复方向:future.set_result 后 await 它的协程应被唤醒续跑。
+
+    这是 AsyncOrderAction 应改成的事件驱动模式(在 on_order/on_trade 回调里对订单终态 set_result),
+    替代'永不完成 future + 外部重轮询'。本测试证明新 coloop 支持该标准模式。
+    """
+    loop, hero, ctx = make_loop()
+    done = []
+    holder = {}
+
+    async def cb():
+        fut = loop.create_future()
+        holder["fut"] = fut
+        result = await fut
+        done.append(result)
+
+    call_proxy(loop, cb)
+    drive(loop, max_rounds=5)  # 推进到 await fut 挂起
+    assert done == [], f"set_result 前不应完成: {done}"
+
+    holder["fut"].set_result("filled")  # 模拟 on_order 回调里对终态订单 resolve
+    drive(loop, max_rounds=5)
+    assert done == ["filled"], f"set_result 后协程应续跑: {done}"

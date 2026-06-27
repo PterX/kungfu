@@ -89,6 +89,10 @@ function freezeNuitka(bt) {
 
   console.log(`[freeze] nuitka kfc.py（PYTHONPATH=${path.relative(CORE, rel)}）`);
   fs.rmSync(out, { recursive: true, force: true });
+  // Linux 强制 clang 后端：gcc 13 编译 nuitka 生成的 scipy 巨型 C 文件会触发 internal
+  // compiler error(cfgcleanup.cc try_forward_edges ICE)。Mac 本就默认 clang、不撞，故仅
+  // Linux 切 clang，顺带让两平台 freeze 用同一 C 编译器、跨机更一致。需机器装 clang。
+  const clangOpt = process.platform === 'linux' ? ['--clang'] : [];
   shell.run(
     'uv',
     [
@@ -97,6 +101,7 @@ function freezeNuitka(bt) {
       'python',
       '-m',
       'nuitka',
+      ...clangOpt,
       '--output-dir=build/kfc-nuitka',
       `--include-data-files=${info}=kungfubuildinfo.json`,
       path.join('src', 'python', 'kfc.py'),

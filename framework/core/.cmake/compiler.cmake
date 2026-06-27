@@ -4,6 +4,21 @@ set(CMAKE_CXX_STANDARD 20)
 
 ############################################################
 
+# ccache：可用即作为编译器 launcher（命中编译缓存，显著加速 clean-rebuild 下
+# libkungfu 重模板重编）。零强制耦合：仅在 UNIX 且 PATH 有 ccache 时启用，
+# 开源克隆 / Windows / 未装 ccache 的机器 find_program 未命中即 no-op。
+# libkungfu(conan build) 与 node/electron bindings(cmake-js) 共用本文件，故一处全覆盖。
+if (UNIX)
+  find_program(CCACHE_PROGRAM ccache)
+  if (CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    message(STATUS "ccache enabled as compiler launcher: ${CCACHE_PROGRAM}")
+  endif ()
+endif ()
+
+############################################################
+
 # Set the global compile options.
 # Some of the options may be override by target_compiles_options later in sub-projects.
 if (UNIX)

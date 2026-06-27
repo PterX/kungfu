@@ -53,8 +53,10 @@ where uv >nul 2>nul || (
 rem Idempotent: ensure the node pinned by .node-version is installed
 fnm install >nul 2>nul
 
-rem Under the pinned node, run the packageManager-pinned yarn via corepack
-fnm exec --using-file -- corepack yarn %*
+rem Under the pinned node, run the packageManager-pinned yarn via corepack.
+rem NOTE: use corepack.cmd (not bare "corepack"): fnm exec spawns the program directly
+rem without applying PATHEXT, so bare "corepack" is not found on Windows (only corepack.cmd is).
+fnm exec --using-file -- corepack.cmd yarn %*
 exit /b !errorlevel!
 
 rem -- Parse sh-format build-local.env `export KEY='VALUE'` lines -> set KEY=VALUE (pure cmd) --

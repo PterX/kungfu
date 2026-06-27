@@ -11,7 +11,7 @@
 //   L3  (未来)TUI              复用 kungfu 自身 TUI 基础设施 / 编译产物运行时;直接 import
 //                              下面的 readConfig/setKey 等配置读写,不重复实现。
 //
-// 配置文件在用户全局 ${XDG_CONFIG_HOME:-~/.config}/kungfu/cache-proxy.env:主仓与所有
+// 配置文件在用户全局 ${XDG_CONFIG_HOME:-~/.config}/kungfu/build-local.env:主仓与所有
 // git worktree 共用同一份、天然在仓外(开源安全)、内网多机同步一份即可。
 'use strict';
 
@@ -21,19 +21,22 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const KEYS = [
+  // 镜像 / 缓存(各上游)
   'FNM_NODE_DIST_MIRROR',
   'ELECTRON_MIRROR',
   'COREPACK_NPM_REGISTRY',
   'UV_DEFAULT_INDEX',
   'UV_PYTHON_INSTALL_MIRROR',
+  // 编译参数(按机封顶,防大核机内存 thrash)
+  'KUNGFU_BUILD_JOBS',
 ];
 
 const CONFIG_FILE = path.join(
   process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
   'kungfu',
-  'cache-proxy.env',
+  'build-local.env',
 );
-const TEMPLATE = path.join(__dirname, 'cache-proxy.env.example');
+const TEMPLATE = path.join(__dirname, 'build-local.env.example');
 
 // ── 可复用配置读写模块(L3 TUI 可直接 require 本文件复用)────────────────────
 function readRaw() {
@@ -88,11 +91,11 @@ module.exports = { CONFIG_FILE, KEYS, readConfig, setKey, unsetKey };
 // ── CLI(L1 sh 委派入口)──────────────────────────────────────────────────
 function help(cmd) {
   console.error(
-    `kungfu-code ${cmd} — 管理本地缓存/镜像代理配置(用户全局 cache-proxy.env)\n` +
+    `kungfu-code ${cmd} — 管理本地构建环境配置:镜像/缓存 + 编译参数(用户全局 build-local.env)\n` +
       `  ${cmd} path               打印配置文件路径\n` +
-      `  ${cmd} init               从 cache-proxy.env.example 派生配置文件(若不存在)\n` +
+      `  ${cmd} init               从 build-local.env.example 派生配置文件(若不存在)\n` +
       `  ${cmd} edit               用 $EDITOR 打开配置文件(不存在则先从模板创建)\n` +
-      `  ${cmd} list               显示各镜像项当前值\n` +
+      `  ${cmd} list               显示各项当前值\n` +
       `  ${cmd} get <KEY>          读取某项\n` +
       `  ${cmd} set <KEY> <VALUE>  设置某项(写入用户全局文件)\n` +
       `  ${cmd} unset <KEY>        移除某项\n` +

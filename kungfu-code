@@ -18,21 +18,21 @@
 # 一次性装两个前置:fnm + uv;不依赖系统 node/python 版本,也不需 --ignore-engines。
 #
 # 本仓零 LAN/镜像耦合(开源者克隆即用官方上游)。需局域网缓存 / CN 镜像加速时,用
-# `./kungfu-code proxy` 把模板 cache-proxy.env.example 派生到用户全局并填值:
-#   ${XDG_CONFIG_HOME:-~/.config}/kungfu/cache-proxy.env
+# `./kungfu-code proxy` 把模板 build-local.env.example 派生到用户全局并填值:
+#   ${XDG_CONFIG_HOME:-~/.config}/kungfu/build-local.env
 # 放用户全局的原因:git worktree 是独立检出,仓内 gitignore 文件不会出现在 worktree;放
 # 用户全局才能被主仓与所有 worktree 共用,且天然在仓外、内网多机同步一份即可。
-# 可选仓根 ./cache-proxy.env(已 .gitignore)作按检出覆盖,叠加在用户全局之上。
+# 可选仓根 ./build-local.env(已 .gitignore)作按检出覆盖,叠加在用户全局之上。
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
 # 加载本地缓存代理配置:用户全局优先,再叠加可选仓内覆盖(两者皆 export → 透传子进程)。
 kfc_load_proxy() {
-  _f="${XDG_CONFIG_HOME:-$HOME/.config}/kungfu/cache-proxy.env"
+  _f="${XDG_CONFIG_HOME:-$HOME/.config}/kungfu/build-local.env"
   # shellcheck disable=SC1090
   [ -f "$_f" ] && . "$_f"
   # shellcheck disable=SC1091
-  [ -f ./cache-proxy.env ] && . ./cache-proxy.env
+  [ -f ./build-local.env ] && . ./build-local.env
   unset _f
   return 0
 }

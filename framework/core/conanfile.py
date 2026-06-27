@@ -316,9 +316,13 @@ class KungfuCoreConan(ConanFile):
             sys.exit(rc)
 
     def __parallel_jobs(self):
-        # 并行编译度优先取 conan conf `tools.build:jobs`（可在 profile / global.conf 按机器
-        # 封顶），未设时回退 os.cpu_count() 保持原行为。kungfu 开 -flto + 重模板，单路峰值约
-        # 2GB；大核机（如 agent-120 32 线程）默认满并行会撑爆内存换页 thrash，故需可封顶。
+        # 并行编译度优先取环境变量 KUNGFU_BUILD_JOBS（由 kungfu-code 的 build-local.env 在各机
+        # 统一配置,仓内不硬编码);其次 conan conf tools.build:jobs;最后回退 os.cpu_count()。
+        # kungfu 开 -flto + 重模板,单路峰值约 2GB,大核机（如 agent-120 32 线程）默认满并行会
+        # 撑爆内存换页 thrash,故需可按机封顶。
+        env_jobs = os.environ.get("KUNGFU_BUILD_JOBS", "")
+        if env_jobs.isdigit() and int(env_jobs) > 0:
+            return int(env_jobs)
         return build_jobs(self)
 
     def __build_cmake_js_cmd(self, build_type, cmd, runtime, toolset):

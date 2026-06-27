@@ -19,6 +19,7 @@ from glob import glob
 from os import environ, path
 
 from conan import ConanFile
+from conan.tools.build import build_jobs
 from conan.tools.cmake import CMakeToolchain, CMakeDeps
 from conan.tools.files import copy
 from conan.errors import ConanException
@@ -275,7 +276,7 @@ class KungfuCoreConan(ConanFile):
         parallel_opt = (
             []
             if _detected_os() == "Windows"
-            else ["--", "-j", f"{os.cpu_count()}"]
+            else ["--", "-j", f"{self.__parallel_jobs()}"]
         )
         self.__enable_modules(runtime)
         if str(self.options.with_yarn) == "True":
@@ -314,9 +315,15 @@ class KungfuCoreConan(ConanFile):
             self.output.error(f"yarn {args} failed with return code {rc}")
             sys.exit(rc)
 
+    def __parallel_jobs(self):
+        # 并行编译度优先取 conan conf `tools.build:jobs`（可在 profile / global.conf 按机器
+        # 封顶），未设时回退 os.cpu_count() 保持原行为。kungfu 开 -flto + 重模板，单路峰值约
+        # 2GB；大核机（如 agent-120 32 线程）默认满并行会撑爆内存换页 thrash，故需可封顶。
+        return build_jobs(self)
+
     def __build_cmake_js_cmd(self, build_type, cmd, runtime, toolset):
         log_level = self.__spdlog_level()
-        parallel_level = os.cpu_count()
+        parallel_level = self.__parallel_jobs()
         # uv 接管 env（S1 阶段 A）：取 uv 项目 venv 的 python，替代 `pipenv --py`。
         python_path = re.sub(
             r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]",

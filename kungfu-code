@@ -1,56 +1,67 @@
 #!/bin/sh
-# kungfu-code — kungfu 开发/构建编排「起手式」(macOS / Linux)
+# kungfu-code — kungfu 开发/构建编排「起手式」(macOS / Linux),三层子集的 L1。
 #
 # 一条命令,在仓库钉定的 node(.node-version)下执行任意构建/开发任务:
 #   ./kungfu-code app          # = yarn app(启 Electron 版 kungfu)
 #   ./kungfu-code build:core   # = yarn build:core
-#   ./kungfu-code build:app    # = yarn build:app
 #   ./kungfu-code <任意 yarn 任务/参数>
+#   ./kungfu-code proxy ...    # 富子命令:管理本地缓存/镜像代理配置(委派给 L2 node,不透传 yarn)
+#
+# 三层子集模型:
+#   L1 本文件(sh)        bootstrap:load 代理 env / 检 fnm+uv / 钉 node / 跑 yarn;富子命令委派 L2。
+#   L2 kungfu-code.js(node)  fnm 装好后可用的富命令(缓存配置 proxy 等),纯 node builtins。
+#   L3 (未来)TUI         复用 kungfu 自身 TUI 基础设施 / 编译产物;复用 L2 的配置读写。
 #
 # 机制(双驱动起手式,node 侧 + python 侧对称):
-#   node 侧:fnm 选 node(.node-version=22.22.3)→ node 自带 corepack 派发 yarn
-#           (版本由 package.json "packageManager" 钉);node/npm/yarn 全由 fnm+corepack 提供。
-#   python 侧:uv 管 standalone CPython(framework/core/pyproject.toml [tool.uv]
-#           python-preference=only-managed)+ uv.lock 依赖 + `uv run` 跑 conan/nuitka 等构建
-#           工具(见各 .gyp 脚本)。uv 之于 python ≈ fnm 之于 node。
-# 使用者只需一次性装两个前置:fnm(node 侧)+ uv(python 侧);不依赖系统 node/python 版本,
-# 也不需 --ignore-engines。CN 机器经镜像取上游,避免直连踩坑(见下方镜像总览,可 env 覆盖)。
+#   node 侧:fnm 选 node(.node-version)→ corepack 派 yarn(版本由 package.json packageManager 钉)。
+#   python 侧:uv 管 standalone CPython + uv.lock + `uv run` 跑 conan/nuitka(uv 之于 python ≈ fnm 之于 node)。
+# 一次性装两个前置:fnm + uv;不依赖系统 node/python 版本,也不需 --ignore-engines。
+#
+# 本仓零 LAN/镜像耦合(开源者克隆即用官方上游)。需局域网缓存 / CN 镜像加速时,用
+# `./kungfu-code proxy` 把模板 cache-proxy.env.example 派生到用户全局并填值:
+#   ${XDG_CONFIG_HOME:-~/.config}/kungfu/cache-proxy.env
+# 放用户全局的原因:git worktree 是独立检出,仓内 gitignore 文件不会出现在 worktree;放
+# 用户全局才能被主仓与所有 worktree 共用,且天然在仓外、内网多机同步一份即可。
+# 可选仓根 ./cache-proxy.env(已 .gitignore)作按检出覆盖,叠加在用户全局之上。
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
-# node 发行版镜像(fnm 取 node 用);默认 LAN 8088 缓存(node 22 已 publish);
-# 离开局域网时用 FNM_NODE_DIST_MIRROR=https://npmmirror.com/mirrors/node/ 覆盖
-: "${FNM_NODE_DIST_MIRROR:=http://192.168.100.222:8088/node/}"
-export FNM_NODE_DIST_MIRROR
-# corepack 取 yarn 用的 registry;默认 LAN Verdaccio
-: "${COREPACK_NPM_REGISTRY:=http://192.168.100.222:4873}"
-export COREPACK_NPM_REGISTRY
-# electron 二进制镜像(@electron/get 取 ~120MB zip 用);默认 LAN 8088 缓存,避免 CN CDN 踩坑。
-# 不设 ELECTRON_CUSTOM_DIR —— @electron/get 默认目录即 v<version>,正好匹配 LAN 路径
-# electron/v<version>/electron-v<version>-<plat>-<arch>.zip(LAN 缓存按此布局发布)。
-: "${ELECTRON_MIRROR:=http://192.168.100.222:8088/electron/}"
-export ELECTRON_MIRROR
+# 加载本地缓存代理配置:用户全局优先,再叠加可选仓内覆盖(两者皆 export → 透传子进程)。
+kfc_load_proxy() {
+  _f="${XDG_CONFIG_HOME:-$HOME/.config}/kungfu/cache-proxy.env"
+  # shellcheck disable=SC1090
+  [ -f "$_f" ] && . "$_f"
+  # shellcheck disable=SC1091
+  [ -f ./cache-proxy.env ] && . ./cache-proxy.env
+  unset _f
+  return 0
+}
 
-# ── 镜像/缓存总览(单一发现入口)─────────────────────────────────────────
-# 构建链全部上游→镜像映射在这张表登记一次;值各自落在权威声明处,本表只指位置不复制:
-#   node 发行版      FNM_NODE_DIST_MIRROR   ← 本文件(上)   env 可覆盖
-#   yarn(corepack)   COREPACK_NPM_REGISTRY  ← 本文件(上)   env 可覆盖
-#   electron 二进制  ELECTRON_MIRROR        ← 本文件(上)   env 可覆盖
-#   pypi(uv)         [[tool.uv.index]]      ← framework/core/pyproject.toml(uv 原生,不经 env)
-#   uv standalone py UV_PYTHON_INSTALL_MIRROR ← env 覆盖(一次性下载解释器);默认走 upstream,LAN 发布待 B1b
-#   libnode 预编译   binary.host/binaryGithub.host
-#                                           ← framework/core/package.json(本地 .cc / CI .io,有意分流)
-#   npm 包安装       (暂未统一)             ← yarn install 仍走公网;LAN Verdaccio 透明回源 = B1b(基建,未做)
-# 改镜像只动上述对应权威处;新增上游务必在本表补一行,保持「读起手式即见全图」。
-# ──────────────────────────────────────────────────────────────────────
+# 富子命令委派 L2 node(不透传 yarn、不需要 uv)。L2 是纯 node builtins、不挑版本:
+# 有 fnm 则优先用 fnm-managed node(bootstrap 已就绪的正常路径);fnm 未就绪时回退系统
+# node,让开发者在 fnm 安装不顺时仍能先用 L2 配置(如设镜像反过来帮 fnm);两者皆无才报错。
+case "${1:-}" in
+  proxy | config)
+    if command -v fnm >/dev/null 2>&1; then
+      fnm install >/dev/null 2>&1 || true
+      exec fnm exec --using-file -- node ./kungfu-code.js "$@"
+    elif command -v node >/dev/null 2>&1; then
+      exec node ./kungfu-code.js "$@"
+    else
+      echo "kungfu-code: 富子命令需 node —— 装 fnm(推荐 'arch -arm64 brew install fnm',见 https://github.com/Schniz/fnm)或任一系统 node 均可" >&2
+      exit 127
+    fi
+    ;;
+esac
+
+# 普通构建/开发任务:加载代理配置 → 检两个前置 → 钉 node → corepack yarn
+kfc_load_proxy
 
 if ! command -v fnm >/dev/null 2>&1; then
   echo "kungfu-code: 需先一次性安装 fnm(node 侧前置)—— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2
   exit 127
 fi
 
-# python 侧前置:uv 管 standalone CPython + venv + uv.lock + 跑 conan/nuitka(与 fnm 对称)。
-# CN 机器可设 UV_PYTHON_INSTALL_MIRROR 加速一次性的解释器下载(默认走 upstream)。
 if ! command -v uv >/dev/null 2>&1; then
   echo "kungfu-code: 需先一次性安装 uv(python 侧前置)—— 'brew install uv'(或 'curl -LsSf https://astral.sh/uv/install.sh | sh';见 https://docs.astral.sh/uv/)" >&2
   exit 127

@@ -83,11 +83,9 @@ dev = ["pyinstaller~=6.11.0"]
 # Debian/系统 python(flavor 'Debian Python')下冻结段错误(SIGSEGV);新机由 uv 自动下载对应
 # standalone 解释器,freeze 行为可复现。
 python-preference = "only-managed"
-# aliyun 国内镜像(替 poetry source / Pipfile pypi_mirror)，避免占用出海链路。
-[[tool.uv.index]]
-name = "aliyun"
-url = "https://mirrors.aliyun.com/pypi/simple/"
-default = true
+# pypi index 不在仓内硬编码(开源安全,避免内网/镜像耦合)：走用户全局 ~/.config/uv/uv.toml 的
+# index-url,或环境变量 UV_DEFAULT_INDEX(可由 kungfu-code 的 cache-proxy 配置统一提供);
+# 二者皆未配置则用官方 PyPI。需要 CN 镜像/局域网 devpi 时在用户侧配置,不污染本仓。
 
 # S1 阶段 B：脱 poetry-core，单一真相源收敛到 [project]/[tool.uv]。
 # wheel build 由 setuptools 后端 + src/python/setup.py（读 [project]）承担。

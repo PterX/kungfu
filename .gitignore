@@ -46,3 +46,6 @@ debug-example/
 # 手写源 *.fbs / *_fb_builder.h 仍跟踪)
 framework/core/src/include/kungfu/longfist/fb/*_generated.h
 framework/core/src/include/kungfu/longfist/fb/*.bfbs
+
+# 本地缓存/镜像代理「按检出覆盖」(可选);真值与主配置在用户全局 ~/.config/kungfu/cache-proxy.env,不入仓
+/cache-proxy.env

@@ -28,6 +28,18 @@ export COREPACK_NPM_REGISTRY
 : "${ELECTRON_MIRROR:=http://192.168.100.222:8088/electron/}"
 export ELECTRON_MIRROR
 
+# ── 镜像/缓存总览(单一发现入口)─────────────────────────────────────────
+# 构建链全部上游→镜像映射在这张表登记一次;值各自落在权威声明处,本表只指位置不复制:
+#   node 发行版      FNM_NODE_DIST_MIRROR   ← 本文件(上)   env 可覆盖
+#   yarn(corepack)   COREPACK_NPM_REGISTRY  ← 本文件(上)   env 可覆盖
+#   electron 二进制  ELECTRON_MIRROR        ← 本文件(上)   env 可覆盖
+#   pypi(uv)         [[tool.uv.index]]      ← framework/core/pyproject.toml(uv 原生,不经 env)
+#   libnode 预编译   binary.host/binaryGithub.host
+#                                           ← framework/core/package.json(本地 .cc / CI .io,有意分流)
+#   npm 包安装       (暂未统一)             ← yarn install 仍走公网;LAN Verdaccio 透明回源 = B1b(基建,未做)
+# 改镜像只动上述对应权威处;新增上游务必在本表补一行,保持「读起手式即见全图」。
+# ──────────────────────────────────────────────────────────────────────
+
 if ! command -v fnm >/dev/null 2>&1; then
   echo "kungfu-code: 需先一次性安装 fnm —— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2
   exit 127

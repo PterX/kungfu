@@ -345,9 +345,16 @@ class KungfuCoreConan(ConanFile):
         # sccache 无法缓存 MSVC(Phase1 DARKHERO 实证:VS gen 0 compile requests / Ninja round2 命中)。
         # Ninja 下 cl 需 MSVC env(vcvars)激活——构建须在 Developer 环境跑(CI runner / 本地 vcvars)。
         # toolset 仅 VS 生成器用,Ninja 下不传。
-        build_option = ["--generator", "Ninja", "--parallel", str(parallel_level)] \
-            if _detected_os() == "Windows" \
-            else ["--parallel", str(parallel_level)]
+        if _detected_os() == "Windows":
+            # Ninja 下 cmake 走 PATH 自动探测 rc,而 yarn/cmake-js 把 node_modules/.bin 前置到 PATH,
+            # 其中 npm 的 rc 配置包(node_modules/.bin/rc[.cmd])会遮蔽真正的 SDK rc.exe,使 cmake 误用它
+            # 当资源编译器、链接 manifest 时崩(DARKHERO 实证)。故显式钉到 vcvars 提供的 SDK rc.exe。
+            # (VS 生成器经 MSBuild 走 VS 工具链不踩此坑;此项仅 Windows+Ninja 需要。)
+            rc_compiler = shutil.which("rc.exe")
+            rc_option = [f"--CDCMAKE_RC_COMPILER={rc_compiler.replace(chr(92), '/')}"] if rc_compiler else []
+            build_option = ["--generator", "Ninja", "--parallel", str(parallel_level)] + rc_option
+        else:
+            build_option = ["--parallel", str(parallel_level)]
         debug_option = ["--debug"] if build_type == "Debug" else []
         # conan2：把生成的 conan_toolchain.cmake 透传给 cmake-js，让 conan 依赖(CMakeDeps)与
         # cmake-js 的 runtime headers 共存(取代 conan1 的 conanbuildinfo.cmake 自动注入)。

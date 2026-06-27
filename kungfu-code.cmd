@@ -1,19 +1,22 @@
 @echo off
-rem kungfu-code.cmd — kungfu 开发/构建编排「起手式」(Windows),三层子集的 L1。
-rem 与 macOS/Linux 的 kungfu-code(sh)对齐:
-rem   kungfu-code app | kungfu-code build:core | kungfu-code <任意 yarn 任务>
-rem   kungfu-code proxy ...   富子命令:管理本地缓存/镜像代理配置(委派 L2 node,不透传 yarn)
+rem kungfu-code.cmd - kungfu dev/build launcher (Windows), L1 of the 3-layer subset.
+rem ASCII-only on purpose: Windows cmd parses .cmd in the OEM codepage (e.g. GBK/936),
+rem so non-ASCII bytes corrupt parsing. Keep this file ASCII; the sh version may use UTF-8.
 rem
-rem 三层子集:L1 本文件(.cmd)bootstrap+委派;L2 kungfu-code.js(node)富命令;L3(未来)TUI。
-rem 一次性装两个前置:fnm(winget install Schniz.fnm)+ uv(winget install astral-sh.uv)。
-rem 本仓零 LAN/镜像耦合(开源者克隆即用官方上游)。需局域网缓存/CN 镜像时,用
-rem `kungfu-code config` 把模板 build-local.env.example 派生到用户全局并填值:
-rem   %USERPROFILE%\.config\kungfu\build-local.env  (sh 格式,主仓与所有 worktree 共用)
-rem 本 .cmd 以纯 cmd 解析该文件加载镜像 env;可选仓根 .\build-local.env 叠加覆盖。
+rem Aligns with the macOS/Linux kungfu-code (sh):
+rem   kungfu-code app | kungfu-code build:core | kungfu-code <any yarn task>
+rem   kungfu-code proxy ... / config ...   rich subcommands -> delegated to L2 node (not yarn)
+rem
+rem 3-layer subset: L1 this .cmd (bootstrap + delegate); L2 kungfu-code.js (node rich cmds); L3 (future) TUI.
+rem Two one-time prerequisites: fnm (winget install Schniz.fnm) + uv (winget install astral-sh.uv).
+rem Repo has zero LAN/mirror coupling (open-source clone uses official upstreams). For LAN cache /
+rem CN mirror, use `kungfu-code config` to derive build-local.env.example into the user-global file:
+rem   %USERPROFILE%\.config\kungfu\build-local.env  (sh-format, shared by main repo and all worktrees)
+rem This .cmd parses that file with pure cmd to load mirror env; optional repo .\build-local.env overrides.
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-rem ── 富子命令委派 L2 node(不透传 yarn、不需要 uv)。有 fnm 优先 fnm-managed node,否则回退系统 node ──
+rem -- Delegate rich subcommands to L2 node (no yarn, no uv). Prefer fnm node, else system node. --
 if /i "%~1"=="proxy"  goto delegate
 if /i "%~1"=="config" goto delegate
 goto bootstrap
@@ -28,34 +31,35 @@ where node >nul 2>nul && (
   node "%~dp0kungfu-code.js" %*
   exit /b !errorlevel!
 )
-echo kungfu-code: 富子命令需 node —— 装 fnm(winget install Schniz.fnm)或任一系统 node 均可 1>&2
+echo kungfu-code: rich subcommand needs node -- install fnm ^(winget install Schniz.fnm^) or any system node 1>&2
 exit /b 127
 
 :bootstrap
-rem 加载本地缓存代理配置:用户全局优先,再叠加可选仓内覆盖(set 后随进程透传子进程)。
+rem Load local cache proxy config: user-global first, then optional in-repo override (set propagates to children).
 set "_KFC_USERCFG=%USERPROFILE%\.config\kungfu\build-local.env"
 if defined XDG_CONFIG_HOME set "_KFC_USERCFG=%XDG_CONFIG_HOME%\kungfu\build-local.env"
 call :loadenv "%_KFC_USERCFG%"
 call :loadenv ".\build-local.env"
 
 where fnm >nul 2>nul || (
-  echo kungfu-code: 需先一次性安装 fnm(node 侧前置)—— winget install Schniz.fnm ^(或见 https://github.com/Schniz/fnm^) 1>&2
+  echo kungfu-code: install fnm first ^(node-side prereq^) -- winget install Schniz.fnm ^(or https://github.com/Schniz/fnm^) 1>&2
   exit /b 127
 )
 where uv >nul 2>nul || (
-  echo kungfu-code: 需先一次性安装 uv(python 侧前置)—— winget install astral-sh.uv ^(或见 https://docs.astral.sh/uv/^) 1>&2
+  echo kungfu-code: install uv first ^(python-side prereq^) -- winget install astral-sh.uv ^(or https://docs.astral.sh/uv/^) 1>&2
   exit /b 127
 )
 
-rem 幂等:确保 .node-version 指定的 node 已安装
+rem Idempotent: ensure the node pinned by .node-version is installed
 fnm install >nul 2>nul
 
-rem 在钉定 node 下,经 corepack 跑 packageManager 钉定的 yarn
+rem Under the pinned node, run the packageManager-pinned yarn via corepack
 fnm exec --using-file -- corepack yarn %*
 exit /b !errorlevel!
 
-rem ── 纯 cmd 解析 sh 格式 build-local.env 的 `export KEY='VALUE'` 行 → set KEY=VALUE ──
-rem (Windows cmd 无法 source sh;此处只取 export 行、剥 export 前缀与单引号;URL 无内嵌引号/等号问题)
+rem -- Parse sh-format build-local.env `export KEY='VALUE'` lines -> set KEY=VALUE (pure cmd) --
+rem (Windows cmd cannot source sh; take export lines, strip the export prefix and single quotes;
+rem  mirror URLs have no embedded quotes/equals so this is safe.)
 :loadenv
 if not exist "%~1" goto :eof
 for /f "usebackq tokens=1,* delims==" %%a in (`findstr /b /c:"export " "%~1"`) do (

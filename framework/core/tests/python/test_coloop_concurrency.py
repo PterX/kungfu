@@ -233,3 +233,62 @@ def test_future_resolves_when_set_result():
     holder["fut"].set_result("filled")  # 模拟 on_order 回调里对终态订单 resolve
     drive(loop, max_rounds=5)
     assert done == ["filled"], f"set_result 后协程应续跑: {done}"
+
+
+# --- 照搬 strategy.py AsyncOrderAction/Iter 真实逻辑(不 import strategy.py,避开 pykungfu) ---
+
+
+class _ReplicaOrderActionIter:
+    """照搬 strategy.py:317-331 AsyncOrderActionIter.__next__:future 永不 set_result,
+    每次被迭代时重新轮询 book 里订单状态,终态才 StopIteration。"""
+
+    def __init__(self, book, order_id, status_set, future):
+        self.book = book
+        self.order_id = order_id
+        self.status_set = status_set
+        self.future = future
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.order_id in self.book:
+            if self.book[self.order_id] in self.status_set:
+                raise StopIteration
+        return next(iter(self.future))
+
+
+class _ReplicaOrderAction:
+    """照搬 strategy.py:306-314 AsyncOrderAction。"""
+
+    def __init__(self, loop, book, order_id, status_set):
+        self.future = loop.create_future()
+        self._it = _ReplicaOrderActionIter(book, order_id, status_set, self.future)
+
+    def __await__(self):
+        return self._it
+
+
+def test_legacy_order_action_deadlocks_on_new_loop():
+    """P1 坐实:旧 AsyncOrderAction(永不完成 future + 重轮询)在新 coloop 下,即使订单成交也死锁。
+
+    旧 post_step 的'无条件重新入队'被移除后,没有谁重新驱动协程去重轮询订单状态;而 future
+    永不 set_result,Task 永久挂起。这证明 P0 修复必须配套把下单 await 改成事件驱动 set_result。
+    """
+    loop, hero, ctx = make_loop()
+    book = {}  # order_id -> status
+    done = []
+
+    async def cb():
+        await _ReplicaOrderAction(loop, book, 1, {"Filled"})
+        done.append("filled")
+
+    call_proxy(loop, cb)
+    drive(loop, max_rounds=10)
+    assert done == [], "订单未终态,await 应挂起"
+
+    book[1] = "Filled"  # 订单成交,但旧逻辑无事件回调去 set_result
+    drive(loop, max_rounds=10)
+    assert done == [], (
+        f"旧 AsyncOrderAction 在新 coloop 下:订单成交后 await 仍死锁(必须改 set_result): {done}"
+    )

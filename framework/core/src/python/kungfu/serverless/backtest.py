@@ -60,7 +60,7 @@ class Backtest:
         parameter_map = self.__get_params(access_key, secret_key, session_token)
         file_basename = os.path.basename(file_path)
         file_name, suffix = os.path.splitext(file_basename)
-        module_name = f"strategy{file_name}{int(time.time()* 10000)}"
+        module_name = f"strategy{file_name}{int(time.time() * 10000)}"
         dirname = os.path.dirname(file_path)
 
         self.logger.warning(
@@ -70,7 +70,7 @@ class Backtest:
 
         if dir_size > UPLOAD_DIR_SIZE_LIMIT_MB:
             raise Exception(
-                f"Folder {os.path.dirname(file_path) }of {file_path} exceeds {UPLOAD_DIR_SIZE_LIMIT_MB}MB"
+                f"Folder {os.path.dirname(file_path)}of {file_path} exceeds {UPLOAD_DIR_SIZE_LIMIT_MB}MB"
             )
         packagejson = build_backtest_json(file_path, module_name)
         packagejson_path = os.path.join(dirname, "package.json")

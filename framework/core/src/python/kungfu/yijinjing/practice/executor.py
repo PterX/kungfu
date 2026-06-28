@@ -18,6 +18,7 @@ from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.practice.master import Master
 from kungfu.yijinjing.practice.coloop import KungfuEventLoop
+
 # tracing-foundation Phase 1: wingchun 交易运行时(strategy/sliceindexer/report/operator)
 # 已从 C++ 核心 carve;此处降级为 lazy 占位,使 executor 可被命令注册表导入(kfc 起得来)。
 # 这些符号仅在真正执行 run/strategy/operator 交易路径时才被用到(StrategyRunner/OperatorRunner
@@ -452,9 +453,11 @@ class OperatorRunner(ExtensionExecutor):
         if ctx.path is None:
             module_path = list(
                 filter(
-                    lambda file_name: fnmatch(file_name, "*.so")
-                    or fnmatch(file_name, "*.pyd")
-                    or fnmatch(file_name, "*.py"),
+                    lambda file_name: (
+                        fnmatch(file_name, "*.so")
+                        or fnmatch(file_name, "*.pyd")
+                        or fnmatch(file_name, "*.py")
+                    ),
                     glob.glob(os.path.join(loader.extension_dir, ctx.group + "*")),
                 )
             )[0]

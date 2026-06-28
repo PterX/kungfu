@@ -26,7 +26,9 @@ class OrderFutureRegistry:
         self._pending = {}
 
     def register(self, order_id, status_set, future, timer_handle=None):
-        self._pending.setdefault(order_id, []).append((status_set, future, timer_handle))
+        self._pending.setdefault(order_id, []).append(
+            (status_set, future, timer_handle)
+        )
 
     def resolve(self, order_id, status, order=None):
         """订单更新回调里调用：对 status 命中其 status_set 的等待者 set_result(order)。

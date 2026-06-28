@@ -153,15 +153,55 @@ class KungfuCoreConan(ConanFile):
             self.__show_build_info(build_type)
         else:
             src = self.conanfile_dir
-            copy(self, "*", path.join(src, "src", "include"), path.join(self.package_folder, "include"))
-            copy(self, "*", path.join(src, build_type), path.join(self.package_folder, "lib"))
-            copy(self, "*", path.join(src, "src", "libkungfu", build_type), path.join(self.package_folder, "bin"))
+            copy(
+                self,
+                "*",
+                path.join(src, "src", "include"),
+                path.join(self.package_folder, "include"),
+            )
+            copy(
+                self,
+                "*",
+                path.join(src, build_type),
+                path.join(self.package_folder, "lib"),
+            )
+            copy(
+                self,
+                "*",
+                path.join(src, "src", "libkungfu", build_type),
+                path.join(self.package_folder, "bin"),
+            )
             # kfx 插件开发者交付物：导出 vendored 依赖头（hana / pybind11 / sqlite_orm）与 cmake 模块。
-            copy(self, "*", glob(path.join(src, ".deps", "hana-*"))[0], path.join(self.package_folder, "deps", "hana"))
-            copy(self, "*", glob(path.join(src, ".deps", "pybind11-*"))[0], path.join(self.package_folder, "deps", "pybind11"))
-            copy(self, "*", glob(path.join(src, ".deps", "sqlite_orm-*"))[0], path.join(self.package_folder, "deps", "sqlite_orm"))
-            copy(self, "*", path.join(src, ".cmake"), path.join(self.package_folder, "cmake"))
-            copy(self, "*", path.join(src, "dist", "kfc"), path.join(self.package_folder, "kfc"))
+            copy(
+                self,
+                "*",
+                glob(path.join(src, ".deps", "hana-*"))[0],
+                path.join(self.package_folder, "deps", "hana"),
+            )
+            copy(
+                self,
+                "*",
+                glob(path.join(src, ".deps", "pybind11-*"))[0],
+                path.join(self.package_folder, "deps", "pybind11"),
+            )
+            copy(
+                self,
+                "*",
+                glob(path.join(src, ".deps", "sqlite_orm-*"))[0],
+                path.join(self.package_folder, "deps", "sqlite_orm"),
+            )
+            copy(
+                self,
+                "*",
+                path.join(src, ".cmake"),
+                path.join(self.package_folder, "cmake"),
+            )
+            copy(
+                self,
+                "*",
+                path.join(src, "dist", "kfc"),
+                path.join(self.package_folder, "kfc"),
+            )
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "kungfu")
@@ -231,6 +271,7 @@ class KungfuCoreConan(ConanFile):
             },
         }
         try:
+
             def _git(*args):
                 return subprocess.check_output(["git", *args], text=True).strip()
 
@@ -286,8 +327,10 @@ class KungfuCoreConan(ConanFile):
             environ["KUNGFU_BUILD_SKIP_KUNGFU_NODE"] = "on"
             environ["KUNGFU_BUILD_SKIP_PYKUNGFU"] = "on"
             self.__run_cmake(
-                "-S", ".." if self.gyp_call else ".",
-                "-B", "../build" if self.gyp_call else ".",
+                "-S",
+                ".." if self.gyp_call else ".",
+                "-B",
+                "../build" if self.gyp_call else ".",
                 "-DCMAKE_BUILD_TYPE=Release",
                 f"-DSPDLOG_LOG_LEVEL_COMPILE={self.__spdlog_level()}",
             )
@@ -333,7 +376,14 @@ class KungfuCoreConan(ConanFile):
             r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]",
             "",
             subprocess.Popen(
-                ["uv", "run", "--frozen", "python", "-c", "import sys; print(sys.executable)"],
+                [
+                    "uv",
+                    "run",
+                    "--frozen",
+                    "python",
+                    "-c",
+                    "import sys; print(sys.executable)",
+                ],
                 stdout=subprocess.PIPE,
                 text=True,
             )
@@ -354,9 +404,12 @@ class KungfuCoreConan(ConanFile):
         return (
             [
                 "cmake-js",
-                "--arch", node_arch,
-                "--runtime", runtime,
-                "--runtime-version", self.__get_node_version(runtime),
+                "--arch",
+                node_arch,
+                "--runtime",
+                runtime,
+                "--runtime-version",
+                self.__get_node_version(runtime),
                 f"--CDCMAKE_TOOLCHAIN_FILE={toolchain}",
                 f"--CDCMAKE_BUILD_TYPE={build_type}",
                 f"--CDPYTHON_EXECUTABLE={python_path}",

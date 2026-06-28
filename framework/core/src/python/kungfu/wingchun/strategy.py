@@ -242,9 +242,7 @@ class Strategy(wc.Strategy):
         )
         # 快速路径:订单可能下单即已在 book 且终态(极快成交/同步返回),避免错过事件后永久等待。
         cur_order = (
-            self.ctx.book.orders[order_id]
-            if order_id in self.ctx.book.orders
-            else None
+            self.ctx.book.orders[order_id] if order_id in self.ctx.book.orders else None
         )
         cur_status = cur_order.status if cur_order is not None else None
         await AsyncOrderAction(

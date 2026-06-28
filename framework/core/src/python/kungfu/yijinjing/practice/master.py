@@ -50,7 +50,7 @@ class Master(yjj.master):
                 lambda default: self.set_default_commission(default), 1
             )
         except RuntimeError:
-            self.ctx.logger.warn(f"failed to load default commissions")
+            self.ctx.logger.warn("failed to load default commissions")
 
     def set_default_commission(self, default):
         if default.product_id not in self.commissions:

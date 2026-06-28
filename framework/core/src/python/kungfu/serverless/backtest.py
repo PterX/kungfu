@@ -13,7 +13,6 @@ import tarfile
 from kungfu.serverless.sso import SSO
 from kungfu.serverless.utils import (
     get_credentials_for_identity,
-    read_zip,
     get_tokens,
     UPLOAD_EXT_WHITELIST,
     UPLOAD_DIR_SIZE_LIMIT_MB,
@@ -33,7 +32,7 @@ class Backtest:
         self.sso = SSO(stage)
         self.logger = create_logger("backtest")
 
-        if self.sso.introspect_token() != True:
+        if not self.sso.introspect_token():
             self.logger.error("Please Login First, Try kfc login")
             return
 
@@ -303,7 +302,7 @@ class Backtest:
                 )
                 break
 
-            if status == "RUNNING" and log_stream_name != None:
+            if status == "RUNNING" and log_stream_name is not None:
                 args = (
                     {
                         **params,
@@ -315,8 +314,8 @@ class Backtest:
 
                 try:
                     logs = logs_client.get_log_events(**args)
-                except ClientError as err:
-                    self.logger.exception(f"Error getting logs")
+                except ClientError:
+                    self.logger.exception("Error getting logs")
 
                 next_token = logs["nextForwardToken"]
                 events = logs["events"]

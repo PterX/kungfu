@@ -93,7 +93,7 @@ class SSO:
     def introspect_token(self):
         access_token, refresh_token, id_token = get_tokens(self.stage)
         resp = self.ac.introspect_token(access_token)
-        if resp.get("active", False) == True:
+        if resp.get("active", False):
             return True
         else:
             return False

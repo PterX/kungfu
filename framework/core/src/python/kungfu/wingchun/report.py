@@ -83,7 +83,7 @@ class PeriodResult(ABC):
         def init_decorator(previous_init):
             def new_init(self, *args, **kwargs):
                 previous_init(self, *args, **kwargs)
-                if type(self) == cls:
+                if type(self) is cls:
                     self.__post_init__()
 
             return new_init

@@ -1,5 +1,4 @@
 import click
-import logging
 import json
 
 from kungfu.console.commands import kfc, PrioritizedCommandGroup

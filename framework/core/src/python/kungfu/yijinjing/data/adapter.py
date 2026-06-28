@@ -25,7 +25,7 @@ class Adapter:
             self.tagged_types[t[1].__tag__] = t[1]
 
     def write_data(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def run(self):
         self.ctx.logger.info("exporting data to csv")

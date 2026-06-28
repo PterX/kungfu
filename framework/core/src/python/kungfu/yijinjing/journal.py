@@ -1,7 +1,6 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 import glob
-import json
 import kungfu
 
 from kungfu.yijinjing import *

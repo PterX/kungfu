@@ -1,5 +1,3 @@
-from kungfu.yijinjing import time as kft
-
 STEP_LIMIT = 0
 MASTER_STEP_LIMIT = 10000
 

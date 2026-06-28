@@ -5,12 +5,10 @@ import json
 import os
 import sys
 import types
-from typing import Any
 import kungfu
 import glob
 from pathlib import Path
 from fnmatch import fnmatch
-from abc import ABC, abstractmethod
 
 from kungfu.console import site
 from kungfu.yijinjing import journal as kfj
@@ -32,7 +30,6 @@ except (ImportError, AttributeError):
     Runner = Strategy = SliceIndexer = Report = OpRunner = Operator = None
 
 from collections import deque
-from importlib.util import module_from_spec, spec_from_file_location
 from os import path
 
 lf = kungfu.__binding__.longfist
@@ -345,7 +342,7 @@ class BrokerVendor(ExtensionExecutor):
         module = importlib.import_module(ctx.group)
         self.ctx.logger.info(f"loading {ctx.group} from {loader.extension_dir}")
         service_builder = getattr(module, ctx.category)
-        self.ctx.logger.debug(f"loaded broker service builder")
+        self.ctx.logger.debug("loaded broker service builder")
         ctx.broker_service = service_builder(ctx.broker_vendor)
         self.ctx.logger.debug("set broker service for broker vendor")
         ctx.broker_vendor.set_service(ctx.broker_service)

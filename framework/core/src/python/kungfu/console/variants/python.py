@@ -124,7 +124,7 @@ from kungfu.console import bridging
 )
 @click.argument("argv", type=str, nargs=-1)
 def main(argv, **options):
-    __name__ = "__main__"
+    __name__ = "__main__"  # noqa: F841  (待审:疑似应设 exec 脚本命名空间)
 
     if options["no_pyc"]:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "x"

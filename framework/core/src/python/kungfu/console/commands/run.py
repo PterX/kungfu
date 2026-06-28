@@ -1,7 +1,6 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 import click
-import json
 import kungfu
 
 from kungfu.console.commands import kfc, PrioritizedCommandGroup

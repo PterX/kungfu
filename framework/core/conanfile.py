@@ -22,7 +22,6 @@ from conan import ConanFile
 from conan.tools.build import build_jobs
 from conan.tools.cmake import CMakeToolchain, CMakeDeps
 from conan.tools.files import copy
-from conan.errors import ConanException
 
 with open(path.join("package.json"), "r") as package_json_file:
     package_json = json.load(package_json_file)

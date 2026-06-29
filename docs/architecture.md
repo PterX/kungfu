@@ -1,0 +1,104 @@
+# Architecture
+
+How the Kungfu repository is layered, and the principle that shapes it. For the
+data-plane concepts (journal, zero-copy, replay) see the [README](../README.md);
+for build and contribution see [CONTRIBUTING](../CONTRIBUTING.md); for specific
+decisions see the [ADRs](../framework/core/docs/adr).
+
+## Guiding principle: the machine adapts to the person
+
+Kungfu absorbs toolchain and runtime complexity into the product so that its
+users do not have to assemble it themselves. The `kfc` runtime embeds both a
+Python and a Node runtime and bridges a full Python development lifecycle —
+dependency management, formatting, and ahead-of-time compilation — so most
+extension development needs no separately installed language runtimes or package
+managers.
+
+This is a deliberate trade: the project carries the complexity so the user does
+not. It stays sustainable only while the absorbed tooling rests on mainstream,
+well-maintained foundations — so "modernize" here means *reduce both user
+friction and maintenance burden*, not chase convergence for its own sake.
+
+## Layers
+
+Kungfu is a platform plus a minimal reference application — the editor-platform
+model: the core provides capability; products are built on top. The packages
+group into the following layers.
+
+### Runtime and core — `framework/core` (`@kungfu-trader/kungfu-core`)
+
+The foundation: the `longfist` type system and the `yijinjing` append-only
+journal runtime in C++, with Python and Node (N-API) bindings, exposed zero-copy
+in-process. It also produces `kfc`, the runtime that embeds the Python and Node
+runtimes and bridges the development toolchain. `kfc` is the base for the
+planned `kungfu` end-user shell.
+
+### Capability SDK — `framework/api`
+
+Typed, framework-neutral, publishable access to journal / state / replay over
+the in-process zero-copy binding. This is the real value of the platform — the
+surface external products consume, independent of any UI framework. See
+[ADR-0006](../framework/core/docs/adr/ADR-0006-v4-frontend-platform-architecture.md).
+
+### Application SDK — `developer/sdk` (`@kungfu-trader/kungfu-sdk`)
+
+Scaffolding that turns the core capabilities into development tooling: building
+`kfx` extensions, assembling applications, and producing packaged artifacts
+(the `kfs` command).
+
+### Reference surfaces
+
+Two minimal reference UIs over the same capability SDK — demonstrators, not the
+product:
+
+- **GUI** — `framework/app` (`@kungfu-trader/kungfu-app`): a desktop application
+  on Electron + React, loading the native binding in-process to preserve
+  zero-copy. See
+  [ADR-0006](../framework/core/docs/adr/ADR-0006-v4-frontend-platform-architecture.md).
+- **TUI** — `framework/cli` (`@kungfu-trader/kungfu-cli`): a terminal
+  application. Pure Node, so it loads the binding in-process with no renderer
+  boundary. See
+  [ADR-0007](../framework/core/docs/adr/ADR-0007-v4-tui-platform-reference-surface.md).
+
+### Extensions (kfx) — `extensions/*`
+
+Plugins built on the extension contract. The repository keeps a small set of
+reference / default extensions; trading-specific extensions are being retired as
+the core is repositioned to a general streaming-data foundation.
+
+### Distribution — `artifact` (`@kungfu-trader/artifact-kungfu`)
+
+The dogfood installer: it bundles the runtime, both reference UIs and the SDK
+into one package, so installing it yields the reference GUI and TUI, the
+`kungfu` shell, and the SDK for zero-setup extension and product development.
+
+### Build tooling — `developer/toolchain`, `kungfu-code`
+
+Build-time only: `developer/toolchain` aggregates shared build dependencies, and
+`./kungfu-code` is the development orchestrator that pins the toolchain (Node via
+fnm, Python via uv, the package manager via Corepack) so a fresh clone builds
+with one command.
+
+## Repository layout
+
+```
+framework/
+  core        runtime + core (C++ longfist / yijinjing, bindings, kfc)
+  api         capability SDK
+  app         reference GUI (Electron + React)
+  cli         reference TUI
+developer/
+  sdk         application / extension SDK (kfs)
+  toolchain   shared build dependencies
+extensions/   kfx extensions
+examples/     samples
+artifact      dogfood installer
+```
+
+## Direction
+
+The frontend is being rebuilt as a platform with two minimal reference surfaces
+(GUI per ADR-0006, TUI per ADR-0007) over a framework-neutral capability SDK,
+rather than a single hand-maintained application. Trading-specific surfaces and
+extensions from earlier versions are reference built-ins at most, not the point,
+and are being retired.

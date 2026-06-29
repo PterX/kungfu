@@ -39,16 +39,38 @@ Kungfu is meant to be a base others build on, not a single fixed application:
 The repository ships the core plus a minimal reference application that
 demonstrates and exercises these capabilities.
 
+## The toolchain comes with the runtime
+
+A guiding principle of kungfu is that the machine adapts to the person, not the
+other way around. The `kfc` runtime is batteries-included: it embeds a Python
+and a Node runtime and brings a full Python development lifecycle — dependency
+management, formatting, and ahead-of-time compilation — reachable through
+`kfc engage`. Building a kfx extension does not start by assembling a toolchain:
+most extension development needs no separately installed Python, Node, or
+package manager.
+
+The runtime deliberately absorbs this complexity so its users do not have to. To
+keep that convenience sustainable rather than bespoke, the absorbed tooling is
+built on mainstream, well-maintained foundations.
+
 ## Components
 
-- **Core (C++)** — `longfist` (type system) and `yijinjing` (journal runtime),
-  with Python and Node bindings, packaged as `@kungfu-trader/kungfu-core`.
-- **`kfc`** — the runtime command-line interface (`kfc --version`, journal
-  subcommands, …).
-- **Reference app** — a cross-platform desktop application built on Electron
-  with a React / TypeScript frontend.
+- **Core & runtime** — `longfist` (type system) and `yijinjing` (journal
+  runtime) with Python and Node bindings, plus the `kfc` runtime, packaged as
+  `@kungfu-trader/kungfu-core`. `kfc` embeds a Python and a Node runtime and is
+  the base for the planned `kungfu` end-user shell.
+- **Capability SDK** — typed, framework-neutral access to journal / state /
+  replay (`framework/api`).
+- **Application SDK** — scaffolding to build kfx extensions and assemble
+  applications (`developer/sdk`).
+- **Reference surfaces** — two minimal reference UIs over the same capability
+  SDK: a desktop GUI on Electron + React (`framework/app`) and a terminal TUI
+  (`framework/cli`).
+- **Distribution** — a dogfood installer bundling the runtime, both reference
+  UIs and the SDK (`artifact`).
 
-Runs on Windows, macOS, and Linux (including arm64).
+Runs on Windows, macOS, and Linux (including arm64). See
+[`docs/architecture.md`](docs/architecture.md) for how these pieces are layered.
 
 ## Getting started
 
@@ -64,6 +86,8 @@ cd kungfu
 
 ## Documentation
 
+- [`docs/architecture.md`](docs/architecture.md) — how the repository is layered
+  (runtime, capability SDK, application SDK, reference surfaces) and why.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — toolchain, build, conventions, releases.
 - [`docs/version-release-design.md`](docs/version-release-design.md) — versioning
   and release mechanism rationale.

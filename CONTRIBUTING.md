@@ -15,16 +15,20 @@ resolved automatically once `fnm` and `uv` are installed.
 
 ## Repository layout
 
-Kungfu is a pnpm-workspaces monorepo. The main areas:
+Kungfu is a pnpm-workspaces monorepo. See [`docs/architecture.md`](docs/architecture.md)
+for how the layers fit together; the main areas:
 
 - `framework/core` — the C++ core (`longfist` type system, `yijinjing` journal
-  runtime) plus its Python and Node (N-API) bindings, packaged as
-  `@kungfu-trader/kungfu-core`. Build orchestration lives in
+  runtime) plus its Python and Node (N-API) bindings and the `kfc` runtime,
+  packaged as `@kungfu-trader/kungfu-core`. Build orchestration lives in
   `framework/core/.gyp/`.
-- `framework/app`, `framework/api` — the desktop application framework and the
-  JS/TS API surface.
-- `extensions/*` — optional extensions.
-- `developer/*` — development tooling.
+- `framework/api` — the capability SDK (typed access to journal / state / replay).
+- `framework/app`, `framework/cli` — the two reference UIs: a desktop GUI
+  (Electron + React) and a terminal TUI.
+- `developer/sdk` — the application / extension SDK (`kfs`); `developer/toolchain`
+  — shared build dependencies.
+- `extensions/*` — kfx extensions; `examples/*` — samples.
+- `artifact` — the dogfood installer bundling the runtime, reference UIs and SDK.
 
 Three command-line entry points, kept forward-compatible:
 

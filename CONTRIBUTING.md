@@ -10,12 +10,12 @@ the coding conventions, and how changes are proposed and released.
 - [fnm](https://github.com/Schniz/fnm) (Node is pinned via `.node-version`)
 - [uv](https://docs.astral.sh/uv/) for the Python environment
 
-Node, the package manager (Yarn via Corepack), and the Python interpreter are
+Node, the package manager (pnpm via Corepack), and the Python interpreter are
 resolved automatically once `fnm` and `uv` are installed.
 
 ## Repository layout
 
-Kungfu is a Yarn-workspaces monorepo. The main areas:
+Kungfu is a pnpm-workspaces monorepo. The main areas:
 
 - `framework/core` — the C++ core (`longfist` type system, `yijinjing` journal
   runtime) plus its Python and Node (N-API) bindings, packaged as
@@ -54,7 +54,7 @@ cd kungfu
 ```
 
 `./kungfu-code <task>` runs `<task>` under the pinned Node toolchain — it is a
-thin wrapper, so any Yarn task works (`./kungfu-code build:core`, etc.).
+thin wrapper, so any pnpm task works (`./kungfu-code build:core`, etc.).
 
 > Node, packages, and Electron binaries are resolved through the standard
 > `FNM_NODE_DIST_MIRROR`, `COREPACK_NPM_REGISTRY`, and `ELECTRON_MIRROR`

@@ -1,39 +1,18 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
-    "noImplicitAny": false,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "strictFunctionTypes": true,
-    "strictPropertyInitialization": true,
-    "jsx": "preserve",
-    "importHelpers": true,
-    "strictNullChecks": true,
-    "noUnusedLocals": true,
-    "noImplicitReturns": true,
-    "moduleResolution": "node",
-    "skipLibCheck": true,
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
-    "baseUrl": ".",
-    "types": ["jschardet"],
-    "typeRoots": [],
-    "paths": {
-      "@kungfu-trader/kungfu-js-api/*": ["../api/src/*"],
-      "@kungfu-trader/kungfu-app/*": ["./*"],
-      "pm2": ["../api/node_modules/pm2", "../kungfu-js-api/node_modules/pm2"]
-    },
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
+    "types": ["node"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "../api/src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "electron.vite.config.mjs"]
 }

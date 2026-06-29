@@ -5,7 +5,7 @@
     "email": "info@kungfu.link"
   },
   "version": "4.0.0-alpha.0",
-  "description": "Kungfu App Framework",
+  "description": "Kungfu reference app: minimal Electron + React shell over the in-process kungfu runtime",
   "license": "Apache-2.0",
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"
@@ -13,54 +13,32 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "binary": {
-    "module_name": "kungfu-app",
-    "module_path": "dist/app",
-    "remote_path": "{module_name}/v{major}/v{version}",
-    "package_name": "{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz",
-    "host": "https://prebuilt.libkungfu.cc"
-  },
-  "types": "src/typings/index.d.ts",
-  "main": "lib/index.js",
+  "main": "out/main/index.js",
   "scripts": {
-    "rebuild": "rm -rf ./node_modules && node --max_old_space_size=10240 lib/webpack/build.js",
-    "build": "node --max_old_space_size=10240 lib/webpack/build.js",
-    "build:one-thread": "yarn clean && yarn build --one-thread",
-    "clean": "rimraf build dist node_modules/.cache",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
-    "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",
-    "lint": "eslint src",
-    "format": "prettier -l -w --config ../core/.prettierrc.js ."
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "pack": "electron-vite build && electron-builder --dir --config.electronDist=node_modules/electron/dist",
+    "dist": "electron-vite build && electron-builder --config.electronDist=node_modules/electron/dist",
+    "lint": "biome check src",
+    "format": "biome format --write src",
+    "clean": "rimraf out dist node_modules/.vite"
   },
   "dependencies": {
-    "@electron/remote": "^2.0.0",
-    "@kungfu-trader/kungfu-js-api": "^4.0.0-alpha.0",
-    "@visactor/vtable": "^1.2.0",
-    "@vueuse/core": "^10.4.1",
-    "ant-design-vue": "^3.2.20",
-    "axios": "^0.28.0",
-    "core-js": "^3.20.0",
-    "echarts": "^5.3.3",
-    "electron": "42.5.0",
-    "electron-updater": "^5.3.0",
-    "github-markdown-css": "^5.2.0",
-    "iconv-lite": "^0.6.3",
-    "jschardet": "^3.0.0",
-    "mark.js": "^8.11.1",
-    "markdown-it": "^14.1.0",
-    "markdown-it-highlightjs": "^4.0.1",
-    "markdown-it-task-checkbox-pro": "^1.0.0",
-    "pinia": "^2.0.0",
-    "sorted-btree": "^1.8.0",
-    "sound-play": "^1.1.0",
-    "vue": "^3.2.34"
+    "@kungfu-trader/kungfu-core": "^4.0.0-alpha.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@iconify/json": "^2.2.215",
-    "@kungfu-trader/kungfu-toolchain": "^4.0.0-alpha.0",
-    "@types/echarts": "^4.9.16",
-    "@types/mark.js": "^8.11.8",
-    "@types/markdown-it": "^12.2.3",
-    "webpack-bundle-analyzer": "^4.6.1"
+    "@biomejs/biome": "^1.9.4",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "42.5.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
   }
 }

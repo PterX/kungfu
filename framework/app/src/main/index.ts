@@ -1,428 +1,71 @@
-// 由于前端 app 的渲染进程是由 main 进程启动，c++ 中通过 std::getenv 的方式只能获取进程启动时就带有的 env
-// 所以需要在渲染进程启动前就挂载以下的环境变量，也就是在 main 进程中挂载
-import '@kungfu-trader/kungfu-js-api/setGlobalEnv';
-import {
-  BrowserWindow,
-  screen,
-  app,
-  globalShortcut,
-  Menu,
-  MenuItemConstructorOptions,
-  shell,
-} from 'electron';
-import { initialize, enable as enableRemote } from '@electron/remote/main';
-import path from 'path';
-import os from 'os';
-import {
-  showQuitMessageBox,
-  showCrashMessageBox,
-  showKungfuInfo,
-  openUrl,
-  destoryAllWindows,
-  openDevTool,
-} from '@kungfu-trader/kungfu-app/src/main/utils';
-import { isUpdateVersionLogicEnable } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
-import packageJSON from '@kungfu-trader/kungfu-app/package.json';
-import { initClean } from '@kungfu-trader/kungfu-js-api/utils/processUtils';
-import {
-  clearDB,
-  clearJournal,
-  exportAllTradingData,
-  exportInstrumentWhitelists,
-  viewAllJournal,
-  openLogFile,
-  openSettingDialog,
-  resetCurDashboard,
-} from './events';
+// Minimal Electron main process for the kungfu reference app.
+//
+// The C++ runtime reads configuration through std::getenv, which only sees
+// environment variables present when the process starts. The renderer process
+// is spawned by this main process, so the runtime directory must be exported
+// here, before any window (and therefore the renderer process) is created.
+import { app, BrowserWindow } from 'electron';
+import path from 'node:path';
 
-import {
-  BASE_DB_DIR,
-  KF_HOME,
-  RENDERER_LOG_DIR,
-  KF_CONFIG_PATH,
-} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
-import {
-  initKfConfig,
-  initKfDefaultInstruments,
-} from '@kungfu-trader/kungfu-js-api/config';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import {
-  performSystemActions,
-  copyConfigDBToLatestVersionDir,
-} from '@kungfu-trader/kungfu-app/src/main/events';
-import { handleUpdateKungfu } from './autoUpdater';
-const { t } = VueI18n.global;
-let MainWindow: BrowserWindow | null = null;
-let AllowQuit = false;
-let CrashedReloading = false;
-let SecheduleReloading = false;
-const isDev = process.env.NODE_ENV === 'development';
-const isMac = os.platform() === 'darwin';
-
-initialize();
-setMenu();
-initKfConfig();
-initKfDefaultInstruments();
-copyConfigDBToLatestVersionDir();
-
-async function createWindow(
-  reloadAfterCrashed = false,
-  reloadBySchedule = false,
-) {
-  if (reloadAfterCrashed) {
-    CrashedReloading = true;
-    destoryAllWindows();
-  }
-
-  if (reloadBySchedule) {
-    SecheduleReloading = true;
-    MainWindow && MainWindow.close();
-  }
-
-  const { width, height } = screen.getPrimaryDisplay().size;
-  MainWindow = new BrowserWindow({
-    show: false,
-    width: width > 1920 ? 1920 : width,
-    height: height > 1200 ? 1200 : height,
-    useContentSize: true,
-    webPreferences: {
-      nodeIntegration: true,
-      nodeIntegrationInWorker: true,
-      contextIsolation: false,
-      additionalArguments: [
-        reloadAfterCrashed ? 'reloadAfterCrashed' : '',
-        reloadBySchedule ? 'reloadBySchedule' : '',
-      ],
-    },
-    backgroundColor: '#000',
-  });
-
-  enableRemote(MainWindow.webContents);
-
-  if (isDev) {
-    MainWindow.loadURL('http://localhost:9090/index.html');
-  } else {
-    const filePath = path.join(__dirname, 'index.html');
-    MainWindow.loadFile(filePath);
-  }
-
-  MainWindow.on('ready-to-show', async function () {
-    MainWindow && MainWindow.show();
-    MainWindow && MainWindow.focus();
-    if (reloadAfterCrashed) {
-      CrashedReloading = false;
-    }
-
-    if (reloadBySchedule) {
-      SecheduleReloading = false;
-    }
-
-    isUpdateVersionLogicEnable() && (await handleUpdateKungfu(MainWindow));
-    performSystemActions();
-  });
-
-  MainWindow.on('close', (e) => {
-    if (!AllowQuit) {
-      e.preventDefault();
-      if (CrashedReloading || SecheduleReloading) {
-        MainWindow?.destroy();
-        AllowQuit = false;
-      } else if (MainWindow) {
-        showQuitMessageBox(MainWindow)
-          .then((res) => {
-            if (res) {
-              AllowQuit = true;
-            }
-          })
-          .catch((err) => {
-            console.error(err);
-          });
-      }
-    } else {
-      MainWindow && MainWindow.destroy();
-      return;
-    }
-  });
-
-  MainWindow.webContents.on('render-process-gone', (_event, details) => {
-    kfLogger.error(
-      '[MainWindow.webContents] crashed' + new Date(),
-      JSON.stringify(details),
+// Resolve the kungfu runtime directory (kfc) that holds libkungfu.dylib and the
+// kungfu_electron.node binding. In development it lives in the kungfu-core
+// package; once packaged it is shipped as an extraResource under Resources/kfc.
+const kfcDir = app.isPackaged
+  ? path.join(process.resourcesPath, 'kfc')
+  : path.join(
+      path.dirname(require.resolve('@kungfu-trader/kungfu-core/package.json')),
+      'dist',
+      'kfc',
     );
-    if (AllowQuit) return;
-    showCrashMessageBox().then((confirm) => {
-      if (!confirm) {
-        CrashedReloading = false;
-        MainWindow?.close();
-        return;
-      }
-      createWindow(true);
-    });
-  });
 
-  MainWindow.webContents.on('unresponsive', () => {
-    kfLogger.error('[MainWindow.webContents] unresponsive' + new Date());
-    if (AllowQuit) return;
-    showCrashMessageBox().then((confirm) => {
-      if (!confirm) {
-        CrashedReloading = false;
-        MainWindow?.close();
-        return;
-      }
+const bindingPath = path.join(kfcDir, 'kungfu_electron.node');
 
-      createWindow(true);
-    });
-  });
-  setMenu();
+// Export before the renderer process is created so both processes inherit them.
+process.env.KF_RUNTIME_DIR = process.env.KF_RUNTIME_DIR || kfcDir;
+process.env.KFE_PATH = process.env.KFE_PATH || bindingPath;
+
+// Probe the binding in the main (node) process.
+try {
+  const kfe = require(bindingPath);
+  console.log(
+    `KFE_MAIN_OK loaded; exports=${Object.keys(kfe).length} [${Object.keys(kfe)
+      .slice(0, 6)
+      .join(',')}]`,
+  );
+} catch (e) {
+  console.log(`KFE_MAIN_FAIL ${(e as Error).message}`);
 }
 
-// 防止重开逻辑
-if (process.env.NODE_ENV !== 'development') {
-  const gotTheLock = app.requestSingleInstanceLock();
-  if (!gotTheLock) {
-    AllowQuit = true;
-    app.quit();
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    show: false,
+    backgroundColor: '#1e1e1e',
+    webPreferences: {
+      // Moat: in-process zero-copy access to journal/state requires
+      // nodeIntegration with contextIsolation/sandbox disabled.
+      nodeIntegration: true,
+      contextIsolation: false,
+      sandbox: false,
+    },
+  });
+
+  win.on('ready-to-show', () => win.show());
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    app.on('second-instance', () => {
-      console.log(' ======== Second-Instance ========');
-      if (MainWindow) {
-        if (MainWindow.isMinimized()) MainWindow.restore();
-        MainWindow.focus();
-      }
-    });
+    win.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 }
 
-// disable GPU,
-app.disableDomainBlockingFor3DAPIs();
-// app.disableHardwareAcceleration();
+app.whenReady().then(createWindow);
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-let appReady = false,
-  killExtraFinished = false;
-app.on('ready', () => {
-  appReady = true;
-  if (appReady && killExtraFinished) createWindow();
-
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    openDevTool();
-  });
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-//一上来先把所有之前意外没关掉的 pm2/kfc/electron 进程kill掉
-// 并且需要在此步检查是否需要清理 journal 和 DB
-// 以上步骤均在 initClean 方法中
-console.time('init clean');
-initClean(true, true).finally(() => {
-  console.timeEnd('init clean');
-  killExtraFinished = true;
-  if (appReady && killExtraFinished) createWindow();
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
 });
-
-// Quit when all windows are closed.
-app.on('window-all-closed', function () {
-  // On macOS it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  app.quit();
-});
-
-app.on('activate', function () {
-  // On macOS it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (MainWindow && MainWindow.isDestroyed()) createWindow();
-  else if (MainWindow && MainWindow.isVisible()) MainWindow.focus();
-  else MainWindow && MainWindow.show();
-});
-
-app.on('will-quit', (e) => {
-  if (AllowQuit) {
-    globalShortcut.unregisterAll();
-    return;
-  }
-
-  e.preventDefault();
-});
-
-app.on('browser-window-created', (_, window) => {
-  enableRemote(window.webContents);
-});
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
-
-function setMenu() {
-  //添加快捷键
-  const applicationOptions = [
-    { label: t('about_kungfu'), click: () => showKungfuInfo() },
-    {
-      label: t('set'),
-      accelerator: 'CommandOrControl+,',
-      click: () => MainWindow && openSettingDialog(MainWindow),
-    },
-    {
-      label: t('close'),
-      accelerator: 'CommandOrControl+W',
-      click: () => {
-        const focusedWin = BrowserWindow.getFocusedWindow();
-        if (focusedWin) {
-          focusedWin.close();
-        }
-      },
-    },
-  ];
-
-  if (isMac) {
-    applicationOptions.push({
-      label: t('quit'),
-      accelerator: 'Command+Q',
-      click: () => app.quit(),
-    });
-  }
-
-  const rootPackageJson = readRootPackageJsonSync();
-  const isShowHelp = !(rootPackageJson?.appConfig?.showHelp === false); // 如果没有显示设置为 false，则显示
-  const mainVersion = packageJSON.version.slice(0, 3);
-
-  const template: MenuItemConstructorOptions[] = [
-    {
-      label: t('KungFu'),
-      submenu: applicationOptions,
-    },
-    {
-      //此处必要, 不然electron内使用复制粘贴会无效
-      label: t('edit'),
-      submenu: [
-        {
-          label: t('copy'),
-          accelerator: 'CommandOrControl+C',
-          role: 'copy',
-        },
-        {
-          label: t('paste'),
-          accelerator: 'CommandOrControl+V',
-          role: 'paste',
-        },
-        {
-          label: t('select_all'),
-          accelerator: 'CommandOrControl+A',
-          role: 'selectAll',
-        },
-        {
-          label: t('undo'),
-          accelerator: 'CommandOrControl+Z',
-          role: 'undo',
-        },
-      ],
-    },
-    {
-      label: t('file'),
-      submenu: [
-        {
-          label: t('open_resources_directory'),
-          click: () => shell.showItemInFolder(KF_HOME),
-        },
-        {
-          label: t('open_system_config_directory'),
-          click: () => shell.showItemInFolder(KF_CONFIG_PATH),
-        },
-        {
-          label: t('open_install_directory'),
-          click: () => shell.showItemInFolder(app.getAppPath()),
-        },
-
-        {
-          label: t('open_basic_configuration'),
-          click: () =>
-            shell.showItemInFolder(path.join(BASE_DB_DIR, 'config.db')),
-        },
-        {
-          label: t('open_renderer_app_log'),
-          accelerator: 'CommandOrControl+Shift+L',
-          click: () => shell.openPath(RENDERER_LOG_DIR),
-        },
-        {
-          label: t('browsing_log'),
-          accelerator: 'CommandOrControl+L',
-          click: () => MainWindow && openLogFile(MainWindow),
-        },
-        {
-          label: t('open_inspect_tool'),
-          accelerator: 'CommandOrControl+J',
-          click: () => MainWindow && viewAllJournal(MainWindow),
-        },
-      ],
-    },
-    {
-      label: t('run'),
-      submenu: [
-        {
-          label: t('clear_journal'),
-          click: () => MainWindow && clearJournal(MainWindow),
-        },
-        {
-          label: t('clear_DB'),
-          click: () => MainWindow && clearDB(MainWindow),
-        },
-        {
-          label: t('reset_current_panel'),
-          click: () => MainWindow && resetCurDashboard(MainWindow),
-        },
-        {
-          label: t('export_all_transaction_data'),
-          accelerator: 'CommandOrControl+E',
-          click: () => MainWindow && exportAllTradingData(MainWindow),
-        },
-        {
-          label: t('export_instrument_whitelists'),
-          click: () => MainWindow && exportInstrumentWhitelists(MainWindow),
-        },
-      ],
-    },
-    ...(isShowHelp
-      ? [
-          {
-            label: t('help'),
-            submenu: [
-              {
-                label: t('website'),
-                click: () => openUrl('https://www.kungfu-trader.com/'),
-              },
-              {
-                label: t('user_manual'),
-                click: () =>
-                  openUrl(
-                    `https://docs.kungfu-trader.com/v${mainVersion}/index.html`,
-                  ),
-              },
-              {
-                label: t('API_documentation'),
-                click: () =>
-                  openUrl(
-                    `https://docs.kungfu-trader.com/v${mainVersion}/07-api.html`,
-                  ),
-              },
-              // {
-              //   label: t('Kungfu_forum'),
-              //   click: () =>
-              //     openUrl('https://www.kungfu-trader.com/community/'),
-              // },
-            ],
-          },
-        ]
-      : []),
-  ];
-
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-}
-
-process
-  .on('uncaughtException', (err: Error) => {
-    kfLogger.error('[MASTER] Error caught in uncaughtException event:', err);
-  })
-  .on('unhandledRejection', (err: Error) => {
-    kfLogger.error('[MASTER] Error caught in unhandledRejection event:', err);
-  });

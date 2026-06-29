@@ -11,7 +11,8 @@
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "binary": {
     "module_name": "api",

@@ -63,8 +63,8 @@ product:
 ### Extensions (kfx) — `extensions/*`
 
 Plugins built on the extension contract. The repository keeps a small set of
-reference / default extensions; trading-specific extensions are being retired as
-the core is repositioned to a general streaming-data foundation.
+reference extensions that double as build-time coverage probes — see
+[*The build dogfoods the SDK*](#the-build-dogfoods-the-sdk) below.
 
 ### Distribution — `artifact` (`@kungfu-trader/artifact-kungfu`)
 
@@ -78,6 +78,25 @@ Build-time only: `developer/toolchain` aggregates shared build dependencies, and
 `./kungfu-code` is the development orchestrator that pins the toolchain (Node via
 fnm, Python via uv, the package manager via Corepack) so a fresh clone builds
 with one command.
+
+## The build dogfoods the SDK
+
+The repository's own build is a closed loop that exercises Kungfu's capabilities
+end to end: if a core capability regresses, building Kungfu itself fails first.
+
+The reference extensions are coverage probes for this loop, not products — each
+exercises a distinct extension path:
+
+- a Python extension, through the bundled dependency-management and
+  ahead-of-time compilation toolchain;
+- a C++ extension, against the `libkungfu` API directly;
+- a JavaScript / TypeScript extension.
+
+`artifact` closes the loop at the top: assembling it is the real test that the
+SDK can package a complete application from the runtime, the reference surfaces
+and the extensions. Trading-specific reference extensions from earlier versions
+are being retired, but their coverage role is preserved by neutral replacements
+that exercise the same paths.
 
 ## Repository layout
 
@@ -99,6 +118,5 @@ artifact      dogfood installer
 
 The frontend is being rebuilt as a platform with two minimal reference surfaces
 (GUI per ADR-0006, TUI per ADR-0007) over a framework-neutral capability SDK,
-rather than a single hand-maintained application. Trading-specific surfaces and
-extensions from earlier versions are reference built-ins at most, not the point,
-and are being retired.
+rather than a single hand-maintained application. Trading-specific surfaces from
+earlier versions are reference built-ins at most, not the point.

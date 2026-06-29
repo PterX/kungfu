@@ -94,6 +94,70 @@ the "must not make a mistake" pressure from any individual. Developers have more
 unilateral authority — and that constraint deliberately includes the maintainers
 themselves.
 
+## The tag itself projects a deeper invariant: the longfist layout
+
+Point 2 said the `package.json` version is a downstream projection of the git tag. The tag
+is not the bottom of that chain. For a system whose product *is* a zero-copy, cross-language,
+on-disk journal, the real compatibility contract is the **longfist binary layout** — the
+in-memory and on-journal representation that C++, Python, and Node read without parsing. A
+git tag, a floating channel ref, and a `package.json` version are all projections of "which
+longfist layout this artifact speaks."
+
+The two contracts fail differently. A version-string drift is cosmetic (point 2). A
+longfist-layout change is not: because the layout *is* the ABI (zero-copy means the struct
+memory order is the wire order), a consumer compiled against one layout cannot read another
+by comparing version numbers or by feature detection — only by speaking the same layout, or
+by an explicit, evolution-aware decode in a non-zero-copy path. The layout is therefore the
+invariant the version machinery exists to protect; the release-line refs are how that
+protection is published and audited, not the thing being protected. How that invariant may
+evolve, and how old journals stay replayable, is its own decision — see
+[ADR-0008](../framework/core/docs/adr/ADR-0008-longfist-schema-evolution-and-minor-maintenance.md).
+
+## Minor lines are long-lived and are never force-retired
+
+A minor line (`v1.0`, `v1.1`, …) is not a release window that closes; it is a long-running
+product train that can accrue many patches (`v1.0.0` … `v1.0.1234`). A production release
+closes one patch and opens the next on the *same* line; it never means "this minor is done."
+This follows from the invariant above, not from taste.
+
+**Why the mechanism must keep every minor maintainable.** Each minor line pins a longfist
+layout epoch. Because the layout is the ABI, a deployment running the `v1.0` layout cannot be
+transparently migrated to a newer layout the way a source-distributed or self-describing-file
+system can re-read old data: zero-copy is precisely the refusal to pay that translation on
+the hot path. The consequence is structural — kungfu cannot rely on "one latest binary reads
+all past layouts" for its hot path, so it must be able to keep an old layout epoch (an old
+minor line) alive and patchable in parallel with newer lines. The channel topology already
+provides this: each `{channel}/v{major}/v{major}.{minor}` line is an independent branch set,
+so a fix on `v1.0` never has to touch `v3.x`. (The persisted/replay path bounds the cost:
+there FlatBuffers' additive schema evolution lets a newer reader decode an older layout off
+the hot path — see ADR-0008.)
+
+**What the mechanism guarantees, and what it does not.** The mechanism guarantees the
+*possibility* of perpetual support for any minor that still has users: it must never
+*foreclose* the ability to maintain an old line. Who performs that maintenance, and whether
+it is free, is a separate, allocatable question — it may be the core team under a paid
+support tier, a third party, or the users themselves. The design constraint is only that the
+toolchain not close that road. Keeping a minor maintainable-by-anyone requires:
+
+- **branch isolation** — a fix on an old line does not require rebasing onto newer lines
+  (satisfied by the channel topology);
+- **a permissive license** — anyone holding the code may take on the burden (satisfied,
+  Apache-2.0);
+- **a self-consistent layout world** — a deployment on one minor is not forced to interop
+  with another minor's layout (satisfied by per-minor layout pinning);
+- **reproducible builds from self-archivable inputs** — an old line must still build years
+  later without depending on a service that may be gone; this is the standing requirement
+  behind the build mirror/cache work, and the parts that lean on third-party-controlled
+  substrate (vendor SDKs, hosted runner images) are where it is only partially met;
+- **no hard coupling to a kungfu-operated service** at build or run time — convenience
+  artifacts (e.g. prebuilt `libnode`) must keep a documented from-source fallback so a CDN
+  going away does not foreclose a self-maintainer.
+
+This places kungfu's version strategy in the lineage of long-tail industrial maintenance
+(consortium-maintained long-term kernels, distribution back-ports, paid extended support)
+rather than the forced-EOL model of developer-tooling releases. The mechanism's job is to
+keep that option open; it does not, by itself, decide who pays to use it.
+
 ## Why not changesets / semantic-release / standard tools
 
 All mainstream version tools share one hidden axiom: **version intent must be explicitly
@@ -144,3 +208,6 @@ If a candidate cannot preserve all four, it is a downgrade for this project, how
   `kungfu-trader/action-bump-version` (its README documents the full channel rules and the
   original design goals).
 - Build & toolchain dependencies: `docs/BUILD-DEPENDENCIES.md`.
+- The compatibility invariant below the tag (longfist layout), its schema-evolution policy,
+  and the minor-maintenance rationale:
+  `framework/core/docs/adr/ADR-0008-longfist-schema-evolution-and-minor-maintenance.md`.

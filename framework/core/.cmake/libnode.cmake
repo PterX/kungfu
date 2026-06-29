@@ -57,4 +57,9 @@ macro(build_node_binding BINDING_NAME BINDING_SOURCE_FILES)
   set_target_properties(${BINDING_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
   # optional link libs passed as ${ARGN}
   target_link_libraries(${BINDING_NAME} ${LIBKUNGFU_NAME} ${CMAKE_JS_LIB} ${ARGN})
+  if (WIN32)
+    # /DELAYLOAD:NODE.EXE needs the delay-load helper (__delayLoadHelper2) from delayimp.lib;
+    # without it the electron-runtime binding (drone.node) fails to link (LNK2001).
+    target_link_libraries(${BINDING_NAME} delayimp)
+  endif ()
 endmacro(build_node_binding)

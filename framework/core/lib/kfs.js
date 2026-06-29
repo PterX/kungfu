@@ -8,7 +8,7 @@ shell.run(kfs, process.argv.slice(2), true, {
   silent: true,
   env: {
     KFS_PATH: path.join(
-      require.resolve('@kungfu-trader/kungfu-sdk'),
+      require.resolve('@kungfu-tech/sdk'),
       '..',
       '..',
       'dist',

@@ -4,7 +4,7 @@ const ignore = require('ignore');
 const {
   customResolve,
   getSdkDefaultDistDir,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 const templateInitPath = path.join(
   getSdkDefaultDistDir(),
@@ -15,12 +15,12 @@ const templateInitPath = path.join(
 
 const exampleTemplates = {
   strategy: [
-    '@kungfu-trader/examples-strategy-python',
-    '@kungfu-trader/examples-strategy-cpp',
+    '@kungfu-tech/examples-strategy-python',
+    '@kungfu-tech/examples-strategy-cpp',
   ],
   broker: [
-    '@kungfu-trader/kfx-broker-sim',
-    '@kungfu-trader/kfx-broker-xtp-demo',
+    '@kungfu-tech/kfx-broker-sim',
+    '@kungfu-tech/kfx-broker-xtp-demo',
   ],
 };
 
@@ -62,7 +62,7 @@ const copyTemplate = (templateType, templateName) => {
     const targetDir = path.join(
       templateInitPath,
       templateType,
-      templateName.replace('@kungfu-trader/', ''),
+      templateName.replace('@kungfu-tech/', ''),
     );
 
     const gitignorePath = path.join(templateDir, '.gitignore');

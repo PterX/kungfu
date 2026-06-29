@@ -1,4 +1,4 @@
-import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { KfCategoryTypes } from '@kungfu-tech/api/typings/enums';
 
 export type SubMenuKeys = 'installed' | 'uninstalled';
 

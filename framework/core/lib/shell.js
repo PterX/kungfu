@@ -129,7 +129,7 @@ const shell = {
     // 原 config 硬编码 'x64'(x64 时代),在 arm64 机器上会误判;回退使本机构建自动匹配
     // (Mac arm64 / Linux·Win x64),同时保留显式 config.arch 以支持交叉编译目标。
     return (
-      shell.getPackageJson('@kungfu-trader/kungfu-core').config.arch ||
+      shell.getPackageJson('@kungfu-tech/core').config.arch ||
       process.arch
     );
   },

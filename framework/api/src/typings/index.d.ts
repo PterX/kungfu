@@ -1794,7 +1794,7 @@ declare namespace KungfuApi {
   }
 }
 
-declare module '@kungfu-trader/kungfu-core' {
+declare module '@kungfu-tech/core' {
   export function kungfu(): KungfuApi.Kungfu;
 }
 

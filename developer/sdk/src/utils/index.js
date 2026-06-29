@@ -62,7 +62,7 @@ const getKfcPath = () => {
     [ModeMap.IN_CORE]: process.env.KFC_PATH,
     [ModeMap.IN_PROD_APP]: path.join(__dirname, '..', '..', '..', 'kfc'),
     [ModeMap.IN_SDK_SRC]: path.join(
-      customResolve('@kungfu-trader/kungfu-core'),
+      customResolve('@kungfu-tech/core'),
       '..',
       '..',
       'dist',

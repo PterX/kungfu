@@ -1,4 +1,4 @@
-const { shell } = require('@kungfu-trader/kungfu-core');
+const { shell } = require('@kungfu-tech/core');
 const { say } = require('cfonts');
 const chalk = require('chalk');
 const fse = require('fs-extra');

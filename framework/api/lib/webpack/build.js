@@ -9,7 +9,7 @@ const Multispinner = require('multispinner');
 const {
   getApiDefaultDistDir,
   getJsApi,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 function greeting() {
   const isCI = process.env.CI || false;
@@ -88,9 +88,9 @@ const run = (distDir, distName = 'api') => {
     let results = '';
 
     spinner.on('success', () => {
-      const config = require('@kungfu-trader/kungfu-js-api/package.json');
+      const config = require('@kungfu-tech/api/package.json');
       fse.copySync(
-        require.resolve('@kungfu-trader/kungfu-core/dist/kfc/drone.node'),
+        require.resolve('@kungfu-tech/core/dist/kfc/drone.node'),
         path.join(distDir, distName, `${config.binary.module_name}.node`),
         {},
       );

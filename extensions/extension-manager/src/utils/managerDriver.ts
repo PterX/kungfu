@@ -3,14 +3,14 @@ import { onMounted, getCurrentInstance, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Subscription } from 'rxjs';
 
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { LoginAuthingKeys } from '@kungfu-trader/kfx-ui-login-authing/src/configs';
+import VueI18n from '@kungfu-tech/api/language';
+import { LoginAuthingKeys } from '@kungfu-tech/kfx-ui-login-authing/src/configs';
 import {
   generateDriver,
   generateDriverConfig,
   buildDriverStep,
-} from '@kungfu-trader/kfx-ui-novice-guide/src/utils/driver';
-import { useAuthingCredential } from '@kungfu-trader/kfx-ui-login-authing/src/utils/externalUtils';
+} from '@kungfu-tech/kfx-ui-novice-guide/src/utils/driver';
+import { useAuthingCredential } from '@kungfu-tech/kfx-ui-login-authing/src/utils/externalUtils';
 
 import { useExtManagerStore } from '../store';
 import { AuthingAccessKey } from '../configs';

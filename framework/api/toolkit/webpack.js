@@ -192,15 +192,15 @@ module.exports = {
       ],
       resolve: {
         alias: {
-          '@kungfu-trader/kungfu-js-api': path.resolve(
+          '@kungfu-tech/api': path.resolve(
             path.dirname(
-              path.dirname(require.resolve('@kungfu-trader/kungfu-js-api')),
+              path.dirname(require.resolve('@kungfu-tech/api')),
             ),
             'src',
           ),
           ...(getAppDir()
             ? {
-                '@kungfu-trader/kungfu-app': getAppDir(),
+                '@kungfu-tech/gui': getAppDir(),
               }
             : {}),
         },

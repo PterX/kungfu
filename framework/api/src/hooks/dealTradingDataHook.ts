@@ -1,14 +1,14 @@
 import {
   KfCategory,
   UnknownKfCategory,
-} from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+} from '@kungfu-tech/api/config/tradingConfig';
 import {
   KfCategoryEnum,
   KfCategoryTypes,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { dealTradingData } from '@kungfu-trader/kungfu-js-api/utils/busiUtils';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
-import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+} from '@kungfu-tech/api/typings/enums';
+import { dealTradingData } from '@kungfu-tech/api/utils/busiUtils';
+import { kfLogger } from '@kungfu-tech/api/utils/logUtils';
+import { generateLocationCombinations } from '@kungfu-tech/api/hooks/hookUtils';
 
 export interface DealTradingDataGetter {
   category: KfCategoryTypes | string;

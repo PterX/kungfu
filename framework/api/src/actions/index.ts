@@ -32,7 +32,7 @@ import {
 import {
   basketStore,
   basketInstrumentStore,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-tech/api/kungfu';
 
 export const getAllKfConfigOriginData = (
   watcher?: KungfuApi.Watcher,

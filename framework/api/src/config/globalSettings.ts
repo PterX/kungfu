@@ -13,11 +13,11 @@ import {
 import {
   languageList,
   langDefault,
-} from '@kungfu-trader/kungfu-js-api/language';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+} from '@kungfu-tech/api/language';
+import VueI18n from '@kungfu-tech/api/language';
+import { readRootPackageJsonSync } from '@kungfu-tech/api/utils/fileUtils';
 import { getDefaultHomeDir } from './homePathConfig';
-import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { booleanProcessEnv } from '@kungfu-tech/api/utils/commonUtils';
 const { t } = VueI18n.global;
 const ifCpusNumSafe = booleanProcessEnv(process.env.IF_CPUS_NUM_SAFE);
 

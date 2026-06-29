@@ -1,7 +1,7 @@
 import { driver, Driver, Config, DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
-import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n, { useLanguage } from '@kungfu-tech/api/language';
 import { addStylesheetRules } from './index';
 import { getNoviceCache, setNoviceCacheByKey } from '../actions';
 import { driverStyleRules } from '../style';

@@ -18,8 +18,8 @@ const {
   dealPath,
   isProduction,
 } = require('../utils');
-const { getSdkDir } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
-const { shell, prebuilt } = require('@kungfu-trader/kungfu-core');
+const { getSdkDir } = require('@kungfu-tech/api/toolkit/utils');
+const { shell, prebuilt } = require('@kungfu-tech/core');
 const versioning = require('@mapbox/node-pre-gyp/lib/util/versioning');
 const project = require('./project');
 
@@ -110,7 +110,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   const cppExternalInclude = [kungfuBuild.cpp.externalInclude || []].flat();
   const cppInternalInclude = [kungfuBuild.cpp.include || []].flat();
   const cppLinkDirs = [kungfuBuild.cpp.linkDirs || []].flat();
-  const corePath = customResolve('@kungfu-trader/kungfu-core');
+  const corePath = customResolve('@kungfu-tech/core');
   const nodeModulesPath = path.join(
     corePath.split('node_modules')[0],
     'node_modules',
@@ -138,7 +138,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   const kfcDir = getKfcPath();
 
   ejs.renderFile(
-    customResolve('@kungfu-trader/kungfu-sdk/templates/cmake/kungfu.cmake'),
+    customResolve('@kungfu-tech/sdk/templates/cmake/kungfu.cmake'),
     {
       kfcDir: dealPath(kfcDir),
       kfcExec: dealPath(path.join(kfcDir, kfcName)),
@@ -166,7 +166,7 @@ function generateCMakeFiles(projectName, kungfuBuild) {
   }
 
   ejs.renderFile(
-    customResolve('@kungfu-trader/kungfu-sdk/templates/cmake/CMakeLists.txt'),
+    customResolve('@kungfu-tech/sdk/templates/cmake/CMakeLists.txt'),
     {
       projectName: projectName,
     },
@@ -385,7 +385,7 @@ exports.compile = () => {
   const outputDir = path.join('dist', extensionName);
   const buildTargetDir = path.join('build/target');
   const buildTargetDirPattern = buildTargetDir.replace(/\\/g, '/');
-  const corePath = customResolve('@kungfu-trader/kungfu-core');
+  const corePath = customResolve('@kungfu-tech/core');
   const nodeModulesPath = path.join(
     corePath.split('node_modules')[0],
     'node_modules',
@@ -394,7 +394,7 @@ exports.compile = () => {
   fse.ensureDirSync(outputDir);
 
   if (hasSourceFor(packageJson, 'python')) {
-    const corePath = customResolve('@kungfu-trader/kungfu-core');
+    const corePath = customResolve('@kungfu-tech/core');
     const nodeModulesPath = path.join(
       corePath.split('node_modules')[0],
       'node_modules',
@@ -506,13 +506,13 @@ exports.format = () => {
   const packageJson = shell.getPackageJson();
   const srcArgv = ['src'];
   if (hasSourceFor(packageJson, 'cpp')) {
-    require('@kungfu-trader/kungfu-core/.gyp/run-format-cpp').main(srcArgv);
+    require('@kungfu-tech/core/.gyp/run-format-cpp').main(srcArgv);
   }
   if (hasSourceFor(packageJson, 'python')) {
-    require('@kungfu-trader/kungfu-core/.gyp/run-format-python').main(srcArgv);
+    require('@kungfu-tech/core/.gyp/run-format-python').main(srcArgv);
   }
   if (packageJson.kungfuConfig && packageJson.kungfuConfig.ui_config) {
-    require('@kungfu-trader/kungfu-core/.gyp/run-format-js').main(srcArgv);
+    require('@kungfu-tech/core/.gyp/run-format-js').main(srcArgv);
   }
 };
 

@@ -25,7 +25,7 @@ Kungfu is a platform plus a minimal reference application — the editor-platfor
 model: the core provides capability; products are built on top. The packages
 group into the following layers.
 
-### Runtime and core — `framework/core` (`@kungfu-trader/kungfu-core`)
+### Runtime and core — `framework/core` (`@kungfu-tech/core`)
 
 The foundation: the `longfist` type system and the `yijinjing` append-only
 journal runtime in C++, with Python and Node (N-API) bindings, exposed zero-copy
@@ -40,7 +40,7 @@ the in-process zero-copy binding. This is the real value of the platform — the
 surface external products consume, independent of any UI framework. See
 [ADR-0006](../framework/core/docs/adr/ADR-0006-v4-frontend-platform-architecture.md).
 
-### Application SDK — `developer/sdk` (`@kungfu-trader/kungfu-sdk`)
+### Application SDK — `developer/sdk` (`@kungfu-tech/sdk`)
 
 Scaffolding that turns the core capabilities into development tooling: building
 `kfx` extensions, assembling applications, and producing packaged artifacts
@@ -51,11 +51,11 @@ Scaffolding that turns the core capabilities into development tooling: building
 Two minimal reference UIs over the same capability SDK — demonstrators, not the
 product:
 
-- **GUI** — `framework/app` (`@kungfu-trader/kungfu-app`): a desktop application
+- **GUI** — `framework/gui` (`@kungfu-tech/gui`): a desktop application
   on Electron + React, loading the native binding in-process to preserve
   zero-copy. See
   [ADR-0006](../framework/core/docs/adr/ADR-0006-v4-frontend-platform-architecture.md).
-- **TUI** — `framework/cli` (`@kungfu-trader/kungfu-cli`): a terminal
+- **TUI** — `framework/tui` (`@kungfu-tech/tui`): a terminal
   application. Pure Node, so it loads the binding in-process with no renderer
   boundary. See
   [ADR-0007](../framework/core/docs/adr/ADR-0007-v4-tui-platform-reference-surface.md).
@@ -66,7 +66,7 @@ Plugins built on the extension contract. The repository keeps a small set of
 reference extensions that double as build-time coverage probes — see
 [*The build dogfoods the SDK*](#the-build-dogfoods-the-sdk) below.
 
-### Distribution — `artifact` (`@kungfu-trader/artifact-kungfu`)
+### Distribution — `artifact` (`@kungfu-tech/artifact-kungfu`)
 
 The dogfood installer: it bundles the runtime, both reference UIs and the SDK
 into one package, so installing it yields the reference GUI and TUI, the
@@ -104,8 +104,8 @@ that exercise the same paths.
 framework/
   core        runtime + core (C++ longfist / yijinjing, bindings, kfc)
   api         capability SDK
-  app         reference GUI (Electron + React)
-  cli         reference TUI
+  gui         reference GUI (Electron + React)
+  tui         reference TUI
 developer/
   sdk         application / extension SDK (kfs)
   toolchain   shared build dependencies

@@ -1,6 +1,6 @@
 import { kfLogger } from '../utils/logUtils';
 import { IVTableColumn, VTableColumnDefine } from '../typings/vTable';
-import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+import { generateLocationCombinations } from '@kungfu-tech/api/hooks/hookUtils';
 
 export interface KfTradingDataTableHeaderConfig {
   name: string;

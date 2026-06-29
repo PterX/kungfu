@@ -1,8 +1,8 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { KfCategoryTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { getMainRepoVersionInDependencies } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
-import VueI18n, { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { KfCategoryTypes } from '@kungfu-tech/api/typings/enums';
+import { getMainRepoVersionInDependencies } from '@kungfu-tech/api/utils/extUtils';
+import VueI18n, { useLanguage } from '@kungfu-tech/api/language';
 import { useExtManagerStore } from '../store';
 import { extCategoryData } from '../configs';
 import { ExtConfigForShow, ExtConfigForShowList } from '../typings';
@@ -12,7 +12,7 @@ const { isLanguageKeyAvailable } = useLanguage();
 
 const CONNECTOR = '_';
 
-const LOGIN_EXT_NAME = '@kungfu-trader/kfx-ui-login-authing';
+const LOGIN_EXT_NAME = '@kungfu-tech/kfx-ui-login-authing';
 
 export const buildExtId = ({
   key,

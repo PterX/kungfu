@@ -82,9 +82,9 @@ const run = (distDir, distName = 'sdk') => {
     let results = '';
 
     spinner.on('success', () => {
-      const config = require('@kungfu-trader/kungfu-sdk/package.json');
+      const config = require('@kungfu-tech/sdk/package.json');
       fse.copySync(
-        require.resolve('@kungfu-trader/kungfu-core/dist/kfc/drone.node'),
+        require.resolve('@kungfu-tech/core/dist/kfc/drone.node'),
         path.join(distDir, distName, `${config.binary.module_name}.node`),
         {},
       );

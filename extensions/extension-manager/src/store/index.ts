@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getAllExtensions } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { getAllExtensions } from '@kungfu-tech/api/utils/extUtils';
 import { ExtConfigForShow } from '../typings/index';
 
 interface ManageStore {

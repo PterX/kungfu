@@ -4,3 +4,10 @@ packages:
   - "extensions/*"
   - "examples/*"
   - "artifact"
+allowBuilds:
+  '@biomejs/biome': true
+  '@kungfu-trader/libnode': true
+  core-js: true
+  esbuild: true
+  nx: true
+  vue-demi: true

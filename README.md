@@ -57,15 +57,15 @@ built on mainstream, well-maintained foundations.
 
 - **Core & runtime** — `longfist` (type system) and `yijinjing` (journal
   runtime) with Python and Node bindings, plus the `kfc` runtime, packaged as
-  `@kungfu-trader/kungfu-core`. `kfc` embeds a Python and a Node runtime and is
+  `@kungfu-tech/core`. `kfc` embeds a Python and a Node runtime and is
   the base for the planned `kungfu` end-user shell.
 - **Capability SDK** — typed, framework-neutral access to journal / state /
   replay (`framework/api`).
 - **Application SDK** — scaffolding to build kfx extensions and assemble
   applications (`developer/sdk`).
 - **Reference surfaces** — two minimal reference UIs over the same capability
-  SDK: a desktop GUI on Electron + React (`framework/app`) and a terminal TUI
-  (`framework/cli`).
+  SDK: a desktop GUI on Electron + React (`framework/gui`) and a terminal TUI
+  (`framework/tui`).
 - **Distribution** — a dogfood installer bundling the runtime, both reference
   UIs and the SDK (`artifact`).
 

@@ -4,8 +4,8 @@
   risk is low — the pure-Node in-process `require` of the binding has no renderer constraint
   (unlike ADR-0006) and is already exercised today.
 - Date: 2026-06-29
-- Category: (architecture) repositioning — `framework/cli` blessed TUI → modern terminal reference surface
-- Subsystem: frontend — `framework/cli` (reference TUI), consuming `framework/api` (capability SDK)
+- Category: (architecture) repositioning — `framework/tui` blessed TUI → modern terminal reference surface
+- Subsystem: frontend — `framework/tui` (reference TUI), consuming `framework/api` (capability SDK)
 - Related: parallels ADR-0006, which covered the GUI half only. Same platform/SDK model and the
   same in-process zero-copy N-API moat constraint. This ADR covers the TUI half ADR-0006 left open.
 
@@ -54,8 +54,8 @@ SDK is surface-agnostic (terminal, not DOM), (b) the natural surface for headles
 server-side / automation / developer use the GUI cannot serve, and (c) zero-copy-native with no
 Electron constraints.
 
-Current state (`dev/v4/v4.0`): `framework/cli` (`@kungfu-trader/kungfu-cli`) is a `blessed` +
-`inquirer` + `commander` terminal app over `@kungfu-trader/kungfu-js-api`. `blessed` is
+Current state (`dev/v4/v4.0`): `framework/tui` (`@kungfu-tech/tui`) is a `blessed` +
+`inquirer` + `commander` terminal app over `@kungfu-tech/api`. `blessed` is
 legacy / unmaintained, and the code carries the v3 quant-terminal model.
 
 ## Alternatives considered

@@ -1,6 +1,6 @@
 'use strict';
 
-const toolkit = require('@kungfu-trader/kungfu-js-api/toolkit');
+const toolkit = require('@kungfu-tech/api/toolkit');
 const path = require('path');
 const webpack = require('webpack');
 const { merge } = require('webpack-merge');
@@ -13,16 +13,16 @@ const {
   getWebpackExternals,
   getAppDir,
   getApiDir,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 const { isProduction } = toolkit.utils;
 const appDir = getAppDir();
 const apiDir = getApiDir();
 const loginAuthingDir = path.dirname(
-  customResolve('@kungfu-trader/kfx-ui-login-authing/package.json'),
+  customResolve('@kungfu-tech/kfx-ui-login-authing/package.json'),
 );
 const noviceGuideDir = path.dirname(
-  customResolve('@kungfu-trader/kfx-ui-novice-guide/package.json'),
+  customResolve('@kungfu-tech/kfx-ui-novice-guide/package.json'),
 );
 
 const tjsIncludes = [

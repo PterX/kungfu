@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kfx-broker-xtp-demo",
+  "name": "@kungfu-tech/kfx-broker-xtp-demo",
   "author": {
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
@@ -12,7 +12,7 @@
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/"
   },
   "binary": {
     "module_name": "kfx-broker-xtp-demo",
@@ -25,14 +25,14 @@
     "build": "kfs extension build",
     "clean": "kfs extension clean",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
+    "install": "node -e \"require('@kungfu-tech/core').prebuilt('install')\"",
     "package": "kfs extension package"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "workspace:*"
+    "@kungfu-tech/core": "workspace:*"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "workspace:*"
+    "@kungfu-tech/sdk": "workspace:*"
   },
   "kungfuDependencies": {
     "xtp": "v2.2.37.4"

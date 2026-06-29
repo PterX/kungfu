@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kfx-matcher-101-cpp",
+  "name": "@kungfu-tech/kfx-matcher-101-cpp",
   "author": {
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
@@ -12,7 +12,7 @@
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/"
   },
   "binary": {
     "module_name": "kfx-matcher-101",
@@ -26,13 +26,13 @@
     "build": "kfs extension build",
     "package": "kfs project package",
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\""
+    "install": "node -e \"require('@kungfu-tech/core').prebuilt('install')\""
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "workspace:*"
+    "@kungfu-tech/core": "workspace:*"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "workspace:*"
+    "@kungfu-tech/sdk": "workspace:*"
   },
   "kungfuConfig": {
     "key": "KungfuMatcher101Cpp",

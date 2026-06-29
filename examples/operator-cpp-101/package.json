@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/examples-operator-cpp",
+  "name": "@kungfu-tech/examples-operator-cpp",
   "author": "kungfu-trader",
   "version": "4.0.0-alpha.0",
   "description": "KungFu Operator 101 - C++ Demo",
@@ -14,6 +14,6 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "workspace:*"
+    "@kungfu-tech/sdk": "workspace:*"
   }
 }

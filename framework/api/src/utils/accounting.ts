@@ -1,16 +1,16 @@
 import {
   hashInstrumentFactorUKey,
   hashInstrumentUKey,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-tech/api/kungfu';
 import {
   DirectionEnum,
   InstrumentTypeEnum,
-} from '@kungfu-trader/kungfu-js-api/typings/enums';
+} from '@kungfu-tech/api/typings/enums';
 import {
   dealKfDecimalPrecision,
   DEFAULT_PRECISION,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { getPrecisionByInstrumentType } from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
+} from '@kungfu-tech/api/utils/commonUtils';
+import { getPrecisionByInstrumentType } from '@kungfu-tech/api/utils/tradingUtils';
 
 interface AccountingUsage {
   intrumentType: InstrumentTypeEnum;

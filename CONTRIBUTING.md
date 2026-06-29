@@ -20,10 +20,10 @@ for how the layers fit together; the main areas:
 
 - `framework/core` — the C++ core (`longfist` type system, `yijinjing` journal
   runtime) plus its Python and Node (N-API) bindings and the `kfc` runtime,
-  packaged as `@kungfu-trader/kungfu-core`. Build orchestration lives in
+  packaged as `@kungfu-tech/core`. Build orchestration lives in
   `framework/core/.gyp/`.
 - `framework/api` — the capability SDK (typed access to journal / state / replay).
-- `framework/app`, `framework/cli` — the two reference UIs: a desktop GUI
+- `framework/gui`, `framework/tui` — the two reference UIs: a desktop GUI
   (Electron + React) and a terminal TUI.
 - `developer/sdk` — the application / extension SDK (`kfs`); `developer/toolchain`
   — shared build dependencies.

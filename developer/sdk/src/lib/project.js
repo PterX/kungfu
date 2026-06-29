@@ -1,7 +1,7 @@
 const fse = require('fs-extra');
 const { glob } = require('glob');
 const path = require('path');
-const { prebuilt, shell } = require('@kungfu-trader/kungfu-core');
+const { prebuilt, shell } = require('@kungfu-tech/core');
 const { customResolve, getKfcPath } = require('../utils');
 
 exports.configure = (writePackageJson = false, writeWorkflows = true) => {
@@ -18,7 +18,7 @@ exports.configure = (writePackageJson = false, writeWorkflows = true) => {
     const findWorkspaceRoot = require('find-yarn-workspace-root');
     const projectDir = findWorkspaceRoot() || cwd;
     const sdkDir = path.dirname(
-      path.dirname(customResolve('@kungfu-trader/kungfu-sdk')),
+      path.dirname(customResolve('@kungfu-tech/sdk')),
     );
     const githubTemplateDir = path.join(sdkDir, 'templates', 'github');
     const githubConfigDir = path.join(projectDir, '.github');

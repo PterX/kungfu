@@ -219,7 +219,7 @@ export const EXTENSION_DIRS: string[] = Array.from(
         ]
       : [
           path.resolve(KFC_PARENT_DIR, '..', '..', '..', 'extensions'),
-          path.resolve('node_modules', '@kungfu-trader'),
+          path.resolve('node_modules', '@kungfu-tech'),
           path.resolve('dist'),
           ...((process.env.EXTENSION_DIRS || '').split(path.delimiter) || []),
         ],

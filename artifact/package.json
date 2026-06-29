@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/artifact-kungfu",
+  "name": "@kungfu-tech/artifact-kungfu",
   "homepage": "https://www.kungfu-trader.com",
   "author": {
     "name": "Kungfu Trader",
@@ -26,15 +26,15 @@
     "cli": "pnpm exec kfs craft cli"
   },
   "dependencies": {
-    "@kungfu-trader/kfx-broker-sim": "workspace:*",
-    "@kungfu-trader/kfx-broker-xtp-demo": "workspace:*",
-    "@kungfu-trader/kfx-indexer-live": "workspace:*",
-    "@kungfu-trader/kfx-matcher-101-cpp": "workspace:*",
-    "@kungfu-trader/kfx-operator-bar": "workspace:*",
-    "@kungfu-trader/kungfu-app": "workspace:*",
-    "@kungfu-trader/kungfu-cli": "workspace:*",
-    "@kungfu-trader/kungfu-core": "workspace:*",
-    "@kungfu-trader/kungfu-sdk": "workspace:*"
+    "@kungfu-tech/kfx-broker-sim": "workspace:*",
+    "@kungfu-tech/kfx-broker-xtp-demo": "workspace:*",
+    "@kungfu-tech/kfx-indexer-live": "workspace:*",
+    "@kungfu-tech/kfx-matcher-101-cpp": "workspace:*",
+    "@kungfu-tech/kfx-operator-bar": "workspace:*",
+    "@kungfu-tech/gui": "workspace:*",
+    "@kungfu-tech/tui": "workspace:*",
+    "@kungfu-tech/core": "workspace:*",
+    "@kungfu-tech/sdk": "workspace:*"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

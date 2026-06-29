@@ -3,13 +3,13 @@ import { watcher, startWatcher } from './watcher';
 import {
   setNodeTimerPromiseTask,
   doSomethingWithDataSliced,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+} from '@kungfu-tech/api/utils/commonUtils';
 import {
   getOrderResolved,
   getTradeResolved,
   DEFAULT_LIST_LENGTH,
-} from '@kungfu-trader/kungfu-js-api/utils/tradingUtils';
-import { UnfinishedOrderStatus } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
+} from '@kungfu-tech/api/utils/tradingUtils';
+import { UnfinishedOrderStatus } from '@kungfu-tech/api/config/tradingConfig';
 import BTree from 'sorted-btree';
 export class DynamicTradingDataIndexedMap<V> {
   private tradingDataType: 'order' | 'trade';

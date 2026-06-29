@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kungfu-workspaces",
+  "name": "@kungfu-tech/workspaces",
   "homepage": "https://www.kungfu-trader.com",
   "author": {
     "name": "Kungfu Trader",
@@ -21,7 +21,7 @@
   "scripts": {
     "postinstall": "pnpm exec patch-package",
     "foreach": "wsrun --serial --exclude-missing --fast-exit",
-    "foreach:extensions": "wsrun --serial --package '@kungfu-trader/kfx-*' --exclude-missing --fast-exit",
+    "foreach:extensions": "wsrun --serial --package '@kungfu-tech/kfx-*' --exclude-missing --fast-exit",
     "format": "wsrun --serial --exclude-missing format",
     "prebuild": "node .prebuild.js",
     "build": "pnpm run foreach build",
@@ -32,15 +32,15 @@
     "rebuild": "pnpm run clean && pnpm run build",
     "rebuild:extensions": "pnpm run clean:extensions && pnpm run build:extensions",
     "sync": "pnpm install --frozen-lockfile",
-    "app": "pnpm --filter @kungfu-trader/artifact-kungfu run app",
-    "cli": "pnpm --filter @kungfu-trader/artifact-kungfu run cli",
-    "dev": "pnpm --filter @kungfu-trader/artifact-kungfu run dev",
-    "build:app": "pnpm --filter @kungfu-trader/kungfu-app run build",
-    "build:cli": "pnpm --filter @kungfu-trader/kungfu-cli run build",
-    "build:core": "pnpm --filter @kungfu-trader/kungfu-core run build",
-    "freeze": "pnpm --filter @kungfu-trader/kungfu-core run freeze",
-    "rebuild:core": "pnpm --filter @kungfu-trader/kungfu-core run rebuild",
-    "package:app": "pnpm --filter @kungfu-trader/artifact-kungfu run package",
+    "app": "pnpm --filter @kungfu-tech/artifact-kungfu run app",
+    "cli": "pnpm --filter @kungfu-tech/artifact-kungfu run cli",
+    "dev": "pnpm --filter @kungfu-tech/artifact-kungfu run dev",
+    "build:app": "pnpm --filter @kungfu-tech/gui run build",
+    "build:cli": "pnpm --filter @kungfu-tech/tui run build",
+    "build:core": "pnpm --filter @kungfu-tech/core run build",
+    "freeze": "pnpm --filter @kungfu-tech/core run freeze",
+    "rebuild:core": "pnpm --filter @kungfu-tech/core run rebuild",
+    "package:app": "pnpm --filter @kungfu-tech/artifact-kungfu run package",
     "verify": "node verify.js"
   },
   "dependencies": {

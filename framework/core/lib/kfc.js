@@ -6,7 +6,7 @@ const shell = require('./shell');
 
 function getCliDir() {
   try {
-    return require('@kungfu-trader/kungfu-js-api/toolkit/utils').getCliDir();
+    return require('@kungfu-tech/api/toolkit/utils').getCliDir();
   } catch (err) {
     return '.';
   }

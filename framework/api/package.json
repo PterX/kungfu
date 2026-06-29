@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kungfu-js-api",
+  "name": "@kungfu-tech/api",
   "author": {
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
@@ -11,10 +11,10 @@
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/"
   },
   "binary": {
-    "module_name": "kungfu-js-api",
+    "module_name": "api",
     "module_path": "dist/api",
     "remote_path": "{module_name}/v{major}/v{version}",
     "package_name": "{module_name}-v{version}-{platform}-{arch}-{configuration}.tar.gz",
@@ -25,14 +25,14 @@
   "scripts": {
     "build": "node lib/webpack/build.js",
     "clean": "rimraf build dist node_modules/.cache/webpack",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
-    "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",
+    "install": "node -e \"require('@kungfu-tech/core').prebuilt('install')\"",
+    "package": "node -e \"require('@kungfu-tech/core').prebuilt('package')\"",
     "lint": "eslint src",
     "format": "prettier -l -w --config ../core/.prettierrc.js ."
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
-    "@kungfu-trader/kungfu-core": "workspace:*",
+    "@kungfu-tech/core": "workspace:*",
     "cfonts": "^2.10.0",
     "chalk": "^4.1.0",
     "dayjs-business-days": "^1.0.4",

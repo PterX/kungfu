@@ -1,4 +1,4 @@
-import { KfCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
+import { KfCategoryEnum } from '@kungfu-tech/api/typings/enums';
 
 export const SpecialWordsReg = new RegExp(
   "[`~!#$^&*()=|{}';'\\[\\]\\t<>\"\\\\《》?~！#￥¥……&（）——|{}【】「」‘；｜：”“'。，、？_ ]+|(-+$)|(^-+)" +

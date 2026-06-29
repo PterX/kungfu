@@ -15,7 +15,7 @@
 //   - framework/core/dist/kfc/                     freeze 产物目录(run-freeze.js renameSync 目标)
 //   - framework/core/dist/kfc/kfc[.exe]           kfc 可执行(lib/executable.js 解析路径)
 //   - `kfc --version` 退出 0 且输出含期望版本   冻结 Python 运行时端到端可跑(运行时冒烟)
-//   - framework/app/dist/app/                      (--with-app)build:app webpack 产物
+//   - framework/gui/dist/app/                      (--with-app)build:app webpack 产物
 //
 // 退出码:全绿 0;任一断言失败 1(fail-fast 打印可复制排查信息)。
 // 说明:Electron app 的「交互式启动」无法在无头环境断言,故以 kfc 运行时冒烟 + app 构建
@@ -92,7 +92,7 @@ function main() {
     try {
       runPnpm('rebuild:core'); // clean + build:conan C++/wheel/native
       runPnpm('freeze'); // nuitka → framework/core/dist/kfc
-      if (withApp) runPnpm('build:app'); // webpack → framework/app/dist/app
+      if (withApp) runPnpm('build:app'); // webpack → framework/gui/dist/app
     } catch (e) {
       fail('构建阶段', e.message);
       return summarize(); // 构建失败直接收尾,不再断言半成品

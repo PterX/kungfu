@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/examples-strategy-cpp",
+  "name": "@kungfu-tech/examples-strategy-cpp",
   "author": "kungfu-trader",
   "version": "4.0.0-alpha.0",
   "description": "KungFu Strategy 101 - C++ Demo",
@@ -19,7 +19,7 @@
     "ledger": "kfc -l debug run -c system -g service -n ledger"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "workspace:*"
+    "@kungfu-tech/sdk": "workspace:*"
   },
   "kungfuBuild": {
     "cpp": {

@@ -4,7 +4,7 @@
 - Date: 2026-06-29
 - Category: (architecture) repositioning — Vue→React framed as a platform rebuild, not a port
 - Subsystem: frontend — `framework/api` (capability/contract), `developer/sdk` (app SDK),
-  `framework/app` (reference app), `developer/toolchain` (build chain)
+  `framework/gui` (reference app), `developer/toolchain` (build chain)
 - Related: independent of ADR-0001..0005 (those are core/control-axis). Consumes the in-process
   zero-copy N-API moat as a hard constraint.
 
@@ -23,7 +23,7 @@ extensions.
 2. **Two outward surfaces.**
    - **kfx extension surface** — plug UI/capability into a kungfu app (contribution points).
    - **app-assembly SDK surface** — assemble a whole kungfu app from the SDK
-     (evolves `developer/sdk` = `@kungfu-trader/kungfu-sdk`, which already scaffolds apps).
+     (evolves `developer/sdk` = `@kungfu-tech/sdk`, which already scaffolds apps).
 
 3. **Loose contract, maximum external freedom.** The host exposes a mount point + capability
    handles + contribution declarations; **external UIs bring their own stack** (any framework /
@@ -63,7 +63,7 @@ must therefore become a platform that such an external product plugs into, rathe
 hand-maintained terminal.
 
 Current frontend (dev/v4/v4.0): Vue 3 + ant-design-vue + pinia, custom webpack + cmake-js +
-electron-builder + yarn classic, 5 renderer entries, the `@kungfu-trader/kungfu-core` N-API
+electron-builder + yarn classic, 5 renderer entries, the `@kungfu-tech/core` N-API
 binding loaded in-process in a `nodeIntegration` renderer.
 
 ## Alternatives considered

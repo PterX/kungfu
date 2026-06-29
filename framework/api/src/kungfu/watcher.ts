@@ -1,8 +1,8 @@
 import { getRendererProcessId, kf } from './index';
-import { KF_RUNTIME_DIR } from '@kungfu-trader/kungfu-js-api/config/pathConfig';
-import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
-import { booleanProcessEnv } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { KF_RUNTIME_DIR } from '@kungfu-tech/api/config/pathConfig';
+import { getKfGlobalSettingsValue } from '@kungfu-tech/api/config/globalSettings';
+import { kfLogger } from '@kungfu-tech/api/utils/logUtils';
+import { booleanProcessEnv } from '@kungfu-tech/api/utils/commonUtils';
 
 export const watcher = ((): KungfuApi.Watcher | null => {
   if (process.env.APP_TYPE !== 'renderer') {

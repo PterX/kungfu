@@ -16,7 +16,7 @@ the VS Code / Theia model: core provides capability, products are built external
 extensions.
 
 1. **Core capability, external products.** The monorepo provides the platform; productized
-   tools (the first being an AI-agent tracer / time-travel debugger) are implemented in
+   tools (the first being a tracer / time-travel debugger) are implemented in
    **external repos as kfx components + app packaging** and integrated separately
    (the precedent is the kungfu-trader-era "galaxy" externalization).
 
@@ -57,10 +57,10 @@ extensions.
 
 ## Context
 
-v4's strategic gate (mission `kungfu-technical-stewardship`) is to produce a "second proof
-point" — a local AI-agent tracer / time-travel debugger — that exploits the kungfu kernel's
-append-only journal, single-writer ordering and replay. The frontend must therefore become a
-platform that such an external product plugs into, rather than a hand-maintained terminal.
+The strategic driver is a "second proof point" — a local tracer / time-travel debugger — that
+exploits the kungfu kernel's append-only journal, single-writer ordering and replay. The frontend
+must therefore become a platform that such an external product plugs into, rather than a
+hand-maintained terminal.
 
 Current frontend (dev/v4/v4.0): Vue 3 + ant-design-vue + pinia, custom webpack + cmake-js +
 electron-builder + yarn classic, 5 renderer entries, the `@kungfu-trader/kungfu-core` N-API
@@ -99,14 +99,13 @@ integration proof.
 - Reversible: the platform/SDK boundary is additive; the legacy Vue app remains in history. The
   build base and reference app are greenfield, so the migration risk concentrates on the two
   moat-tied constraints, both validated.
-- Benefit: converges the stack to a mainstream, LLM-friendly toolchain (lower long-term AI
+- Benefit: converges the stack to a mainstream, modern toolchain (lower long-term
   maintenance cost) and makes external products (tracer) first-class.
 - Cost: a transitional period of higher complexity; the SDK API is a long-lived commitment, so it
   is kept minimal and consumer-driven.
 
 ## Notes
 
-Atlas control-plane source of truth for this decision:
-`agent-journal/missions/kungfu-technical-stewardship/v4-frontend-architecture-foundation.md`
-and goal `2026-06-29-kungfu-v4-react-migration` (stages F2a/F2b). This ADR is the kungfu-repo
-mirror; implementation lands via phased goals.
+Implementation lands via phased changes. Coexistence (electron-vite + the native N-API binding
+loaded in a nodeIntegration renderer + electron-builder packaging) was validated by a standalone
+spike before adoption.

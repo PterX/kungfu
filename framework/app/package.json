@@ -18,8 +18,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
-    "pack": "electron-vite build && electron-builder --dir --config.electronDist=node_modules/electron/dist",
-    "dist": "electron-vite build && electron-builder --config.electronDist=node_modules/electron/dist",
+    "pack": "electron-vite build && electron-builder --dir --config.electronDist=$(node -p \"require('path').dirname(require.resolve('electron'))+'/dist'\")",
+    "dist": "electron-vite build && electron-builder --config.electronDist=$(node -p \"require('path').dirname(require.resolve('electron'))+'/dist'\")",
     "lint": "biome check src",
     "format": "biome format --write src",
     "clean": "rimraf out dist node_modules/.vite"

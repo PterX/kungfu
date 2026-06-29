@@ -8,7 +8,7 @@
   "description": "Kungfu Trader Workspaces",
   "license": "Apache-2.0",
   "private": true,
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "pnpm@11.7.0",
   "workspaces": {
     "packages": [
       "framework/*",
@@ -19,28 +19,28 @@
     ]
   },
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "pnpm exec patch-package",
     "foreach": "wsrun --serial --exclude-missing --fast-exit",
     "foreach:extensions": "wsrun --serial --package '@kungfu-trader/kfx-*' --exclude-missing --fast-exit",
     "format": "wsrun --serial --exclude-missing format",
     "prebuild": "node .prebuild.js",
-    "build": "yarn foreach build",
-    "build:extensions": "yarn foreach:extensions build",
-    "clean": "yarn foreach clean",
-    "clean:extensions": "yarn foreach:extensions clean",
-    "package": "yarn foreach package",
-    "rebuild": "yarn clean && yarn build",
-    "rebuild:extensions": "yarn clean:extensions && yarn build:extensions",
-    "sync": "yarn install --audit --frozen-lockfile",
-    "app": "yarn workspace @kungfu-trader/artifact-kungfu app",
-    "cli": "yarn workspace @kungfu-trader/artifact-kungfu cli",
-    "dev": "yarn workspace @kungfu-trader/artifact-kungfu dev",
-    "build:app": "yarn workspace @kungfu-trader/kungfu-app build",
-    "build:cli": "yarn workspace @kungfu-trader/kungfu-cli build",
-    "build:core": "yarn workspace @kungfu-trader/kungfu-core build",
-    "freeze": "yarn workspace @kungfu-trader/kungfu-core freeze",
-    "rebuild:core": "yarn workspace @kungfu-trader/kungfu-core rebuild",
-    "package:app": "yarn workspace @kungfu-trader/artifact-kungfu package",
+    "build": "pnpm run foreach build",
+    "build:extensions": "pnpm run foreach:extensions build",
+    "clean": "pnpm run foreach clean",
+    "clean:extensions": "pnpm run foreach:extensions clean",
+    "package": "pnpm run foreach package",
+    "rebuild": "pnpm run clean && pnpm run build",
+    "rebuild:extensions": "pnpm run clean:extensions && pnpm run build:extensions",
+    "sync": "pnpm install --frozen-lockfile",
+    "app": "pnpm --filter @kungfu-trader/artifact-kungfu run app",
+    "cli": "pnpm --filter @kungfu-trader/artifact-kungfu run cli",
+    "dev": "pnpm --filter @kungfu-trader/artifact-kungfu run dev",
+    "build:app": "pnpm --filter @kungfu-trader/kungfu-app run build",
+    "build:cli": "pnpm --filter @kungfu-trader/kungfu-cli run build",
+    "build:core": "pnpm --filter @kungfu-trader/kungfu-core run build",
+    "freeze": "pnpm --filter @kungfu-trader/kungfu-core run freeze",
+    "rebuild:core": "pnpm --filter @kungfu-trader/kungfu-core run rebuild",
+    "package:app": "pnpm --filter @kungfu-trader/artifact-kungfu run package",
     "verify": "node verify.js"
   },
   "dependencies": {
@@ -72,5 +72,8 @@
     "@vue/compiler-sfc": "~3.2.4",
     "@vueuse/core": ">=10.9.0 <10.10.0",
     "@vercel/webpack-asset-relocator-loader": "<1.7.4"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.0"
   }
 }

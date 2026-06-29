@@ -5,7 +5,7 @@
     "email": "info@kungfu.link"
   },
   "version": "4.0.0-alpha.0",
-  "description": "Toolchain for Kungfu Development (babel/cmake-js/node-gyp/webpack/yarn/etc).",
+  "description": "Toolchain for Kungfu Development (babel/cmake-js/node-gyp/webpack/pnpm/etc).",
   "license": "Apache-2.0",
   "main": "package.json",
   "repository": {
@@ -16,7 +16,7 @@
   },
   "engines": {
     "node": ">=14",
-    "yarn": "^1.18.0"
+    "pnpm": ">=10"
   },
   "dependencies": {
     "@babel/core": "^7.17.8",
@@ -91,7 +91,6 @@
     "webpack-cli": "^4.9.2",
     "webpack-dev-server": "^4.7.0",
     "webpack-merge": "^5.8.0",
-    "worker-loader": "^3.0.8",
-    "yarn": "^1.22.0"
+    "worker-loader": "^3.0.8"
   }
 }

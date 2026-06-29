@@ -27,8 +27,8 @@
     "clean": "kfs extension clean",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
     "format": "prettier -l -w --config ./.prettierrc.js .",
-    "app": "yarn kfs craft dev",
-    "cli": "yarn kfs craft cli"
+    "app": "pnpm exec kfs craft dev",
+    "cli": "pnpm exec kfs craft cli"
   },
   "kungfuConfig": {
     "key": "extensionManager",
@@ -117,16 +117,16 @@
     }
   },
   "dependencies": {
-    "@kungfu-trader/kfx-ui-novice-guide": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-app": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-cli": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-core": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-js-api": "^4.0.0-alpha.0",
+    "@kungfu-trader/kfx-ui-novice-guide": "workspace:*",
+    "@kungfu-trader/kungfu-app": "workspace:*",
+    "@kungfu-trader/kungfu-cli": "workspace:*",
+    "@kungfu-trader/kungfu-core": "workspace:*",
+    "@kungfu-trader/kungfu-js-api": "workspace:*",
     "pinia": "~2.0.0"
   },
   "devDependencies": {
-    "@kungfu-trader/kfx-broker-sim": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-toolchain": "^4.0.0-alpha.0"
+    "@kungfu-trader/kfx-broker-sim": "workspace:*",
+    "@kungfu-trader/kungfu-sdk": "workspace:*",
+    "@kungfu-trader/kungfu-toolchain": "workspace:*"
   }
 }

@@ -1,0 +1,6 @@
+packages:
+  - "framework/*"
+  - "developer/*"
+  - "extensions/*"
+  - "examples/*"
+  - "artifact"

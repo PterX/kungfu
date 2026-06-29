@@ -25,7 +25,7 @@
     "clean": "rimraf out dist node_modules/.vite"
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-core": "^4.0.0-alpha.0",
+    "@kungfu-trader/kungfu-core": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

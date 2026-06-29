@@ -75,12 +75,12 @@ const getKfcPath = () => {
 
 const getKfcCmdArgs = () => {
   const cmdMap = {
-    [ModeMap.IN_CORE]: { cmd: 'yarn', args0: ['kfc'] },
+    [ModeMap.IN_CORE]: { cmd: 'pnpm', args0: ['exec', 'kfc'] },
     [ModeMap.IN_PROD_APP]: {
       cmd: dealCmdPath(path.resolve(getKfcPath(), kfcName)),
       args0: [],
     },
-    [ModeMap.IN_SDK_SRC]: { cmd: 'yarn', args0: ['kfc'] },
+    [ModeMap.IN_SDK_SRC]: { cmd: 'pnpm', args0: ['exec', 'kfc'] },
   };
 
   return cmdMap[getCurrentMode()];
@@ -89,16 +89,16 @@ const getKfcCmdArgs = () => {
 const getCmakeCmdArgs = (buildType) => {
   const cmdMap = {
     [ModeMap.IN_CORE]: {
-      cmd: 'yarn',
-      args: ['cmake-js', 'build', '--config', buildType],
+      cmd: 'pnpm',
+      args: ['exec', 'cmake-js', 'build', '--config', buildType],
     },
     [ModeMap.IN_PROD_APP]: {
       cmd: 'cmake',
       args: ['-S', './', '-B', './build', `-DCMAKE_BUILD_TYPE=${buildType}`],
     },
     [ModeMap.IN_SDK_SRC]: {
-      cmd: 'yarn',
-      args: ['cmake-js', 'build', '--config', buildType],
+      cmd: 'pnpm',
+      args: ['exec', 'cmake-js', 'build', '--config', buildType],
     },
   };
 

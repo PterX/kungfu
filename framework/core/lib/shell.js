@@ -170,21 +170,16 @@ const shell = {
       const electronModulePath = path.dirname(
         require.resolve('electron/package.json'),
       );
-      const yarnIntegrityPath = path.join(
-        path.dirname(electronModulePath),
-        '.yarn-integrity',
-      );
       fs.rmSync(electronModulePath, {
         force: true,
         recursive: true,
       });
-      fs.rmSync(yarnIntegrityPath, { force: true });
     } catch (e) {
       console.warn('Failed to remove electron module');
     }
     shell.run(
-      'yarn',
-      ['install', '--frozen-lockfile', '--network-timeout=1000000', '--silent'],
+      'pnpm',
+      ['install', '--frozen-lockfile', '--silent'],
       true,
       {
         silent: true,
@@ -201,7 +196,7 @@ const shell = {
         `Reinstall electron [${reinstalledElectronArch}] failed to match [${targetArch}]`,
       );
       console.error(
-        `Please fix it manually by yarn install with environment variable npm_config_arch set to ${targetArch}`,
+        `Please fix it manually by pnpm install with environment variable npm_config_arch set to ${targetArch}`,
       );
       process.exit(-1);
     }

@@ -70,5 +70,5 @@ exports.cli = () => {
 };
 
 exports.upgrade = () => {
-  shell.run('yarn upgrade', ['--scope', '@kungfu-trader']);
+  shell.run('pnpm', ['update', '@kungfu-trader/*']);
 };

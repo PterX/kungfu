@@ -28,8 +28,11 @@
     "format": "node ../../framework/core/.gyp/run-format-cpp.js src",
     "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\""
   },
+  "dependencies": {
+    "@kungfu-trader/kungfu-core": "workspace:*"
+  },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0"
+    "@kungfu-trader/kungfu-sdk": "workspace:*"
   },
   "kungfuConfig": {
     "key": "KungfuMatcher101Cpp",

@@ -18,23 +18,23 @@
     }
   },
   "scripts": {
-    "build": "yarn kfs craft build",
-    "package": "yarn kfs craft package",
-    "clean": "yarn kfs craft clean",
-    "dev": "yarn kfs craft dev --with-webpack",
-    "app": "yarn kfs craft dev",
-    "cli": "yarn kfs craft cli"
+    "build": "pnpm exec kfs craft build",
+    "package": "pnpm exec kfs craft package",
+    "clean": "pnpm exec kfs craft clean",
+    "dev": "pnpm exec kfs craft dev --with-webpack",
+    "app": "pnpm exec kfs craft dev",
+    "cli": "pnpm exec kfs craft cli"
   },
   "dependencies": {
-    "@kungfu-trader/kfx-broker-sim": "^4.0.0-alpha.0",
-    "@kungfu-trader/kfx-broker-xtp-demo": "^4.0.0-alpha.0",
-    "@kungfu-trader/kfx-indexer-live": "^4.0.0-alpha.0",
-    "@kungfu-trader/kfx-matcher-101-cpp": "^4.0.0-alpha.0",
-    "@kungfu-trader/kfx-operator-bar": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-app": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-cli": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-core": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0"
+    "@kungfu-trader/kfx-broker-sim": "workspace:*",
+    "@kungfu-trader/kfx-broker-xtp-demo": "workspace:*",
+    "@kungfu-trader/kfx-indexer-live": "workspace:*",
+    "@kungfu-trader/kfx-matcher-101-cpp": "workspace:*",
+    "@kungfu-trader/kfx-operator-bar": "workspace:*",
+    "@kungfu-trader/kungfu-app": "workspace:*",
+    "@kungfu-trader/kungfu-cli": "workspace:*",
+    "@kungfu-trader/kungfu-core": "workspace:*",
+    "@kungfu-trader/kungfu-sdk": "workspace:*"
   },
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"

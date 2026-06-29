@@ -19,7 +19,7 @@
     "ledger": "kfc -l debug run -c system -g service -n ledger"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0"
+    "@kungfu-trader/kungfu-sdk": "workspace:*"
   },
   "kungfuBuild": {
     "cpp": {

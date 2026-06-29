@@ -13,7 +13,7 @@ function main(argv) {
   if (test.status === 0) {
     shell.runAndExit('prettier', prettierArgs.concat(argv));
   }
-  shell.run('yarn', ['run', 'prettier'].concat(prettierArgs).concat(argv));
+  shell.run('pnpm', ['exec', 'prettier'].concat(prettierArgs).concat(argv));
 }
 
 module.exports.main = main;

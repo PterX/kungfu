@@ -59,12 +59,12 @@ function fail(name, detail) {
   console.error(`  ❌ ${name}${detail ? ' — ' + detail : ''}`);
 }
 
-// 运行一个 yarn 任务(经当前 node/corepack 派发的 yarn);失败即抛
-function runYarn(task) {
-  console.log(`\n[verify] 构建阶段:yarn ${task}`);
-  const r = spawnSync('yarn', [task], { cwd: ROOT, stdio: 'inherit', shell: isWin });
+// 运行一个 pnpm 任务(经当前 node/corepack 派发的 pnpm);失败即抛
+function runPnpm(task) {
+  console.log(`\n[verify] 构建阶段:pnpm ${task}`);
+  const r = spawnSync('pnpm', ['run', task], { cwd: ROOT, stdio: 'inherit', shell: isWin });
   if (r.status !== 0) {
-    throw new Error(`yarn ${task} 失败(exit ${r.status == null ? 'signal ' + r.signal : r.status})`);
+    throw new Error(`pnpm ${task} 失败(exit ${r.status == null ? 'signal ' + r.signal : r.status})`);
   }
 }
 
@@ -90,9 +90,9 @@ function main() {
   // ── 阶段 1:(可选)构建 ──────────────────────────────────────────
   if (doFull) {
     try {
-      runYarn('rebuild:core'); // clean + build:conan C++/wheel/native
-      runYarn('freeze'); // nuitka → framework/core/dist/kfc
-      if (withApp) runYarn('build:app'); // webpack → framework/app/dist/app
+      runPnpm('rebuild:core'); // clean + build:conan C++/wheel/native
+      runPnpm('freeze'); // nuitka → framework/core/dist/kfc
+      if (withApp) runPnpm('build:app'); // webpack → framework/app/dist/app
     } catch (e) {
       fail('构建阶段', e.message);
       return summarize(); // 构建失败直接收尾,不再断言半成品

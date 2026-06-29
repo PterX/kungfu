@@ -63,7 +63,7 @@
           ],
           "action": [
             "python",
-            "<(gyp_dir)/gyp_action_yarn.py",
+            "<(gyp_dir)/gyp_action_pnpm.py",
             "configure"
           ]
         }
@@ -86,7 +86,7 @@
           ],
           "action": [
             "python",
-            "<(gyp_dir)/gyp_action_yarn.py",
+            "<(gyp_dir)/gyp_action_pnpm.py",
             "compile"
           ]
         }
@@ -109,7 +109,7 @@
           ],
           "action": [
             "python",
-            "<(gyp_dir)/gyp_action_yarn.py",
+            "<(gyp_dir)/gyp_action_pnpm.py",
             "link-node"
           ]
         }
@@ -134,7 +134,7 @@
           ],
           "action": [
             "python",
-            "<(gyp_dir)/gyp_action_yarn.py",
+            "<(gyp_dir)/gyp_action_pnpm.py",
             "wheel"
           ]
         }
@@ -157,7 +157,7 @@
           ],
           "action": [
             "python",
-            "<(gyp_dir)/gyp_action_yarn.py",
+            "<(gyp_dir)/gyp_action_pnpm.py",
             "freeze"
           ]
         }

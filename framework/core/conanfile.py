@@ -347,14 +347,25 @@ class KungfuCoreConan(ConanFile):
             for env_key in list(os.environ)
             if env_key.upper().startswith("NPM_")
         ]  # workaround for msvc
-        self.__run_yarn(*self.__build_cmake_js_cmd(build_type, cmd, runtime, toolset))
+        self.__run_node_bin(*self.__build_cmake_js_cmd(build_type, cmd, runtime, toolset))
         self.output.success(f"cmake-js {cmd} done")
 
-    def __run_yarn(self, *args):
-        yarn = "yarn" if _detected_os() != "Windows" else "yarn.cmd"
-        rc = subprocess.Popen([shutil.which(yarn), *args]).wait()
+    def __run_node_bin(self, *args):
+        # pnpm exec 保持调用方 cwd（conan build() 的 cwd 是 build 文件夹），而 yarn 旧行为是从最近
+        # 的 package.json 目录运行。显式把 cwd 钉到 recipe/包根目录，让 cmake-js 找到 CMakeLists.txt。
+        pnpm = "pnpm" if _detected_os() != "Windows" else "pnpm.cmd"
+        rc = subprocess.Popen(
+            [shutil.which(pnpm), "exec", *args], cwd=self.conanfile_dir
+        ).wait()
         if rc != 0:
-            self.output.error(f"yarn {args} failed with return code {rc}")
+            self.output.error(f"pnpm exec {args} failed with return code {rc}")
+            sys.exit(rc)
+
+    def __run_pnpm_script(self, *args):
+        pnpm = "pnpm" if _detected_os() != "Windows" else "pnpm.cmd"
+        rc = subprocess.Popen([shutil.which(pnpm), "run", *args]).wait()
+        if rc != 0:
+            self.output.error(f"pnpm run {args} failed with return code {rc}")
             sys.exit(rc)
 
     def __parallel_jobs(self):
@@ -460,7 +471,7 @@ class KungfuCoreConan(ConanFile):
         cwd = os.getcwd()
         try:
             os.chdir(path.pardir)
-            self.__run_yarn(
+            self.__run_pnpm_script(
                 "nuitka",
                 "--output-dir=build",
                 path.join("src", "python", "kfc.py"),

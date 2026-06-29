@@ -1,0 +1,103 @@
+# Contributing to Kungfu
+
+Thanks for your interest in Kungfu. This guide covers how to build the project,
+the coding conventions, and how changes are proposed and released.
+
+## Prerequisites
+
+- A C++20 toolchain and [CMake](https://cmake.org/) (>= 3.15)
+- [Conan 2](https://conan.io/) for C++ dependencies
+- [fnm](https://github.com/Schniz/fnm) (Node is pinned via `.node-version`)
+- [uv](https://docs.astral.sh/uv/) for the Python environment
+
+Node, the package manager (Yarn via Corepack), and the Python interpreter are
+resolved automatically once `fnm` and `uv` are installed.
+
+## Repository layout
+
+Kungfu is a Yarn-workspaces monorepo. The main areas:
+
+- `framework/core` — the C++ core (`longfist` type system, `yijinjing` journal
+  runtime) plus its Python and Node (N-API) bindings, packaged as
+  `@kungfu-trader/kungfu-core`. Build orchestration lives in
+  `framework/core/.gyp/`.
+- `framework/app`, `framework/api` — the desktop application framework and the
+  JS/TS API surface.
+- `extensions/*` — optional extensions.
+- `developer/*` — development tooling.
+
+Three command-line entry points, kept forward-compatible:
+
+- `kfc` — the runtime CLI (`kfc --version`, journal subcommands, …).
+- `kungfu` — reserved for a future end-user CLI.
+- `./kungfu-code` — the development/build orchestrator used while working on the
+  repo (see below).
+
+## Toolchain & build
+
+The repo pins its Node version via [`fnm`](https://github.com/Schniz/fnm) and a
+checked-in `.node-version`, and manages the Python environment with
+[`uv`](https://docs.astral.sh/uv/). You only need to install `fnm` once; Node,
+the package manager, and the Python interpreter are then resolved automatically.
+
+```sh
+# one-time: install fnm (e.g. `brew install fnm`, `winget install Schniz.fnm`)
+
+git clone git@github.com:kungfu-systems/kungfu.git
+cd kungfu
+
+./kungfu-code sync          # install JS dependencies (frozen lockfile)
+./kungfu-code build         # build all workspaces (C++ core + bindings + app)
+./kungfu-code freeze        # produce the standalone kfc bundle
+./kungfu-code build:app     # build the desktop app bundle
+./kungfu-code app           # launch the desktop app
+```
+
+`./kungfu-code <task>` runs `<task>` under the pinned Node toolchain — it is a
+thin wrapper, so any Yarn task works (`./kungfu-code build:core`, etc.).
+
+> Node, packages, and Electron binaries are resolved through the standard
+> `FNM_NODE_DIST_MIRROR`, `COREPACK_NPM_REGISTRY`, and `ELECTRON_MIRROR`
+> environment variables; set these to point at a specific mirror if needed.
+
+## Code style
+
+Formatting and linting are part of the pre-build flow and CI:
+
+- **C++** — `clang-format` (config in `.clang-format`).
+- **Python** — [`ruff`](https://docs.astral.sh/ruff/) for both formatting
+  (`ruff format`) and linting (`ruff check`). Config in
+  `framework/core/pyproject.toml` under `[tool.ruff]`.
+- **JavaScript / TypeScript** — Prettier / ESLint (per workspace).
+
+Run formatting before committing:
+
+```sh
+./kungfu-code format        # all languages
+```
+
+## Commit messages
+
+- Write commit messages and pull request descriptions in **English**.
+- Follow lightweight [Conventional Commits](https://www.conventionalcommits.org/)
+  (`type(scope): summary`), e.g. `fix(core): handle empty journal page`.
+
+## Branches, pull requests & releases
+
+Development happens on channel branches per version line, promoted by pull
+request:
+
+```
+dev/<major>/<version>  →  alpha/<major>/<version>  →  release/<major>/<version>
+```
+
+- Open pull requests against the relevant `dev/*` branch.
+- Merging into `alpha/*` and `release/*` triggers the version-bump and release
+  workflows, which tag the release and move the moving major tag.
+- See [`docs/version-release-design.md`](docs/version-release-design.md) for the
+  rationale behind the versioning and release mechanism.
+
+## License
+
+By contributing you agree that your contributions are licensed under the
+project's [Apache License 2.0](LICENSE).

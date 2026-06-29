@@ -1,6 +1,6 @@
 # Version & Release Mechanism — Design Rationale
 
-> Audience: maintainers (human or AI) evaluating, extending, or considering replacing
+> Audience: maintainers evaluating, extending, or considering replacing
 > this mechanism. Read this before concluding it is "legacy scaffolding".
 
 ## Why this document exists

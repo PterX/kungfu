@@ -1,14 +1,14 @@
 const fse = require('fs-extra');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { shell } = require('@kungfu-trader/kungfu-core');
+const { shell } = require('@kungfu-tech/core');
 const { customResolve } = require('../utils');
 const {
   getAppDir,
   getCliDir,
   getSdkDir,
   getJsApi,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 const ensureDir = (cwd, ...dirNames) => {
   const targetDir = path.join(cwd, ...dirNames);
@@ -44,13 +44,13 @@ exports.build = () => {
 
 exports.package = async () => {
   const buildDir = ensureDir(process.cwd().toString(), 'build');
-  await require('@kungfu-trader/kungfu-app').electronBuild(buildDir);
+  await require('@kungfu-tech/gui').electronBuild(buildDir);
 };
 
 exports.dev = async (withWebpack) => {
   shell.verifyElectron();
   try {
-    await require('@kungfu-trader/kungfu-app').devRun(
+    await require('@kungfu-tech/gui').devRun(
       ensureDir(process.cwd().toString(), 'dist'),
       'app',
       withWebpack,
@@ -61,7 +61,7 @@ exports.dev = async (withWebpack) => {
 };
 
 exports.cli = () => {
-  const cliPath = customResolve('@kungfu-trader/kungfu-cli');
+  const cliPath = customResolve('@kungfu-tech/tui');
   const runExecutable = path.join(cliPath, '..', 'dev', 'cli.dev.js');
   spawnSync('node', [runExecutable, ...process.argv.slice(4)], {
     stdio: 'inherit',
@@ -70,5 +70,5 @@ exports.cli = () => {
 };
 
 exports.upgrade = () => {
-  shell.run('yarn upgrade', ['--scope', '@kungfu-trader']);
+  shell.run('pnpm', ['update', '@kungfu-tech/*']);
 };

@@ -75,12 +75,12 @@ export const getMainRepoVersionInDependencies = (
   const dependenciesKeys = Object.keys(dependencies);
   if (!dependenciesKeys.length) return '';
   const mainRepoDependencies = [
-    '@kungfu-trader/kungfu-js-api',
-    '@kungfu-trader/kungfu-app',
-    '@kungfu-trader/kungfu-cli',
-    '@kungfu-trader/kungfu-core',
-    '@kungfu-trader/kungfu-toolchain',
-    '@kungfu-trader/kungfu-sdk',
+    '@kungfu-tech/api',
+    '@kungfu-tech/gui',
+    '@kungfu-tech/tui',
+    '@kungfu-tech/core',
+    '@kungfu-tech/toolchain',
+    '@kungfu-tech/sdk',
   ];
   const targetMainRepoDepKey = dependenciesKeys.find((item) =>
     mainRepoDependencies.includes(item),
@@ -101,7 +101,7 @@ export const dealKfExtType = (jsonConfig: {
   }
 
   if (name) {
-    if (name.startsWith?.('@kungfu-trader/kfx')) {
+    if (name.startsWith?.('@kungfu-tech/kfx')) {
       const nameStrArr = name.split('/')[1].split('-');
       if (nameStrArr.length >= 3) {
         const extType = nameStrArr[1] as KfExtTypeEnum;
@@ -109,7 +109,7 @@ export const dealKfExtType = (jsonConfig: {
       }
     }
 
-    if (name.startsWith?.('@kungfu-trader/examples')) {
+    if (name.startsWith?.('@kungfu-tech/examples')) {
       return KfExtTypeEnum.Example;
     }
   }

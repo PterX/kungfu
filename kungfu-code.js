@@ -4,7 +4,7 @@
 // kungfu-code.js — kungfu-code 起手式的「富子集」(L2)。
 //
 // 三层子集模型:
-//   L1  kungfu-code(sh)        bootstrap 简单命令:load env / 检 fnm+uv / 钉 node / 跑 yarn,
+//   L1  kungfu-code(sh)        bootstrap 简单命令:load env / 检 fnm+uv / 钉 node / 跑 pnpm,
 //                              并把富子命令(proxy/config…)委派给本文件。
 //   L2  kungfu-code.js(node)   fnm 装好后可用的富命令(node 实现,纯 builtins,无依赖)。
 //                              当前:本地缓存/镜像代理配置管理(proxy)。

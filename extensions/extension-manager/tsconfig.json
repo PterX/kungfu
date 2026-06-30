@@ -24,11 +24,11 @@
     "types": [],
     "typeRoots": [],
     "paths": {
-      "@kungfu-trader/kungfu-js-api/*": [
-        "../../node_modules/@kungfu-trader/kungfu-js-api/src/*"
+      "@kungfu-tech/api/*": [
+        "../../node_modules/@kungfu-tech/api/src/*"
       ],
-      "@kungfu-trader/kungfu-app/*": [
-        "../../node_modules/@kungfu-trader/kungfu-app/*"
+      "@kungfu-tech/gui/*": [
+        "../../node_modules/@kungfu-tech/gui/*"
       ],
 
       "pinia": ["../../node_modules/pinia"],
@@ -41,7 +41,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "../../node_modules/@kungfu-trader/kungfu-js-api/src/**/*.ts",
-    "../../node_modules/@kungfu-trader/kungfu-app/src/**/*.ts"
+    "../../node_modules/@kungfu-tech/api/src/**/*.ts",
+    "../../node_modules/@kungfu-tech/gui/src/**/*.ts"
   ]
 }

@@ -4,18 +4,18 @@ import {
   KF_CONFIG_DIR,
   KF_HOME,
   KF_RUNTIME_DIR,
-} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+} from '@kungfu-tech/api/config/pathConfig';
+import { readRootPackageJsonSync } from '@kungfu-tech/api/utils/fileUtils';
 import {
   booleanProcessEnv,
   dealSpaceInPath,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+} from '@kungfu-tech/api/utils/commonUtils';
+import { getGlobalStorage } from '@kungfu-tech/api/utils/globalStorage';
 import {
   KUNGFU_SAFE_CPUS_NUM,
   getCpusNum,
-} from '@kungfu-trader/kungfu-js-api/utils/osUtils';
-import { getKfGlobalSettingsValue } from '@kungfu-trader/kungfu-js-api/config/globalSettings';
+} from '@kungfu-tech/api/utils/osUtils';
+import { getKfGlobalSettingsValue } from '@kungfu-tech/api/config/globalSettings';
 
 // 此文件为所有需要预置在进程时携带的环境变量
 // 注意：由于前端 app 的渲染进程是由 main 进程启动，c++ 中通过 std::getenv 的方式只能获取进程启动时就带有的 env

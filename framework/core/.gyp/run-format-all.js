@@ -4,7 +4,7 @@ const { shell } = require('../lib');
 
 function main() {
   const tryFormat = (lang) => {
-    shell.run('yarn', ['-s', `format:${lang}`], false, { silent: true });
+    shell.run('pnpm', ['run', `format:${lang}`], false, { silent: true });
   };
   try {
     tryFormat('cpp');

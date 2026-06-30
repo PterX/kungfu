@@ -54,19 +54,21 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
             scheduled = []
             while self._scheduled:
                 handle = heapq.heappop(self._scheduled)
-                if handle._when < self._hero.now():
+                if handle._when <= self._hero.now():
                     handle._scheduled = False
                     ready.append(handle)
                 else:
                     heapq.heappush(scheduled, handle)
             self._scheduled = scheduled
 
+        # 一次性执行本轮就绪 handle。不再用单槽 self._current + 无条件重新入队:
+        # asyncio Task/Future 自身通过 call_soon(-> self._immediate) 与 future done-callback
+        # 安排续跑;事件循环重复入队已跑过的 handle 会与该自调度冲突,对已完成 Task 重复
+        # __step 触发 InvalidStateError(见 tests/python/test_coloop_concurrency.py)。
         while ready:
-            self._current = ready.popleft()
-            if not self._current._cancelled:
-                self._current._run()
-            if self._current:
-                self._immediate.append(self._current)
+            handle = ready.popleft()
+            if not handle._cancelled:
+                handle._run()
 
         if self._exception is not None:
             raise self._exception
@@ -118,7 +120,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         self._exception = context.get("exception", None)
 
     def call_soon(self, callback, *args, context=None):
-        handle = asyncio.Handle(callback, args, self)
+        handle = asyncio.Handle(callback, args, self, context)
         self._immediate.append(handle)
         return handle
 
@@ -126,13 +128,13 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         if delay < 0:
             raise Exception("Can't schedule in the past")
         return self.call_at(
-            self._hero.now() + delay * int(1e9), callback, args, context=context
+            self._hero.now() + delay * int(1e9), callback, *args, context=context
         )
 
     def call_at(self, when, callback, *args, context=None):
         if when < self._hero.now():
             raise Exception("Can't schedule in the past")
-        handle = asyncio.TimerHandle(when, callback, args, self)
+        handle = asyncio.TimerHandle(when, callback, args, self, context)
         heapq.heappush(self._scheduled, handle)
         handle._scheduled = True
         return handle
@@ -188,7 +190,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         server_hostname=None,
         ssl_handshake_timeout=None,
         happy_eyeballs_delay=None,
-        interleave=None
+        interleave=None,
     ):
         raise NotImplementedError
 
@@ -206,7 +208,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         reuse_address=None,
         reuse_port=None,
         ssl_handshake_timeout=None,
-        start_serving=True
+        start_serving=True,
     ):
         raise NotImplementedError
 
@@ -218,7 +220,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         ssl=None,
         sock=None,
         server_hostname=None,
-        ssl_handshake_timeout=None
+        ssl_handshake_timeout=None,
     ):
         raise NotImplementedError
 
@@ -231,7 +233,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         backlog=100,
         ssl=None,
         ssl_handshake_timeout=None,
-        start_serving=True
+        start_serving=True,
     ):
         raise NotImplementedError
 
@@ -254,7 +256,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         *,
         server_side=False,
         server_hostname=None,
-        ssl_handshake_timeout=None
+        ssl_handshake_timeout=None,
     ):
         raise NotImplementedError
 
@@ -270,7 +272,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         reuse_address=None,
         reuse_port=None,
         allow_broadcast=None,
-        sock=None
+        sock=None,
     ):
         raise NotImplementedError
 
@@ -288,7 +290,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        **kwargs
+        **kwargs,
     ):
         raise NotImplementedError
 
@@ -299,7 +301,7 @@ class KungfuEventLoop(asyncio.AbstractEventLoop):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        **kwargs
+        **kwargs,
     ):
         raise NotImplementedError
 

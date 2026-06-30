@@ -1,13 +1,13 @@
 'use strict';
 
-const toolkit = require('@kungfu-trader/kungfu-js-api/toolkit');
+const toolkit = require('@kungfu-tech/api/toolkit');
 const path = require('path');
 const { merge } = require('webpack-merge');
 const CopyPlugin = require('copy-webpack-plugin');
 const {
   getWebpackExternals,
   getSdkDefaultDistDir,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 const webpack = require('webpack');
 
 const webpackConfig = (argv) => {
@@ -33,8 +33,8 @@ const webpackConfig = (argv) => {
     },
     resolve: {
       alias: {
-        '@kungfu-trader/kungfu-js-api': path.join(
-          require.resolve('@kungfu-trader/kungfu-js-api'),
+        '@kungfu-tech/api': path.join(
+          require.resolve('@kungfu-tech/api'),
           '../../',
         ),
       },

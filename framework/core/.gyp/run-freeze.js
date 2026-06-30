@@ -58,7 +58,7 @@ function ensureBuildInfo(bt) {
 }
 
 // app/electron 侧 node native：kfc python 进程不 import，Nuitka 不带，需从 build/<type> 补拷。
-// app 栈通过 @kungfu-trader/kungfu-core/dist/kfc/<x> 解析它们（getKfcDir / webpack require.resolve）。
+// app 栈通过 @kungfu-tech/core/dist/kfc/<x> 解析它们（getKfcDir / webpack require.resolve）。
 const APP_NATIVE = [
   'drone.node',
   'kungfu_node.node',

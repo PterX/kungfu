@@ -1,4 +1,4 @@
-const { prebuilt } = require('@kungfu-trader/kungfu-core');
+const { prebuilt } = require('@kungfu-tech/core');
 
 module.exports = {
   flags: 'install',

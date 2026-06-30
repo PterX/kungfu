@@ -1,7 +1,6 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-import importlib
 import inspect
 import functools
 import kungfu
@@ -16,6 +15,7 @@ from kungfu.wingchun import constants
 from kungfu.wingchun import utils
 from kungfu.wingchun.constants import *
 from kungfu.wingchun.streamdatabatcher import PyStreamDataBatcher
+from kungfu.wingchun.async_order import AsyncOrderAction, OrderFutureRegistry
 
 lf = kungfu.__binding__.longfist
 wc = kungfu.__binding__.wingchun
@@ -46,6 +46,7 @@ class Strategy(wc.Strategy):
         ctx.utils = utils
         self.ctx = ctx
         self.ctx.books = {}
+        self._order_registry = OrderFutureRegistry()
         self.__init_strategy(ctx.path)
 
     def __bind_on_func(self, func_name):
@@ -64,6 +65,26 @@ class Strategy(wc.Strategy):
                 func(self.ctx, lf_data, location, dest_id)
 
         setattr(self, func_name, proxy_on_func)
+
+    def __bind_order_resolve(self):
+        # framework 包一层 on_order:先 resolve 协程下单 await(await ctx.buy/sell)的等待者,
+        # 再转发用户 on_order(若有)。保存 __bind_on_func 已绑定的用户 proxy 做转发。
+        # 即使用户未定义 on_order 也能事件驱动 resolve。lf_data 是 longfist Order,
+        # 取 order_id/status 是 binding 依赖;取不到则安全跳过,不影响同步路径。
+        user_proxy = getattr(self, "on_order", None)
+
+        def proxy_on_order(wc_context, lf_data, location, dest_id):
+            try:
+                order_id = getattr(lf_data, "order_id", None)
+                status = getattr(lf_data, "status", None)
+                if order_id is not None and status is not None:
+                    self._order_registry.resolve(order_id, status, lf_data)
+            except Exception:
+                pass
+            if user_proxy is not None:
+                user_proxy(wc_context, lf_data, location, dest_id)
+
+        self.on_order = proxy_on_order
 
     def __init_strategy(self, path):
         strategy_dir = os.path.dirname(path)
@@ -96,6 +117,8 @@ class Strategy(wc.Strategy):
             "on_req_history_trade_error",
         ]:
             self.__bind_on_func(func_name)
+
+        self.__bind_order_resolve()
 
         self._on_deregister = getattr(
             self._module, "on_deregister", lambda ctx, deregister, location: None
@@ -197,6 +220,7 @@ class Strategy(wc.Strategy):
         volume,
         price_type=PriceType.Any,
         status_set=None,
+        timeout_ns=None,
     ):
         if status_set is None:
             status_set = [
@@ -215,7 +239,20 @@ class Strategy(wc.Strategy):
             price_type,
             side,
         )
-        await AsyncOrderAction(self.ctx, order_id, status_set)
+        # 快速路径:订单可能下单即已在 book 且终态(极快成交/同步返回),避免错过事件后永久等待。
+        cur_order = (
+            self.ctx.book.orders[order_id] if order_id in self.ctx.book.orders else None
+        )
+        cur_status = cur_order.status if cur_order is not None else None
+        await AsyncOrderAction(
+            self.ctx.loop,
+            self._order_registry,
+            order_id,
+            status_set,
+            timeout_ns=timeout_ns,
+            current_status=cur_status,
+            current_order=cur_order,
+        )
         return self.ctx.book.orders[order_id]
 
     def pre_start(self, wc_context):
@@ -301,31 +338,3 @@ class Strategy(wc.Strategy):
         self.__call_proxy(
             self._on_custom_data, self.ctx, msg_type, data, length, location, dest
         )
-
-
-class AsyncOrderAction:
-    def __init__(self, ctx, order_id, status_set):
-        self.ctx = ctx
-        self.order_id = order_id
-        self.status_set = status_set
-        self.future = ctx.loop.create_future()
-
-    def __await__(self):
-        return AsyncOrderActionIter(self.ctx, self)
-
-
-class AsyncOrderActionIter:
-    def __init__(self, ctx, action):
-        self.ctx = ctx
-        self.action = action
-        self.book = ctx.book
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.action.order_id in self.book.orders:
-            order = self.book.orders[self.action.order_id]
-            if order.status in self.action.status_set:
-                raise StopIteration
-        return next(iter(self.action.future))

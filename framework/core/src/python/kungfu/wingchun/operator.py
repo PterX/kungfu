@@ -3,12 +3,10 @@
 import asyncio
 import importlib.util
 import inspect
-import functools
 import kungfu
 import os
 import sys
 
-from kungfu.console.utils import safe_import
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing import journal as kfj
 from kungfu.wingchun import constants

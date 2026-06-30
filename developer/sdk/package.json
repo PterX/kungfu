@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kungfu-sdk",
+  "name": "@kungfu-tech/sdk",
   "author": {
     "name": "Kungfu Trader",
     "email": "info@kungfu.link"
@@ -12,7 +12,8 @@
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "bin": {
     "kfs": "src/kfs.js"
@@ -28,20 +29,20 @@
     "kfs": "node src/kfs.js",
     "build": "node lib/webpack/build.js && node lib/script/index.js",
     "clean": "kfs extension clean",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
-    "package": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('package')\"",
+    "install": "node -e \"require('@kungfu-tech/core').prebuilt('install')\"",
+    "package": "node -e \"require('@kungfu-tech/core').prebuilt('package')\"",
     "dev": "node lib/dev/run.js",
     "format": "prettier -l -w --config ../../framework/core/.prettierrc.js ."
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-app": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-cli": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-core": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-js-api": "^4.0.0-alpha.0",
+    "@kungfu-tech/gui": "workspace:*",
+    "@kungfu-tech/tui": "workspace:*",
+    "@kungfu-tech/core": "workspace:*",
+    "@kungfu-tech/api": "workspace:*",
     "@mapbox/node-pre-gyp": "^1.0.0"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-toolchain": "^4.0.0-alpha.0",
+    "@kungfu-tech/toolchain": "workspace:*",
     "ignore": "^5.3.1",
     "inquirer": "^8.2.4"
   }

@@ -1,0 +1,17 @@
+packages:
+  - "framework/*"
+  - "developer/*"
+  - "extensions/*"
+  - "examples/*"
+  - "artifact"
+allowBuilds:
+  '@biomejs/biome': true
+  '@kungfu-trader/libnode': true
+  core-js: true
+  esbuild: true
+  nx: true
+  vue-demi: true
+overrides:
+  # node-gyp 9.x cannot detect Visual Studio 2026; 13.x adds VS2026 support, which
+  # the Windows build needs to match the prebuilt (MSVC 19.5) conan dependencies.
+  node-gyp: ^13.0.0

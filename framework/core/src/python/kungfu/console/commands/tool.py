@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import os
 
-from kungfu.console.commands import kfc, PrioritizedCommandGroup
+from kungfu.console.commands import kfc
 from kungfu.yijinjing import time as kft
 from kungfu.yijinjing.log import find_logger
 from kungfu.yijinjing import journal as kfj

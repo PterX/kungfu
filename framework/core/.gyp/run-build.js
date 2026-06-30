@@ -9,7 +9,7 @@ function cpVsDependencies() {
   const isWin = process.platform === 'win32';
   if (!isWin) return;
   core_dir = path.dirname(
-    require.resolve('@kungfu-trader/kungfu-core/package.json'),
+    require.resolve('@kungfu-tech/core/package.json'),
   );
   vs_dir = path.join(core_dir, '.deps', 'vs');
   kfc_dist = path.join(core_dir, 'dist', 'kfc');

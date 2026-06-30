@@ -103,7 +103,7 @@ def addpackage(sitedir, name, known_paths):
                     continue
                 line = line.rstrip()
                 dir, dircase = makepath(sitedir, line)
-                if not dircase in known_paths and os.path.exists(dir):
+                if dircase not in known_paths and os.path.exists(dir):
                     sys.path.append(dir)
                     known_paths.add(dircase)
             except Exception:
@@ -132,7 +132,7 @@ def addsitedir(sitedir, known_paths=None):
     else:
         reset = False
     sitedir, sitedircase = makepath(sitedir)
-    if not sitedircase in known_paths:
+    if sitedircase not in known_paths:
         sys.path.append(sitedir)  # Add path component
         known_paths.add(sitedircase)
     try:
@@ -364,7 +364,7 @@ def enablerlcompleter():
 
         try:
             import readline
-            import rlcompleter
+            import rlcompleter  # noqa: F401  (readline 补全副作用)
         except ImportError:
             return
 
@@ -467,7 +467,7 @@ def execsitecustomize():
     """Run custom site specific code, if available."""
     try:
         try:
-            import sitecustomize
+            import sitecustomize  # noqa: F401  (site 定制副作用)
         except ImportError as exc:
             if exc.name == "sitecustomize":
                 pass
@@ -487,7 +487,7 @@ def execusercustomize():
     """Run custom user specific code, if available."""
     try:
         try:
-            import usercustomize
+            import usercustomize  # noqa: F401  (user 定制副作用)
         except ImportError as exc:
             if exc.name == "usercustomize":
                 pass

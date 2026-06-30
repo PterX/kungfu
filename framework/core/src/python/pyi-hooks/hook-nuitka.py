@@ -2,7 +2,6 @@
 
 import PyInstaller
 from PyInstaller.utils.hooks import collect_data_files
-from PyInstaller.utils.hooks import logger
 
 from os.path import (
     abspath,

@@ -15,7 +15,7 @@ authors = [{ name = "Kungfu Trader", email = "info@kungfu.link" }]
 requires-python = ">=3.13,<3.14"
 dependencies = [
     # Compiler
-    "black~=24.10.0",
+    "ruff~=0.15.0",
     "nuitka~=4.1.0",
     "pdm~=2.21.0",
     "pdm-pep517~=1.1.0",
@@ -77,6 +77,26 @@ repository = "https://github.com/kungfu-trader/kungfu.git"
 
 [dependency-groups]
 dev = ["pyinstaller~=6.11.0"]
+
+# python 预检：ruff（S1 = ruff format，替代 black；line-length 88 对齐 black 默认风格）。
+# ruff check（lint）留 S2 评估后再启用，当前不开 lint。
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+# 不格式化 vendored 依赖（.deps/* 如 pybind11）；black 当年用 `.` 误格式化过它们，此处收窄回正确范围。
+extend-exclude = [".deps"]
+
+# S2：引入 lint 门（之前无 python linter）。curated 采纳——
+# select E/F（pycodestyle+pyflakes）；忽略 F403/F405（项目有意用 `from x import *`）；
+# __init__.py 的 F401 例外（re-export 用途）。
+[tool.ruff.lint]
+select = ["E", "F"]
+# E501(行长)交给 formatter，不 lint（formatter 已折 88，剩余多为长字符串/注释/URL 无法折）；
+# F403/F405 = 项目有意用 `from x import *`。
+ignore = ["E501", "F403", "F405"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
 
 [tool.uv]
 # 钉 uv 自管 standalone CPython(而非系统/发行版 python)：跨机一致,且根治 nuitka 在

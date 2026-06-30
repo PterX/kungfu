@@ -1,4 +1,4 @@
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+import { kfLogger } from '@kungfu-tech/api/utils/logUtils';
 
 type Callback = (...args: unknown[]) => Promise<void>;
 type ClearRegister = { clear: () => boolean };

@@ -44,15 +44,15 @@ import { Observable } from 'rxjs';
 import {
   booleanProcessEnv,
   ifKfDev,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+} from '@kungfu-tech/api/utils/commonUtils';
 import {
   buildMasterLocation,
   buildLedgerLocation,
   buildMasterProcessId,
   buildLedgerProcessId,
   buildDzxyProcessId,
-} from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+} from '@kungfu-tech/api/utils/systemUtils';
+import VueI18n from '@kungfu-tech/api/language';
 import { Pm2StartOptions } from '../typings/global';
 import { KfHookKeeper } from '../hooks';
 import { getAppRuntimeDirName } from './fileUtils';

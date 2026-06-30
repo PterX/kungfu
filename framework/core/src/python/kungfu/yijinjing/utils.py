@@ -3,7 +3,6 @@
 import glob
 import os
 import platform
-from collections import deque
 
 
 def prune_layout_files(base_dir, layout, mode):
@@ -15,7 +14,7 @@ def prune_layout_files(base_dir, layout, mode):
             continue
         try:
             os.remove(file)
-        except:
+        except Exception:
             continue
 
 
@@ -27,7 +26,7 @@ def prue_layout_dirs_before_timestamp(base_dir, layout, mode, timestamp):
         if created_at < timestamp or modify_at < timestamp:
             try:
                 os.remove(file)
-            except:
+            except Exception:
                 continue
 
 

@@ -1,14 +1,14 @@
 import path from 'path';
 import fse from 'fs-extra';
 
-import { KfExtTypeEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { getKfExtConfigList } from '@kungfu-trader/kungfu-js-api/utils/extUtils';
+import { KfExtTypeEnum } from '@kungfu-tech/api/typings/enums';
+import { getKfExtConfigList } from '@kungfu-tech/api/utils/extUtils';
 import {
   KF_CONFIG_DIR,
   KF_HOME,
-} from '@kungfu-trader/kungfu-js-api/config/pathConfig';
-import { addFileSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
+} from '@kungfu-tech/api/config/pathConfig';
+import { addFileSync } from '@kungfu-tech/api/utils/fileUtils';
+import { kfLogger } from '@kungfu-tech/api/utils/logUtils';
 
 import { AutoAddConfigs } from '../typings';
 

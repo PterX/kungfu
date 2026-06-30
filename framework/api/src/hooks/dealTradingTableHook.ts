@@ -1,9 +1,6 @@
 import { kfLogger } from '../utils/logUtils';
-import {
-  VTable,
-  IVTableColumn,
-} from '@kungfu-trader/kungfu-app/src/renderer/assets/configs/vTable';
-import { generateLocationCombinations } from '@kungfu-trader/kungfu-js-api/hooks/hookUtils';
+import { IVTableColumn, VTableColumnDefine } from '../typings/vTable';
+import { generateLocationCombinations } from '@kungfu-tech/api/hooks/hookUtils';
 
 export interface KfTradingDataTableHeaderConfig {
   name: string;
@@ -57,7 +54,7 @@ export type TradingTableTypes =
 export type TradingTableColumnsTypes =
   | AntTableColumn
   | KfTradingDataTableHeaderConfig
-  | VTable.ColumnDefine
+  | VTableColumnDefine
   | IVTableColumn;
 
 export type TradingDataTypes =

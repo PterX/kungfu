@@ -1,4 +1,4 @@
-const sdk = require('@kungfu-trader/kungfu-sdk');
+const sdk = require('@kungfu-tech/sdk');
 const treeify = require('treeify');
 
 module.exports = {

@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kungfu-workspaces",
+  "name": "@kungfu-tech/workspaces",
   "homepage": "https://www.kungfu-trader.com",
   "author": {
     "name": "Kungfu Trader",
@@ -8,7 +8,7 @@
   "description": "Kungfu Trader Workspaces",
   "license": "Apache-2.0",
   "private": true,
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "pnpm@11.7.0",
   "workspaces": {
     "packages": [
       "framework/*",
@@ -19,28 +19,28 @@
     ]
   },
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "pnpm exec patch-package",
     "foreach": "wsrun --serial --exclude-missing --fast-exit",
-    "foreach:extensions": "wsrun --serial --package '@kungfu-trader/kfx-*' --exclude-missing --fast-exit",
+    "foreach:extensions": "wsrun --serial --package '@kungfu-tech/kfx-*' --exclude-missing --fast-exit",
     "format": "wsrun --serial --exclude-missing format",
     "prebuild": "node .prebuild.js",
-    "build": "yarn foreach build",
-    "build:extensions": "yarn foreach:extensions build",
-    "clean": "yarn foreach clean",
-    "clean:extensions": "yarn foreach:extensions clean",
-    "package": "yarn foreach package",
-    "rebuild": "yarn clean && yarn build",
-    "rebuild:extensions": "yarn clean:extensions && yarn build:extensions",
-    "sync": "yarn install --audit --frozen-lockfile",
-    "app": "yarn workspace @kungfu-trader/artifact-kungfu app",
-    "cli": "yarn workspace @kungfu-trader/artifact-kungfu cli",
-    "dev": "yarn workspace @kungfu-trader/artifact-kungfu dev",
-    "build:app": "yarn workspace @kungfu-trader/kungfu-app build",
-    "build:cli": "yarn workspace @kungfu-trader/kungfu-cli build",
-    "build:core": "yarn workspace @kungfu-trader/kungfu-core build",
-    "freeze": "yarn workspace @kungfu-trader/kungfu-core freeze",
-    "rebuild:core": "yarn workspace @kungfu-trader/kungfu-core rebuild",
-    "package:app": "yarn workspace @kungfu-trader/artifact-kungfu package",
+    "build": "pnpm run foreach build",
+    "build:extensions": "pnpm run foreach:extensions build",
+    "clean": "pnpm run foreach clean",
+    "clean:extensions": "pnpm run foreach:extensions clean",
+    "package": "pnpm run foreach package",
+    "rebuild": "pnpm run clean && pnpm run build",
+    "rebuild:extensions": "pnpm run clean:extensions && pnpm run build:extensions",
+    "sync": "pnpm install --frozen-lockfile",
+    "app": "pnpm --filter @kungfu-tech/artifact-kungfu run app",
+    "cli": "pnpm --filter @kungfu-tech/artifact-kungfu run cli",
+    "dev": "pnpm --filter @kungfu-tech/artifact-kungfu run dev",
+    "build:app": "pnpm --filter @kungfu-tech/gui run build",
+    "build:cli": "pnpm --filter @kungfu-tech/tui run build",
+    "build:core": "pnpm --filter @kungfu-tech/core run build",
+    "freeze": "pnpm --filter @kungfu-tech/core run freeze",
+    "rebuild:core": "pnpm --filter @kungfu-tech/core run rebuild",
+    "package:app": "pnpm --filter @kungfu-tech/artifact-kungfu run package",
     "verify": "node verify.js"
   },
   "dependencies": {
@@ -49,28 +49,7 @@
     "lerna": "^9.0.0",
     "wsrun": "^5.2.0"
   },
-  "resolutions": {
-    "vue": "~3.2.0",
-    "pinia": "~2.0.0",
-    "prettier": "~2.7.0",
-    "ansi-regex": "^5.0.1",
-    "async": "^3.2.2",
-    "axios": "^0.21.1",
-    "core-js": "^3.20.0",
-    "highlight.js": "^11.0.0",
-    "lodash.merge": "^4.6.2",
-    "node-fetch": "^2.6.7",
-    "node-forge": "^1.3.0",
-    "node-gyp": "^13.0.0",
-    "rxjs": "^7.5.0",
-    "dayjs": "^1.10.7",
-    "minimist": "^1.2.6",
-    "uuid": "^7.0.0",
-    "fs-extra": "^10.1.0",
-    "nanopop": "~2.3.0",
-    "@vue/babel-plugin-jsx": "~1.1.0",
-    "@vue/compiler-sfc": "~3.2.4",
-    "@vueuse/core": ">=10.9.0 <10.10.0",
-    "@vercel/webpack-asset-relocator-loader": "<1.7.4"
+  "devDependencies": {
+    "patch-package": "^8.0.0"
   }
 }

@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('path');
-const { shell, utils } = require('@kungfu-trader/kungfu-js-api/toolkit');
+const { shell, utils } = require('@kungfu-tech/api/toolkit');
 
 function start(argv, name) {
   return new Promise((resolve) => {

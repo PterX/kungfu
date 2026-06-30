@@ -7,8 +7,6 @@ from kungfu.serverless.config import BASE_URL
 import click
 from datetime import datetime
 import requests
-import sys
-import logging
 import pandas as pd
 from kungfu.serverless.utils import create_logger
 
@@ -21,7 +19,7 @@ class FeatureStore:
         self.sso = SSO(stage)
         self.logger = create_logger("featurestore")
 
-        if self.sso.introspect_token() != True:
+        if not self.sso.introspect_token():
             self.logger.error("Please Login First, Try kfc login")
             return
 
@@ -74,7 +72,6 @@ class FeatureStore:
 
     def __build_feature_map(self, origin_data):
         feature_config_map = {}
-        platform = sys.platform
         for item in origin_data:
             packages = item.get("packages", None)
             if packages is None:

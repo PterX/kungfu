@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/examples-operator-python",
+  "name": "@kungfu-tech/examples-operator-python",
   "author": "kungfu-trader",
   "version": "4.0.0-alpha.0",
   "description": "KungFu Operator 101 - Python Demo",
@@ -14,6 +14,6 @@
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0"
+    "@kungfu-tech/sdk": "workspace:*"
   }
 }

@@ -1,4 +1,4 @@
-const sdk = require('@kungfu-trader/kungfu-sdk');
+const sdk = require('@kungfu-tech/sdk');
 const { ModeMap, getCurrentMode } = require('../../utils');
 
 const isInProdApp = getCurrentMode() === ModeMap.IN_PROD_APP;

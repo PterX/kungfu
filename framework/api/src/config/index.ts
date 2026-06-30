@@ -5,12 +5,12 @@ import {
   KF_INSTRUMENTS_DEFAULT_PATH,
   KF_INSTRUMENTS_PATH,
 } from './pathConfig';
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
+import { readRootPackageJsonSync } from '@kungfu-tech/api/utils/fileUtils';
 import {
   mergeObject,
   booleanProcessEnv,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
-import { getGlobalStorage } from '@kungfu-trader/kungfu-js-api/utils/globalStorage';
+} from '@kungfu-tech/api/utils/commonUtils';
+import { getGlobalStorage } from '@kungfu-tech/api/utils/globalStorage';
 const globalStorage = getGlobalStorage();
 
 export const initKfConfig = () => {

@@ -1,35 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-const fs = require('fs');
 const path = require('path');
 const { shell } = require('../lib');
 
 function main(argv) {
-  const cwd = process.cwd().toString();
-  const coreDir = path.dirname(__dirname);
-
-  const test = shell.run('black', ['--version'], false);
-  if (test.status === 0) {
-    shell.runAndExit('black', argv);
-  }
-
-  process.chdir(coreDir);
-  // uv 接管 env（S1 阶段 A）：取 uv 项目 venv 的 python，替代 `pipenv --py`。
-  const venvPython = path.resolve(
-    shell.runAndCollect(
-      'uv',
-      ['run', '--frozen', 'python', '-c', 'import sys; print(sys.executable)'],
-      { silent: true },
-    ).out,
-  );
-  const blackBin = process.platform === 'win32' ? 'black.exe' : 'black';
-  const blackPath = path.resolve(path.dirname(venvPython), blackBin);
-
-  if (fs.existsSync(blackPath)) {
-    process.chdir(cwd);
-    shell.run(blackPath, ['--version'], false);
-    shell.run(blackPath, argv, true, { tolerant: true });
-  }
+  // uv 接管 env（承接 buildchain uv 迁移）：经 uv 项目 venv 跑 ruff format。
+  // S1：python 格式器 black→ruff（ruff format 兼容 black，配置见 pyproject [tool.ruff]）。
+  process.chdir(path.dirname(__dirname));
+  shell.runAndExit('uv', ['run', '--frozen', 'ruff', 'format', ...argv]);
 }
 
 module.exports.main = main;

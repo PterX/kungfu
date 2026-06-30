@@ -8,7 +8,7 @@ const webpack = require('webpack');
 const Multispinner = require('multispinner');
 const {
   getKungfuConfigKey,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 function greeting() {
   const isCI = process.env.CI || false;

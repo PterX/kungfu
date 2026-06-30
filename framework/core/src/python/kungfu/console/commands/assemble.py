@@ -6,7 +6,7 @@ import kungfu
 import re
 import sys
 import pandas
-from kungfu.console.commands import kfc, PrioritizedCommandGroup
+from kungfu.console.commands import kfc
 from kungfu.yijinjing.log import find_logger
 
 lf = kungfu.__binding__.longfist
@@ -96,7 +96,7 @@ def assemble(ctx, reference):
                     f"illegal AssembleMode: {config_assemble_mode}, type: {type(config_assemble_mode)}"
                 )
         else:
-            ctx.log.info(f"lack of parameter AssembleMode, use default value: channel")
+            ctx.log.info("lack of parameter AssembleMode, use default value: channel")
             assemble_mode = ASSEMBLE_MODE["channel"]
 
         asb = yjj.assemble(

@@ -67,11 +67,11 @@ import {
   longfist,
   hashInstrumentUKey,
   dealKfTime,
-} from '@kungfu-trader/kungfu-js-api/kungfu';
+} from '@kungfu-tech/api/kungfu';
 import { T0T1Config } from '../typings/global';
 
-import { readRootPackageJsonSync } from '@kungfu-trader/kungfu-js-api/utils/fileUtils';
-import { buildMasterLocation } from '@kungfu-trader/kungfu-js-api/utils/systemUtils';
+import { readRootPackageJsonSync } from '@kungfu-tech/api/utils/fileUtils';
+import { buildMasterLocation } from '@kungfu-tech/api/utils/systemUtils';
 import BTree from 'sorted-btree';
 
 const { t } = VueI18n.global;

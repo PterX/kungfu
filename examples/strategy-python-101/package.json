@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/examples-strategy-python",
+  "name": "@kungfu-tech/examples-strategy-python",
   "version": "4.0.0-alpha.0",
   "author": {
     "name": "Kungfu Trader",
@@ -12,7 +12,8 @@
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "binary": {
     "module_name": "examples-strategy-python",
@@ -25,7 +26,7 @@
     "clean": "kfs extension clean",
     "build": "kfs extension build",
     "package": "kfs extension package",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
+    "install": "node -e \"require('@kungfu-tech/core').prebuilt('install')\"",
     "format": "node ../../framework/core/.gyp/run-format-python.js src"
   },
   "kungfuBuild": {
@@ -43,7 +44,10 @@
       }
     ]
   },
+  "dependencies": {
+    "@kungfu-tech/core": "workspace:*"
+  },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0"
+    "@kungfu-tech/sdk": "workspace:*"
   }
 }

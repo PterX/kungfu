@@ -1,5 +1,5 @@
-import { KfModeTypes } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { getProcessIdByKfLocation } from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+import { KfModeTypes } from '@kungfu-tech/api/typings/enums';
+import { getProcessIdByKfLocation } from '@kungfu-tech/api/utils/commonUtils';
 
 export const buildMasterLocation = (
   mode: KfModeTypes = 'live',

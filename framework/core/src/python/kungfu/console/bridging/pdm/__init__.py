@@ -89,7 +89,7 @@ class BridgingCore(Core):
             from importlib import metadata
 
             metadata.version("pdm")
-        except:
+        except Exception:
             pass
         super().__init__()
 

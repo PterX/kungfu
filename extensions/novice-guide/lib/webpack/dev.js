@@ -7,7 +7,7 @@ const webpack = require('webpack');
 const path = require('path');
 const {
   getKungfuConfigKey,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 function greeting() {
   const cols = process.stdout.columns;

@@ -5,12 +5,12 @@ import kungfu
 import platform
 import os
 import typing
-
-# click 8.1.7+ 移除了私有 TypeVar F；CLI 仅用于装饰器类型标注，改本地定义不依赖 click 内部符号。
-CLI = typing.TypeVar("CLI", bound=typing.Callable[..., typing.Any])
 from click.globals import get_current_context
 from functools import update_wrapper
 from kungfu.yijinjing.utils import get_default_home_dir
+
+# click 8.1.7+ 移除了私有 TypeVar F；CLI 仅用于装饰器类型标注，改本地定义不依赖 click 内部符号。
+CLI = typing.TypeVar("CLI", bound=typing.Callable[..., typing.Any])
 
 
 class PrioritizedCommandGroup(click.Group):

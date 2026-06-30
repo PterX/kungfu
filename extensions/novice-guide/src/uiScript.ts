@@ -1,12 +1,12 @@
 import path from 'path';
 import { watchEffect, App, h } from 'vue';
-import { setKfConfig } from '@kungfu-trader/kungfu-js-api/kungfu/store';
-import { kfLogger } from '@kungfu-trader/kungfu-js-api/utils/logUtils';
-import { LifeCycleKeys } from '@kungfu-trader/kungfu-js-api/hooks/lifeCycleHook';
-import { KfHookKeeper } from '@kungfu-trader/kungfu-js-api/hooks';
-import { openReadmeModal } from '@kungfu-trader/kungfu-app/src/renderer/assets/methods/uiUtils';
-import ResolveExtConfig from '@kungfu-trader/kungfu-js-api/hooks/resolveExtConfigHook';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { setKfConfig } from '@kungfu-tech/api/kungfu/store';
+import { kfLogger } from '@kungfu-tech/api/utils/logUtils';
+import { LifeCycleKeys } from '@kungfu-tech/api/hooks/lifeCycleHook';
+import { KfHookKeeper } from '@kungfu-tech/api/hooks';
+import { openReadmeModal } from '@kungfu-tech/gui/src/renderer/assets/methods/uiUtils';
+import ResolveExtConfig from '@kungfu-tech/api/hooks/resolveExtConfigHook';
+import VueI18n from '@kungfu-tech/api/language';
 
 import { STRATEGY_DEMO_DIR } from './configs';
 

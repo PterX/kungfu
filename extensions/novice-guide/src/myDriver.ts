@@ -1,6 +1,6 @@
 import { DriveStep } from 'driver.js';
 
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n from '@kungfu-tech/api/language';
 import { waitElementMounted } from './utils/driver';
 
 import {

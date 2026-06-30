@@ -6,7 +6,7 @@ const chalk = require('chalk');
 const fse = require('fs-extra');
 const webpack = require('webpack');
 const Multispinner = require('multispinner');
-const { shell } = require('@kungfu-trader/kungfu-js-api/toolkit');
+const { shell } = require('@kungfu-tech/api/toolkit');
 
 function greeting() {
   const isCI = process.env.CI || false;

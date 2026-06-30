@@ -1,6 +1,6 @@
 const fse = require('fs-extra');
 const path = require('path');
-const { getCoreDir } = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+const { getCoreDir } = require('@kungfu-tech/api/toolkit/utils');
 const corePath = getCoreDir();
 const bindingsDir = path.join(corePath, 'src', 'bindings', 'python', 'binding');
 

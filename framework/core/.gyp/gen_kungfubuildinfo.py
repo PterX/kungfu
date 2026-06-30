@@ -9,6 +9,7 @@
 
 用法: gen_kungfubuildinfo.py [输出路径]   # 默认写到 ./kungfubuildinfo.json
 """
+
 import datetime
 import getpass
 import json
@@ -36,6 +37,7 @@ def main() -> None:
         },
     }
     try:
+
         def _git(*args):
             return subprocess.check_output(["git", *args], text=True, cwd=CORE).strip()
 

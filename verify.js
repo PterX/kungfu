@@ -15,7 +15,7 @@
 //   - framework/core/dist/kfc/                     freeze 产物目录(run-freeze.js renameSync 目标)
 //   - framework/core/dist/kfc/kfc[.exe]           kfc 可执行(lib/executable.js 解析路径)
 //   - `kfc --version` 退出 0 且输出含期望版本   冻结 Python 运行时端到端可跑(运行时冒烟)
-//   - framework/app/dist/app/                      (--with-app)build:app webpack 产物
+//   - framework/gui/dist/app/                      (--with-app)build:app webpack 产物
 //
 // 退出码:全绿 0;任一断言失败 1(fail-fast 打印可复制排查信息)。
 // 说明:Electron app 的「交互式启动」无法在无头环境断言,故以 kfc 运行时冒烟 + app 构建
@@ -59,12 +59,12 @@ function fail(name, detail) {
   console.error(`  ❌ ${name}${detail ? ' — ' + detail : ''}`);
 }
 
-// 运行一个 yarn 任务(经当前 node/corepack 派发的 yarn);失败即抛
-function runYarn(task) {
-  console.log(`\n[verify] 构建阶段:yarn ${task}`);
-  const r = spawnSync('yarn', [task], { cwd: ROOT, stdio: 'inherit', shell: isWin });
+// 运行一个 pnpm 任务(经当前 node/corepack 派发的 pnpm);失败即抛
+function runPnpm(task) {
+  console.log(`\n[verify] 构建阶段:pnpm ${task}`);
+  const r = spawnSync('pnpm', ['run', task], { cwd: ROOT, stdio: 'inherit', shell: isWin });
   if (r.status !== 0) {
-    throw new Error(`yarn ${task} 失败(exit ${r.status == null ? 'signal ' + r.signal : r.status})`);
+    throw new Error(`pnpm ${task} 失败(exit ${r.status == null ? 'signal ' + r.signal : r.status})`);
   }
 }
 
@@ -90,9 +90,9 @@ function main() {
   // ── 阶段 1:(可选)构建 ──────────────────────────────────────────
   if (doFull) {
     try {
-      runYarn('rebuild:core'); // clean + build:conan C++/wheel/native
-      runYarn('freeze'); // nuitka → framework/core/dist/kfc
-      if (withApp) runYarn('build:app'); // webpack → framework/app/dist/app
+      runPnpm('rebuild:core'); // clean + build:conan C++/wheel/native
+      runPnpm('freeze'); // nuitka → framework/core/dist/kfc
+      if (withApp) runPnpm('build:app'); // webpack → framework/gui/dist/app
     } catch (e) {
       fail('构建阶段', e.message);
       return summarize(); // 构建失败直接收尾,不再断言半成品

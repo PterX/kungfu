@@ -2,18 +2,18 @@
 # kungfu-code — kungfu 开发/构建编排「起手式」(macOS / Linux),三层子集的 L1。
 #
 # 一条命令,在仓库钉定的 node(.node-version)下执行任意构建/开发任务:
-#   ./kungfu-code app          # = yarn app(启 Electron 版 kungfu)
-#   ./kungfu-code build:core   # = yarn build:core
-#   ./kungfu-code <任意 yarn 任务/参数>
-#   ./kungfu-code proxy ...    # 富子命令:管理本地缓存/镜像代理配置(委派给 L2 node,不透传 yarn)
+#   ./kungfu-code app          # = pnpm app(启 Electron 版 kungfu)
+#   ./kungfu-code build:core   # = pnpm build:core
+#   ./kungfu-code <任意 pnpm 任务/参数>
+#   ./kungfu-code proxy ...    # 富子命令:管理本地缓存/镜像代理配置(委派给 L2 node,不透传 pnpm)
 #
 # 三层子集模型:
-#   L1 本文件(sh)        bootstrap:load 代理 env / 检 fnm+uv / 钉 node / 跑 yarn;富子命令委派 L2。
+#   L1 本文件(sh)        bootstrap:load 代理 env / 检 fnm+uv / 钉 node / 跑 pnpm;富子命令委派 L2。
 #   L2 kungfu-code.js(node)  fnm 装好后可用的富命令(缓存配置 proxy 等),纯 node builtins。
 #   L3 (未来)TUI         复用 kungfu 自身 TUI 基础设施 / 编译产物;复用 L2 的配置读写。
 #
 # 机制(双驱动起手式,node 侧 + python 侧对称):
-#   node 侧:fnm 选 node(.node-version)→ corepack 派 yarn(版本由 package.json packageManager 钉)。
+#   node 侧:fnm 选 node(.node-version)→ corepack 派 pnpm(版本由 package.json packageManager 钉)。
 #   python 侧:uv 管 standalone CPython + uv.lock + `uv run` 跑 conan/nuitka(uv 之于 python ≈ fnm 之于 node)。
 # 一次性装两个前置:fnm + uv;不依赖系统 node/python 版本,也不需 --ignore-engines。
 #
@@ -37,7 +37,7 @@ kfc_load_proxy() {
   return 0
 }
 
-# 富子命令委派 L2 node(不透传 yarn、不需要 uv)。L2 是纯 node builtins、不挑版本:
+# 富子命令委派 L2 node(不透传 pnpm、不需要 uv)。L2 是纯 node builtins、不挑版本:
 # 有 fnm 则优先用 fnm-managed node(bootstrap 已就绪的正常路径);fnm 未就绪时回退系统
 # node,让开发者在 fnm 安装不顺时仍能先用 L2 配置(如设镜像反过来帮 fnm);两者皆无才报错。
 case "${1:-}" in
@@ -54,7 +54,7 @@ case "${1:-}" in
     ;;
 esac
 
-# 普通构建/开发任务:加载代理配置 → 检两个前置 → 钉 node → corepack yarn
+# 普通构建/开发任务:加载代理配置 → 检两个前置 → 钉 node → corepack pnpm
 kfc_load_proxy
 
 if ! command -v fnm >/dev/null 2>&1; then
@@ -70,5 +70,5 @@ fi
 # 幂等:确保 .node-version 指定的 node 已安装
 fnm install >/dev/null 2>&1 || true
 
-# 在钉定 node 下,经 corepack 跑 packageManager 钉定的 yarn
-exec fnm exec --using-file -- corepack yarn "$@"
+# 在钉定 node 下,经 corepack 跑 packageManager 钉定的 pnpm
+exec fnm exec --using-file -- corepack pnpm "$@"

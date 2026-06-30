@@ -11,7 +11,7 @@ const commands = [
   'operator',
 ];
 
-module.exports = require('@kungfu-trader/kungfu-core').sywac(module, (cli) => {
+module.exports = require('@kungfu-tech/core').sywac(module, (cli) => {
   if (process.env.NODE_ENV === 'production') {
     commands.forEach((command) => {
       const opt = require(`./commands/${command}`);

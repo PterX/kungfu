@@ -16,7 +16,7 @@ exports.getKungfuBuildInfo = () => {
   try {
     const buildInfoRaw = fs.readFileSync(
       this.customResolve(
-        '@kungfu-trader/kungfu-core/dist/kfc/kungfubuildinfo.json',
+        '@kungfu-tech/core/dist/kfc/kungfubuildinfo.json',
       ),
       'utf-8',
     );
@@ -76,7 +76,7 @@ exports.getPagesConfig = (argv) => {
 const tryGetAppPackageJSON = () => {
   try {
     const appPackageJSONPath = this.customResolve(
-      '@kungfu-trader/kungfu-app/package.json',
+      '@kungfu-tech/gui/package.json',
     );
     const appPackageJSON = fs.readJSONSync(appPackageJSONPath);
     return appPackageJSON;
@@ -89,7 +89,7 @@ const tryGetAppPackageJSON = () => {
 const tryGetCliPackageJSON = () => {
   try {
     const cliPackageJSONPath = this.customResolve(
-      '@kungfu-trader/kungfu-cli/package.json',
+      '@kungfu-tech/tui/package.json',
     );
     const cliPackageJSON = fs.readJSONSync(cliPackageJSONPath);
     return cliPackageJSON;
@@ -102,11 +102,11 @@ const tryGetCliPackageJSON = () => {
 exports.getWebpackExternals = () => {
   // 需要通过webpack打包的项目的package会作为其他package依赖，需要放在此处处理
   const apiPackageJSONPath = this.customResolve(
-    '@kungfu-trader/kungfu-js-api/package.json',
+    '@kungfu-tech/api/package.json',
   );
   const apiPackageJSON = fs.readJSONSync(apiPackageJSONPath);
   const sdkPackageJSONPath = this.customResolve(
-    '@kungfu-trader/kungfu-sdk/package.json',
+    '@kungfu-tech/sdk/package.json',
   );
   const sdkPackageJSON = fs.readJSONSync(sdkPackageJSONPath);
   const currentPackageJSONPath = path.join(
@@ -134,8 +134,8 @@ exports.getWebpackExternals = () => {
   }).filter(
     // 以下packages 内js代码我们期望其直接打包进js文件, 不需要通过externals, 但他们的依赖包还是需要通过externals
     (packageName) =>
-      packageName !== '@kungfu-trader/kungfu-js-api' &&
-      packageName !== '@kungfu-trader/kungfu-toolchain',
+      packageName !== '@kungfu-tech/api' &&
+      packageName !== '@kungfu-tech/toolchain',
   );
 };
 
@@ -158,7 +158,7 @@ exports.getSdkDefaultDistDir = () => {
 exports.getAppDir = () => {
   try {
     const appPackageJSONPath = this.customResolve(
-      '@kungfu-trader/kungfu-app/package.json',
+      '@kungfu-tech/gui/package.json',
     );
     return path.dirname(appPackageJSONPath);
   } catch (err) {
@@ -169,14 +169,14 @@ exports.getAppDir = () => {
 
 exports.getApiDir = () => {
   return path.dirname(
-    this.customResolve('@kungfu-trader/kungfu-js-api/package.json'),
+    this.customResolve('@kungfu-tech/api/package.json'),
   );
 };
 
 exports.getCliDir = () => {
   try {
     const cliPackageJSONPath = this.customResolve(
-      '@kungfu-trader/kungfu-cli/package.json',
+      '@kungfu-tech/tui/package.json',
     );
     return path.dirname(cliPackageJSONPath);
   } catch (err) {
@@ -188,7 +188,7 @@ exports.getCliDir = () => {
 exports.getJsApi = () => {
   try {
     return path.dirname(
-      this.customResolve('@kungfu-trader/kungfu-js-api/package.json'),
+      this.customResolve('@kungfu-tech/api/package.json'),
     );
   } catch (err) {
     return '.';
@@ -197,13 +197,13 @@ exports.getJsApi = () => {
 
 exports.getCoreDir = () => {
   return path.dirname(
-    this.customResolve('@kungfu-trader/kungfu-core/package.json'),
+    this.customResolve('@kungfu-tech/core/package.json'),
   );
 };
 
 exports.getKfcDir = () => {
   return path.join(
-    path.dirname(this.customResolve('@kungfu-trader/kungfu-core/package.json')),
+    path.dirname(this.customResolve('@kungfu-tech/core/package.json')),
     'dist',
     'kfc',
   );
@@ -211,7 +211,7 @@ exports.getKfcDir = () => {
 
 exports.getSdkDir = () => {
   return path.dirname(
-    this.customResolve('@kungfu-trader/kungfu-sdk/package.json'),
+    this.customResolve('@kungfu-tech/sdk/package.json'),
   );
 };
 

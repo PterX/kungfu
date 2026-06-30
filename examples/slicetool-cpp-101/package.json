@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/examples-data-tool",
+  "name": "@kungfu-tech/examples-data-tool",
   "author": "kungfu-trader",
   "version": "4.0.0-alpha.0",
   "description": "KungFu Data Tool 101 - Demo",
@@ -15,6 +15,6 @@
     "dev": "kfc -l debug tool -c md -g md -n md -t build/target/KungfuToolCpp.cp39-win_amd64.pyd  -b \"2022-01-01\" -e \"2024-01-01\""
   },
   "devDependencies": {
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0"
+    "@kungfu-tech/sdk": "workspace:*"
   }
 }

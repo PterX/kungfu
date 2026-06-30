@@ -45,7 +45,7 @@ def extract(data, m):
     result_type = type(result)
     if result_type.__module__ == lf.enums.__name__:
         return int(result)
-    if result_type == str:
+    if result_type is str:
         return '"' + result.replace('"', '\\"') + '"'
     return result
 

@@ -3,7 +3,7 @@
 module.exports = function () {
   const binding = (() => {
     try {
-      const moduleName = '@kungfu-trader/kungfu-core';
+      const moduleName = '@kungfu-tech/core';
       const config = require(`${moduleName}/package.json`);
       const binary = config.binary;
       const kfcDir =

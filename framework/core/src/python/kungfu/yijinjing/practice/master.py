@@ -50,7 +50,7 @@ class Master(yjj.master):
                 lambda default: self.set_default_commission(default), 1
             )
         except RuntimeError:
-            self.ctx.logger.warn(f"failed to load default commissions")
+            self.ctx.logger.warn("failed to load default commissions")
 
     def set_default_commission(self, default):
         if default.product_id not in self.commissions:
@@ -114,14 +114,14 @@ class Master(yjj.master):
         yjj.master.on_exit(self)
         for app in self.get_live_processes():
             self.ctx.logger.info(
-                f'terminating apprentice {app["uname"]} pid {app["pid"]}'
+                f"terminating apprentice {app['uname']} pid {app['pid']}"
             )
             self.deregister_app(yjj.now_in_nano(), app["register"].__uid__)
             try:
                 app["process"].terminate()
             except psutil.Error:
                 self.ctx.logger.error(
-                    f'failed to terminate apprentice {app["uname"]} pid {app["pid"]}'
+                    f"failed to terminate apprentice {app['uname']} pid {app['pid']}"
                 )
 
         count = 0
@@ -139,12 +139,12 @@ class Master(yjj.master):
                 break
 
         for app in self.get_live_processes():
-            self.ctx.logger.warn(f'killing apprentice {app["uname"]} pid {app["pid"]}')
+            self.ctx.logger.warn(f"killing apprentice {app['uname']} pid {app['pid']}")
             try:
                 app["process"].kill()
             except psutil.Error:
                 self.ctx.logger.error(
-                    f'failed to kill apprentice {app["uname"]} pid {app["pid"]}'
+                    f"failed to kill apprentice {app['uname']} pid {app['pid']}"
                 )
 
         self.ctx.logger.info("master cleaned up")
@@ -180,6 +180,6 @@ def health_check(ctx):
     for pid in list(ctx.apprentices.keys()):
         if not ctx.apprentices[pid]["process"].is_running():
             app = ctx.apprentices[pid]
-            ctx.logger.warn(f'cleaning up stale app {app["uname"]} with pid {pid}')
+            ctx.logger.warn(f"cleaning up stale app {app['uname']} with pid {pid}")
             ctx.master.deregister_app(yjj.now_in_nano(), app["register"].__uid__)
             del ctx.apprentices[pid]

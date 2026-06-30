@@ -1,5 +1,5 @@
 {
-  "name": "@kungfu-trader/kfx-ui-novice-guide",
+  "name": "@kungfu-tech/kfx-ui-novice-guide",
   "version": "4.0.0-alpha.0",
   "description": "A extension for kungfu to guide novice to use.",
   "author": {
@@ -7,7 +7,8 @@
     "email": "info@kungfu.link"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "license": "Apache-2.0",
   "main": "package.json",
@@ -22,15 +23,13 @@
   "repository": {
     "url": "https://github.com/kungfu-trader/kungfu.git"
   },
+  "_excluded_from_build": "Vue UI extension; excluded from the v4 reborn build (consumed the retired kungfu-app Vue renderer). To be reborn as kfx or retired. build/package scripts removed so wsrun --exclude-missing skips it.",
   "scripts": {
-    "build": "kfs extension build && node ./lib/webpack/build.js",
     "clean": "kfs extension clean",
-    "install": "node -e \"require('@kungfu-trader/kungfu-core').prebuilt('install')\"",
+    "install": "node -e \"require('@kungfu-tech/core').prebuilt('install')\"",
     "format": "prettier -l -w --config ../../.prettierrc.js .",
-    "package": "kfs extension package",
-    "dev": "node ./lib/webpack/dev.js",
-    "app": "yarn kfs craft dev",
-    "cli": "yarn kfs craft cli"
+    "app": "pnpm exec kfs craft dev",
+    "cli": "pnpm exec kfs craft cli"
   },
   "kungfuConfig": {
     "key": "noviceGuide",
@@ -84,16 +83,16 @@
     }
   },
   "dependencies": {
-    "@kungfu-trader/kungfu-app": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-cli": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-core": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-js-api": "^4.0.0-alpha.0",
+    "@kungfu-tech/gui": "workspace:*",
+    "@kungfu-tech/tui": "workspace:*",
+    "@kungfu-tech/core": "workspace:*",
+    "@kungfu-tech/api": "workspace:*",
     "driver.js": "^1.3.1"
   },
   "devDependencies": {
-    "@kungfu-trader/kfx-broker-sim": "^4.0.0-alpha.0",
-    "@kungfu-trader/kfx-operator-bar": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-sdk": "^4.0.0-alpha.0",
-    "@kungfu-trader/kungfu-toolchain": "^4.0.0-alpha.0"
+    "@kungfu-tech/kfx-broker-sim": "workspace:*",
+    "@kungfu-tech/kfx-operator-bar": "workspace:*",
+    "@kungfu-tech/sdk": "workspace:*",
+    "@kungfu-tech/toolchain": "workspace:*"
   }
 }

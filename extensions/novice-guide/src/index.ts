@@ -7,7 +7,7 @@ import {
   watch,
 } from 'vue';
 import { BulbOutlined } from '@ant-design/icons-vue';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import VueI18n from '@kungfu-tech/api/language';
 
 import { myDriver } from './myDriver';
 

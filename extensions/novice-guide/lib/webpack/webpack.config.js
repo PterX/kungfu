@@ -1,6 +1,6 @@
 'use strict';
 
-const toolkit = require('@kungfu-trader/kungfu-js-api/toolkit');
+const toolkit = require('@kungfu-tech/api/toolkit');
 const path = require('path');
 const webpack = require('webpack');
 const { merge } = require('webpack-merge');
@@ -11,7 +11,7 @@ const {
   getWebpackExternals,
   getAppDir,
   getApiDir,
-} = require('@kungfu-trader/kungfu-js-api/toolkit/utils');
+} = require('@kungfu-tech/api/toolkit/utils');
 
 const { isProduction } = toolkit.utils;
 const appDir = getAppDir();

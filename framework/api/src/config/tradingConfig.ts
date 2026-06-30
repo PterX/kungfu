@@ -31,11 +31,11 @@ import {
 import {
   DEFAULT_PRECISION,
   CRYPTO_PRECISION,
-} from '@kungfu-trader/kungfu-js-api/utils/commonUtils';
+} from '@kungfu-tech/api/utils/commonUtils';
 
 import { Pm2ProcessStatusTypes } from '../typings/common';
 
-import { useLanguage } from '@kungfu-trader/kungfu-js-api/language';
+import { useLanguage } from '@kungfu-tech/api/language';
 const { t } = useLanguage();
 
 export const Pm2ProcessStatus: Record<

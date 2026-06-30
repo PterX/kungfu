@@ -1,6 +1,6 @@
-import { KfCategoryEnum } from '@kungfu-trader/kungfu-js-api/typings/enums';
-import { KfCategory } from '@kungfu-trader/kungfu-js-api/config/tradingConfig';
-import VueI18n from '@kungfu-trader/kungfu-js-api/language';
+import { KfCategoryEnum } from '@kungfu-tech/api/typings/enums';
+import { KfCategory } from '@kungfu-tech/api/config/tradingConfig';
+import VueI18n from '@kungfu-tech/api/language';
 import { ExtSubMenusConfigs, AllExtCategoryTypes } from '../typings';
 
 export const AuthingAccessKey = 'authing';

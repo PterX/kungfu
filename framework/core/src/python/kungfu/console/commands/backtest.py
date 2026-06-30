@@ -1,5 +1,4 @@
 import click
-import logging
 import json
 
 from kungfu.console.commands import kfc, PrioritizedCommandGroup
@@ -65,6 +64,6 @@ def datarange(ctx):
         ctx.logger.info(f"{key}")
         for item in categories[key]:
             ctx.logger.info(
-                f'  {item["security_tyep"]} {item["exchange"]} start {item["start_time"]} end {item["end_time"]}'
+                f"  {item['security_tyep']} {item['exchange']} start {item['start_time']} end {item['end_time']}"
             )
         ctx.logger.info("\n")

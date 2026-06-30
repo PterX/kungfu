@@ -83,6 +83,9 @@ with one command.
 
 The repository's own build is a closed loop that exercises Kungfu's capabilities
 end to end: if a core capability regresses, building Kungfu itself fails first.
+This is one instance of a broader product-layer principle — *the adoption path is
+the validation path, so upkeep of the core is a byproduct of use* — set out in
+[ADR-0009](../framework/core/docs/adr/ADR-0009-load-bearing-self-bootstrap.md).
 
 The reference extensions are coverage probes for this loop, not products — each
 exercises a distinct extension path:

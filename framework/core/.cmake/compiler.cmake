@@ -4,17 +4,17 @@ set(CMAKE_CXX_STANDARD 20)
 
 ############################################################
 
-# ccache：可用即作为编译器 launcher（命中编译缓存，显著加速 clean-rebuild 下
-# libkungfu 重模板重编）。零强制耦合：仅在 UNIX 且 PATH 有 ccache 时启用，
-# 开源克隆 / Windows / 未装 ccache 的机器 find_program 未命中即 no-op。
-# libkungfu(conan build) 与 node/electron bindings(cmake-js) 共用本文件，故一处全覆盖。
-if (UNIX)
-  find_program(CCACHE_PROGRAM ccache)
-  if (CCACHE_PROGRAM)
-    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-    message(STATUS "ccache enabled as compiler launcher: ${CCACHE_PROGRAM}")
-  endif ()
+# 编译器缓存 launcher：优先 sccache(MSVC 原生 + 远程缓存后端),其次 ccache。命中即用、
+# 缺失 no-op(开源克隆/未装机零影响)。Linux/macOS 通常命中 ccache、Windows 命中 sccache。
+# 显著加速 clean-rebuild 下 libkungfu 重模板重编;libkungfu(conan build)与 node/electron
+# bindings(cmake-js)共用本文件,一处全覆盖。
+# 注:VS/MSBuild 生成器对 launcher 的支持随 CMake 版本而异,Windows 命中率以实测为准
+# (Phase1 评估,goal 2026-06-27-windows-compile-cache-ci)。
+find_program(KFC_COMPILER_CACHE NAMES sccache ccache)
+if (KFC_COMPILER_CACHE)
+  set(CMAKE_C_COMPILER_LAUNCHER "${KFC_COMPILER_CACHE}")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${KFC_COMPILER_CACHE}")
+  message(STATUS "compiler cache launcher: ${KFC_COMPILER_CACHE}")
 endif ()
 
 ############################################################

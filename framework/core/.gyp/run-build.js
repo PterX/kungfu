@@ -8,11 +8,13 @@ const { prebuilt, shell } = require('../lib');
 function cpVsDependencies() {
   const isWin = process.platform === 'win32';
   if (!isWin) return;
-  core_dir = path.dirname(
-    require.resolve('@kungfu-tech/core/package.json'),
-  );
-  vs_dir = path.join(core_dir, '.deps', 'vs');
-  kfc_dist = path.join(core_dir, 'dist', 'kfc');
+  // __dirname=.gyp → 上一级=core 根。用 __dirname 定位 core 目录，不用
+  // require.resolve('@kungfu-tech/core/...')：包管理器的隔离式 node_modules 布局
+  // 不会把工作区包按自身包名暴露到 node_modules，自引用按包名解析会失败（扁平
+  // hoist 布局下才解得到）。与 useUvPython() 用 __dirname 的写法一致。
+  const core_dir = path.join(__dirname, '..');
+  const vs_dir = path.join(core_dir, '.deps', 'vs');
+  const kfc_dist = path.join(core_dir, 'dist', 'kfc');
   fs.cpSync(vs_dir, kfc_dist, { recursive: true });
 }
 

@@ -1,9 +1,24 @@
 # Design Philosophy
 
-Kungfu's architecture is not a pile of independent choices. Almost every shape in
-this repository follows from **two coupled first principles**. This document
-states them and shows how the architecture falls out of them, so that a reader
-can understand *why* kungfu is built the way it is — not just *what* it contains.
+Two choices in this repository look wrong at first glance, and both are
+deliberate:
+
+- **Validation is a structure here, not a discipline.** Most projects treat "use
+  your own product" as something you are supposed to *remember* to do. Kungfu
+  makes it un-skippable: the project builds and runs on its own core, so if a
+  core capability regresses, **building kungfu itself fails first** — you cannot
+  ship a broken core, because your own work stops.
+- **The UI lives inside the core loop, not split out.** Conventional wisdom says
+  keep a repository focused on its moat and factor the UI into a separate
+  project. Kungfu deliberately carries its reference GUI and TUI in the same
+  repo, because **the UI is the one surface no expert can route around** — it is
+  how the maker is forced onto the same path a user walks.
+
+Neither is an accident, and neither is the point on its own. Almost every shape in
+this repository — including these two — follows from **two coupled first
+principles**. This document states them and shows how the architecture falls out
+of them, so you can understand *why* kungfu is built the way it is, not just
+*what* it contains.
 
 For the vocabulary used below (`kfc`, `kfs`, `libkungfu`, `longfist`, journal,
 zero-copy, …), see [`concepts.md`](concepts.md); for how the pieces are layered,

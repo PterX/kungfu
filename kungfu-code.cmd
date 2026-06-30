@@ -4,8 +4,8 @@ rem ASCII-only on purpose: Windows cmd parses .cmd in the OEM codepage (e.g. GBK
 rem so non-ASCII bytes corrupt parsing. Keep this file ASCII; the sh version may use UTF-8.
 rem
 rem Aligns with the macOS/Linux kungfu-code (sh):
-rem   kungfu-code app | kungfu-code build:core | kungfu-code <any yarn task>
-rem   kungfu-code proxy ... / config ...   rich subcommands -> delegated to L2 node (not yarn)
+rem   kungfu-code app | kungfu-code build:core | kungfu-code <any pnpm task>
+rem   kungfu-code proxy ... / config ...   rich subcommands -> delegated to L2 node (not pnpm)
 rem
 rem 3-layer subset: L1 this .cmd (bootstrap + delegate); L2 kungfu-code.js (node rich cmds); L3 (future) TUI.
 rem Two one-time prerequisites: fnm (winget install Schniz.fnm) + uv (winget install astral-sh.uv).
@@ -16,7 +16,7 @@ rem This .cmd parses that file with pure cmd to load mirror env; optional repo .
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-rem -- Delegate rich subcommands to L2 node (no yarn, no uv). Prefer fnm node, else system node. --
+rem -- Delegate rich subcommands to L2 node (no pnpm, no uv). Prefer fnm node, else system node. --
 if /i "%~1"=="proxy"  goto delegate
 if /i "%~1"=="config" goto delegate
 goto bootstrap
@@ -53,10 +53,10 @@ where uv >nul 2>nul || (
 rem Idempotent: ensure the node pinned by .node-version is installed
 fnm install >nul 2>nul
 
-rem Under the pinned node, run the packageManager-pinned yarn via corepack.
+rem Under the pinned node, run the packageManager-pinned pnpm via corepack.
 rem NOTE: use corepack.cmd (not bare "corepack"): fnm exec spawns the program directly
 rem without applying PATHEXT, so bare "corepack" is not found on Windows (only corepack.cmd is).
-fnm exec --using-file -- corepack.cmd yarn %*
+fnm exec --using-file -- corepack.cmd pnpm %*
 exit /b !errorlevel!
 
 rem -- Parse sh-format build-local.env `export KEY='VALUE'` lines -> set KEY=VALUE (pure cmd) --

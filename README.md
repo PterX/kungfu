@@ -1,7 +1,9 @@
 # Kungfu
 
 Kungfu is a framework and runtime for building journal-first,
-streaming-data applications.
+streaming-data applications. It is built on one discipline: never let a
+load-bearing truth rest on a claim you could fake — weld it to something that
+can't. ([design philosophy](docs/design-philosophy.md).)
 
 At its core is a low-latency, append-only event journal with a shared,
 strongly-typed schema, exposed zero-copy to C++, Python, and Node. Kungfu

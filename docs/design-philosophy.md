@@ -130,3 +130,46 @@ of you before any user hit it.
 Every ADR is a decision in service of these two principles. Reading the
 [ADRs](../framework/core/docs/adr) in that light shows the architecture as a
 single, coherent answer rather than a sequence of unrelated calls.
+
+## One move, used everywhere
+
+Step back from the individual decisions and they collapse into a single act. Each
+takes something that would normally be a *claim* — "it works," "it's compatible,"
+"this release is good," "users will like it," "the contract holds," "it's easy to
+set up" — something you could assert, defend on honor, smooth over with
+convenience, or defer until later. Kungfu refuses to let it stay a claim. It welds
+it to a structure where reality has to show the answer, first-person and now, with
+no way to fake it:
+
+- *"It works"* → the build runs on its own core, so a core regression makes
+  building kungfu fail first
+  ([ADR-0009](../framework/core/docs/adr/ADR-0009-load-bearing-self-bootstrap.md)).
+- *"I'd know if users disliked it"* → the maker is forced into the user's seat, on
+  real hardware — running on real arm64 is what surfaced a bug x86 would never
+  reveal ([ADR-0001](../framework/core/docs/adr/ADR-0001-yijinjing-publish-barrier.md)).
+- *"It's compatible"* → the layout *is* the ABI, a physical fact, not a version
+  number to compare
+  ([ADR-0008](../framework/core/docs/adr/ADR-0008-longfist-schema-evolution-and-minor-maintenance.md)).
+- *"This release is good"* → an un-cheatable pipeline decides, not any one person,
+  not even the maintainers ([version & release design](version-release-design.md)).
+- *"The contract holds"* → it is a declared schema that the maker's own build
+  consumes ([ADR-0002](../framework/core/docs/adr/ADR-0002-longfist-flatbuffers-runtime-schema.md)).
+- *"It's easy to set up"* → the runtime physically absorbs the toolchain, so
+  zero-setup is true rather than promised (Principle 1).
+
+*Reality sets the test* (Principle 2) is this same move applied to one claim in
+particular — whether the product works. The move is larger; the test is one of its
+faces.
+
+Why it is one move, and why it is worth the discomfort: a claim can be wrong and
+you will not find out until it is expensive — a production incident, a user who
+quietly leaves, a release that drifts. A structure makes the truth show up now,
+cheaply, where you cannot look away. The trade is always the same: comfortable
+assertions that fail expensively later, for uncomfortable structures that fail
+cheaply now.
+
+The concurrency barrier, the published contract, the UI inside the loop, the
+layout invariant, the release pipeline, the absorbed toolchain — these are not six
+clever decisions. They are one move, used six times: **never rest a load-bearing
+truth on something that can lie or be skipped; weld it to something that cannot.**
+That is the discipline the README opens with; the architecture is it, applied.

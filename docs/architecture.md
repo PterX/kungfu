@@ -27,6 +27,36 @@ not. It stays sustainable only while the absorbed tooling rests on mainstream,
 well-maintained foundations — so "modernize" here means *reduce both user
 friction and maintenance burden*, not chase convergence for its own sake.
 
+## The polyglot membrane
+
+At the bottom sits one C++ core, `libkungfu` (the `longfist` type system + the
+`yijinjing` journal). C++, Python, and Node do not each reimplement it — they are
+thin bindings over the *same in-process* core, reading the *same* journal bytes
+with no serialization on the hot path. That shared, zero-copy, cross-language
+surface is the membrane:
+
+```
+   C++ app / kfx        Python  (py_kungfu)      Node  (kungfu_node.node)
+        │                     │                          │
+        │   in-process, zero-copy — the same bytes       │
+        └──────────────┬──────┴───────────┬──────────────┘
+                ┌───────┴───────────────────┴───────┐
+                │  libkungfu                          │
+                │  longfist (layout) + yijinjing (journal)
+                └───────────────────┬─────────────────┘
+                                    │  mmap MAP_SHARED
+                            ┌───────┴────────┐
+                            │ cross-process  │   ← still no per-frame
+                            │  journal bus   │     serialization
+                            └────────────────┘
+```
+
+The layout *is* the wire format (see
+[ADR-0008](../framework/core/docs/adr/ADR-0008-longfist-schema-evolution-and-minor-maintenance.md)
+and [`contracts.md`](contracts.md)); the binding boundaries are detailed in
+[`adapters.md`](adapters.md). Everything below is how this core is layered
+into a platform.
+
 ## Layers
 
 Kungfu is a platform plus a minimal reference application — the editor-platform

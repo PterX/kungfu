@@ -29,14 +29,14 @@ and the map routes a question to whichever doc answers it.
 | Why was a past decision made? | [`../framework/core/docs/adr/`](../framework/core/docs/adr) | why | stable |
 | How is the repository layered? | [`architecture.md`](architecture.md) | use | stable |
 | What are the known limits / what is *not* yet guaranteed? | [`known-limits.md`](known-limits.md) | verify | stable |
-| How do C++ / Python / Node share data zero-copy (the membrane)? | `architecture.md` (membrane diagram) | verify | draft · diagram to add |
+| How do C++ / Python / Node share data zero-copy (the membrane)? | [`architecture.md`](architecture.md) (membrane diagram) | verify | stable |
 | What does it actually guarantee (layout / replay / compatibility)? | [`contracts.md`](contracts.md) | verify | stable |
 | What is the event / journal / replay model? | [`event-model.md`](event-model.md) | use | stable |
-| Where are the Python / Node / framework adapter boundaries? | `adapters.md` | use | to write |
-| How do I go from source to a binary? | `buildchain.md` (+ [`../CONTRIBUTING.md`](../CONTRIBUTING.md)) | use | draft · scattered |
+| Where are the Python / Node / framework adapter boundaries? | [`adapters.md`](adapters.md) | use | stable |
+| How do I go from source to a binary? | [`buildchain.md`](buildchain.md) (+ [`../CONTRIBUTING.md`](../CONTRIBUTING.md)) | use | stable |
 | Where does a release binary come from, and how do I verify it? | `provenance.md` | verify | blocked · needs release infra |
 | What gates must a release pass? | `provenance.md` + [`version-release-design.md`](version-release-design.md) | verify | partial |
-| If kungfu itself misbehaves, how do I localize it? | `debugging.md` | verify | to write |
+| If kungfu itself misbehaves, how do I localize it? | [`debugging.md`](debugging.md) | verify | stable |
 | How do I write an extension (`kfx`)? | `extensions.md` (+ [`../examples/`](../examples)) | use | to write · examples exist |
 
 ## How this map is maintained

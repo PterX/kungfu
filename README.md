@@ -88,6 +88,11 @@ cd kungfu
 
 ## Documentation
 
+Start at the [**documentation map**](docs/MAP.md) — it routes your question
+(why it's built this way / how to trust the artifact / how to use it) to the
+right document, and is readable by both people and agents.
+
+- [`docs/MAP.md`](docs/MAP.md) — the question-indexed map of all documentation.
 - [`docs/concepts.md`](docs/concepts.md) — the vocabulary in one place
   (`kfc`/`kfx`/`kfs`, `libkungfu`, `longfist`, `yijinjing`, journal, …).
 - [`docs/design-philosophy.md`](docs/design-philosophy.md) — the two first

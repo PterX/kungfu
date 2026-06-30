@@ -207,7 +207,8 @@ If a candidate cannot preserve all four, it is a downgrade for this project, how
 - Bump / release / publish logic and branch-protection setup:
   `kungfu-trader/action-bump-version` (its README documents the full channel rules and the
   original design goals).
-- Build & toolchain dependencies: `docs/BUILD-DEPENDENCIES.md`.
+- Build & toolchain dependencies: see [`CONTRIBUTING.md`](../CONTRIBUTING.md)
+  (a dedicated source-to-binary `buildchain` doc is planned — see [`MAP.md`](MAP.md)).
 - The compatibility invariant below the tag (longfist layout), its schema-evolution policy,
   and the minor-maintenance rationale:
   `framework/core/docs/adr/ADR-0008-longfist-schema-evolution-and-minor-maintenance.md`.

@@ -1,11 +1,17 @@
 # Architecture
 
 How the Kungfu repository is layered, and the principle that shapes it. For the
-data-plane concepts (journal, zero-copy, replay) see the [README](../README.md);
-for build and contribution see [CONTRIBUTING](../CONTRIBUTING.md); for specific
-decisions see the [ADRs](../framework/core/docs/adr).
+two first principles the whole design follows from, see
+[`design-philosophy.md`](design-philosophy.md); for the data-plane concepts
+(journal, zero-copy, replay) see the [README](../README.md); for build and
+contribution see [CONTRIBUTING](../CONTRIBUTING.md); for specific decisions see
+the [ADRs](../framework/core/docs/adr).
 
 ## Guiding principle: the machine adapts to the person
+
+This is the first of two coupled first principles; the second — *reality sets the
+test, not the product* — and how the architecture follows from both are set out
+in [`design-philosophy.md`](design-philosophy.md).
 
 Kungfu absorbs toolchain and runtime complexity into the product so that its
 users do not have to assemble it themselves. The `kfc` runtime embeds both a

@@ -86,6 +86,9 @@ cd kungfu
 
 ## Documentation
 
+- [`docs/design-philosophy.md`](docs/design-philosophy.md) — the two first
+  principles the whole design follows from, and how the architecture falls out
+  of them.
 - [`docs/architecture.md`](docs/architecture.md) — how the repository is layered
   (runtime, capability SDK, application SDK, reference surfaces) and why.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — toolchain, build, conventions, releases.

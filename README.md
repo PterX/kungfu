@@ -94,6 +94,9 @@ cd kungfu
 - [`docs/architecture.md`](docs/architecture.md) — how the repository is layered
   (runtime, capability SDK, application SDK, reference surfaces) and why.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — toolchain, build, conventions, releases.
+- [`LICENSE-POLICY.md`](LICENSE-POLICY.md) — project licensing, DCO-based
+  contributions, third-party notice policy, and commercial boundary.
+- [`SECURITY.md`](SECURITY.md) — how to report vulnerabilities privately.
 - [`docs/version-release-design.md`](docs/version-release-design.md) — versioning
   and release mechanism rationale.
 - [`framework/core/docs/adr/`](framework/core/docs/adr) — architecture decision

@@ -85,6 +85,19 @@ Run formatting before committing:
 - Write commit messages and pull request descriptions in **English**.
 - Follow lightweight [Conventional Commits](https://www.conventionalcommits.org/)
   (`type(scope): summary`), e.g. `fix(core): handle empty journal page`.
+- Sign every commit with the Developer Certificate of Origin (DCO):
+
+```sh
+git commit -s -m "fix(core): handle empty journal page"
+```
+
+The sign-off adds a line like:
+
+```text
+Signed-off-by: Your Name <you@example.com>
+```
+
+Pull requests are checked automatically; every commit must include this line.
 
 ## Branches, pull requests & releases
 
@@ -104,4 +117,7 @@ dev/<major>/<version>  →  alpha/<major>/<version>  →  release/<major>/<versi
 ## License
 
 By contributing you agree that your contributions are licensed under the
-project's [Apache License 2.0](LICENSE).
+project's [Apache License 2.0](LICENSE). Kungfu uses the Developer Certificate
+of Origin (DCO) and does not require a Contributor License Agreement (CLA).
+
+See [LICENSE-POLICY.md](LICENSE-POLICY.md) for details.

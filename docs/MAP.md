@@ -30,8 +30,8 @@ and the map routes a question to whichever doc answers it.
 | How is the repository layered? | [`architecture.md`](architecture.md) | use | stable |
 | What are the known limits / what is *not* yet guaranteed? | [`known-limits.md`](known-limits.md) | verify | stable |
 | How do C++ / Python / Node share data zero-copy (the membrane)? | `architecture.md` (membrane diagram) | verify | draft · diagram to add |
-| What does it actually guarantee (layout / replay / compatibility)? | `contracts.md` | verify | to write · in [ADR-0008](../framework/core/docs/adr/ADR-0008-longfist-schema-evolution-and-minor-maintenance.md), [ADR-0001](../framework/core/docs/adr/ADR-0001-yijinjing-publish-barrier.md) |
-| What is the event / journal / replay model? | `event-model.md` | use | to write · in [`concepts.md`](concepts.md) + [ADR-0001](../framework/core/docs/adr/ADR-0001-yijinjing-publish-barrier.md) |
+| What does it actually guarantee (layout / replay / compatibility)? | [`contracts.md`](contracts.md) | verify | stable |
+| What is the event / journal / replay model? | [`event-model.md`](event-model.md) | use | stable |
 | Where are the Python / Node / framework adapter boundaries? | `adapters.md` | use | to write |
 | How do I go from source to a binary? | `buildchain.md` (+ [`../CONTRIBUTING.md`](../CONTRIBUTING.md)) | use | draft · scattered |
 | Where does a release binary come from, and how do I verify it? | `provenance.md` | verify | blocked · needs release infra |

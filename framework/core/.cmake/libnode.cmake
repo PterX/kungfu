@@ -23,7 +23,7 @@ endmacro(use_node_addon_api)
 macro(use_libnode)
   execute_process(
     COMMAND
-    node -p "require('@kungfu-trader/libnode').include"
+    node -p "require('@kungfu-tech/libnode').include"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE LIBNODE_INCLUDE_DIR
   )
@@ -32,7 +32,7 @@ macro(use_libnode)
 
   execute_process(
     COMMAND
-    node -p "require('@kungfu-trader/libnode').libpath"
+    node -p "require('@kungfu-tech/libnode').libpath"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE LIBNODE_LIB_DIR
   )

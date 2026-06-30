@@ -67,7 +67,7 @@
   },
   "devDependencies": {
     "@kungfu-tech/toolchain": "workspace:*",
-    "@kungfu-trader/libnode": "22.22.3",
+    "@kungfu-tech/libnode": "22.22.3",
     "electron": "^42.5.0",
     "node-addon-api": "^8.0.0"
   }

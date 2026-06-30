@@ -5,7 +5,8 @@
 - Category: (b) improvement — meta design question for v4 scope
 - Subsystem: the control and event axes — Python coroutine integration
   (`coloop.py`), the Node watcher (`watcher.cpp`), and the RxCpp-based reactive
-  event layer (`yijinjing` `hero` / `apprentice`)
+  event layer (`yijinjing` `hero` / `apprentice`). Terms `hero` / `apprentice` /
+  `watcher` / `coloop` are defined in [`docs/concepts.md`](../../../../docs/concepts.md).
 - Related: aggregates [ADR-0003](ADR-0003-control-axis-python-coroutine-integration.md)
   and [ADR-0004](ADR-0004-control-axis-node-watcher-snapshot-model.md); contrasts
   with the completed data-axis work in

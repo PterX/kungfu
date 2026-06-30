@@ -5,9 +5,10 @@ this repository follows from **two coupled first principles**. This document
 states them and shows how the architecture falls out of them, so that a reader
 can understand *why* kungfu is built the way it is — not just *what* it contains.
 
-For how the pieces are layered, see [`architecture.md`](architecture.md); for
-specific decisions and their rationale, see the
-[ADRs](../framework/core/docs/adr).
+For the vocabulary used below (`kfc`, `kfs`, `libkungfu`, `longfist`, journal,
+zero-copy, …), see [`concepts.md`](concepts.md); for how the pieces are layered,
+see [`architecture.md`](architecture.md); for specific decisions and their
+rationale, see the [ADRs](../framework/core/docs/adr).
 
 ## Principle 1 — The machine adapts to the person
 
@@ -71,7 +72,7 @@ run through the same interface a user runs through (the TUI even boots through
 where most usability failure actually lives.
 
 This is why kungfu carries `gui`/`tui` in the same repository even though the core
-advantage is the zero-copy membrane and the `longfist` layout. It looks like
+advantage is the zero-copy core (`libkungfu`) and the `longfist` layout. It looks like
 monorepo bloat; it is the price of keeping the maker honest about the user's
 felt experience. The criterion it implies: **a component earns its place in the
 bootstrap when it extends the chain to a real user-facing surface** — otherwise it

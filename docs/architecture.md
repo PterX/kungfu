@@ -2,7 +2,9 @@
 
 How the Kungfu repository is layered, and the principle that shapes it. For the
 two first principles the whole design follows from, see
-[`design-philosophy.md`](design-philosophy.md); for the data-plane concepts
+[`design-philosophy.md`](design-philosophy.md); for the vocabulary
+(`kfc`/`kfx`/`kfs`, `libkungfu`, `longfist`, `yijinjing`, …) see
+[`concepts.md`](concepts.md); for the data-plane concepts
 (journal, zero-copy, replay) see the [README](../README.md); for build and
 contribution see [CONTRIBUTING](../CONTRIBUTING.md); for specific decisions see
 the [ADRs](../framework/core/docs/adr).

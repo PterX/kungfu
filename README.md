@@ -86,6 +86,8 @@ cd kungfu
 
 ## Documentation
 
+- [`docs/concepts.md`](docs/concepts.md) — the vocabulary in one place
+  (`kfc`/`kfx`/`kfs`, `libkungfu`, `longfist`, `yijinjing`, journal, …).
 - [`docs/design-philosophy.md`](docs/design-philosophy.md) — the two first
   principles the whole design follows from, and how the architecture falls out
   of them.

@@ -14,13 +14,19 @@ written — no torn or stale frames — on both strong-memory (x86) and weak-mem
 a release store; readers gate on it with an acquire load before reading the
 payload.
 
-**Verify.** [ADR-0001](../framework/core/docs/adr/ADR-0001-yijinjing-publish-barrier.md)
-(decision + adversarial stress-test results: 0 tears across hundreds of millions
-of reads on arm64 and x86), and the implementation in
-[`frame.h`](../framework/core/src/include/kungfu/yijinjing/journal/frame.h) /
-[`writer.cpp`](../framework/core/src/libkungfu/yijinjing/journal/writer.cpp).
+**Verify.** Two things you can check in this repository: the implementation in
+[`frame.h`](../framework/core/src/include/kungfu/yijinjing/journal/frame.h)
+(`publish_data_length()` release / `acquire_length()` acquire) and
+[`writer.cpp`](../framework/core/src/libkungfu/yijinjing/journal/writer.cpp); and
+the decision plus reported stress-test results in
+[ADR-0001](../framework/core/docs/adr/ADR-0001-yijinjing-publish-barrier.md)
+(0 tears across hundreds of millions of reads on arm64 and x86). Note: the
+standalone stress harness that produced those numbers is not shipped in this
+repository — you can read the implementation and the reported results, but
+re-running that specific proof from the repo alone is not currently possible.
 
-**Maturity.** `stable` — implemented and stress-validated on both architectures.
+**Maturity.** `stable` — implemented, and stress-validated on both architectures
+per the results reported in ADR-0001.
 
 ## The longfist binary layout is the cross-language / on-disk contract
 

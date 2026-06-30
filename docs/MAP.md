@@ -39,6 +39,31 @@ and the map routes a question to whichever doc answers it.
 | If kungfu itself misbehaves, how do I localize it? | [`debugging.md`](debugging.md) | verify | stable |
 | How do I write an extension (`kfx`)? | `extensions.md` (+ [`../examples/`](../examples)) | use | to write · examples exist |
 
+## Also asking about
+
+The rows above are phrased as questions; if your wording differs, these keywords
+route to the row that answers them:
+
+- **arm64 / Apple Silicon / weak memory ordering / torn frames** → *what does it
+  actually guarantee* ([`contracts.md`](contracts.md)) and *why was a decision
+  made* ([ADR-0001](../framework/core/docs/adr/ADR-0001-yijinjing-publish-barrier.md)).
+- **thread-safety / concurrency / single-writer multi-reader / lock-free** →
+  *what does it actually guarantee* ([`contracts.md`](contracts.md)).
+- **determinism / reproducibility / record-and-replay** → *what does it actually
+  guarantee* ([`contracts.md`](contracts.md)) and *the event / journal / replay
+  model* ([`event-model.md`](event-model.md)).
+- **latency / performance / zero-copy / serialization** → *the membrane*
+  ([`architecture.md`](architecture.md)) and *the event model*
+  ([`event-model.md`](event-model.md)).
+- **how do I run it / get started / install** → *source to a binary*
+  ([`buildchain.md`](buildchain.md)) and [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+  (A one-command run-it path is planned — see `extensions.md` status and the
+  build/release work tracked in [`known-limits.md`](known-limits.md).)
+- **N-API / pybind11 / bindings / FFI** → *adapter boundaries*
+  ([`adapters.md`](adapters.md)).
+- **signature / checksum / supply chain / SBOM** → *verify a release binary*
+  (`provenance.md`, `blocked` — see [`known-limits.md`](known-limits.md)).
+
 ## How this map is maintained
 
 - A document becomes a row here the moment it is *named*, even before it exists —

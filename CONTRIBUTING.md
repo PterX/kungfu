@@ -3,6 +3,19 @@
 Thanks for your interest in Kungfu. This guide covers how to build the project,
 the coding conventions, and how changes are proposed and released.
 
+## Feedback, questions & security
+
+All project contact happens through GitHub — there is no email support channel.
+
+- **Bugs, feature requests, questions, documentation issues** — open a
+  [GitHub issue](https://github.com/kungfu-systems/kungfu/issues/new/choose).
+- **Code and documentation changes** — open a pull request (see below).
+- **Security vulnerabilities** — report them privately, never in a public issue.
+  See [`SECURITY.md`](SECURITY.md).
+
+Please do not include secrets, credentials, tokens, private logs, or other
+sensitive material in issues or pull requests.
+
 ## Prerequisites
 
 - A C++20 toolchain and [CMake](https://cmake.org/) (>= 3.15)

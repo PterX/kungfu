@@ -109,6 +109,15 @@ right document, and is readable by both people and agents.
 - [`framework/core/docs/adr/`](framework/core/docs/adr) — architecture decision
   records.
 
+## Feedback & support
+
+Project contact happens through GitHub — there is no email support channel.
+
+- Bugs, feature requests, questions, and documentation issues:
+  [open an issue](https://github.com/kungfu-systems/kungfu/issues/new/choose).
+- Changes: open a pull request (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+- Security vulnerabilities: report them privately — see [`SECURITY.md`](SECURITY.md).
+
 ## License
 
 [Apache License 2.0](LICENSE).

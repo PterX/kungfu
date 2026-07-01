@@ -1,32 +1,34 @@
 #!/bin/sh
-# kungfu-code — kungfu 开发/构建编排「起手式」(macOS / Linux),三层子集的 L1。
+# kungfu-code — the kungfu development/build orchestration "entrypoint" (macOS / Linux), L1 of a three-tier subset.
 #
-# 一条命令,在仓库钉定的 node(.node-version)下执行任意构建/开发任务:
-#   ./kungfu-code app          # = pnpm app(启 Electron 版 kungfu)
+# One command that runs any build/dev task under the node pinned by the repo (.node-version):
+#   ./kungfu-code app          # = pnpm app (launch the Electron build of kungfu)
 #   ./kungfu-code build:core   # = pnpm build:core
-#   ./kungfu-code <任意 pnpm 任务/参数>
-#   ./kungfu-code proxy ...    # 富子命令:管理本地缓存/镜像代理配置(委派给 L2 node,不透传 pnpm)
+#   ./kungfu-code <any pnpm task/args>
+#   ./kungfu-code proxy ...    # rich subcommand: manage local cache/mirror proxy config (delegated to L2 node, not passed to pnpm)
 #
-# 三层子集模型:
-#   L1 本文件(sh)        bootstrap:load 代理 env / 检 fnm+uv / 钉 node / 跑 pnpm;富子命令委派 L2。
-#   L2 kungfu-code.js(node)  fnm 装好后可用的富命令(缓存配置 proxy 等),纯 node builtins。
-#   L3 (未来)TUI         复用 kungfu 自身 TUI 基础设施 / 编译产物;复用 L2 的配置读写。
+# Three-tier subset model:
+#   L1 this file (sh)         bootstrap: load proxy env / check fnm+uv / pin node / run pnpm; rich subcommands delegate to L2.
+#   L2 kungfu-code.js (node)  rich commands available once fnm is installed (cache config proxy, etc.), pure node builtins.
+#   L3 (future) TUI           reuse kungfu's own TUI infrastructure / build artifacts; reuse L2's config read/write.
 #
-# 机制(双驱动起手式,node 侧 + python 侧对称):
-#   node 侧:fnm 选 node(.node-version)→ corepack 派 pnpm(版本由 package.json packageManager 钉)。
-#   python 侧:uv 管 standalone CPython + uv.lock + `uv run` 跑 conan/nuitka(uv 之于 python ≈ fnm 之于 node)。
-# 一次性装两个前置:fnm + uv;不依赖系统 node/python 版本,也不需 --ignore-engines。
+# Mechanism (dual-driver entrypoint, symmetric node side + python side):
+#   node side:   fnm selects node (.node-version) → corepack dispatches pnpm (version pinned by package.json packageManager).
+#   python side: uv manages standalone CPython + uv.lock + `uv run` for conan/nuitka (uv is to python as fnm is to node).
+# Install the two prerequisites once: fnm + uv; no dependence on system node/python versions, and no --ignore-engines.
 #
-# 本仓零 LAN/镜像耦合(开源者克隆即用官方上游)。需局域网缓存 / CN 镜像加速时,用
-# `./kungfu-code proxy` 把模板 build-local.env.example 派生到用户全局并填值:
+# This repo has zero LAN/mirror coupling (an open-source cloner uses the official upstreams out of the box). To
+# accelerate through a LAN cache / CN mirror, use `./kungfu-code proxy` to derive the template build-local.env.example
+# into the user-global location and fill in values:
 #   ${XDG_CONFIG_HOME:-~/.config}/kungfu/build-local.env
-# 放用户全局的原因:git worktree 是独立检出,仓内 gitignore 文件不会出现在 worktree;放
-# 用户全局才能被主仓与所有 worktree 共用,且天然在仓外、内网多机同步一份即可。
-# 可选仓根 ./build-local.env(已 .gitignore)作按检出覆盖,叠加在用户全局之上。
+# Why user-global: a git worktree is an independent checkout, and repo-gitignored files do not appear in worktrees;
+# keeping it user-global lets the main repo and all worktrees share it, and it is naturally outside the repo and only
+# needs to be synced once across intranet machines.
+# The optional repo-root ./build-local.env (already gitignored) acts as a per-checkout override layered on top of the user-global one.
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
-# 加载本地缓存代理配置:用户全局优先,再叠加可选仓内覆盖(两者皆 export → 透传子进程)。
+# Load local cache proxy config: user-global first, then layer the optional in-repo override (both exported → passed to subprocesses).
 kfc_load_proxy() {
   _f="${XDG_CONFIG_HOME:-$HOME/.config}/kungfu/build-local.env"
   # shellcheck disable=SC1090
@@ -37,9 +39,9 @@ kfc_load_proxy() {
   return 0
 }
 
-# 富子命令委派 L2 node(不透传 pnpm、不需要 uv)。L2 是纯 node builtins、不挑版本:
-# 有 fnm 则优先用 fnm-managed node(bootstrap 已就绪的正常路径);fnm 未就绪时回退系统
-# node,让开发者在 fnm 安装不顺时仍能先用 L2 配置(如设镜像反过来帮 fnm);两者皆无才报错。
+# Rich subcommands delegate to L2 node (not passed to pnpm, no uv needed). L2 is pure node builtins and version-agnostic:
+# prefer fnm-managed node when available (the normal path once bootstrap is ready); fall back to system node when fnm is
+# not ready, so a developer can still use L2 config first (e.g. set a mirror to in turn help fnm); error only if neither exists.
 case "${1:-}" in
   proxy | config)
     if command -v fnm >/dev/null 2>&1; then
@@ -48,27 +50,27 @@ case "${1:-}" in
     elif command -v node >/dev/null 2>&1; then
       exec node ./kungfu-code.js "$@"
     else
-      echo "kungfu-code: 富子命令需 node —— 装 fnm(推荐 'arch -arm64 brew install fnm',见 https://github.com/Schniz/fnm)或任一系统 node 均可" >&2
+      echo "kungfu-code: rich subcommands need node — install fnm (recommended 'arch -arm64 brew install fnm', see https://github.com/Schniz/fnm) or any system node" >&2
       exit 127
     fi
     ;;
 esac
 
-# 普通构建/开发任务:加载代理配置 → 检两个前置 → 钉 node → corepack pnpm
+# Normal build/dev task: load proxy config → check the two prerequisites → pin node → corepack pnpm
 kfc_load_proxy
 
 if ! command -v fnm >/dev/null 2>&1; then
-  echo "kungfu-code: 需先一次性安装 fnm(node 侧前置)—— 'arch -arm64 brew install fnm'(或见 https://github.com/Schniz/fnm)" >&2
+  echo "kungfu-code: install fnm once first (node-side prerequisite) — 'arch -arm64 brew install fnm' (or see https://github.com/Schniz/fnm)" >&2
   exit 127
 fi
 
 if ! command -v uv >/dev/null 2>&1; then
-  echo "kungfu-code: 需先一次性安装 uv(python 侧前置)—— 'brew install uv'(或 'curl -LsSf https://astral.sh/uv/install.sh | sh';见 https://docs.astral.sh/uv/)" >&2
+  echo "kungfu-code: install uv once first (python-side prerequisite) — 'brew install uv' (or 'curl -LsSf https://astral.sh/uv/install.sh | sh'; see https://docs.astral.sh/uv/)" >&2
   exit 127
 fi
 
-# 幂等:确保 .node-version 指定的 node 已安装
+# Idempotent: ensure the node specified by .node-version is installed
 fnm install >/dev/null 2>&1 || true
 
-# 在钉定 node 下,经 corepack 跑 packageManager 钉定的 pnpm
+# Under the pinned node, run the pnpm pinned by packageManager via corepack
 exec fnm exec --using-file -- corepack pnpm "$@"

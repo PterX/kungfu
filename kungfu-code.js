@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 //
-// kungfu-code.js — kungfu-code 起手式的「富子集」(L2)。
+// kungfu-code.js — the "rich subset" (L2) of the kungfu-code entrypoint.
 //
-// 三层子集模型:
-//   L1  kungfu-code(sh)        bootstrap 简单命令:load env / 检 fnm+uv / 钉 node / 跑 pnpm,
-//                              并把富子命令(proxy/config…)委派给本文件。
-//   L2  kungfu-code.js(node)   fnm 装好后可用的富命令(node 实现,纯 builtins,无依赖)。
-//                              当前:本地缓存/镜像代理配置管理(proxy)。
-//   L3  (未来)TUI              复用 kungfu 自身 TUI 基础设施 / 编译产物运行时;直接 import
-//                              下面的 readConfig/setKey 等配置读写,不重复实现。
+// Three-tier subset model:
+//   L1  kungfu-code (sh)        bootstrap simple commands: load env / check fnm+uv / pin node / run pnpm,
+//                               and delegate rich subcommands (proxy/config…) to this file.
+//   L2  kungfu-code.js (node)   rich commands available once fnm is installed (node implementation, pure builtins, no deps).
+//                               currently: local cache/mirror proxy config management (proxy).
+//   L3  (future) TUI            reuse kungfu's own TUI infrastructure / build-artifact runtime; directly import
+//                               the readConfig/setKey config helpers below instead of reimplementing them.
 //
-// 配置文件在用户全局 ${XDG_CONFIG_HOME:-~/.config}/kungfu/build-local.env:主仓与所有
-// git worktree 共用同一份、天然在仓外(开源安全)、内网多机同步一份即可。
+// The config file lives user-global at ${XDG_CONFIG_HOME:-~/.config}/kungfu/build-local.env: the main repo and all
+// git worktrees share one copy, it is naturally outside the repo (open-source safe), and only needs one sync across intranet machines.
 'use strict';
 
 const fs = require('fs');
@@ -21,13 +21,13 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const KEYS = [
-  // 镜像 / 缓存(各上游)
+  // mirrors / cache (per upstream)
   'FNM_NODE_DIST_MIRROR',
   'ELECTRON_MIRROR',
   'COREPACK_NPM_REGISTRY',
   'UV_DEFAULT_INDEX',
   'UV_PYTHON_INSTALL_MIRROR',
-  // 编译参数(按机封顶,防大核机内存 thrash)
+  // compile params (cap per machine, to avoid memory thrash on many-core machines)
   'KUNGFU_BUILD_JOBS',
 ];
 
@@ -38,7 +38,7 @@ const CONFIG_FILE = path.join(
 );
 const TEMPLATE = path.join(__dirname, 'build-local.env.example');
 
-// ── 可复用配置读写模块(L3 TUI 可直接 require 本文件复用)────────────────────
+// ── Reusable config read/write module (an L3 TUI can require this file directly) ──────────────
 function readRaw() {
   try {
     return fs.readFileSync(CONFIG_FILE, 'utf8');
@@ -88,19 +88,19 @@ function unsetKey(key) {
 
 module.exports = { CONFIG_FILE, KEYS, readConfig, setKey, unsetKey };
 
-// ── CLI(L1 sh 委派入口)──────────────────────────────────────────────────
+// ── CLI (entrypoint delegated from L1 sh) ────────────────────────────────────
 function help(cmd) {
   console.error(
-    `kungfu-code ${cmd} — 管理本地构建环境配置:镜像/缓存 + 编译参数(用户全局 build-local.env)\n` +
-      `  ${cmd} path               打印配置文件路径\n` +
-      `  ${cmd} init               从 build-local.env.example 派生配置文件(若不存在)\n` +
-      `  ${cmd} edit               用 $EDITOR 打开配置文件(不存在则先从模板创建)\n` +
-      `  ${cmd} list               显示各项当前值\n` +
-      `  ${cmd} get <KEY>          读取某项\n` +
-      `  ${cmd} set <KEY> <VALUE>  设置某项(写入用户全局文件)\n` +
-      `  ${cmd} unset <KEY>        移除某项\n` +
-      `已知 KEY:${KEYS.join(' ')}\n` +
-      `配置在仓外(用户全局),主仓与所有 worktree 共用、内网多机同步一份。`,
+    `kungfu-code ${cmd} — manage local build environment config: mirrors/cache + compile params (user-global build-local.env)\n` +
+      `  ${cmd} path               print the config file path\n` +
+      `  ${cmd} init               derive the config file from build-local.env.example (if absent)\n` +
+      `  ${cmd} edit               open the config file with $EDITOR (create from template first if absent)\n` +
+      `  ${cmd} list               show the current value of each entry\n` +
+      `  ${cmd} get <KEY>          read one entry\n` +
+      `  ${cmd} set <KEY> <VALUE>  set one entry (written to the user-global file)\n` +
+      `  ${cmd} unset <KEY>        remove one entry\n` +
+      `Known KEYs: ${KEYS.join(' ')}\n` +
+      `The config lives outside the repo (user-global), shared by the main repo and all worktrees, synced once across intranet machines.`,
   );
 }
 
@@ -108,7 +108,7 @@ function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
   if (cmd !== 'proxy' && cmd !== 'config') {
-    console.error(`kungfu-code.js: 未知命令 ${cmd || '(空)'}(仅支持 proxy/config)`);
+    console.error(`kungfu-code.js: unknown command ${cmd || '(empty)'} (only proxy/config are supported)`);
     process.exit(2);
   }
   const sub = argv[1] || 'help';
@@ -118,11 +118,11 @@ function main() {
       break;
     case 'init':
       if (fs.existsSync(CONFIG_FILE)) {
-        console.error(`已存在,未覆盖:${CONFIG_FILE}`);
+        console.error(`Already exists, not overwritten: ${CONFIG_FILE}`);
       } else {
         ensureDir();
         fs.copyFileSync(TEMPLATE, CONFIG_FILE);
-        console.error(`已从模板创建:${CONFIG_FILE}(请编辑或用 set 填值)`);
+        console.error(`Created from template: ${CONFIG_FILE} (edit it or use set to fill values)`);
       }
       break;
     case 'edit': {
@@ -141,7 +141,7 @@ function main() {
     case 'get': {
       const k = argv[2];
       if (!k) {
-        console.error('用法: proxy get <KEY>');
+        console.error('Usage: proxy get <KEY>');
         process.exit(2);
       }
       console.log(readConfig()[k] || '');
@@ -151,25 +151,25 @@ function main() {
       const k = argv[2];
       const v = argv[3];
       if (!k || v === undefined) {
-        console.error('用法: proxy set <KEY> <VALUE>');
+        console.error('Usage: proxy set <KEY> <VALUE>');
         process.exit(2);
       }
       if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) {
-        console.error(`非法 KEY:${k}`);
+        console.error(`Invalid KEY: ${k}`);
         process.exit(2);
       }
       setKey(k, v);
-      console.error(`已设置 ${k} 于 ${CONFIG_FILE}`);
+      console.error(`Set ${k} in ${CONFIG_FILE}`);
       break;
     }
     case 'unset': {
       const k = argv[2];
       if (!k) {
-        console.error('用法: proxy unset <KEY>');
+        console.error('Usage: proxy unset <KEY>');
         process.exit(2);
       }
       unsetKey(k);
-      console.error(`已移除 ${k}`);
+      console.error(`Removed ${k}`);
       break;
     }
     case 'help':
@@ -178,7 +178,7 @@ function main() {
       help(cmd);
       break;
     default:
-      console.error(`未知子命令:${sub}(见 ${cmd} help)`);
+      console.error(`Unknown subcommand: ${sub} (see ${cmd} help)`);
       process.exit(2);
   }
 }

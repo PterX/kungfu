@@ -80,7 +80,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the toolchain, build steps, coding
 conventions, and the pull request / release flow.
 
 ```sh
-# install fnm once, then:
+# install fnm and uv once, then:
 git clone git@github.com:kungfu-systems/kungfu.git
 cd kungfu
 ./kungfu-code sync && ./kungfu-code build

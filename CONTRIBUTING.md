@@ -54,11 +54,11 @@ Three command-line entry points, kept forward-compatible:
 
 The repo pins its Node version via [`fnm`](https://github.com/Schniz/fnm) and a
 checked-in `.node-version`, and manages the Python environment with
-[`uv`](https://docs.astral.sh/uv/). You only need to install `fnm` once; Node,
-the package manager, and the Python interpreter are then resolved automatically.
+[`uv`](https://docs.astral.sh/uv/). You only need to install `fnm` and `uv` once;
+Node, the package manager, and the Python interpreter are then resolved automatically.
 
 ```sh
-# one-time: install fnm (e.g. `brew install fnm`, `winget install Schniz.fnm`)
+# one-time: install fnm and uv (e.g. `brew install fnm uv`)
 
 git clone git@github.com:kungfu-systems/kungfu.git
 cd kungfu

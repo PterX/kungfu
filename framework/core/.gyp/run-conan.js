@@ -17,7 +17,7 @@ function getNodeVersionOptions() {
     path.resolve(path.dirname(__dirname), 'package.json'),
   );
   // electron 从 devDependencies 读并去掉 ^/~ 前缀；node_version 从 config 读
-  // (v4 起 @kungfu-trader/libnode 不再列为 devDep，dev 走 npm link，见 docs/conan2-migration.md)。
+  // (v4 起 @kungfu-tech/libnode 不再列为 devDep，dev 走 npm link，见 docs/conan2-migration.md)。
   const electronVersion = String(packageJson.devDependencies['electron']).replace(
     /^[\^~]/,
     '',

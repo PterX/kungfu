@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-const libnode = require('@kungfu-trader/libnode');
+const libnode = require('@kungfu-tech/libnode');
 const fs = require('fs');
 const fse = require('fs-extra');
 const glob = require('glob');

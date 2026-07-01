@@ -4,11 +4,13 @@
 
 Please report security issues privately instead of opening a public issue.
 
-Email:
+Use GitHub's private vulnerability reporting: open the repository's **Security**
+tab and choose **Report a vulnerability**
+([open directly](https://github.com/kungfu-systems/kungfu/security/advisories/new)).
+The report stays private to the maintainers until a fix is coordinated.
 
-```text
-info@kungfu.link
-```
+Do not report vulnerabilities through public issues, pull requests, or
+discussions.
 
 Include:
 

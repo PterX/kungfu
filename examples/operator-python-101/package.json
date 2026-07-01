@@ -1,6 +1,6 @@
 {
   "name": "@kungfu-tech/examples-operator-python",
-  "author": "kungfu-trader",
+  "author": "kungfu",
   "version": "4.0.0-alpha.0",
   "description": "KungFu Operator 101 - Python Demo",
   "license": "Apache-2.0",

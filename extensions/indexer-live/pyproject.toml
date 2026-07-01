@@ -2,7 +2,7 @@
 name = "kfx-indexer-live"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "Kungfu Trader", email = "info@kungfu.link"},
+    {name = "Kungfu", email = "info@kungfu.link"},
 ]
 dynamic = ["version"]
 requires-python = "~=3.9"

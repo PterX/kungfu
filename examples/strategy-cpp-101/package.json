@@ -1,6 +1,6 @@
 {
   "name": "@kungfu-tech/examples-strategy-cpp",
-  "author": "kungfu-trader",
+  "author": "kungfu",
   "version": "4.0.0-alpha.0",
   "description": "KungFu Strategy 101 - C++ Demo",
   "license": "Apache-2.0",
@@ -33,6 +33,6 @@
     }
   },
   "repository": {
-    "url": "https://github.com/kungfu-trader/kungfu.git"
+    "url": "https://github.com/kungfu-systems/kungfu.git"
   }
 }

@@ -1,11 +1,11 @@
 {
   "name": "@kungfu-tech/workspaces",
-  "homepage": "https://www.kungfu-trader.com",
+  "homepage": "https://kungfu.tech",
   "author": {
-    "name": "Kungfu Trader",
+    "name": "Kungfu",
     "email": "info@kungfu.link"
   },
-  "description": "Kungfu Trader Workspaces",
+  "description": "Kungfu Workspaces",
   "license": "Apache-2.0",
   "private": true,
   "packageManager": "pnpm@11.7.0",

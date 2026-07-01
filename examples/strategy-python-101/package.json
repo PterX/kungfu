@@ -2,14 +2,14 @@
   "name": "@kungfu-tech/examples-strategy-python",
   "version": "4.0.0-alpha.0",
   "author": {
-    "name": "Kungfu Trader",
+    "name": "Kungfu",
     "email": "info@kungfu.link"
   },
   "description": "KungFu Strategy 101 - Python Demo",
   "license": "Apache-2.0",
   "main": "package.json",
   "repository": {
-    "url": "https://github.com/kungfu-trader/kungfu.git"
+    "url": "https://github.com/kungfu-systems/kungfu.git"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

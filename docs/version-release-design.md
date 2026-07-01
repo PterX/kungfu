@@ -6,8 +6,8 @@
 ## Why this document exists
 
 At a glance the version/release setup looks like ordinary boilerplate: `lerna` plus a few
-thin GitHub workflows that delegate to `kungfu-trader/workflows` and
-`kungfu-trader/action-bump-version`. It is easy to read the code in seconds and conclude
+thin GitHub workflows that delegate to `kungfu-systems/workflows` and
+`kungfu-systems/action-bump-version`. It is easy to read the code in seconds and conclude
 "this is replaceable scaffolding — just swap it for changesets / semantic-release."
 
 That conclusion is wrong, and the reason it is wrong is **not in the code** — it is in the
@@ -203,9 +203,9 @@ If a candidate cannot preserve all four, it is a downgrade for this project, how
 
 - Thin workflows:
   `.github/workflows/{bump-major-version,bump-minor-version,release-new-version,release-verify}.yml`
-  → reusable workflows in `kungfu-trader/workflows`.
+  → reusable workflows in `kungfu-systems/workflows`.
 - Bump / release / publish logic and branch-protection setup:
-  `kungfu-trader/action-bump-version` (its README documents the full channel rules and the
+  `kungfu-systems/action-bump-version` (its README documents the full channel rules and the
   original design goals).
 - Build & toolchain dependencies: see [`CONTRIBUTING.md`](../CONTRIBUTING.md)
   (a dedicated source-to-binary `buildchain` doc is planned — see [`MAP.md`](MAP.md)).

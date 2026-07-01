@@ -1,12 +1,12 @@
 {
   "name": "@kungfu-tech/artifact-kungfu",
-  "homepage": "https://www.kungfu-trader.com",
+  "homepage": "https://kungfu.tech",
   "author": {
-    "name": "Kungfu Trader",
+    "name": "Kungfu",
     "email": "info@kungfu.link"
   },
   "version": "4.0.0-alpha.0",
-  "description": "Kungfu Trader Artifact",
+  "description": "Kungfu Artifact",
   "license": "Apache-2.0",
   "private": true,
   "main": "dist/app/main.js",
@@ -37,6 +37,6 @@
     "@kungfu-tech/sdk": "workspace:*"
   },
   "repository": {
-    "url": "https://github.com/kungfu-trader/kungfu.git"
+    "url": "https://github.com/kungfu-systems/kungfu.git"
   }
 }

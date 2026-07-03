@@ -14,6 +14,7 @@ from . import rewind
 from . import schema
 from . import work
 from . import atlas
+from . import kfx
 
 __all__ = [
     "engage",
@@ -30,4 +31,5 @@ __all__ = [
     "schema",
     "work",
     "atlas",
+    "kfx",
 ]

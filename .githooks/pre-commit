@@ -1,0 +1,116 @@
+#!/bin/sh
+# kungfu pre-commit hook — format staged files in place, then re-stage them.
+#
+# Scope: only staged (Added/Copied/Modified) files, dispatched by extension to
+# the matching formatter (clang-format / ruff / biome / prettier). Generated
+# outputs (flatbuffers tables, files carrying a "do not modify" header) are
+# skipped so regeneration stays authoritative.
+#
+# Installed to $(git --git-common-dir)/hooks/pre-commit by install-hooks.js
+# (root `prepare`, or `pnpm run hooks:install`). It coexists with a managed
+# hooks-path guard: when core.hooksPath points elsewhere, that guard execs this
+# standard hook after its own checks pass, so this file stays the single place
+# that formats staged code.
+#
+# A missing formatter warns and skips (a setup gap must not block a commit); run
+# `./kungfu-code sync` to install the toolchain. Bypass entirely with `git
+# commit -n`.
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+staged=$(git diff --cached --name-only --diff-filter=ACM || true)
+[ -n "$staged" ] || exit 0
+
+# A file is "generated" if its path matches a known generated shape or its head
+# carries a generator marker. Kept in sync with the ruff/biome exclude configs.
+is_generated() {
+  case "$1" in
+    */generated/*|*/fb/[A-Z]*.py|*_fb.py|*_generated.*) return 0 ;;
+  esac
+  head -n 3 "$1" 2>/dev/null | grep -qiE 'automatically generated|do not (edit|modify)' && return 0
+  return 1
+}
+
+cpp='' py='' web='' corejs=''
+for f in $staged; do
+  [ -f "$f" ] || continue          # skip deletions / renamed-away paths
+  is_generated "$f" && continue
+  # Dispatch mirrors the packages that define a `format` script; trees without
+  # one (repo-root scripts, framework/api) keep their current coverage.
+  case "$f" in
+    *.h|*.hpp|*.hxx|*.cpp|*.c|*.cc|*.cxx)
+      cpp="$cpp $f" ;;
+    *.py)
+      py="$py $f" ;;
+    framework/core/*.js|framework/core/*.cjs|framework/core/*.mjs)
+      corejs="$corejs $f" ;;                 # core build scripts use prettier
+    developer/sdk/*|framework/gui/*|framework/tui/*|framework/kfx/*)
+      case "$f" in                           # biome-managed packages only
+        *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.json|*.jsonc) web="$web $f" ;;
+      esac ;;
+  esac
+done
+
+changed=''
+warn() { printf '[kungfu pre-commit] %s\n' "$1" >&2; }
+
+# C++ — clang-format reads the repo-root .clang-format via -style=file.
+if [ -n "$cpp" ]; then
+  if command -v clang-format >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    clang-format -style=file -i $cpp && changed="$changed $cpp"
+  else
+    warn "clang-format not found; skipped C++:$cpp"
+  fi
+fi
+
+# Python — ruff finds framework/core/pyproject.toml per file (line-length 88,
+# generated excludes). Prefer a repo/global ruff, else uv's ephemeral runner.
+if [ -n "$py" ]; then
+  if command -v ruff >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    ruff format $py && changed="$changed $py"
+  elif command -v uvx >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    uvx ruff format $py && changed="$changed $py"
+  else
+    warn "ruff/uv not found; skipped Python:$py"
+  fi
+fi
+
+# TS/JS — biome finds each package's biome.json upward. Pin the version to match
+# the formatting baseline so results do not drift.
+if [ -n "$web" ]; then
+  if command -v biome >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    biome format --write $web && changed="$changed $web"
+  elif command -v pnpm >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    pnpm dlx @biomejs/biome@1.9.4 format --write $web && changed="$changed $web"
+  else
+    warn "biome/pnpm not found; skipped TS/JS:$web"
+  fi
+fi
+
+# Core build scripts — prettier with framework/core/.prettierrc.js.
+if [ -n "$corejs" ]; then
+  cfg="framework/core/.prettierrc.js"
+  if command -v prettier >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    prettier -w --config "$cfg" $corejs && changed="$changed $corejs"
+  elif command -v pnpm >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    pnpm dlx prettier@3 -w --config "$cfg" $corejs && changed="$changed $corejs"
+  else
+    warn "prettier/pnpm not found; skipped core scripts:$corejs"
+  fi
+fi
+
+# Re-stage whatever was reformatted so the commit captures the clean result.
+if [ -n "$changed" ]; then
+  # shellcheck disable=SC2086
+  git add -- $changed
+fi
+exit 0

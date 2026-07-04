@@ -157,7 +157,9 @@ class BundleDecoder:
         if base_type in scalars:
             flags, cast, _ = scalars[base_type]
             if not o:
-                default = field.DefaultReal() if cast is float else field.DefaultInteger()
+                default = (
+                    field.DefaultReal() if cast is float else field.DefaultInteger()
+                )
                 return cast(default)
             return cast(table.Get(flags, o + table.Pos))
         if base_type == B.Vector:
@@ -170,7 +172,9 @@ class BundleDecoder:
                 return [table.String(start + i * 4).decode() for i in range(length)]
             if elem in scalars:
                 flags, cast, width = scalars[elem]
-                return [cast(table.Get(flags, start + i * width)) for i in range(length)]
+                return [
+                    cast(table.Get(flags, start + i * width)) for i in range(length)
+                ]
             raise ValueError(f"unsupported vector element type {elem}")
         raise ValueError(f"unsupported base type {base_type}")
 

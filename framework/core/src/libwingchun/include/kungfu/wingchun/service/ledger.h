@@ -33,8 +33,8 @@ public:
 protected:
   void on_start() override;
 
-  // born-FB dual-write helper(protected 便于 TestLedger e2e 驱动真实写侧;flag 判断内置,FB builder include 仅 ledger.cpp):
-  // _to=默认路由(对应 try_write_to/write_to)、_as=显式 source/dest(对应 write_positions 的 try_write_as)。
+  // born-FB dual-write helper(protected 便于 TestLedger e2e 驱动真实写侧;flag 判断内置,FB builder include 仅
+  // ledger.cpp): _to=默认路由(对应 try_write_to/write_to)、_as=显式 source/dest(对应 write_positions 的 try_write_as)。
   void write_position_born_fb(int64_t trigger_time, const longfist::types::Position &position, uint32_t dest);
 
   void write_position_born_fb_as(int64_t trigger_time, const longfist::types::Position &position, uint32_t source,

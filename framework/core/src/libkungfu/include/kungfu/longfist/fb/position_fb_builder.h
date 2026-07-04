@@ -30,14 +30,13 @@ inline std::string build_fb_position(const kungfu::longfist::types::Position &p)
   auto inst = fbb.CreateString(p.instrument_id.to_string());
   auto exch = fbb.CreateString(p.exchange_id.to_string());
   // 口径:enum class:int8_t -> FB enum:byte(经 int8_t 中转,值镜像 enums.h)。CreatePosition 参数顺序=table 字段声明序。
-  auto root = CreatePosition(fbb, p.update_time, inst,
-                             static_cast<InstrumentType>(static_cast<int8_t>(p.instrument_type)), exch, p.holder_uid,
-                             static_cast<LedgerCategory>(static_cast<int8_t>(p.ledger_category)),
-                             static_cast<Direction>(static_cast<int8_t>(p.direction)), p.volume, p.yesterday_volume,
-                             p.frozen_total, p.frozen_yesterday, p.static_yesterday, p.open_volume, p.last_price,
-                             p.avg_open_price, p.position_cost_price, p.avg_open_price_today, p.close_price,
-                             p.pre_close_price, p.settlement_price, p.pre_settlement_price, p.margin, p.position_pnl,
-                             p.close_pnl, p.realized_pnl, p.unrealized_pnl, p.source_id, p.source_op_id);
+  auto root = CreatePosition(
+      fbb, p.update_time, inst, static_cast<InstrumentType>(static_cast<int8_t>(p.instrument_type)), exch, p.holder_uid,
+      static_cast<LedgerCategory>(static_cast<int8_t>(p.ledger_category)),
+      static_cast<Direction>(static_cast<int8_t>(p.direction)), p.volume, p.yesterday_volume, p.frozen_total,
+      p.frozen_yesterday, p.static_yesterday, p.open_volume, p.last_price, p.avg_open_price, p.position_cost_price,
+      p.avg_open_price_today, p.close_price, p.pre_close_price, p.settlement_price, p.pre_settlement_price, p.margin,
+      p.position_pnl, p.close_pnl, p.realized_pnl, p.unrealized_pnl, p.source_id, p.source_op_id);
   fbb.Finish(root);
   return std::string(reinterpret_cast<const char *>(fbb.GetBufferPointer()), fbb.GetSize());
 }

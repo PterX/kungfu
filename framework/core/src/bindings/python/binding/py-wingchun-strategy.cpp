@@ -165,8 +165,7 @@ public:
 
 void bind_strategy(pybind11::module &m) {
 
-  py::class_<strategy::Runner, PyRunner, kungfu::practice::apprentice, std::shared_ptr<strategy::Runner>>(
-      m, "Runner")
+  py::class_<strategy::Runner, PyRunner, kungfu::practice::apprentice, std::shared_ptr<strategy::Runner>>(m, "Runner")
       .def(py::init<kungfu::yijinjing::data::locator_ptr, const std::string &, const std::string &,
                     longfist::enums::mode, bool, const std::string &>())
       .def_property_readonly("context", &strategy::Runner::get_context)

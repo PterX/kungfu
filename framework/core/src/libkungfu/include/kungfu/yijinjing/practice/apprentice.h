@@ -37,7 +37,8 @@ private:
 
 class apprentice : public hero {
 public:
-  explicit apprentice(const yijinjing::data::location_ptr &home, bool low_latency = false, std::string arguments = "{}");
+  explicit apprentice(const yijinjing::data::location_ptr &home, bool low_latency = false,
+                      std::string arguments = "{}");
 
   explicit apprentice(const yijinjing::io_device_ptr &io_device, std::string arguments = "{}");
 
@@ -64,7 +65,8 @@ public:
 
   void request_write_to(int64_t trigger_time, uint32_t dest_id, uint64_t page_size = 0);
 
-  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location, uint64_t page_size = 0);
+  void request_write_to_band(int64_t trigger_time, const yijinjing::data::location_ptr &location,
+                             uint64_t page_size = 0);
 
   uint32_t request_band(const std::string &band_name, uint64_t page_size = 0);
 

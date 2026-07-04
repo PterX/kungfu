@@ -71,8 +71,7 @@ inline int GetMillisecondsSleepAfterStep(const Napi::CallbackInfo &info) {
 // cross-process contention, and a body-level try cannot catch member
 // initializer exceptions. A plain std::exception escaping this napi callback
 // terminates the whole process; convert to a JS-catchable error instead.
-Watcher::Watcher(const Napi::CallbackInfo &info)
-try
+Watcher::Watcher(const Napi::CallbackInfo &info) try
     : ObjectWrap(info),                                    //
       apprentice(GetWatcherLocation(info), true),          //
       bypass_accounting_(GetBool(info, 3)),                //

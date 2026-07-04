@@ -165,7 +165,8 @@ const KFX_EXTERNALS = [
 
 function readManifest() {
   const manifestPath = path.resolve('package.json');
-  if (!fs.existsSync(manifestPath)) fail('no package.json in current directory');
+  if (!fs.existsSync(manifestPath))
+    fail('no package.json in current directory');
   return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 }
 
@@ -192,16 +193,23 @@ function runOrFail(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, { stdio: 'inherit', ...opts });
   if (result.error) fail(`${cmd} not runnable: ${result.error.message}`);
   if (result.status !== 0) {
-    fail(`${cmd} ${args.join(' ')} failed (exit ${result.status ?? `signal ${result.signal}`})`);
+    fail(
+      `${cmd} ${args.join(' ')} failed (exit ${result.status ?? `signal ${result.signal}`})`,
+    );
   }
 }
 
 function cppBuild(manifest) {
   const coreDir = locateCoreDir(process.cwd());
-  if (!coreDir) fail('cannot locate framework/core (a cpp kfx build needs the monorepo core)');
+  if (!coreDir)
+    fail(
+      'cannot locate framework/core (a cpp kfx build needs the monorepo core)',
+    );
   const toolchain = path.join(coreDir, 'build', 'conan_toolchain.cmake');
   if (!fs.existsSync(toolchain)) {
-    fail(`core not built: ${toolchain} is missing. Run \`./kungfu-code rebuild:core\` first.`);
+    fail(
+      `core not built: ${toolchain} is missing. Run \`./kungfu-code rebuild:core\` first.`,
+    );
   }
   const buildDir = path.resolve('build');
   const distDir = path.resolve('dist', manifest.kungfuConfig?.key ?? 'cpp');
@@ -221,7 +229,10 @@ function cppBuild(manifest) {
   // pin holds regardless of which pybind11 lookup mode is active.
   const corePython = path.join(coreDir, '.venv', 'bin', 'python3');
   if (fs.existsSync(corePython)) {
-    configureArgs.push(`-DPYTHON_EXECUTABLE=${corePython}`, `-DPython_EXECUTABLE=${corePython}`);
+    configureArgs.push(
+      `-DPYTHON_EXECUTABLE=${corePython}`,
+      `-DPython_EXECUTABLE=${corePython}`,
+    );
   }
   runOrFail('cmake', configureArgs);
   runOrFail('cmake', ['--build', buildDir, '--config', 'Release']);
@@ -238,16 +249,24 @@ function cppBuild(manifest) {
 
 function pythonAotBuild(manifest) {
   const coreDir = locateCoreDir(process.cwd());
-  if (!coreDir) fail('cannot locate framework/core (a python-AOT kfx build needs the monorepo core)');
+  if (!coreDir)
+    fail(
+      'cannot locate framework/core (a python-AOT kfx build needs the monorepo core)',
+    );
   const py = path.join(coreDir, '.venv', 'bin', 'python3');
   if (!fs.existsSync(py)) {
-    fail(`core Python not found: ${py}. Run \`./kungfu-code rebuild:core\` first.`);
+    fail(
+      `core Python not found: ${py}. Run \`./kungfu-code rebuild:core\` first.`,
+    );
   }
   const pkgRoot = path.resolve('src', 'python');
   const pkg = fs.existsSync(pkgRoot)
-    ? fs.readdirSync(pkgRoot).find((d) => fs.statSync(path.join(pkgRoot, d)).isDirectory())
+    ? fs
+        .readdirSync(pkgRoot)
+        .find((d) => fs.statSync(path.join(pkgRoot, d)).isDirectory())
     : null;
-  if (!pkg) fail('no src/python/<Package>/ directory for a python-AOT extension');
+  if (!pkg)
+    fail('no src/python/<Package>/ directory for a python-AOT extension');
   const distDir = path.resolve('dist', manifest.kungfuConfig?.key ?? 'python');
   fs.mkdirSync(distDir, { recursive: true });
   // The dev CLI resolves the `kungfu` package from src/python and its native
@@ -266,15 +285,19 @@ function pythonAotBuild(manifest) {
   runOrFail(py, ['-m', 'kungfu', 'engage', 'pdm', 'install'], { env });
   // AOT-compile just this module: declared deps stay runtime imports, so we do
   // not --follow-imports (we compile the extension, not its dependency tree).
-  runOrFail(py, [
-    '-m',
-    'kungfu',
-    'engage',
-    'nuitka',
-    '--module',
-    `--output-dir=${distDir}`,
-    path.join('src', 'python', pkg),
-  ], { env });
+  runOrFail(
+    py,
+    [
+      '-m',
+      'kungfu',
+      'engage',
+      'nuitka',
+      '--module',
+      `--output-dir=${distDir}`,
+      path.join('src', 'python', pkg),
+    ],
+    { env },
+  );
   process.stdout.write(
     `built ${manifest.name ?? 'python extension'} -> ${path.relative(process.cwd(), distDir)}\n`,
   );
@@ -306,7 +329,9 @@ async function kfxBuild() {
       );
       return;
     }
-    fail('package.json has no view/adapter facet, no CMakeLists.txt (cpp), and no kungfuBuild.python (python-AOT)');
+    fail(
+      'package.json has no view/adapter facet, no CMakeLists.txt (cpp), and no kungfuBuild.python (python-AOT)',
+    );
   }
   const entry = ['src/view/index.tsx', 'src/view/index.ts'].find((candidate) =>
     fs.existsSync(path.resolve(candidate)),

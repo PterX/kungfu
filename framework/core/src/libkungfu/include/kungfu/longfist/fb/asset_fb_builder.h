@@ -25,16 +25,15 @@ static constexpr int32_t ASSET_FB_TAG = 30101;
 // 把 POD Asset 全字段构造成 born-FB Asset 载荷;返回 FB 字节,可直接 write_raw。CreateAsset 参数顺序=table 字段声明序。
 inline std::string build_fb_asset(const kungfu::longfist::types::Asset &a) {
   flatbuffers::FlatBufferBuilder fbb;
-  auto root = CreateAsset(fbb, a.update_time, a.holder_uid,
-                          static_cast<LedgerCategory>(static_cast<int8_t>(a.ledger_category)), a.initial_equity,
-                          a.static_equity, a.dynamic_equity, a.realized_pnl, a.unrealized_pnl, a.market_value,
-                          a.long_market_value, a.short_market_value, a.margin, a.long_margin, a.short_margin,
-                          a.accumulated_fee, a.intraday_fee, a.frozen_cash, a.frozen_margin, a.frozen_fee,
-                          a.position_pnl, a.close_pnl, a.avail, a.long_avail, a.short_avail, a.total_asset,
-                          a.avail_margin, a.long_debt, a.short_cash, a.margin_interest, a.settlement, a.credit,
-                          a.collateral_ratio, a.total_debt, a.net_assets, a.long_total_debt, a.short_total_debt,
-                          a.gage_buy_fund_available, a.credit_buy_fund_available, a.buyredeliver_fund_available,
-                          a.directrepay_fund_available);
+  auto root =
+      CreateAsset(fbb, a.update_time, a.holder_uid, static_cast<LedgerCategory>(static_cast<int8_t>(a.ledger_category)),
+                  a.initial_equity, a.static_equity, a.dynamic_equity, a.realized_pnl, a.unrealized_pnl, a.market_value,
+                  a.long_market_value, a.short_market_value, a.margin, a.long_margin, a.short_margin, a.accumulated_fee,
+                  a.intraday_fee, a.frozen_cash, a.frozen_margin, a.frozen_fee, a.position_pnl, a.close_pnl, a.avail,
+                  a.long_avail, a.short_avail, a.total_asset, a.avail_margin, a.long_debt, a.short_cash,
+                  a.margin_interest, a.settlement, a.credit, a.collateral_ratio, a.total_debt, a.net_assets,
+                  a.long_total_debt, a.short_total_debt, a.gage_buy_fund_available, a.credit_buy_fund_available,
+                  a.buyredeliver_fund_available, a.directrepay_fund_available);
   fbb.Finish(root);
   return std::string(reinterpret_cast<const char *>(fbb.GetBufferPointer()), fbb.GetSize());
 }

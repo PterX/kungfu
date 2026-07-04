@@ -28,7 +28,8 @@ public:
 
   SessionVector find_sessions(int64_t from = 0, int64_t to = INT64_MAX);
 
-  SessionVector find_sessions_for(const yijinjing::data::location_ptr &source_location, int64_t from = 0, int64_t to = INT64_MAX);
+  SessionVector find_sessions_for(const yijinjing::data::location_ptr &source_location, int64_t from = 0,
+                                  int64_t to = INT64_MAX);
 
 protected:
   yijinjing::io_device_ptr io_device_;

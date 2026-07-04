@@ -524,7 +524,6 @@ template <typename DataType> struct state {
 
 // fmt 10 移除了对带 operator<< 类型的隐式格式化；kungfu::array 有 operator<<，
 // 通过继承 fmt::ostream_formatter 提供 formatter 特化以恢复 "{}" 格式化能力。
-template <typename T, size_t N>
-struct fmt::formatter<kungfu::array<T, N>> : fmt::ostream_formatter {};
+template <typename T, size_t N> struct fmt::formatter<kungfu::array<T, N>> : fmt::ostream_formatter {};
 
 #endif // KUNGFU_COMMON_H

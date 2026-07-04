@@ -263,9 +263,7 @@ def _load_plugin_adapters():
     listed = os.environ.get(ENV_PLUGIN_ADAPTERS, "")
     for index, path in enumerate(p for p in listed.split(os.pathsep) if p):
         try:
-            spec = importlib.util.spec_from_file_location(
-                f"_kfx_adapter_{index}", path
-            )
+            spec = importlib.util.spec_from_file_location(f"_kfx_adapter_{index}", path)
             if spec is None or spec.loader is None:
                 continue
             module = importlib.util.module_from_spec(spec)

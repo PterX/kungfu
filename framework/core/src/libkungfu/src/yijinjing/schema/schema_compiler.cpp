@@ -15,13 +15,13 @@ compile_result compile_fbs(const std::string &fbs_text, const compile_options &o
   if (opts.tier == trust_tier::sandboxed) {
     const std::size_t cap = opts.max_fbs_bytes != 0 ? opts.max_fbs_bytes : (256u * 1024u);
     if (fbs_text.size() > cap) {
-      result.error = "schema rejected: size " + std::to_string(fbs_text.size()) +
-                     " exceeds sandboxed limit " + std::to_string(cap);
+      result.error = "schema rejected: size " + std::to_string(fbs_text.size()) + " exceeds sandboxed limit " +
+                     std::to_string(cap);
       return result;
     }
   } else if (opts.max_fbs_bytes != 0 && fbs_text.size() > opts.max_fbs_bytes) {
-    result.error = "schema rejected: size " + std::to_string(fbs_text.size()) +
-                   " exceeds limit " + std::to_string(opts.max_fbs_bytes);
+    result.error = "schema rejected: size " + std::to_string(fbs_text.size()) + " exceeds limit " +
+                   std::to_string(opts.max_fbs_bytes);
     return result;
   }
 

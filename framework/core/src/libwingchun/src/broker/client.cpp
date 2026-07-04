@@ -47,7 +47,8 @@ int64_t StatelessResumePolicy::get_resume_time(const apprentice &app, const Regi
 
 int64_t ContinuousResumePolicy::get_resume_time(const apprentice &app, const Register &target) const {
   auto resume_time = app.get_last_active_time();
-  SPDLOG_DEBUG("Continuous resume policy, connect from app last_active_time {}", yijinjing::time::strftime(resume_time));
+  SPDLOG_DEBUG("Continuous resume policy, connect from app last_active_time {}",
+               yijinjing::time::strftime(resume_time));
   return resume_time;
 }
 

@@ -32,16 +32,15 @@ inline std::string build_fb_order(const kungfu::longfist::types::Order &o) {
   auto contract = fbb.CreateString(o.contract_id.to_string());
   auto emsg = fbb.CreateString(o.error_msg.to_string());
   // 口径:enum class:int8_t -> FB enum:byte(经 int8_t 中转,值镜像 enums.h)。
-  auto root = CreateOrder(fbb, o.order_id, ext, o.parent_id, o.insert_time, o.update_time, o.restore_time, tday, inst,
-                          exch, contract, static_cast<InstrumentType>(static_cast<int8_t>(o.instrument_type)),
-                          o.limit_price, o.frozen_price, o.volume, o.volume_left, o.tax, o.commission,
-                          static_cast<OrderStatus>(static_cast<int8_t>(o.status)), o.error_id, emsg, o.is_swap,
-                          static_cast<Side>(static_cast<int8_t>(o.side)),
-                          static_cast<Offset>(static_cast<int8_t>(o.offset)),
-                          static_cast<HedgeFlag>(static_cast<int8_t>(o.hedge_flag)),
-                          static_cast<PriceType>(static_cast<int8_t>(o.price_type)),
-                          static_cast<VolumeCondition>(static_cast<int8_t>(o.volume_condition)),
-                          static_cast<TimeCondition>(static_cast<int8_t>(o.time_condition)));
+  auto root = CreateOrder(
+      fbb, o.order_id, ext, o.parent_id, o.insert_time, o.update_time, o.restore_time, tday, inst, exch, contract,
+      static_cast<InstrumentType>(static_cast<int8_t>(o.instrument_type)), o.limit_price, o.frozen_price, o.volume,
+      o.volume_left, o.tax, o.commission, static_cast<OrderStatus>(static_cast<int8_t>(o.status)), o.error_id, emsg,
+      o.is_swap, static_cast<Side>(static_cast<int8_t>(o.side)), static_cast<Offset>(static_cast<int8_t>(o.offset)),
+      static_cast<HedgeFlag>(static_cast<int8_t>(o.hedge_flag)),
+      static_cast<PriceType>(static_cast<int8_t>(o.price_type)),
+      static_cast<VolumeCondition>(static_cast<int8_t>(o.volume_condition)),
+      static_cast<TimeCondition>(static_cast<int8_t>(o.time_condition)));
   fbb.Finish(root);
   return std::string(reinterpret_cast<const char *>(fbb.GetBufferPointer()), fbb.GetSize());
 }

@@ -238,8 +238,8 @@ void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_
     default:
       SPDLOG_ERROR(" probably failed to acquire data between {} and {}, public journal in locator={}, location={} "
                    "not exists",
-                   yijinjing::time::strftime(nanotime + 1), yijinjing::time::strftime(nanotime + offset), slice_location->locator->get_root(),
-                   slice_location->uname);
+                   yijinjing::time::strftime(nanotime + 1), yijinjing::time::strftime(nanotime + offset),
+                   slice_location->locator->get_root(), slice_location->uname);
       SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data confirm acquiring stage.",
                    static_cast<int>(reference_count.state), reference_count.reference_count);
       return;
@@ -258,8 +258,8 @@ void BacktestContext::subscribe_slice(const location_ptr &slice_location, int64_
     case SliceState::Acquired:
       SPDLOG_WARN("slice data between {} and {} is already acquired with reference count={}, public journal in "
                   "locator={}, location={}",
-                  yijinjing::time::strftime(nanotime + 1), yijinjing::time::strftime(nanotime + offset), reference_count.reference_count,
-                  slice_location->locator->get_root(), slice_location->uname);
+                  yijinjing::time::strftime(nanotime + 1), yijinjing::time::strftime(nanotime + offset),
+                  reference_count.reference_count, slice_location->locator->get_root(), slice_location->uname);
       break;
     default:
       SPDLOG_ERROR("invalid slice state={} with reference count={} at slice data submit acquiring stage.",

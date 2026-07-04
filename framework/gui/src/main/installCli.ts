@@ -53,10 +53,18 @@ export function installKungfuCliToPath(): CliInstallResult {
   } catch (e) {
     if (isPermissionError(e)) {
       try {
-        elevate(`mkdir -p ${shq(path.dirname(PATH_TARGET))} && ln -sf ${shq(wrapper)} ${shq(PATH_TARGET)}`);
-        return { ok: true, message: `Installed (elevated): ${PATH_TARGET} -> ${wrapper}` };
+        elevate(
+          `mkdir -p ${shq(path.dirname(PATH_TARGET))} && ln -sf ${shq(wrapper)} ${shq(PATH_TARGET)}`,
+        );
+        return {
+          ok: true,
+          message: `Installed (elevated): ${PATH_TARGET} -> ${wrapper}`,
+        };
       } catch (e2) {
-        return { ok: false, message: `elevated install failed: ${(e2 as Error).message}` };
+        return {
+          ok: false,
+          message: `elevated install failed: ${(e2 as Error).message}`,
+        };
       }
     }
     return { ok: false, message: `install failed: ${(e as Error).message}` };
@@ -77,7 +85,10 @@ export function uninstallKungfuCliFromPath(): CliInstallResult {
         elevate(`rm -f ${shq(PATH_TARGET)}`);
         return { ok: true, message: `Removed (elevated) ${PATH_TARGET}` };
       } catch (e2) {
-        return { ok: false, message: `elevated uninstall failed: ${(e2 as Error).message}` };
+        return {
+          ok: false,
+          message: `elevated uninstall failed: ${(e2 as Error).message}`,
+        };
       }
     }
     return { ok: false, message: `uninstall failed: ${(e as Error).message}` };

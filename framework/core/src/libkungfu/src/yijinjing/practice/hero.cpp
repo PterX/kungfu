@@ -466,8 +466,8 @@ void hero::require_write_to(int64_t trigger_time, uint32_t source_id, uint32_t d
   writer->close_data();
 }
 
-void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id, const yijinjing::data::location_ptr &location,
-                                 uint64_t page_size) const {
+void hero::require_write_to_band(int64_t trigger_time, uint32_t source_id,
+                                 const yijinjing::data::location_ptr &location, uint64_t page_size) const {
   auto writer = get_writer(source_id);
   RequestWriteToBand msg = {};
   location->to<RequestWriteToBand>(msg);

@@ -34,13 +34,11 @@ inline std::string build_fb_trade(const kungfu::longfist::types::Trade &t) {
   auto exch = fbb.CreateString(t.exchange_id.to_string());
   auto contract = fbb.CreateString(t.contract_id.to_string());
   // 口径:enum class:int8_t -> FB enum:byte(经 int8_t 中转,值镜像 enums.h)。
-  auto root = CreateTrade(fbb, t.trade_id, t.order_id, t.parent_order_id, ext_order, ext_trade, t.trade_time,
-                          t.restore_time, tday, inst, exch, contract,
-                          static_cast<InstrumentType>(static_cast<int8_t>(t.instrument_type)),
-                          static_cast<Side>(static_cast<int8_t>(t.side)),
-                          static_cast<Offset>(static_cast<int8_t>(t.offset)),
-                          static_cast<HedgeFlag>(static_cast<int8_t>(t.hedge_flag)), t.price, t.volume, t.tax,
-                          t.commission);
+  auto root =
+      CreateTrade(fbb, t.trade_id, t.order_id, t.parent_order_id, ext_order, ext_trade, t.trade_time, t.restore_time,
+                  tday, inst, exch, contract, static_cast<InstrumentType>(static_cast<int8_t>(t.instrument_type)),
+                  static_cast<Side>(static_cast<int8_t>(t.side)), static_cast<Offset>(static_cast<int8_t>(t.offset)),
+                  static_cast<HedgeFlag>(static_cast<int8_t>(t.hedge_flag)), t.price, t.volume, t.tax, t.commission);
   fbb.Finish(root);
   return std::string(reinterpret_cast<const char *>(fbb.GetBufferPointer()), fbb.GetSize());
 }

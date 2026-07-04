@@ -66,9 +66,9 @@ namespace {
 // docs/windows-crash-symbols.md.
 
 // Preallocated crash-report path buffers; never built with std::string in-handler.
-char kf_crash_pathbuf[1024];     // text hs_err_*.log (W-A)
-char kf_dump_pathbuf[1024];      // minidump hs_err_*.dmp (W-B), same pid/timestamp
-char kf_dumppart_pathbuf[1024];  // ".part" sibling the dump is written to first
+char kf_crash_pathbuf[1024];    // text hs_err_*.log (W-A)
+char kf_dump_pathbuf[1024];     // minidump hs_err_*.dmp (W-B), same pid/timestamp
+char kf_dumppart_pathbuf[1024]; // ".part" sibling the dump is written to first
 
 // Minimal WriteFile-backed streambuf so StackWalker can keep writing to a
 // std::ostream while bypassing the CRT stdio file lock the faulting thread might

@@ -312,8 +312,8 @@ void cached::store_states_feeds() {
   // tracing-foundation Phase 1: 交易类型拆出闭集 cache,移除 TradingDataTypes transfer(states_feed_bank_
   // 现仅含非交易 StateDataTypes);仅搬运非交易状态。trading_data_count 置 0 仅供下方日志保留。
   auto trading_data_count = 0;
-  auto others_data_count = transfer_from_bank<bank, location_bank>(
-      StateDataTypes, states_feed_bank_, tmp_location_bank, DEFAULT_STORE_VOLUME_BY_INTERVAL);
+  auto others_data_count = transfer_from_bank<bank, location_bank>(StateDataTypes, states_feed_bank_, tmp_location_bank,
+                                                                   DEFAULT_STORE_VOLUME_BY_INTERVAL);
   feed_mutex_.unlock();
 
   auto &location_bank_map = tmp_location_bank.get_map();

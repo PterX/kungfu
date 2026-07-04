@@ -58,8 +58,9 @@ def _root_object_name(bfbs, want):
     raise ValueError(f"table '{want}' not found in the compiled schema")
 
 
-def register_user_schema(bundle_dir, bfbs, msg_type, name, *, tier="trusted",
-                         schema_version="user"):
+def register_user_schema(
+    bundle_dir, bfbs, msg_type, name, *, tier="trusted", schema_version="user"
+):
     """Content-address `bfbs` and bind `msg_type` -> it in the run manifest.
 
     bfbs: bytes from compile_schema. name: the event table to bind (its
@@ -86,8 +87,11 @@ def register_user_schema(bundle_dir, bfbs, msg_type, name, *, tier="trusted",
         with open(manifest_path) as f:
             manifest = json.load(f)
     else:
-        manifest = {"spec_version": "0.1", "hash_algorithm": "sha256",
-                    "schema_bindings": {}}
+        manifest = {
+            "spec_version": "0.1",
+            "hash_algorithm": "sha256",
+            "schema_bindings": {},
+        }
     bindings = manifest.setdefault("schema_bindings", {})
 
     existing = bindings.get(str(msg_type))

@@ -28,7 +28,9 @@ History::History(const Napi::CallbackInfo &info)
       profile_(locator_) {}
 
 Napi::Value History::SelectPeriod(const Napi::CallbackInfo &info) {
-  auto parse_time = [&](auto i) { return yijinjing::time::strptime(info[i].ToString().Utf8Value(), KUNGFU_HISTORY_DAY_FORMAT); };
+  auto parse_time = [&](auto i) {
+    return yijinjing::time::strptime(info[i].ToString().Utf8Value(), KUNGFU_HISTORY_DAY_FORMAT);
+  };
   try {
     int64_t from = parse_time(0);
     int64_t to = info.Length() > 1 ? parse_time(1) : from + yijinjing::time_unit::NANOSECONDS_PER_DAY;

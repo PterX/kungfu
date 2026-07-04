@@ -150,9 +150,7 @@ function buildMenu() {
   ];
 
   const template: Electron.MenuItemConstructorOptions[] = [
-    ...(process.platform === 'darwin'
-      ? [{ role: 'appMenu' as const }]
-      : []),
+    ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
     { label: 'kungfu', submenu: cliSubmenu },
     { role: 'editMenu' },
     { role: 'viewMenu' },

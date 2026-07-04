@@ -115,8 +115,8 @@ inline int bind_reflect(sqlite3_stmt *st, const reflection::Schema *s, const std
 }
 
 // 运行时演进：反射新 schema 列 vs 现有表列，对缺失列发 ALTER TABLE ADD COLUMN。
-inline std::vector<std::string> alter_add_missing(sqlite3 *db, const reflection::Schema *s,
-                                                  const std::string &table, bool thin) {
+inline std::vector<std::string> alter_add_missing(sqlite3 *db, const reflection::Schema *s, const std::string &table,
+                                                  bool thin) {
   std::vector<std::string> existing;
   sqlite3_stmt *st = nullptr;
   sqlite3_prepare_v2(db, ("PRAGMA table_info(" + table + ")").c_str(), -1, &st, nullptr);

@@ -33,7 +33,10 @@ const REQUIRED = [
 // The linker PDB is named after the target's output base, so accept
 // "<module>.pdb" as well as an ABI-suffixed "<module>.<abi>.pdb".
 function hasSiblingPdb(dir, binName, pdbNames) {
-  const stem = binName.replace(/\.(node|pyd)$/i, '').split('.')[0].toLowerCase();
+  const stem = binName
+    .replace(/\.(node|pyd)$/i, '')
+    .split('.')[0]
+    .toLowerCase();
   return pdbNames.some((p) => p.toLowerCase().startsWith(stem));
 }
 
@@ -56,12 +59,15 @@ function verifyWindowsSymbols(distKfc) {
     );
     process.exit(1);
   }
-  console.log('[verify-windows-symbols] ok: every shipped kungfu native has a PDB');
+  console.log(
+    '[verify-windows-symbols] ok: every shipped kungfu native has a PDB',
+  );
 }
 
 module.exports = { verifyWindowsSymbols };
 
 if (require.main === module) {
-  const dir = process.argv[2] || path.resolve(__dirname, '..', 'dist', 'kungfu');
+  const dir =
+    process.argv[2] || path.resolve(__dirname, '..', 'dist', 'kungfu');
   verifyWindowsSymbols(dir);
 }

@@ -56,7 +56,13 @@ function ensureBuildInfo(bt) {
   fs.mkdirSync(dir, { recursive: true });
   shell.run(
     'uv',
-    ['run', '--frozen', 'python3', path.join(CORE, '.gyp', 'gen_kungfubuildinfo.py'), info],
+    [
+      'run',
+      '--frozen',
+      'python3',
+      path.join(CORE, '.gyp', 'gen_kungfubuildinfo.py'),
+      info,
+    ],
     true,
     { cwd: CORE },
   );
@@ -78,7 +84,10 @@ const APP_NATIVE = [
 // (e.g. third-party natives, or a build without /Z7 + /DEBUG).
 function copyPdbSibling(binPath, destDir) {
   const dir = path.dirname(binPath);
-  const stem = path.basename(binPath).replace(/\.(node|pyd|dll|exe)$/i, '').split('.')[0];
+  const stem = path
+    .basename(binPath)
+    .replace(/\.(node|pyd|dll|exe)$/i, '')
+    .split('.')[0];
   let pdb = binPath.replace(/\.(node|pyd|dll|exe)$/i, '.pdb');
   if (pdb === binPath || !fs.existsSync(pdb)) {
     // Fall back to any <stem>*.pdb the linker emitted next to the binary; the
@@ -86,7 +95,10 @@ function copyPdbSibling(binPath, destDir) {
     // suffix. Matches the stem check in verify-windows-symbols.js.
     const cand = fs
       .readdirSync(dir)
-      .find((f) => /\.pdb$/i.test(f) && f.toLowerCase().startsWith(stem.toLowerCase()));
+      .find(
+        (f) =>
+          /\.pdb$/i.test(f) && f.toLowerCase().startsWith(stem.toLowerCase()),
+      );
     pdb = cand ? path.join(dir, cand) : null;
   }
   if (!pdb || !fs.existsSync(pdb)) return;
@@ -145,7 +157,9 @@ function copyPyBindingWin(bt) {
   const buildDir = path.join(CORE, 'build');
   const pyd = findFileShallow(buildDir, /^pykungfu.*\.pyd$/i);
   const btDll = path.join(buildDir, bt, 'libnode.dll');
-  const dll = fs.existsSync(btDll) ? btDll : findFileShallow(buildDir, /^libnode\.dll$/i);
+  const dll = fs.existsSync(btDll)
+    ? btDll
+    : findFileShallow(buildDir, /^libnode\.dll$/i);
   let n = 0;
   for (const src of [pyd, dll]) {
     if (!src) continue;
@@ -168,7 +182,9 @@ function freezeNuitka(bt) {
   const distKfc = path.join(CORE, 'dist', 'kungfu');
   const info = ensureBuildInfo(bt);
 
-  console.log(`[freeze] nuitka kungfu_cli.py（PYTHONPATH=${path.relative(CORE, rel)}）`);
+  console.log(
+    `[freeze] nuitka kungfu_cli.py（PYTHONPATH=${path.relative(CORE, rel)}）`,
+  );
   fs.rmSync(out, { recursive: true, force: true });
   // Linux 强制 clang 后端：gcc 13 编译 nuitka 生成的 scipy 巨型 C 文件会触发 internal
   // compiler error(cfgcleanup.cc try_forward_edges ICE)。Mac 本就默认 clang、不撞，故仅
@@ -260,7 +276,9 @@ function freezePyinstaller(bt) {
   mergeKfs();
   promote();
   if (isWin) verifyWindowsSymbols(path.join(CORE, 'dist', 'kungfu'));
-  console.log('[freeze] ✅ dist/kungfu 就绪（pyinstaller 扁平视图 + _internal 真身）');
+  console.log(
+    '[freeze] ✅ dist/kungfu 就绪（pyinstaller 扁平视图 + _internal 真身）',
+  );
 }
 
 // MERGE 模式下 kfs 与 kfc 共享 _internal，dist/kfs 仅余 kfs 入口，拷进 kfc 后删除。

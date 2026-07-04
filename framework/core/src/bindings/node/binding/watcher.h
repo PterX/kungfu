@@ -286,7 +286,6 @@ private:
       throw Napi::Error::New(info.Env(), "invalid instruction arguments");
     }
   }
-
 };
 
 } // namespace kungfu::node

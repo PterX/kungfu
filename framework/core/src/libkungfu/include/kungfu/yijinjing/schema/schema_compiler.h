@@ -23,8 +23,8 @@ namespace kungfu::yijinjing::schema {
 
 // Compilation trust tier, mapped from the kfx runtime declaration.
 enum class trust_tier {
-  trusted,       // node-integrated kfx: no limits
-  sandboxed,     // sandboxed-ipc / third-party kfx: hard bounds apply
+  trusted,   // node-integrated kfx: no limits
+  sandboxed, // sandboxed-ipc / third-party kfx: hard bounds apply
 };
 
 struct compile_options {

@@ -40,9 +40,7 @@ def tui(ctx, commands):
     # Point the TUI at this runtime's binding directory so it loads
     # kungfu_node.node from the shipped runtime rather than resolving a
     # workspace package that does not exist in the packaged app.
-    os.environ.setdefault(
-        "KUNGFU_DIR", os.path.dirname(kungfu.__binding__.__file__)
-    )
+    os.environ.setdefault("KUNGFU_DIR", os.path.dirname(kungfu.__binding__.__file__))
     entry = _resolve_tui_entry()
     if not entry:
         raise click.ClickException(

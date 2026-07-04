@@ -152,8 +152,8 @@ void bind(pybind11::module &&m) {
   m.def("trading_day_start", &yijinjing::time::trading_day_start);
   m.def("restore_start", &yijinjing::time::restore_start);
   m.def("strftime", &yijinjing::time::strftime, py::arg("nanotime"), py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
-  m.def("strptime", py::overload_cast<const std::string &, const std::string &>(&yijinjing::time::strptime), py::arg("timestr"),
-        py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
+  m.def("strptime", py::overload_cast<const std::string &, const std::string &>(&yijinjing::time::strptime),
+        py::arg("timestr"), py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
   m.def("strfnow", &yijinjing::time::strfnow, py::arg("format") = KUNGFU_TIMESTAMP_FORMAT);
 
   m.def("get_page_path", &page::get_page_path);
@@ -289,7 +289,8 @@ void bind(pybind11::module &&m) {
 
   auto writer_class = py::class_<writer, writer_ptr>(m, "writer");
   writer_class
-      .def(py::init<const yijinjing::data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &, uint32_t>())
+      .def(py::init<const yijinjing::data::location_ptr &, uint32_t, bool, publisher_ptr, bool, const bus_ptr &,
+                    uint32_t>())
       .def("current_frame_uid", &writer::current_frame_uid)
       .def("get_location", &writer::get_location)
       .def("get_dest", &writer::get_dest)

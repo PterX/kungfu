@@ -349,7 +349,9 @@ class KungfuCoreConan(ConanFile):
             for env_key in list(os.environ)
             if env_key.upper().startswith("NPM_")
         ]  # workaround for msvc
-        self.__run_node_bin(*self.__build_cmake_js_cmd(build_type, cmd, runtime, toolset))
+        self.__run_node_bin(
+            *self.__build_cmake_js_cmd(build_type, cmd, runtime, toolset)
+        )
         self.output.success(f"cmake-js {cmd} done")
 
     def __run_node_bin(self, *args):
@@ -413,8 +415,17 @@ class KungfuCoreConan(ConanFile):
             # 当资源编译器、链接 manifest 时崩(DARKHERO 实证)。故显式钉到 vcvars 提供的 SDK rc.exe。
             # (VS 生成器经 MSBuild 走 VS 工具链不踩此坑;此项仅 Windows+Ninja 需要。)
             rc_compiler = shutil.which("rc.exe")
-            rc_option = [f"--CDCMAKE_RC_COMPILER={rc_compiler.replace(chr(92), '/')}"] if rc_compiler else []
-            build_option = ["--generator", "Ninja", "--parallel", str(parallel_level)] + rc_option
+            rc_option = (
+                [f"--CDCMAKE_RC_COMPILER={rc_compiler.replace(chr(92), '/')}"]
+                if rc_compiler
+                else []
+            )
+            build_option = [
+                "--generator",
+                "Ninja",
+                "--parallel",
+                str(parallel_level),
+            ] + rc_option
         else:
             build_option = ["--parallel", str(parallel_level)]
         debug_option = ["--debug"] if build_type == "Debug" else []

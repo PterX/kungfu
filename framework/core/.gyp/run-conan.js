@@ -18,10 +18,9 @@ function getNodeVersionOptions() {
   );
   // electron 从 devDependencies 读并去掉 ^/~ 前缀；node_version 从 config 读
   // (v4 起 @kungfu-tech/libnode 不再列为 devDep，dev 走 npm link，见 docs/conan2-migration.md)。
-  const electronVersion = String(packageJson.devDependencies['electron']).replace(
-    /^[\^~]/,
-    '',
-  );
+  const electronVersion = String(
+    packageJson.devDependencies['electron'],
+  ).replace(/^[\^~]/, '');
   const nodeVersion = packageJson.config['node_version'];
   return [
     '-o',
@@ -58,7 +57,10 @@ function makeConanOptions(names) {
 
 // conan2：-if/-bf → --output-folder；arch 是 setting 由 profile 自测，不再作 -o 选项。
 function conanInstall() {
-  const settings = [...makeConanSettings(['build_type']), ...platformConanSettings()];
+  const settings = [
+    ...makeConanSettings(['build_type']),
+    ...platformConanSettings(),
+  ];
   const options = makeConanOptions(['log_level', 'freezer']);
   conan([
     'install',
@@ -72,7 +74,10 @@ function conanInstall() {
 }
 
 function conanBuild() {
-  const settings = [...makeConanSettings(['build_type']), ...platformConanSettings()];
+  const settings = [
+    ...makeConanSettings(['build_type']),
+    ...platformConanSettings(),
+  ];
   const options = makeConanOptions(['log_level', 'freezer']);
   conan(['build', '.', '--output-folder', 'build', ...settings, ...options]);
 }
@@ -82,7 +87,10 @@ function conanBuild() {
 // (pnpm freeze → ./kungfu-code freeze)，见 docs/conan2-migration.md。此处 `package` 子命令
 // 仅保留 conan build(编译)语义，不再承担 freeze。
 function conanPackage() {
-  const settings = [...makeConanSettings(['build_type']), ...platformConanSettings()];
+  const settings = [
+    ...makeConanSettings(['build_type']),
+    ...platformConanSettings(),
+  ];
   const options = makeConanOptions(['log_level', 'freezer']);
   conan(['build', '.', '--output-folder', 'build', ...settings, ...options]);
 }

@@ -24,8 +24,16 @@ def schema(ctx):
     help="compile a .fbs text schema to a .bfbs reflection binary in-process",
 )
 @click.argument("fbs_path", type=click.Path(exists=True, dir_okay=False))
-@click.option("-o", "--out", "out_path", default=None, help="output .bfbs path; default alongside the input")
-@click.option("--sandboxed", is_flag=True, help="apply the untrusted-kfx compilation bounds")
+@click.option(
+    "-o",
+    "--out",
+    "out_path",
+    default=None,
+    help="output .bfbs path; default alongside the input",
+)
+@click.option(
+    "--sandboxed", is_flag=True, help="apply the untrusted-kfx compilation bounds"
+)
 @kfc.pass_context()
 def compile_cmd(ctx, fbs_path, out_path, sandboxed):
     with open(fbs_path, "r", encoding="utf-8") as f:

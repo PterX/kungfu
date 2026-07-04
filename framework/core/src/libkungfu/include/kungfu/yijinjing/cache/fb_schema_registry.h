@@ -29,15 +29,15 @@ public:
   struct Entry {
     int32_t msg_type = 0;
     std::string table;
-    std::string bfbs;                            // 接管的 .bfbs 字节（真相所有者）
-    const reflection::Schema *schema = nullptr;  // bfbs 的视图
+    std::string bfbs;                           // 接管的 .bfbs 字节（真相所有者）
+    const reflection::Schema *schema = nullptr; // bfbs 的视图
     bool thin = false;
-    std::vector<ColPlan> cols;                   // 缓存列计划（thin: pk/ts/status；full: 全列）
-    std::string create_ddl;                      // 缓存 CREATE TABLE
-    std::string insert_sql;                      // 缓存 INSERT OR REPLACE 占位 SQL
+    std::vector<ColPlan> cols; // 缓存列计划（thin: pk/ts/status；full: 全列）
+    std::string create_ddl;    // 缓存 CREATE TABLE
+    std::string insert_sql;    // 缓存 INSERT OR REPLACE 占位 SQL
 
     Entry() = default;
-    Entry(const Entry &) = delete;               // schema 视图绑定本 Entry 的 bfbs，禁拷贝防悬垂
+    Entry(const Entry &) = delete; // schema 视图绑定本 Entry 的 bfbs，禁拷贝防悬垂
     Entry &operator=(const Entry &) = delete;
   };
 

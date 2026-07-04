@@ -233,8 +233,7 @@ private:
     }
   }
 
-  template <typename DataType>
-  void restore(cache::bank &bank, uint32_t dest, StateStoragePtr &storage, int limit) {
+  template <typename DataType> void restore(cache::bank &bank, uint32_t dest, StateStoragePtr &storage, int limit) {
     auto from = yijinjing::time::restore_start();
     for (auto &data : time_spec<DataType>::get_all(storage, from, INT64_MAX, limit)) {
       bank << state(location_->uid, dest, from, data);

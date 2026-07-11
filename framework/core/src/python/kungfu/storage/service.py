@@ -858,12 +858,14 @@ def export_bundle_json(
     source_id: str | None = None,
     episode_id: int | None = None,
     range_filter: dict[str, Any] | None = None,
+    thin: bool = False,
 ) -> dict[str, Any]:
     bundle = build_export_bundle(
         runtime_dir,
         source_id=source_id,
         episode_id=episode_id,
         range_filter=range_filter,
+        thin=thin,
     )
     _write_json(Path(out_path), bundle)
     scope = "episode" if episode_id else "source"
@@ -886,6 +888,7 @@ def build_export_bundle(
     source_id: str | None = None,
     episode_id: int | None = None,
     range_filter: dict[str, Any] | None = None,
+    thin: bool = False,
 ) -> dict[str, Any]:
     scope = "episode" if episode_id else "source"
     return dict(
@@ -897,6 +900,7 @@ def build_export_bundle(
                 "source_id": source_id,
                 "episode_id": _u64(episode_id),
                 "range": range_filter or {},
+                "thin": thin,
             },
         )
     )
@@ -907,6 +911,7 @@ def import_bundle(
     bundle: dict[str, Any],
     *,
     verify: bool = True,
+    execute: bool = False,
 ) -> dict[str, Any]:
     source_id = str(bundle.get("source_id") or "")
     scope = (
@@ -923,6 +928,7 @@ def import_bundle(
                 "source_id": source_id or None,
                 "episode_id": _u64(bundle.get("episode_id")),
                 "verify": verify,
+                "dry_run": not execute,
                 "bundle": _binding_json(bundle),
             },
         )

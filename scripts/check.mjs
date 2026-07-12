@@ -331,6 +331,19 @@ function testShifuEntryContract() {
   ]);
 }
 
+function checkShifuCacheContract() {
+  run('Shifu cache contract gate', 'node', [
+    path.join('scripts', 'check-shifu-cache-contract.mjs'),
+  ]);
+}
+
+function testShifuCacheContract() {
+  run('Shifu cache contract tests', 'node', [
+    '--test',
+    path.join('scripts', 'check-shifu-cache-contract.test.mjs'),
+  ]);
+}
+
 function checkLayerQualification() {
   run('ADR-0049 layer qualification harness tests', 'node', [
     '--test',
@@ -472,6 +485,7 @@ function checkStaged() {
   checkPlatformMacros();
   checkShifuVersionSync();
   checkShifuEntryContract();
+  checkShifuCacheContract();
   checkCarrierActionEnvelope(['--staged']);
   checkRuntimeGreenfield(['--staged']);
   checkSchemaAuthority();
@@ -522,6 +536,7 @@ function checkStaged() {
 
 function checkShared() {
   testShifuEntryContract();
+  testShifuCacheContract();
   testSchemaAuthority();
   checkJournalAuthorityBoundary();
   checkLiveRuntimeTerminology();

@@ -50,7 +50,7 @@
           "authority": "qualification",
           "publication": "none",
           "receipt": "diagnostic",
-          "definitionDigest": "sha256:5f991c5387f1c83cfdceb12bdd1c005628f97236390c373896dfd5a4daf13851",
+          "definitionDigest": "sha256:8b11b7af3b5a61ce92caee4c042295e13089957e7592866e5edc9753d7cb2224",
           "credentials": {
             "githubToken": "read",
             "oidc": false,
@@ -154,15 +154,15 @@
             },
             {
               "index": 15,
-              "label": "id:native-gate",
+              "label": "name:Qualify installed four-language SDK wire contract",
               "authority": "qualification",
-              "definitionDigest": "sha256:02339daee46ac76a74548bec81fe9bc9ab992d657565ee9770215f3eca889787"
+              "definitionDigest": "sha256:6df6f2d8f2ee9d94826c4c62551f77bded9e1005a170b36364bb62d983dc5ebf"
             },
             {
               "index": 16,
-              "label": "name:Qualify installed four-language SDK wire contract",
+              "label": "id:native-gate",
               "authority": "qualification",
-              "definitionDigest": "sha256:8184240bd39bb1e0f300df248993fe869d942da9056d7a971990cc5e4f54e8af"
+              "definitionDigest": "sha256:02339daee46ac76a74548bec81fe9bc9ab992d657565ee9770215f3eca889787"
             },
             {
               "index": 17,

@@ -176,6 +176,16 @@ jobs:
         if: ${{ steps.plan.outputs.required == 'true' }}
         shell: bash
         run: ./shifu install --frozen-lockfile
+      - name: Qualify installed four-language SDK wire contract
+        if: ${{ steps.plan.outputs.required == 'true' && matrix.partition == 0 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x framework/core/node_modules/.bin/cmake-js
+          ./shifu build:core
+          ./shifu pack:sdk
+          ./shifu layers:qualify:sdk -- \
+            --report product/qualification/affected-native/layered-sdk-report.json
       - name: Run affected native closure
         if: ${{ steps.plan.outputs.required == 'true' }}
         id: native-gate
@@ -188,19 +198,6 @@ jobs:
           ./shifu gate run source.changed-scope
           --omit-dependency source.acceptance
           --capability native-toolchain
-      - name: Qualify installed four-language SDK wire contract
-        if: ${{ steps.plan.outputs.required == 'true' && matrix.partition == 0 }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -x framework/core/node_modules/.bin/cmake-js ]; then
-            ./shifu --filter @kungfu-tech/core install --frozen-lockfile --force
-          fi
-          test -x framework/core/node_modules/.bin/cmake-js
-          ./shifu build:core
-          ./shifu pack:sdk
-          ./shifu layers:qualify:sdk -- \
-            --report product/qualification/affected-native/layered-sdk-report.json
       - name: Record compiler cache statistics
         if: ${{ always() && steps.plan.outputs.required == 'true' }}
         shell: bash

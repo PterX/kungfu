@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+
 from dataclasses import dataclass
 
 from ..native import NativeStorage, WireResponse
@@ -15,10 +17,6 @@ REQUEST_SCHEMA = "kungfu.action-runtime.operation/v1"
 RESPONSE_SCHEMA = "kungfu.action-runtime.result/v1"
 ENCODING = "application/json"
 GEOMETRY_ROOT_REQUEST = b'{"action":"geometry_root"}'
-GEOMETRY_ROOT_RESPONSE_PREFIX = b'{"result":{"geometryRoot":"'
-GEOMETRY_ROOT_RESPONSE_SUFFIX = b'"},"schema":"kungfu.action-runtime.result/v1"}'
-
-
 @dataclass(frozen=True)
 class GeometryRootResult:
     geometry_root: str
@@ -35,18 +33,20 @@ def parse_geometry_root(wire: WireResponse) -> GeometryRootResult:
         raise ValueError(
             "runtime-action response metadata does not match the generated contract"
         )
+    try:
+        envelope = json.loads(wire.bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("runtime-action response is not valid JSON") from error
     if (
-        len(wire.bytes)
-        != len(GEOMETRY_ROOT_RESPONSE_PREFIX) + 71 + len(GEOMETRY_ROOT_RESPONSE_SUFFIX)
-        or not wire.bytes.startswith(GEOMETRY_ROOT_RESPONSE_PREFIX)
-        or not wire.bytes.endswith(GEOMETRY_ROOT_RESPONSE_SUFFIX)
+        not isinstance(envelope, dict)
+        or set(envelope) != {"result", "schema"}
+        or envelope.get("schema") != RESPONSE_SCHEMA
+        or not isinstance(envelope.get("result"), dict)
+        or set(envelope["result"]) != {"geometryRoot"}
+        or not isinstance(envelope["result"].get("geometryRoot"), str)
     ):
-        raise ValueError(
-            "runtime-action response is not the canonical generated envelope"
-        )
-    value = wire.bytes[
-        len(GEOMETRY_ROOT_RESPONSE_PREFIX) : len(GEOMETRY_ROOT_RESPONSE_PREFIX) + 71
-    ].decode("ascii")
+        raise ValueError("runtime-action response does not match the generated schema")
+    value = envelope["result"]["geometryRoot"]
     if (
         not value.startswith("sha256:")
         or len(value) != 71

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, NativeStorage, WireResponse};
+use serde_json::Value;
 
 pub const PROTOCOL_ID: &str = "kungfu.runtime.action";
 pub const PROTOCOL_VERSION: u32 = 1;
@@ -11,9 +12,6 @@ pub const REQUEST_SCHEMA: &str = "kungfu.action-runtime.operation/v1";
 pub const RESPONSE_SCHEMA: &str = "kungfu.action-runtime.result/v1";
 pub const ENCODING: &str = "application/json";
 pub const GEOMETRY_ROOT_REQUEST: &[u8] = br#"{"action":"geometry_root"}"#;
-const RESPONSE_PREFIX: &[u8] = br#"{"result":{"geometryRoot":""#;
-const RESPONSE_SUFFIX: &[u8] = br#""},"schema":"kungfu.action-runtime.result/v1"}"#;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeometryRootResult {
     pub geometry_root: String,
@@ -31,18 +29,44 @@ pub fn parse_geometry_root(wire: WireResponse) -> Result<GeometryRootResult, Err
             "runtime-action response metadata does not match the generated contract",
         ));
     }
-    if wire.bytes.len() != RESPONSE_PREFIX.len() + 71 + RESPONSE_SUFFIX.len()
-        || !wire.bytes.starts_with(RESPONSE_PREFIX)
-        || !wire.bytes.ends_with(RESPONSE_SUFFIX)
+    let envelope: Value = serde_json::from_slice(&wire.bytes)
+        .map_err(|_| Error::new(-1, "runtime-action response is not valid JSON"))?;
+    let object = envelope.as_object().ok_or_else(|| {
+        Error::new(
+            -1,
+            "runtime-action response does not match the generated schema",
+        )
+    })?;
+    let result = object
+        .get("result")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            Error::new(
+                -1,
+                "runtime-action response does not match the generated schema",
+            )
+        })?;
+    if object.len() != 2
+        || object.get("schema").and_then(Value::as_str) != Some(RESPONSE_SCHEMA)
+        || result.len() != 1
     {
         return Err(Error::new(
             -1,
-            "runtime-action response is not the canonical generated envelope",
+            "runtime-action response does not match the generated schema",
         ));
     }
-    let root_bytes = &wire.bytes[RESPONSE_PREFIX.len()..RESPONSE_PREFIX.len() + 71];
-    if !root_bytes.starts_with(b"sha256:")
-        || !root_bytes[7..]
+    let root = result
+        .get("geometryRoot")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            Error::new(
+                -1,
+                "runtime-action response does not match the generated schema",
+            )
+        })?;
+    if root.len() != 71
+        || !root.starts_with("sha256:")
+        || !root.as_bytes()[7..]
             .iter()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
     {
@@ -51,10 +75,8 @@ pub fn parse_geometry_root(wire: WireResponse) -> Result<GeometryRootResult, Err
             "runtime-action geometryRoot is not a canonical SHA-256 root",
         ));
     }
-    let root = String::from_utf8(root_bytes.to_vec())
-        .map_err(|_| Error::new(-1, "runtime-action root is not UTF-8"))?;
     Ok(GeometryRootResult {
-        geometry_root: root,
+        geometry_root: root.to_owned(),
         wire,
     })
 }

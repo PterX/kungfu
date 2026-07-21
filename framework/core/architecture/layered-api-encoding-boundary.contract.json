@@ -27,7 +27,7 @@
     },
     "sdkGenerator": {
       "path": "scripts/generate-layered-sdk.mjs",
-      "sha256": "3ea2b71a7e7cda84aed18981c23c62dca3d008e178da1f22d5b9daf57c2c5221"
+      "sha256": "182bb76b4a6f5e87708d04fe3f0347c8814052440c51f13cd162383cf7593d1d"
     }
   },
   "waist": {
@@ -195,19 +195,19 @@
     "generatedOutputRoots": [
       {
         "path": "framework/core/src/libkungfu/include/kungfu/sdk/generated/runtime_action_v1.hpp",
-        "sha256": "1180dbb4793206e81ed61f16ce556606893f43c2a4f12995f46c633c53032038"
+        "sha256": "3e8bd24390558d62acc5ee0ee67b2efa553a083c3d8b8ee081f082bfff12f845"
       },
       {
         "path": "framework/sdk/generated/runtime-action-v1.js",
-        "sha256": "cc4591c35575b778fc22e7324cedae77fa68a6e1645c3cee8aaf3eda6ca3e693"
+        "sha256": "33235cdafcfc0ad1e323149f92de45dbb784bca8ed389ff47dd84a8abc4a3d04"
       },
       {
         "path": "framework/sdk/python/kungfu_sdk/generated/runtime_action_v1.py",
-        "sha256": "2e56ccfedd3209492ed6a3cd09e8fb5c4e24232683dc08d712997681db2e3ca5"
+        "sha256": "6f5f51c6cb67e56176cc86b06eb84fad710920bc374a3a0f4b099f64f2f4bf21"
       },
       {
         "path": "crates/kungfu-sdk/src/generated/runtime_action_v1.rs",
-        "sha256": "8e2910f4248f1f4d2a9f50f874ef7c81b1722d8273a7f057f2871bcfe05692f1"
+        "sha256": "92b0c76882daf89fe3c92ce847218c67a1d7f284ce0c7babc389a961c161cc0b"
       }
     ],
     "generator": "scripts/generate-layered-sdk.mjs",
@@ -222,7 +222,7 @@
   },
   "conformance": {
     "fixture": "tests/qualification/layers/sdk/wire-fixture-v1.json",
-    "fixtureSha256": "b1b55bc231b7bd6db68c03c5f4ba244973d08f7327631b4c166e4095df4431b2",
+    "fixtureSha256": "495a5e6a5425123af7a85bc2ea2342c15109b7f58d98cdc004217f398ed114c8",
     "oracle": "frozen-vectors-over-shared-native-authority",
     "independentSerializers": false,
     "requiredLanguages": ["cpp", "node", "python", "rust"],

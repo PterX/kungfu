@@ -6,6 +6,7 @@
 #include <kungfu/api.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -27,20 +28,160 @@ struct geometry_root_result final {
   kungfu::api::wire_response wire;
 };
 
+namespace detail {
+
+class json_cursor final {
+public:
+  explicit json_cursor(std::string_view input) : input_(input) {}
+
+  void whitespace() {
+    while (position_ < input_.size() &&
+           (input_[position_] == ' ' || input_[position_] == '\n' || input_[position_] == '\r' ||
+            input_[position_] == '\t')) {
+      ++position_;
+    }
+  }
+
+  bool take(char expected) {
+    whitespace();
+    if (position_ < input_.size() && input_[position_] == expected) {
+      ++position_;
+      return true;
+    }
+    return false;
+  }
+
+  void require(char expected) {
+    if (!take(expected)) {
+      throw std::runtime_error("runtime-action response does not match the generated schema");
+    }
+  }
+
+  [[nodiscard]] std::string string() {
+    whitespace();
+    if (position_ >= input_.size() || input_[position_++] != '"') {
+      throw std::runtime_error("runtime-action response does not match the generated schema");
+    }
+    std::string value;
+    while (position_ < input_.size()) {
+      const char current = input_[position_++];
+      if (current == '"') {
+        return value;
+      }
+      if (current != '\\') {
+        if (static_cast<unsigned char>(current) < 0x20) {
+          throw std::runtime_error("runtime-action response is not valid JSON");
+        }
+        value.push_back(current);
+        continue;
+      }
+      if (position_ >= input_.size()) {
+        throw std::runtime_error("runtime-action response is not valid JSON");
+      }
+      const char escape = input_[position_++];
+      if (escape == '"' || escape == '\\' || escape == '/') {
+        value.push_back(escape);
+      } else if (escape == 'b') {
+        value.push_back('\b');
+      } else if (escape == 'f') {
+        value.push_back('\f');
+      } else if (escape == 'n') {
+        value.push_back('\n');
+      } else if (escape == 'r') {
+        value.push_back('\r');
+      } else if (escape == 't') {
+        value.push_back('\t');
+      } else if (escape == 'u') {
+        uint32_t codepoint = 0;
+        for (int index = 0; index < 4; ++index) {
+          if (position_ >= input_.size()) {
+            throw std::runtime_error("runtime-action response is not valid JSON");
+          }
+          const char digit = input_[position_++];
+          codepoint <<= 4;
+          if (digit >= '0' && digit <= '9') {
+            codepoint += static_cast<uint32_t>(digit - '0');
+          } else if (digit >= 'a' && digit <= 'f') {
+            codepoint += static_cast<uint32_t>(digit - 'a' + 10);
+          } else if (digit >= 'A' && digit <= 'F') {
+            codepoint += static_cast<uint32_t>(digit - 'A' + 10);
+          } else {
+            throw std::runtime_error("runtime-action response is not valid JSON");
+          }
+        }
+        if (codepoint > 0x7f) {
+          throw std::runtime_error("runtime-action response contains an unexpected non-ASCII string");
+        }
+        value.push_back(static_cast<char>(codepoint));
+      } else {
+        throw std::runtime_error("runtime-action response is not valid JSON");
+      }
+    }
+    throw std::runtime_error("runtime-action response is not valid JSON");
+  }
+
+  [[nodiscard]] bool done() {
+    whitespace();
+    return position_ == input_.size();
+  }
+
+private:
+  std::string_view input_;
+  std::size_t position_ = 0;
+};
+
+[[nodiscard]] inline std::string parse_response(std::string_view bytes) {
+  json_cursor cursor(bytes);
+  cursor.require('{');
+  bool schema_seen = false;
+  bool result_seen = false;
+  bool first = true;
+  std::string root;
+  while (true) {
+    if (cursor.take('}')) {
+      break;
+    }
+    if (!first) {
+      cursor.require(',');
+    }
+    const auto key = cursor.string();
+    cursor.require(':');
+    if (key == "schema" && !schema_seen) {
+      if (cursor.string() != RESPONSE_SCHEMA) {
+        throw std::runtime_error("runtime-action response does not match the generated schema");
+      }
+      schema_seen = true;
+    } else if (key == "result" && !result_seen) {
+      cursor.require('{');
+      if (cursor.string() != "geometryRoot") {
+        throw std::runtime_error("runtime-action response does not match the generated schema");
+      }
+      cursor.require(':');
+      root = cursor.string();
+      cursor.require('}');
+      result_seen = true;
+    } else {
+      throw std::runtime_error("runtime-action response does not match the generated schema");
+    }
+    first = false;
+  }
+  if (!schema_seen || !result_seen || !cursor.done()) {
+    throw std::runtime_error("runtime-action response does not match the generated schema");
+  }
+  return root;
+}
+
+} // namespace detail
+
 [[nodiscard]] inline geometry_root_result parse_geometry_root(kungfu::api::wire_response wire) {
   if (wire.protocol_id != PROTOCOL_ID || wire.protocol_version != PROTOCOL_VERSION ||
       wire.schema_ref != RESPONSE_SCHEMA || wire.encoding != ENCODING) {
     throw std::runtime_error("runtime-action response metadata does not match the generated contract");
   }
-  constexpr std::string_view prefix = R"({"result":{"geometryRoot":")";
-  constexpr std::string_view suffix = R"("},"schema":"kungfu.action-runtime.result/v1"})";
-  if (wire.bytes.size() != prefix.size() + 71 + suffix.size() || wire.bytes.compare(0, prefix.size(), prefix) != 0 ||
-      wire.bytes.compare(prefix.size() + 71, suffix.size(), suffix) != 0) {
-    throw std::runtime_error("runtime-action response is not the canonical generated envelope");
-  }
-  auto root = wire.bytes.substr(prefix.size(), 71);
+  auto root = detail::parse_response(wire.bytes);
   const auto is_lower_hex = [](char value) { return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'); };
-  if (root.rfind("sha256:", 0) != 0 || !std::all_of(root.begin() + 7, root.end(), is_lower_hex)) {
+  if (root.size() != 71 || root.rfind("sha256:", 0) != 0 ||
+      !std::all_of(root.begin() + 7, root.end(), is_lower_hex)) {
     throw std::runtime_error("runtime-action geometryRoot is not a canonical SHA-256 root");
   }
   return {std::move(root), std::move(wire)};

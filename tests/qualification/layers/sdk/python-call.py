@@ -9,6 +9,10 @@ from kungfu_sdk import NativeStorage, REQUIRED_CAPABILITIES, WireResponse, geome
 from kungfu_sdk.generated.runtime_action_v1 import parse_geometry_root
 
 
+def qualification_hold() -> None:
+    time.sleep(int(os.environ.get("KUNGFU_QUALIFICATION_HOLD_MS", "0")) / 1000)
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         print(
@@ -16,6 +20,40 @@ def main() -> int:
         )
         return 2
     runtime_dir, operation, request_json = sys.argv[1:]
+    if operation == "__runtime_action_projection_semantic__":
+        root = f"sha256:{'a' * 64}"
+        if request_json == "reordered-envelope":
+            body = (
+                '{"schema":"kungfu.action-runtime.result/v1",'
+                f'"result":{{"geometryRoot":"{root}"}}}}'
+            )
+        elif request_json == "whitespace-envelope":
+            body = (
+                f'{{ "result" : {{ "geometryRoot" : "{root}" }}, '
+                '"schema" : "kungfu.action-runtime.result/v1" }'
+            )
+        else:
+            raise ValueError("unsupported projection-semantic case")
+        result = parse_geometry_root(
+            WireResponse(
+                protocol_id="kungfu.runtime.action",
+                protocol_version=1,
+                schema_ref="kungfu.action-runtime.result/v1",
+                encoding="application/json",
+                bytes=body.encode(),
+            )
+        )
+        print(
+            json.dumps(
+                {
+                    "geometryRoot": result.geometry_root,
+                    "bytesHex": result.wire.bytes.hex(),
+                },
+                separators=(",", ":"),
+            )
+        )
+        qualification_hold()
+        return 0
     if operation == "__runtime_action_projection_negative__":
         root = f"sha256:{'a' * 64}"
         wire = WireResponse(
@@ -35,13 +73,14 @@ def main() -> int:
                     "schema_ref": "kungfu.action-runtime.wrong/v1",
                 }
             )
-        elif request_json == "noncanonical-envelope":
+        elif request_json == "extra-result-field":
             wire = WireResponse(
                 **{
                     **wire.__dict__,
                     "bytes": (
-                        '{"schema":"kungfu.action-runtime.result/v1",'
-                        f'"result":{{"geometryRoot":"{root}"}}}}'
+                        f'{{"result":{{"geometryRoot":"{root}",'
+                        '"unexpected":true},'
+                        '"schema":"kungfu.action-runtime.result/v1"}'
                     ).encode(),
                 }
             )
@@ -62,12 +101,33 @@ def main() -> int:
                     ).encode(),
                 }
             )
+        elif request_json == "short-root":
+            wire = WireResponse(
+                **{
+                    **wire.__dict__,
+                    "bytes": (
+                        '{"result":{"geometryRoot":"sha256:a"},'
+                        '"schema":"kungfu.action-runtime.result/v1"}'
+                    ).encode(),
+                }
+            )
+        elif request_json == "trailing-comma":
+            wire = WireResponse(
+                **{
+                    **wire.__dict__,
+                    "bytes": (
+                        f'{{"result":{{"geometryRoot":"{root}"}},'
+                        '"schema":"kungfu.action-runtime.result/v1",}'
+                    ).encode(),
+                }
+            )
         else:
             raise ValueError("unsupported projection-negative case")
         try:
             parse_geometry_root(wire)
         except ValueError:
             print('{"rejected":true}')
+            qualification_hold()
             return 0
         raise RuntimeError("generated projection accepted an invalid response")
     with NativeStorage(runtime_dir) as storage:
@@ -95,12 +155,13 @@ def main() -> int:
             if typed is not None:
                 output["geometryRoot"] = typed.geometry_root
             print(json.dumps(output, sort_keys=True, separators=(",", ":")))
+            qualification_hold()
             return 0
         if storage.capabilities & REQUIRED_CAPABILITIES != REQUIRED_CAPABILITIES:
             raise RuntimeError("incomplete native capability mask")
         result = storage.execute(operation, json.loads(request_json))
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    time.sleep(int(os.environ.get("KUNGFU_QUALIFICATION_HOLD_MS", "0")) / 1000)
+    qualification_hold()
     return 0
 
 

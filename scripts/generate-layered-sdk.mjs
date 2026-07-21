@@ -39,11 +39,6 @@ for (const language of contract.sdkPilot.languages) {
   if (typeof generatedFiles[language] !== 'string')
     throw new Error(`missing generated file for ${language}`);
 }
-const responsePrefix = `{"result":{"${responseField}":"`;
-const responseSuffix = `"},"schema":"${protocol.responseSchema}"}`;
-const escapeRegexLiteral = (value) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replaceAll('/', '\\/');
-
 const outputs = new Map([
   [
     generatedFiles.cpp,
@@ -54,6 +49,7 @@ const outputs = new Map([
 #include <kungfu/api.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -75,20 +71,160 @@ struct geometry_root_result final {
   kungfu::api::wire_response wire;
 };
 
+namespace detail {
+
+class json_cursor final {
+public:
+  explicit json_cursor(std::string_view input) : input_(input) {}
+
+  void whitespace() {
+    while (position_ < input_.size() &&
+           (input_[position_] == ' ' || input_[position_] == '\\n' || input_[position_] == '\\r' ||
+            input_[position_] == '\\t')) {
+      ++position_;
+    }
+  }
+
+  bool take(char expected) {
+    whitespace();
+    if (position_ < input_.size() && input_[position_] == expected) {
+      ++position_;
+      return true;
+    }
+    return false;
+  }
+
+  void require(char expected) {
+    if (!take(expected)) {
+      throw std::runtime_error("runtime-action response does not match the generated schema");
+    }
+  }
+
+  [[nodiscard]] std::string string() {
+    whitespace();
+    if (position_ >= input_.size() || input_[position_++] != '"') {
+      throw std::runtime_error("runtime-action response does not match the generated schema");
+    }
+    std::string value;
+    while (position_ < input_.size()) {
+      const char current = input_[position_++];
+      if (current == '"') {
+        return value;
+      }
+      if (current != '\\\\') {
+        if (static_cast<unsigned char>(current) < 0x20) {
+          throw std::runtime_error("runtime-action response is not valid JSON");
+        }
+        value.push_back(current);
+        continue;
+      }
+      if (position_ >= input_.size()) {
+        throw std::runtime_error("runtime-action response is not valid JSON");
+      }
+      const char escape = input_[position_++];
+      if (escape == '"' || escape == '\\\\' || escape == '/') {
+        value.push_back(escape);
+      } else if (escape == 'b') {
+        value.push_back('\\b');
+      } else if (escape == 'f') {
+        value.push_back('\\f');
+      } else if (escape == 'n') {
+        value.push_back('\\n');
+      } else if (escape == 'r') {
+        value.push_back('\\r');
+      } else if (escape == 't') {
+        value.push_back('\\t');
+      } else if (escape == 'u') {
+        uint32_t codepoint = 0;
+        for (int index = 0; index < 4; ++index) {
+          if (position_ >= input_.size()) {
+            throw std::runtime_error("runtime-action response is not valid JSON");
+          }
+          const char digit = input_[position_++];
+          codepoint <<= 4;
+          if (digit >= '0' && digit <= '9') {
+            codepoint += static_cast<uint32_t>(digit - '0');
+          } else if (digit >= 'a' && digit <= 'f') {
+            codepoint += static_cast<uint32_t>(digit - 'a' + 10);
+          } else if (digit >= 'A' && digit <= 'F') {
+            codepoint += static_cast<uint32_t>(digit - 'A' + 10);
+          } else {
+            throw std::runtime_error("runtime-action response is not valid JSON");
+          }
+        }
+        if (codepoint > 0x7f) {
+          throw std::runtime_error("runtime-action response contains an unexpected non-ASCII string");
+        }
+        value.push_back(static_cast<char>(codepoint));
+      } else {
+        throw std::runtime_error("runtime-action response is not valid JSON");
+      }
+    }
+    throw std::runtime_error("runtime-action response is not valid JSON");
+  }
+
+  [[nodiscard]] bool done() {
+    whitespace();
+    return position_ == input_.size();
+  }
+
+private:
+  std::string_view input_;
+  std::size_t position_ = 0;
+};
+
+[[nodiscard]] inline std::string parse_response(std::string_view bytes) {
+  json_cursor cursor(bytes);
+  cursor.require('{');
+  bool schema_seen = false;
+  bool result_seen = false;
+  bool first = true;
+  std::string root;
+  while (true) {
+    if (cursor.take('}')) {
+      break;
+    }
+    if (!first) {
+      cursor.require(',');
+    }
+    const auto key = cursor.string();
+    cursor.require(':');
+    if (key == "schema" && !schema_seen) {
+      if (cursor.string() != RESPONSE_SCHEMA) {
+        throw std::runtime_error("runtime-action response does not match the generated schema");
+      }
+      schema_seen = true;
+    } else if (key == "result" && !result_seen) {
+      cursor.require('{');
+      if (cursor.string() != "${responseField}") {
+        throw std::runtime_error("runtime-action response does not match the generated schema");
+      }
+      cursor.require(':');
+      root = cursor.string();
+      cursor.require('}');
+      result_seen = true;
+    } else {
+      throw std::runtime_error("runtime-action response does not match the generated schema");
+    }
+    first = false;
+  }
+  if (!schema_seen || !result_seen || !cursor.done()) {
+    throw std::runtime_error("runtime-action response does not match the generated schema");
+  }
+  return root;
+}
+
+} // namespace detail
+
 [[nodiscard]] inline geometry_root_result parse_geometry_root(kungfu::api::wire_response wire) {
   if (wire.protocol_id != PROTOCOL_ID || wire.protocol_version != PROTOCOL_VERSION ||
       wire.schema_ref != RESPONSE_SCHEMA || wire.encoding != ENCODING) {
     throw std::runtime_error("runtime-action response metadata does not match the generated contract");
   }
-  constexpr std::string_view prefix = R"(${responsePrefix})";
-  constexpr std::string_view suffix = R"(${responseSuffix})";
-  if (wire.bytes.size() != prefix.size() + 71 + suffix.size() || wire.bytes.compare(0, prefix.size(), prefix) != 0 ||
-      wire.bytes.compare(prefix.size() + 71, suffix.size(), suffix) != 0) {
-    throw std::runtime_error("runtime-action response is not the canonical generated envelope");
-  }
-  auto root = wire.bytes.substr(prefix.size(), 71);
+  auto root = detail::parse_response(wire.bytes);
   const auto is_lower_hex = [](char value) { return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'); };
-  if (root.rfind("sha256:", 0) != 0 || !std::all_of(root.begin() + 7, root.end(), is_lower_hex)) {
+  if (root.size() != 71 || root.rfind("sha256:", 0) != 0 ||
+      !std::all_of(root.begin() + 7, root.end(), is_lower_hex)) {
     throw std::runtime_error("runtime-action ${responseField} is not a canonical SHA-256 root");
   }
   return {std::move(root), std::move(wire)};
@@ -125,10 +261,25 @@ function parseGeometryRoot(wire) {
     wire.encoding !== ENCODING
   )
     throw new Error('runtime-action response metadata does not match the generated contract');
-  const match = /^${escapeRegexLiteral(responsePrefix)}(sha256:[0-9a-f]{64})${escapeRegexLiteral(responseSuffix)}$/.exec(
-    wire.bytes.toString('utf8'),
-  );
-  const value = match?.[1];
+  let envelope;
+  try {
+    envelope = JSON.parse(wire.bytes.toString('utf8'));
+  } catch {
+    throw new Error('runtime-action response is not valid JSON');
+  }
+  if (
+    !envelope ||
+    typeof envelope !== 'object' ||
+    Array.isArray(envelope) ||
+    Object.keys(envelope).length !== 2 ||
+    envelope.schema !== RESPONSE_SCHEMA ||
+    !envelope.result ||
+    typeof envelope.result !== 'object' ||
+    Array.isArray(envelope.result) ||
+    Object.keys(envelope.result).length !== 1
+  )
+    throw new Error('runtime-action response does not match the generated schema');
+  const value = envelope.result.${responseField};
   if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value))
     throw new Error('runtime-action ${responseField} is not a canonical SHA-256 root');
   return Object.freeze({ geometryRoot: value, wire });
@@ -165,6 +316,8 @@ module.exports = {
 
 from __future__ import annotations
 
+import json
+
 from dataclasses import dataclass
 
 from ..native import NativeStorage, WireResponse
@@ -177,10 +330,6 @@ REQUEST_SCHEMA = "${protocol.requestSchema}"
 RESPONSE_SCHEMA = "${protocol.responseSchema}"
 ENCODING = "${protocol.encoding}"
 GEOMETRY_ROOT_REQUEST = b'${requestBytes}'
-GEOMETRY_ROOT_RESPONSE_PREFIX = b'${responsePrefix.replace(/'/g, "\\'")}'
-GEOMETRY_ROOT_RESPONSE_SUFFIX = b'${responseSuffix.replace(/'/g, "\\'")}'
-
-
 @dataclass(frozen=True)
 class GeometryRootResult:
     geometry_root: str
@@ -197,18 +346,20 @@ def parse_geometry_root(wire: WireResponse) -> GeometryRootResult:
         raise ValueError(
             "runtime-action response metadata does not match the generated contract"
         )
+    try:
+        envelope = json.loads(wire.bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("runtime-action response is not valid JSON") from error
     if (
-        len(wire.bytes)
-        != len(GEOMETRY_ROOT_RESPONSE_PREFIX) + 71 + len(GEOMETRY_ROOT_RESPONSE_SUFFIX)
-        or not wire.bytes.startswith(GEOMETRY_ROOT_RESPONSE_PREFIX)
-        or not wire.bytes.endswith(GEOMETRY_ROOT_RESPONSE_SUFFIX)
+        not isinstance(envelope, dict)
+        or set(envelope) != {"result", "schema"}
+        or envelope.get("schema") != RESPONSE_SCHEMA
+        or not isinstance(envelope.get("result"), dict)
+        or set(envelope["result"]) != {"${responseField}"}
+        or not isinstance(envelope["result"].get("${responseField}"), str)
     ):
-        raise ValueError(
-            "runtime-action response is not the canonical generated envelope"
-        )
-    value = wire.bytes[
-        len(GEOMETRY_ROOT_RESPONSE_PREFIX) : len(GEOMETRY_ROOT_RESPONSE_PREFIX) + 71
-    ].decode("ascii")
+        raise ValueError("runtime-action response does not match the generated schema")
+    value = envelope["result"]["${responseField}"]
     if (
         not value.startswith("sha256:")
         or len(value) != 71
@@ -235,6 +386,7 @@ def geometry_root(client: NativeStorage) -> GeometryRootResult:
     `${generatedBanner}// SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, NativeStorage, WireResponse};
+use serde_json::Value;
 
 pub const PROTOCOL_ID: &str = "${protocol.id}";
 pub const PROTOCOL_VERSION: u32 = ${protocol.version};
@@ -244,9 +396,6 @@ pub const REQUEST_SCHEMA: &str = "${protocol.requestSchema}";
 pub const RESPONSE_SCHEMA: &str = "${protocol.responseSchema}";
 pub const ENCODING: &str = "${protocol.encoding}";
 pub const GEOMETRY_ROOT_REQUEST: &[u8] = br#"${requestBytes}"#;
-const RESPONSE_PREFIX: &[u8] = br#"${responsePrefix}"#;
-const RESPONSE_SUFFIX: &[u8] = br#"${responseSuffix}"#;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeometryRootResult {
     pub geometry_root: String,
@@ -264,18 +413,44 @@ pub fn parse_geometry_root(wire: WireResponse) -> Result<GeometryRootResult, Err
             "runtime-action response metadata does not match the generated contract",
         ));
     }
-    if wire.bytes.len() != RESPONSE_PREFIX.len() + 71 + RESPONSE_SUFFIX.len()
-        || !wire.bytes.starts_with(RESPONSE_PREFIX)
-        || !wire.bytes.ends_with(RESPONSE_SUFFIX)
+    let envelope: Value = serde_json::from_slice(&wire.bytes)
+        .map_err(|_| Error::new(-1, "runtime-action response is not valid JSON"))?;
+    let object = envelope.as_object().ok_or_else(|| {
+        Error::new(
+            -1,
+            "runtime-action response does not match the generated schema",
+        )
+    })?;
+    let result = object
+        .get("result")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            Error::new(
+                -1,
+                "runtime-action response does not match the generated schema",
+            )
+        })?;
+    if object.len() != 2
+        || object.get("schema").and_then(Value::as_str) != Some(RESPONSE_SCHEMA)
+        || result.len() != 1
     {
         return Err(Error::new(
             -1,
-            "runtime-action response is not the canonical generated envelope",
+            "runtime-action response does not match the generated schema",
         ));
     }
-    let root_bytes = &wire.bytes[RESPONSE_PREFIX.len()..RESPONSE_PREFIX.len() + 71];
-    if !root_bytes.starts_with(b"sha256:")
-        || !root_bytes[7..]
+    let root = result
+        .get("${responseField}")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            Error::new(
+                -1,
+                "runtime-action response does not match the generated schema",
+            )
+        })?;
+    if root.len() != 71
+        || !root.starts_with("sha256:")
+        || !root.as_bytes()[7..]
             .iter()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
     {
@@ -284,10 +459,8 @@ pub fn parse_geometry_root(wire: WireResponse) -> Result<GeometryRootResult, Err
             "runtime-action ${responseField} is not a canonical SHA-256 root",
         ));
     }
-    let root = String::from_utf8(root_bytes.to_vec())
-        .map_err(|_| Error::new(-1, "runtime-action root is not UTF-8"))?;
     Ok(GeometryRootResult {
-        geometry_root: root,
+        geometry_root: root.to_owned(),
         wire,
     })
 }

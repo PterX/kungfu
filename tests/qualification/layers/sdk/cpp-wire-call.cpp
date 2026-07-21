@@ -61,16 +61,37 @@ kungfu::api::wire_response invalid_projection(std::string_view id) {
   };
   if (id == "wrong-metadata") {
     wire.schema_ref = "kungfu.action-runtime.wrong/v1";
-  } else if (id == "noncanonical-envelope") {
-    wire.bytes = "{\"schema\":\"kungfu.action-runtime.result/v1\",\"result\":{\"geometryRoot\":\"" + root + "\"}}";
+  } else if (id == "extra-result-field") {
+    wire.bytes = "{\"result\":{\"geometryRoot\":\"" + root +
+                 "\",\"unexpected\":true},\"schema\":\"kungfu.action-runtime.result/v1\"}";
   } else if (id == "wrong-layer") {
     wire.bytes = "{\"geometryRoot\":\"" + root + "\"}";
   } else if (id == "schema-punctuation-mutation") {
     wire.bytes = "{\"result\":{\"geometryRoot\":\"" + root + "\"},\"schema\":\"kungfuXaction-runtimeXresult/v1\"}";
+  } else if (id == "short-root") {
+    wire.bytes = "{\"result\":{\"geometryRoot\":\"sha256:a\"},\"schema\":\"kungfu.action-runtime.result/v1\"}";
+  } else if (id == "trailing-comma") {
+    wire.bytes = "{\"result\":{\"geometryRoot\":\"" + root + "\"},\"schema\":\"kungfu.action-runtime.result/v1\",}";
   } else {
     throw std::invalid_argument("unsupported projection-negative case");
   }
   return wire;
+}
+
+kungfu::api::wire_response semantic_projection(std::string_view id) {
+  const std::string root = "sha256:" + std::string(64, 'a');
+  std::string bytes;
+  if (id == "reordered-envelope") {
+    bytes = "{\"schema\":\"kungfu.action-runtime.result/v1\",\"result\":{\"geometryRoot\":\"" + root + "\"}}";
+  } else if (id == "whitespace-envelope") {
+    bytes =
+        "{ \"result\" : { \"geometryRoot\" : \"" + root + "\" }, \"schema\" : \"kungfu.action-runtime.result/v1\" }";
+  } else {
+    throw std::invalid_argument("unsupported projection-semantic case");
+  }
+  return {
+      "kungfu.runtime.action", 1, "kungfu.action-runtime.result/v1", "application/json", std::move(bytes),
+  };
 }
 
 } // namespace
@@ -84,6 +105,13 @@ int main(int argc, char **argv) {
     const std::string runtime_dir = argv[1];
     const std::string operation = argv[2];
     const std::string request = argv[3];
+    if (operation == "__runtime_action_projection_semantic__") {
+      const auto result = kungfu::sdk::generated::runtime_action_v1::parse_geometry_root(semantic_projection(request));
+      std::cout << "{\"geometryRoot\":\"" << result.geometry_root << "\",\"bytesHex\":\"" << hex(result.wire.bytes)
+                << "\"}\n";
+      qualification_hold();
+      return 0;
+    }
     if (operation == "__runtime_action_projection_negative__") {
       try {
         (void)kungfu::sdk::generated::runtime_action_v1::parse_geometry_root(invalid_projection(request));

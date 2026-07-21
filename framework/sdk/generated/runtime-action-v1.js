@@ -18,10 +18,25 @@ function parseGeometryRoot(wire) {
     wire.encoding !== ENCODING
   )
     throw new Error('runtime-action response metadata does not match the generated contract');
-  const match = /^\{"result":\{"geometryRoot":"(sha256:[0-9a-f]{64})"\},"schema":"kungfu\.action-runtime\.result\/v1"\}$/.exec(
-    wire.bytes.toString('utf8'),
-  );
-  const value = match?.[1];
+  let envelope;
+  try {
+    envelope = JSON.parse(wire.bytes.toString('utf8'));
+  } catch {
+    throw new Error('runtime-action response is not valid JSON');
+  }
+  if (
+    !envelope ||
+    typeof envelope !== 'object' ||
+    Array.isArray(envelope) ||
+    Object.keys(envelope).length !== 2 ||
+    envelope.schema !== RESPONSE_SCHEMA ||
+    !envelope.result ||
+    typeof envelope.result !== 'object' ||
+    Array.isArray(envelope.result) ||
+    Object.keys(envelope.result).length !== 1
+  )
+    throw new Error('runtime-action response does not match the generated schema');
+  const value = envelope.result.geometryRoot;
   if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value))
     throw new Error('runtime-action geometryRoot is not a canonical SHA-256 root');
   return Object.freeze({ geometryRoot: value, wire });

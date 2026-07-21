@@ -164,15 +164,18 @@ Therefore:
 Generated typed methods are projections of the machine contract. They may
 construct typed requests and parse typed results, but must also expose the exact
 response metadata and bytes returned by the C ABI. Bindings may not parse and
-re-serialize a response before conformance comparison.
+re-serialize a response before conformance comparison. Because
+`application/json` is an edge encoding here, generated projections validate the
+decoded schema and values rather than requiring one object-key order or
+whitespace rendering.
 
 The first pilot covers bounded read-only L1 operations. C++, Node, Python, and
 Rust run frozen response-byte vectors rather than selecting one adapter as a
 dynamic oracle. The gate compares exact metadata and bytes, measures the runtime
 directory before and after each case, and runs shared malformed-envelope cases
-through each generated projection. This proves wrapper and projection parity
-over the one native protocol authority; it does not claim four independent
-serializers.
+through each generated projection. Reordered-key and whitespace variants are
+also required positive cases. This proves wrapper and projection parity over the
+one native protocol authority; it does not claim four independent serializers.
 
 ## Compatibility and migration
 

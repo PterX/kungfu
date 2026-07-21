@@ -11,7 +11,7 @@
   },
   "wire_fixture": {
     "id": "kungfu.layer-qualification.sdk-wire-fixture/v1",
-    "sha256": "b1b55bc231b7bd6db68c03c5f4ba244973d08f7327631b4c166e4095df4431b2"
+    "sha256": "495a5e6a5425123af7a85bc2ea2342c15109b7f58d98cdc004217f398ed114c8"
   },
   "operations": [
     "episode_begin",

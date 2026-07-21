@@ -20,9 +20,15 @@
   },
   "projection_negative_cases": [
     "wrong-metadata",
-    "noncanonical-envelope",
+    "extra-result-field",
     "wrong-layer",
-    "schema-punctuation-mutation"
+    "schema-punctuation-mutation",
+    "short-root",
+    "trailing-comma"
+  ],
+  "projection_semantic_cases": [
+    "reordered-envelope",
+    "whitespace-envelope"
   ],
   "cases": [
     {

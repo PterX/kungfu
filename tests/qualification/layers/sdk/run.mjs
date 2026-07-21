@@ -160,9 +160,27 @@ function validateWireFixture(fixture) {
     fixture.projection_negative_cases.length < 3
   )
     fail('SDK wire fixture lacks generated projection negative cases');
+  if (
+    !Array.isArray(fixture.projection_semantic_cases) ||
+    fixture.projection_semantic_cases.length < 2
+  )
+    fail('SDK wire fixture lacks semantic JSON projection cases');
   const contract = readJson(SDK_CONTRACT);
   if (contract.wire_fixture?.sha256 !== sha256(WIRE_FIXTURE))
     fail('SDK contract wire fixture hash is stale');
+}
+
+function semanticProjectionBytes(id) {
+  const root = `sha256:${'a'.repeat(64)}`;
+  if (id === 'reordered-envelope')
+    return Buffer.from(
+      `{"schema":"kungfu.action-runtime.result/v1","result":{"geometryRoot":"${root}"}}`,
+    );
+  if (id === 'whitespace-envelope')
+    return Buffer.from(
+      `{ "result" : { "geometryRoot" : "${root}" }, "schema" : "kungfu.action-runtime.result/v1" }`,
+    );
+  fail(`unsupported semantic projection fixture: ${id}`);
 }
 
 function findOne(dir, predicate, label) {
@@ -764,12 +782,35 @@ async function qualifyWireAdapter(adapter, fixture, root) {
         '__runtime_action_projection_negative__',
         id,
       ],
-      { cwd: root, env: adapter.env },
+      { cwd: root, env: qualificationEnv },
     );
     const response = JSON.parse(result.stdout.trim().split('\n').at(-1));
     if (response.rejected !== true)
       fail(`${adapter.id}/${id}: generated projection did not reject response`);
     projectionNegativeCases[id] = { rejected: true };
+  }
+  const projectionSemanticCases = {};
+  for (const id of fixture.projection_semantic_cases) {
+    const result = await runMeasured(
+      adapter.command,
+      [
+        ...adapter.prefix,
+        workspace,
+        '__runtime_action_projection_semantic__',
+        id,
+      ],
+      { cwd: root, env: qualificationEnv },
+    );
+    const response = JSON.parse(result.stdout.trim().split('\n').at(-1));
+    if (!/^sha256:[0-9a-f]{64}$/.test(response.geometryRoot || ''))
+      fail(`${adapter.id}/${id}: generated projection rejected semantic JSON`);
+    const expectedBytesHex = semanticProjectionBytes(id).toString('hex');
+    if (response.bytesHex !== expectedBytesHex)
+      fail(`${adapter.id}/${id}: generated projection changed response bytes`);
+    projectionSemanticCases[id] = {
+      accepted: true,
+      bytes_preserved: true,
+    };
   }
   let interleavedRuntime;
   if (adapter.id === 'npm-sdk') {
@@ -791,6 +832,7 @@ async function qualifyWireAdapter(adapter, fixture, root) {
     wire_fixture_sha256: sha256(WIRE_FIXTURE),
     cases,
     projection_negative_cases: projectionNegativeCases,
+    projection_semantic_cases: projectionSemanticCases,
     interleaved_runtime: interleavedRuntime,
   };
 }

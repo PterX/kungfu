@@ -8,6 +8,13 @@ use std::process::ExitCode;
 use std::thread;
 use std::time::Duration;
 
+fn qualification_hold() -> Result<(), Box<dyn std::error::Error>> {
+    if let Ok(milliseconds) = env::var("KUNGFU_QUALIFICATION_HOLD_MS") {
+        thread::sleep(Duration::from_millis(milliseconds.parse()?));
+    }
+    Ok(())
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = env::args().skip(1);
     let runtime_dir = args
@@ -23,6 +30,34 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Err("usage: kungfu-sdk-call RUNTIME_DIR OPERATION REQUEST_JSON".into());
     }
 
+    if operation == "__runtime_action_projection_semantic__" {
+        let root = format!("sha256:{}", "a".repeat(64));
+        let bytes = match request_json.as_str() {
+            "reordered-envelope" => format!(
+                r#"{{"schema":"kungfu.action-runtime.result/v1","result":{{"geometryRoot":"{root}"}}}}"#
+            ),
+            "whitespace-envelope" => format!(
+                r#"{{ "result" : {{ "geometryRoot" : "{root}" }}, "schema" : "kungfu.action-runtime.result/v1" }}"#
+            ),
+            _ => return Err("unsupported projection-semantic case".into()),
+        };
+        let result = runtime_action_v1::parse_geometry_root(WireResponse {
+            protocol_id: "kungfu.runtime.action".to_owned(),
+            protocol_version: 1,
+            schema_ref: "kungfu.action-runtime.result/v1".to_owned(),
+            encoding: "application/json".to_owned(),
+            bytes: bytes.into_bytes(),
+        })?;
+        println!(
+            "{}",
+            json!({
+                "geometryRoot": result.geometry_root,
+                "bytesHex": hex(&result.wire.bytes),
+            })
+        );
+        qualification_hold()?;
+        return Ok(());
+    }
     if operation == "__runtime_action_projection_negative__" {
         let root = format!("sha256:{}", "a".repeat(64));
         let mut wire = WireResponse {
@@ -39,9 +74,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "wrong-metadata" => {
                 wire.schema_ref = "kungfu.action-runtime.wrong/v1".to_owned();
             }
-            "noncanonical-envelope" => {
+            "extra-result-field" => {
                 wire.bytes = format!(
-                    r#"{{"schema":"kungfu.action-runtime.result/v1","result":{{"geometryRoot":"{root}"}}}}"#
+                    r#"{{"result":{{"geometryRoot":"{root}","unexpected":true}},"schema":"kungfu.action-runtime.result/v1"}}"#
                 )
                 .into_bytes();
             }
@@ -54,10 +89,21 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .into_bytes();
             }
+            "short-root" => {
+                wire.bytes = br#"{"result":{"geometryRoot":"sha256:a"},"schema":"kungfu.action-runtime.result/v1"}"#
+                    .to_vec();
+            }
+            "trailing-comma" => {
+                wire.bytes = format!(
+                    r#"{{"result":{{"geometryRoot":"{root}"}},"schema":"kungfu.action-runtime.result/v1",}}"#
+                )
+                .into_bytes();
+            }
             _ => return Err("unsupported projection-negative case".into()),
         }
         if runtime_action_v1::parse_geometry_root(wire).is_err() {
             println!(r#"{{"rejected":true}}"#);
+            qualification_hold()?;
             return Ok(());
         }
         return Err("generated projection accepted an invalid response".into());
@@ -108,6 +154,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                         "bytesHex": hex(&value.bytes),
                     })
                 );
+                qualification_hold()?;
                 return Ok(());
             }
         };
@@ -122,6 +169,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "geometryRoot": typed.as_ref().map(|value| value.geometry_root.as_str()),
             })
         );
+        qualification_hold()?;
         return Ok(());
     }
     let capabilities = storage.capabilities()?;
@@ -129,9 +177,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("incomplete native capability mask: {capabilities:#x}").into());
     }
     println!("{}", storage.execute_json(&operation, &request_json)?);
-    if let Ok(milliseconds) = env::var("KUNGFU_QUALIFICATION_HOLD_MS") {
-        thread::sleep(Duration::from_millis(milliseconds.parse()?));
-    }
+    qualification_hold()?;
     Ok(())
 }
 

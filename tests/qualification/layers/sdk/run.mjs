@@ -342,7 +342,7 @@ function commandVersion(command) {
   return (result.stdout || result.stderr || '').trim().split('\n')[0];
 }
 
-function runtimeEnv(nativeDir) {
+function runtimeEnv(nativeDir = null) {
   let env = {
     ...process.env,
     KUNGFU_FACT_CUT_ROOT: `sha256:${'1'.repeat(64)}`,
@@ -353,6 +353,7 @@ function runtimeEnv(nativeDir) {
     KUNGFU_PRECONDITIONS_ROOT: `sha256:${'6'.repeat(64)}`,
     KUNGFU_RESOURCES_ROOT: `sha256:${'7'.repeat(64)}`,
   };
+  if (!nativeDir) return env;
   if (process.platform === 'darwin')
     env.DYLD_LIBRARY_PATH = [nativeDir, env.DYLD_LIBRARY_PATH]
       .filter(Boolean)
@@ -365,13 +366,33 @@ function runtimeEnv(nativeDir) {
   return env;
 }
 
+function stageQualificationProfile(root) {
+  const profile = path.join(root, 'contract-profile');
+  const config = path.join(profile, 'config');
+  fs.cpSync(path.join(ROOT, 'config'), config, { recursive: true });
+  const registry = path.join(config, 'kungfu-contracts.registry.json');
+  const actionGeometry = path.join(
+    config,
+    'action',
+    'action-geometry.contract.json',
+  );
+  fs.mkdirSync(path.dirname(actionGeometry), { recursive: true });
+  fs.copyFileSync(
+    path.join(ROOT, 'framework', 'action', 'action-geometry.contract.json'),
+    actionGeometry,
+  );
+  if (!fs.existsSync(registry) || !fs.existsSync(actionGeometry))
+    fail('installed qualification profile omits required contract artifacts');
+  return { registry, actionGeometry };
+}
+
 function pythonExecutable(venv) {
   return process.platform === 'win32'
     ? path.join(venv, 'Scripts', 'python.exe')
     : path.join(venv, 'bin', 'python');
 }
 
-function setupPython(root, wheel, nativeDir) {
+function setupPython(root, wheel) {
   const venv = path.join(root, 'python-env');
   run('uv', ['venv', '--python', '3.13', venv]);
   const baseline = directorySize(venv);
@@ -387,7 +408,7 @@ function setupPython(root, wheel, nativeDir) {
     command: python,
     prefix: [PYTHON_CALL],
     env: {
-      ...runtimeEnv(nativeDir),
+      ...runtimeEnv(),
       PYTHONNOUSERSITE: '1',
       PYTHONPATH: '',
       KUNGFU_ALLOW_FOREIGN_RUNTIME: '1',
@@ -398,7 +419,7 @@ function setupPython(root, wheel, nativeDir) {
   };
 }
 
-function setupNode(root, coreArchive, platformArchive, nativeDir) {
+function setupNode(root, coreArchive, platformArchive) {
   const installRoot = path.join(root, 'node-env');
   fs.mkdirSync(installRoot, { recursive: true });
   fs.copyFileSync(NODE_CALL, path.join(installRoot, 'node-call.cjs'));
@@ -427,7 +448,7 @@ function setupNode(root, coreArchive, platformArchive, nativeDir) {
     id: 'npm-sdk',
     command: process.execPath,
     prefix: [path.join(installRoot, 'node-call.cjs')],
-    env: runtimeEnv(nativeDir),
+    env: runtimeEnv(),
     installedSizeBytes: directorySize(path.join(installRoot, 'node_modules')),
     dependencyCount: 2,
     exactArtifact: coreArchive,
@@ -665,23 +686,13 @@ async function qualifyAdapter(adapter, fixture, root) {
   };
 }
 
-async function qualifyWireAdapter(adapter, fixture, root) {
+async function qualifyWireAdapter(adapter, fixture, root, contractProfile) {
   const workspace = path.join(root, `${adapter.id}-wire.kungfu`);
   const qualificationEnv = {
     ...adapter.env,
     KUNGFU_QUALIFICATION_HOLD_MS: String(qualificationHoldMs()),
-    KUNGFU_CONTRACT_REGISTRY: path.join(
-      ROOT,
-      'framework',
-      'contract',
-      'kungfu-contracts.registry.json',
-    ),
-    KUNGFU_ACTION_GEOMETRY_CONTRACT: path.join(
-      ROOT,
-      'framework',
-      'action',
-      'action-geometry.contract.json',
-    ),
+    KUNGFU_CONTRACT_REGISTRY: contractProfile.registry,
+    KUNGFU_ACTION_GEOMETRY_CONTRACT: contractProfile.actionGeometry,
   };
   const cases = {};
   for (const entry of fixture.cases) {
@@ -863,14 +874,10 @@ async function main() {
     path.join(os.tmpdir(), 'kungfu-sdk-qualification-'),
   );
   try {
+    const contractProfile = stageQualificationProfile(temp);
     const semanticAdapters = [
-      setupPython(temp, artifacts.pythonWheel, artifacts.nativeDir),
-      setupNode(
-        temp,
-        artifacts.npmCore,
-        artifacts.npmPlatform,
-        artifacts.nativeDir,
-      ),
+      setupPython(temp, artifacts.pythonWheel),
+      setupNode(temp, artifacts.npmCore, artifacts.npmPlatform),
       setupRust(temp, artifacts.nativeDir, artifacts.cargoCrate),
     ];
     const cppAdapter = setupCpp(temp, artifacts.nativeDir);
@@ -883,7 +890,7 @@ async function main() {
     for (const adapter of [cppAdapter, ...semanticAdapters]) {
       console.log(`[layers:qualify:sdk] wire adapter=${adapter.id}`);
       wireQualifications.push(
-        await qualifyWireAdapter(adapter, wireFixture, temp),
+        await qualifyWireAdapter(adapter, wireFixture, temp, contractProfile),
       );
     }
     const report = {

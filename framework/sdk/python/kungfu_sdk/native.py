@@ -406,9 +406,15 @@ class NativeStorage:
         if status != _OK:
             status = _compatibility_status(status)
             raise self._error(status, "native storage operation failed")
-        if not result.message.bytes or not result.message.byte_size or not result.token:
-            raise NativeStorageError(-1, "libkungfu returned an invalid result view")
         try:
+            if (
+                not result.message.bytes
+                or not result.message.byte_size
+                or not result.token
+            ):
+                raise NativeStorageError(
+                    -1, "libkungfu returned an invalid result view"
+                )
             payload = ctypes.string_at(result.message.bytes, result.message.byte_size)
             envelope = json.loads(payload)
             value = envelope["result"]
@@ -416,9 +422,10 @@ class NativeStorage:
                 raise TypeError("standard result envelope payload is not an object")
             return dict(value)
         finally:
-            release_status = release(self._context, result.token)
-            if release_status != _OK:
-                raise self._error(release_status, "result release failed")
+            if result.token:
+                release_status = release(self._context, result.token)
+                if release_status != _OK:
+                    raise self._error(release_status, "result release failed")
 
     def _runtime_action_api(self) -> _RuntimeActionApiV1:
         if self._runtime_action is not None:

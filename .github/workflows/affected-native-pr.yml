@@ -181,7 +181,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -x framework/core/node_modules/.bin/cmake-js
+          cmake_js_bin=""
+          for candidate in node_modules/.pnpm/cmake-js@*/node_modules/cmake-js/bin/cmake-js; do
+            if [ -x "$candidate" ]; then
+              cmake_js_bin="$candidate"
+              break
+            fi
+          done
+          test -n "$cmake_js_bin"
+          export PATH="$GITHUB_WORKSPACE/$(dirname "$cmake_js_bin"):$PATH"
+          # shifu-entry-contract: allow verifying the Core bootstrap tool before Shifu can build Core
+          cmake-js --version
           ./shifu build:core
           ./shifu pack:sdk
           ./shifu layers:qualify:sdk -- \

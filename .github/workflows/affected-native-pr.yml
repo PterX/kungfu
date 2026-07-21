@@ -193,6 +193,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ ! -x framework/core/node_modules/.bin/cmake-js ]; then
+            ./shifu --filter @kungfu-tech/core install --frozen-lockfile --force
+          fi
+          test -x framework/core/node_modules/.bin/cmake-js
           ./shifu build:core
           ./shifu pack:sdk
           ./shifu layers:qualify:sdk -- \

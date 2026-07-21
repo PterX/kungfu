@@ -50,7 +50,7 @@
           "authority": "qualification",
           "publication": "none",
           "receipt": "diagnostic",
-          "definitionDigest": "sha256:e24a8abb01a13e024294cd14e9bd08101b4bf65c1ac4ced25584ed7c367f56b9",
+          "definitionDigest": "sha256:5f991c5387f1c83cfdceb12bdd1c005628f97236390c373896dfd5a4daf13851",
           "credentials": {
             "githubToken": "read",
             "oidc": false,
@@ -162,7 +162,7 @@
               "index": 16,
               "label": "name:Qualify installed four-language SDK wire contract",
               "authority": "qualification",
-              "definitionDigest": "sha256:066a5abe0cc7dfdb18fe77077ec12c05f73972977f8cef47f1a12873e5624090"
+              "definitionDigest": "sha256:8184240bd39bb1e0f300df248993fe869d942da9056d7a971990cc5e4f54e8af"
             },
             {
               "index": 17,

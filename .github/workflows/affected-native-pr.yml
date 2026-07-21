@@ -19,7 +19,7 @@ jobs:
   affected_native_shards:
     name: affected-native shard ${{ matrix.partition }} of 2 / linux
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -193,6 +193,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ./shifu build:core
           ./shifu pack:sdk
           ./shifu layers:qualify:sdk -- \
             --report product/qualification/affected-native/layered-sdk-report.json

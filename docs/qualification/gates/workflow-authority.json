@@ -50,7 +50,7 @@
           "authority": "qualification",
           "publication": "none",
           "receipt": "diagnostic",
-          "definitionDigest": "sha256:4c3e3c0c71fa590ed862198c5d136a27efb1734d593573b4fb3baf681caefefb",
+          "definitionDigest": "sha256:e24a8abb01a13e024294cd14e9bd08101b4bf65c1ac4ced25584ed7c367f56b9",
           "credentials": {
             "githubToken": "read",
             "oidc": false,
@@ -162,7 +162,7 @@
               "index": 16,
               "label": "name:Qualify installed four-language SDK wire contract",
               "authority": "qualification",
-              "definitionDigest": "sha256:4bf689869d10311ed4fc8e365eebfcf16667bb8d644835c42600f219f84ef37f"
+              "definitionDigest": "sha256:066a5abe0cc7dfdb18fe77077ec12c05f73972977f8cef47f1a12873e5624090"
             },
             {
               "index": 17,
@@ -989,7 +989,7 @@
     {
       "path": ".github/workflows/kfd-verifier-drift.yml",
       "authority": "qualification",
-      "definitionDigest": "sha256:1118746c44d94570ec7ae2004e52a04f0c60a9d8f2d290b9378669a8ca2de54e",
+      "definitionDigest": "sha256:28d887b19bfafe4ebdf344276b3dee219a08430ecd1cf8704387dfa9a3f4acea",
       "jobs": [
         {
           "id": "verify-owned-fixtures",
@@ -1490,7 +1490,7 @@
     {
       "path": ".github/workflows/shifu-ci.yml",
       "authority": "qualification",
-      "definitionDigest": "sha256:8df8f9355414f885fde3da84dc7b07023445ee7a0a7dd9b1d32bef5d159cbccf",
+      "definitionDigest": "sha256:e2d9f7801567278f22b292f72c7d7b39d367ff67e7d4d2a7ec6988c43ed96c8c",
       "jobs": [
         {
           "id": "check",

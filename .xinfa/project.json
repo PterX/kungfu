@@ -207,7 +207,7 @@
     },
     {
       "id": "xinfa-cli-help",
-      "path": "xinfa/src/main.rs",
+      "path": "crates/xinfa/src/main.rs",
       "kind": "cli-help",
       "classification": "authored-document"
     }
@@ -251,10 +251,10 @@
     },
     {
       "id": "xinfa-compiler-implementation",
-      "documentPath": "xinfa/README.md",
+      "documentPath": "crates/xinfa/README.md",
       "targetId": "implementation.xinfa-compiler",
       "targetKind": "implementation",
-      "targetPath": "xinfa/src/lib.rs",
+      "targetPath": "crates/xinfa/src/lib.rs",
       "relation": "explains",
       "expectedRevision": "sha256:d4d8535a1c9fdfd691b56d00d065a035035b76b65fedf20872557b37e8fb4f1f"
     },
@@ -265,7 +265,7 @@
       "targetKind": "claim",
       "targetPath": "docs/qualification/documentation-control-plane.receipt.json",
       "relation": "proves",
-      "expectedRevision": "sha256:3d3e91614e072efedbe1380f97e80777e76f6857efd891d89bcfd868da704500"
+      "expectedRevision": "sha256:68056769b277aa638f092971a44d082f2973901c2440f18dcf1ec4e298c99e8c"
     },
     {
       "id": "storage-authority-decision",
@@ -357,7 +357,7 @@
           "docs/guides/xinfa-agent-context.md",
           "docs/adr/SHIFU-ADR-0008-human-surface-closure-and-xinfa-impact-authority.md",
           "framework/core/src/python/kungfu/agent/xinfa-context.md",
-          "xinfa/README.md"
+          "crates/xinfa/README.md"
         ]
       }
     },
@@ -422,7 +422,7 @@
           "docs/guides/xinfa-agent-context.md",
           "docs/adr/SHIFU-ADR-0008-human-surface-closure-and-xinfa-impact-authority.md",
           "framework/core/src/python/kungfu/agent/xinfa-context.md",
-          "xinfa/README.md"
+          "crates/xinfa/README.md"
         ]
       }
     },

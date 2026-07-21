@@ -1,0 +1,45 @@
+{
+  "schema": "xinfa.wasm-engine-qualification/v1",
+  "verdict": "pass",
+  "platform": "darwin-arm64",
+  "target": "wasm32-unknown-unknown",
+  "toolchain": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "engine": {
+    "path": "engine/xinfa.wasm",
+    "manifest": "engine/manifest.json",
+    "abi": "xinfa.engine-abi/v1",
+    "sourceTreeHash": "sha256:e0da22d3325f88ae96e212349c8acdef60f51ac7cb5450785d2fa9a561a0b953",
+    "wasmSha256": "sha256:7748e7e2b1cf9ca1b0d2ea34a343eb0a674ea969dad5c351aee2509396d735a3",
+    "size": 832687
+  },
+  "properties": {
+    "pinnedToolchainRebuildByteStable": true,
+    "hostBuildPathsRemapped": true,
+    "manifestHashVerifiedBeforeInstantiation": true,
+    "sourceTreeStalenessRejected": true,
+    "reusableWebAssemblyInstance": true,
+    "zeroNpmDependencies": true,
+    "nativeWasmPackBytesEquivalent": true,
+    "nativeWasmAtlasBytesEquivalent": true,
+    "repositorySmallFixtureEquivalent": true,
+    "repositoryMediumFixtureEquivalent": true,
+    "negativeProjectCorpusEquivalent": true,
+    "schemaSurfaceEquivalent": true,
+    "episodeSuccessorEquivalent": true,
+    "stdinEquivalent": true,
+    "nodeOnlyShifuExecution": true,
+    "nativeProductionMintingOnly": true
+  },
+  "proofBoundary": {
+    "qualifying": false,
+    "selfCertified": false,
+    "certifiesRealWorldPurpose": false,
+    "attestsRelease": false,
+    "otherPlatformsDeferred": true
+  },
+  "commands": [
+    "./shifu xinfa:wasm:check",
+    "./shifu xinfa:check",
+    "node --test product/scripts/dist.test.mjs"
+  ]
+}

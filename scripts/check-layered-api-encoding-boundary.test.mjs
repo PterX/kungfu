@@ -233,9 +233,9 @@ test('Xinfa keeps JSON evidence dependencies and no FlatBuffers authority', () =
       `Xinfa acquired transitive forbidden dependency ${dependency}`,
     );
   }
-  const authoritativeSources = sourceFiles('xinfa').filter((file) =>
-    /\.(?:rs|toml|json)$/.test(file),
-  );
+  const authoritativeSources = sourceFiles(
+    path.dirname(contract.xinfaBoundary.manifest),
+  ).filter((file) => /\.(?:rs|toml|json)$/.test(file));
   for (const file of authoritativeSources) {
     assert.doesNotMatch(
       read(file),

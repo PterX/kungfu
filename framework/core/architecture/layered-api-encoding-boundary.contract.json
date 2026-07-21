@@ -3,7 +3,7 @@
   "id": "kungfu-layered-api-encoding-boundary",
   "version": 1,
   "status": "staged",
-  "decision": "docs/adr/ADR-0129-layered-api-and-protocol-owned-canonical-encoding.md",
+  "decision": "docs/adr/ADR-0130-layered-api-and-protocol-owned-canonical-encoding.md",
   "authority": {
     "publicAbi": {
       "path": "framework/core/src/libkungfu/include/kungfu/api.h",
@@ -240,8 +240,8 @@
     ]
   },
   "xinfaBoundary": {
-    "manifest": "xinfa/Cargo.toml",
-    "lockfile": "xinfa/Cargo.lock",
+    "manifest": "crates/xinfa/Cargo.toml",
+    "lockfile": "crates/xinfa/Cargo.lock",
     "requiredDependencies": ["serde_json", "sha2"],
     "forbiddenDependencies": ["flatbuffers"],
     "authoritativeCache": "none"

@@ -3,11 +3,11 @@
   "id": "kungfu-layered-api-encoding-boundary",
   "version": 1,
   "status": "staged",
-  "decision": "docs/adr/ADR-0130-layered-api-and-protocol-owned-canonical-encoding.md",
+  "decision": "docs/adr/ADR-0131-layered-api-and-protocol-owned-canonical-encoding.md",
   "authority": {
     "publicAbi": {
       "path": "framework/core/src/libkungfu/include/kungfu/api.h",
-      "sha256": "d81db9618451be193a89d934f083402d8cc3f32275f9241771acb406790889a4"
+      "sha256": "84d9265adbdc3d117b0d9d01ee36510985f974892e7430fbdcd5e1da530d1c19"
     },
     "factRootProtocol": {
       "path": "framework/fact/kungfu-fact-root-canonical-v2.json",

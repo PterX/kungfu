@@ -3,7 +3,7 @@
   "native_abi": {
     "id": "kungfu/api.h",
     "version": 1,
-    "sha256": "d81db9618451be193a89d934f083402d8cc3f32275f9241771acb406790889a4"
+    "sha256": "84d9265adbdc3d117b0d9d01ee36510985f974892e7430fbdcd5e1da530d1c19"
   },
   "semantic_fixture": {
     "id": "kungfu.layer-qualification.sdk-semantic-fixture/v1",

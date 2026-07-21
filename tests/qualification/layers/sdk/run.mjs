@@ -651,7 +651,7 @@ async function qualifyWireAdapter(adapter, fixture, root) {
   const workspace = path.join(root, `${adapter.id}-wire.kungfu`);
   const qualificationEnv = {
     ...adapter.env,
-    KUNGFU_QUALIFICATION_HOLD_MS: '0',
+    KUNGFU_QUALIFICATION_HOLD_MS: String(qualificationHoldMs()),
     KUNGFU_CONTRACT_REGISTRY: path.join(
       ROOT,
       'framework',

@@ -3,11 +3,14 @@
 #include <kungfu/api.hpp>
 #include <kungfu/sdk/generated/runtime_action_v1.hpp>
 
+#include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 
 namespace {
 
@@ -31,6 +34,20 @@ void print(const kungfu::api::wire_response &wire, std::string_view typed_root =
     std::cout << ",\"geometryRoot\":\"" << typed_root << "\"";
   }
   std::cout << "}\n";
+}
+
+void qualification_hold() {
+  const char *value = std::getenv("KUNGFU_QUALIFICATION_HOLD_MS");
+  if (value == nullptr) {
+    return;
+  }
+  const std::string raw(value);
+  std::size_t consumed = 0;
+  const auto milliseconds = std::stoll(raw, &consumed);
+  if (consumed != raw.size() || milliseconds < 0) {
+    throw std::invalid_argument("KUNGFU_QUALIFICATION_HOLD_MS must be a non-negative integer");
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
 kungfu::api::wire_response invalid_projection(std::string_view id) {
@@ -72,6 +89,7 @@ int main(int argc, char **argv) {
         (void)kungfu::sdk::generated::runtime_action_v1::parse_geometry_root(invalid_projection(request));
       } catch (const std::exception &) {
         std::cout << "{\"rejected\":true}\n";
+        qualification_hold();
         return 0;
       }
       throw std::runtime_error("generated projection accepted an invalid response");
@@ -86,12 +104,14 @@ int main(int argc, char **argv) {
     if (operation == "__runtime_action_geometry_root__") {
       auto result = kungfu::sdk::generated::runtime_action_v1::geometry_root(context);
       print(result.wire, result.geometry_root);
+      qualification_hold();
       return 0;
     }
     if (operation != "__runtime_action_wire__") {
       throw std::invalid_argument("unsupported wire fixture operation");
     }
     print(kungfu::api::call_runtime_action_json(context, request));
+    qualification_hold();
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "kungfu-sdk-wire-cpp: " << error.what() << "\n";

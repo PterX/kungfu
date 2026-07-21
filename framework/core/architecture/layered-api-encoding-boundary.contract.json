@@ -27,7 +27,7 @@
     },
     "sdkGenerator": {
       "path": "scripts/generate-layered-sdk.mjs",
-      "sha256": "182bb76b4a6f5e87708d04fe3f0347c8814052440c51f13cd162383cf7593d1d"
+      "sha256": "174ada1bb3b3e6da506d33bda0a0b34d36e81d50333057bbad087d3c834032ce"
     }
   },
   "waist": {
@@ -203,7 +203,7 @@
       },
       {
         "path": "framework/sdk/python/kungfu_sdk/generated/runtime_action_v1.py",
-        "sha256": "6f5f51c6cb67e56176cc86b06eb84fad710920bc374a3a0f4b099f64f2f4bf21"
+        "sha256": "701b9bf45a40d1b1958176fe66f72c5e4519118c604138fd3667b59298c49cf0"
       },
       {
         "path": "crates/kungfu-sdk/src/generated/runtime_action_v1.rs",

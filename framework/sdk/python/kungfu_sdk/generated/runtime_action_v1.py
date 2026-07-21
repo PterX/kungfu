@@ -17,6 +17,8 @@ REQUEST_SCHEMA = "kungfu.action-runtime.operation/v1"
 RESPONSE_SCHEMA = "kungfu.action-runtime.result/v1"
 ENCODING = "application/json"
 GEOMETRY_ROOT_REQUEST = b'{"action":"geometry_root"}'
+
+
 @dataclass(frozen=True)
 class GeometryRootResult:
     geometry_root: str

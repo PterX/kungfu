@@ -330,6 +330,8 @@ REQUEST_SCHEMA = "${protocol.requestSchema}"
 RESPONSE_SCHEMA = "${protocol.responseSchema}"
 ENCODING = "${protocol.encoding}"
 GEOMETRY_ROOT_REQUEST = b'${requestBytes}'
+
+
 @dataclass(frozen=True)
 class GeometryRootResult:
     geometry_root: str

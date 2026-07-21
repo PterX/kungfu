@@ -35,9 +35,8 @@ public:
   explicit json_cursor(std::string_view input) : input_(input) {}
 
   void whitespace() {
-    while (position_ < input_.size() &&
-           (input_[position_] == ' ' || input_[position_] == '\n' || input_[position_] == '\r' ||
-            input_[position_] == '\t')) {
+    while (position_ < input_.size() && (input_[position_] == ' ' || input_[position_] == '\n' ||
+                                         input_[position_] == '\r' || input_[position_] == '\t')) {
       ++position_;
     }
   }
@@ -180,8 +179,7 @@ private:
   }
   auto root = detail::parse_response(wire.bytes);
   const auto is_lower_hex = [](char value) { return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'); };
-  if (root.size() != 71 || root.rfind("sha256:", 0) != 0 ||
-      !std::all_of(root.begin() + 7, root.end(), is_lower_hex)) {
+  if (root.size() != 71 || root.rfind("sha256:", 0) != 0 || !std::all_of(root.begin() + 7, root.end(), is_lower_hex)) {
     throw std::runtime_error("runtime-action geometryRoot is not a canonical SHA-256 root");
   }
   return {std::move(root), std::move(wire)};

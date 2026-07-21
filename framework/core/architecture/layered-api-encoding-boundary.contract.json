@@ -27,7 +27,7 @@
     },
     "sdkGenerator": {
       "path": "scripts/generate-layered-sdk.mjs",
-      "sha256": "174ada1bb3b3e6da506d33bda0a0b34d36e81d50333057bbad087d3c834032ce"
+      "sha256": "bb926de4c305441058c1311be5211bccd3690010862210fbd5c25f9eb6530976"
     }
   },
   "waist": {
@@ -195,7 +195,7 @@
     "generatedOutputRoots": [
       {
         "path": "framework/core/src/libkungfu/include/kungfu/sdk/generated/runtime_action_v1.hpp",
-        "sha256": "3e8bd24390558d62acc5ee0ee67b2efa553a083c3d8b8ee081f082bfff12f845"
+        "sha256": "8079a771b60be0df5f53d2dff4400bc7daf51deb2514bf9a0935739e711f7abd"
       },
       {
         "path": "framework/sdk/generated/runtime-action-v1.js",

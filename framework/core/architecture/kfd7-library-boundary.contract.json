@@ -8,6 +8,7 @@
     "decision": "docs/adr/ADR-0120-kfd7-library-boundary-and-successor-abi.md",
     "inventory": "docs/architecture/kfd7-library-boundary.md",
     "layerRegistry": "framework/core/architecture/layers.json",
+    "bootstrapAdmissionPolicy": "framework/core/architecture/libkungfu-symbol-policy.json",
     "factContract": "framework/fact/kungfu-fact-cut-kernel.contract.json",
     "agentWorkContract": "framework/agent-work/kungfu-agent-work-state.contract.json",
     "actionGeometryContract": "framework/action/action-geometry.contract.json",
@@ -89,9 +90,18 @@
     }
   ],
   "currentPublicAbi": {
+    "bootstrapAdmission": {
+      "mode": "closed-world",
+      "default": "deny",
+      "policy": "framework/core/architecture/libkungfu-symbol-policy.json",
+      "implementationMaySelfAuthorize": false,
+      "candidateMustPreexistOnTargetBranch": true,
+      "qualification": "supported-platform-release-passport-required"
+    },
     "symbols": [
       {
         "name": "kungfu_get_api",
+        "admissionId": "libkungfu-bootstrap-kungfu-get-api-v1",
         "header": "framework/core/src/libkungfu/include/kungfu/api.h",
         "versions": [1],
         "currency": ["protocol-id", "protocol-version", "schema-ref", "encoding", "bytes"],
@@ -209,6 +219,7 @@
       "c-and-cpp-examples",
       "rust-python-successor-bindings-and-node-guidance",
       "canonical-positive-and-negative-vectors",
+      "closed-world-bootstrap-admission-and-preauthorization",
       "retired-bootstrap-absence-and-historical-evidence-separation",
       "supported-platform-evidence",
       "release-passport-classification"
@@ -216,17 +227,17 @@
   },
   "qualification": {
     "status": "passed",
-    "sourceRevision": "b2994d0d8016e152710124172147c84ffb536fa7",
-    "workflowRun": "https://github.com/kungfu-systems/kungfu/actions/runs/29809371727",
+    "sourceRevision": "5901fd0255e2c259454e4208736bd90c07f8ba49",
+    "workflowRun": "https://github.com/kungfu-systems/kungfu/actions/runs/29825943409",
     "localPlatform": "darwin-arm64",
     "installedConsumer": "scripts/qualify-kfd7-installed-consumer.mjs",
     "conformance": "framework/core/architecture/kfd7-abi-conformance-v1.json",
     "releasePassport": "framework/core/architecture/kfd7-release-passport.json",
     "platformWorkflow": ".github/workflows/core-build-profiles.yml",
     "previousQualification": {
-      "scope": "pre-retirement-successor-and-three-export-artifact",
-      "sourceRevision": "a6ccb0ec476d8a57a24c79ce49acf77a0c9996e2",
-      "workflowRun": "https://github.com/kungfu-systems/kungfu/actions/runs/29762683233"
+      "scope": "pre-bootstrap-admission-gate",
+      "sourceRevision": "b2994d0d8016e152710124172147c84ffb536fa7",
+      "workflowRun": "https://github.com/kungfu-systems/kungfu/actions/runs/29809371727"
     }
   },
   "nonClaims": [

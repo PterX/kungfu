@@ -3,11 +3,15 @@
   "native_abi": {
     "id": "kungfu/api.h",
     "version": 1,
-    "sha256": "f0bc495dfcebb2d9d9512e8a40e22ddc74cc8af624f402d0e23e1e97af181629"
+    "sha256": "1ead2ae2c9089eaa94bd7f43fb0e91eb13cfbfc487bddd0a0d7e8b6fdcf97e29"
   },
   "semantic_fixture": {
     "id": "kungfu.layer-qualification.sdk-semantic-fixture/v1",
     "sha256": "52a727000f59455184b53a02ff5f7be9845870796c497225c678a52e14d0a816"
+  },
+  "wire_fixture": {
+    "id": "kungfu.layer-qualification.sdk-wire-fixture/v1",
+    "sha256": "b1b55bc231b7bd6db68c03c5f4ba244973d08f7327631b4c166e4095df4431b2"
   },
   "operations": [
     "episode_begin",
@@ -27,6 +31,8 @@
     "assessment_list",
     "assessment_invalidate",
     "trust_require",
-    "fact_kernel"
+    "fact_kernel",
+    "runtime_action_wire",
+    "runtime_action_geometry_root"
   ]
 }

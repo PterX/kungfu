@@ -188,6 +188,14 @@ jobs:
           ./shifu gate run source.changed-scope
           --omit-dependency source.acceptance
           --capability native-toolchain
+      - name: Qualify installed four-language SDK wire contract
+        if: ${{ steps.plan.outputs.required == 'true' && matrix.partition == 0 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./shifu pack:sdk
+          ./shifu layers:qualify:sdk -- \
+            --report product/qualification/affected-native/layered-sdk-report.json
       - name: Record compiler cache statistics
         if: ${{ always() && steps.plan.outputs.required == 'true' }}
         shell: bash

@@ -1,7 +1,7 @@
 ---
 metadata_schema: kungfu.document-metadata/v1
 doc_type: architecture-decision
-adr_id: ADR-0136
+adr_id: KF-ADR-019f87cb-b4e7-7cda-80ec-be5aceb7b500
 decision_status: accepted
 implementation_status: staged
 implementation_prs: []
@@ -17,7 +17,7 @@ last_reviewed: 2026-07-22
 ai_provenance: GPT-5 via Cursor on 2026-07-21; based on repository contracts, ADRs, implementations, and user-authorized design constraints; no claim about unobserved third-party builders or unreleased artifacts
 ---
 
-# ADR-0136: Layered APIs share one C ABI waist and each identity protocol owns its canonical bytes
+# KF-ADR-019f87cb-b4e7-7cda-80ec-be5aceb7b500: Layered APIs share one C ABI waist and each identity protocol owns its canonical bytes
 
 - Status: accepted; additive implementation staged
 - Date: 2026-07-21

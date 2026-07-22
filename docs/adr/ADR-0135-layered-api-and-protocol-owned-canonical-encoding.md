@@ -13,7 +13,7 @@ period: 2026-07-21
 theme: layered-api-and-protocol-owned-canonical-encoding
 confidence: high
 evidence_grade: B
-last_reviewed: 2026-07-21
+last_reviewed: 2026-07-22
 ai_provenance: GPT-5 via Cursor on 2026-07-21; based on repository contracts, ADRs, implementations, and user-authorized design constraints; no claim about unobserved third-party builders or unreleased artifacts
 ---
 

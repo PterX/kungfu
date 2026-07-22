@@ -139,7 +139,7 @@ contexts declared by branch protection. A build-free affected-native planner
 now runs before dependency bootstrap, binds its plan to the exact checked-out
 source and current architecture authority, and lets a proven tier-none change
 finish without installing Buildchain, Conan, or the workspace. Native plans
-continue through the same required Gate closure and use Buildchain `2.14.1` to
+continue through the same required Gate closure and use Buildchain `2.14.14-alpha.2` to
 derive separate portable dependency and compiler cache keys and receipts;
 restores never replace configure, build, or test execution, and misses retain a
 cold fallback. A read-only measurement surface records queue-inclusive

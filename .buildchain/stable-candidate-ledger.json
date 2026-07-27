@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "contract": "kungfu-buildchain-stable-candidate-ledger",
+  "repository": "PterX/kungfu",
+  "targetBranch": "release/v4/v4.0",
+  "hold": {
+    "enabled": false,
+    "reason": "",
+    "updatedAt": "2026-07-27T19:29:55.111Z"
+  },
+  "candidates": [],
+  "updatedAt": "2026-07-27T19:29:55.111Z",
+  "stableReleases": []
+}
